@@ -61,7 +61,6 @@ jobs:
         working-directory: backend
         run: |
           pip install -e ".[dev]"
-          
 
       - name: Run tests (default set)
         working-directory: backend
