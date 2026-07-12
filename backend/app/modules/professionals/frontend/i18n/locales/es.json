@@ -1,0 +1,40 @@
+{
+  "professionals": {
+    "nav": "Dentistas y Colaboradores",
+    "title": "Dentistas y Colaboradores",
+    "description": "Gestiona los perfiles profesionales de tu clínica.",
+    "create": "Añadir profesional",
+    "edit": "Editar perfil",
+    "saved": "El perfil se ha guardado correctamente.",
+    "empty": "Todavía no hay profesionales registrados",
+    "emptyDescription": "Añade dentistas y colaboradores para tener su información profesional siempre disponible.",
+    "noResults": "No hay profesionales que coincidan con los filtros",
+    "searchPlaceholder": "Buscar por nombre, especialidad o cédula",
+    "firstName": "Nombre",
+    "lastName": "Apellidos",
+    "type": "Tipo de perfil",
+    "specialty": "Especialidad",
+    "licenseNumber": "Cédula profesional",
+    "licenseShort": "Cédula",
+    "photoUrl": "URL de la foto",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "notes": "Notas",
+    "types": {
+      "dentist": "Dentista",
+      "collaborator": "Colaborador"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+    "filters": {
+      "allTypes": "Todos los perfiles",
+      "showInactive": "Mostrar inactivos"
+    },
+    "errors": {
+      "load": "No se pudo cargar el directorio de profesionales.",
+      "save": "No se pudo guardar el perfil. Inténtalo de nuevo."
+    }
+  }
+}

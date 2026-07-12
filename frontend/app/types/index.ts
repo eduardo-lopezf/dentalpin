@@ -1884,9 +1884,9 @@ export interface PatientAlert {
 // Extended Patient (with all new fields)
 export interface PatientExtended extends Patient {
   // Extended demographics
-  gender?: 'male' | 'female' | 'other' | 'prefer_not_say'
+  gender?: 'male' | 'female'
   national_id?: string
-  national_id_type?: 'dni' | 'nie' | 'passport'
+  national_id_type?: 'curp' | 'ine' | 'passport'
   profession?: string
   workplace?: string
   preferred_language: string

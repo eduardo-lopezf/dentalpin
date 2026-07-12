@@ -38,9 +38,14 @@ const documentDisplay = computed(() => {
   return type ? `${type}: ${props.patient.national_id}` : props.patient.national_id
 })
 
-const genderLabel = computed(() =>
-  props.patient.gender ? t(`patients.gender.${props.patient.gender}`) : null,
-)
+const genderLabel = computed(() => {
+  if (!props.patient.gender) return null
+  return props.patient.gender === 'male'
+    ? t('patients.gender.male')
+    : props.patient.gender === 'female'
+      ? t('patients.gender.female')
+      : null
+})
 </script>
 
 <template>

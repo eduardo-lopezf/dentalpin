@@ -45,6 +45,10 @@ export const PERMISSIONS = {
     renegotiate: 'budget.renegotiate',
     acceptInClinic: 'budget.accept_in_clinic'
   },
+  professionals: {
+    read: 'professionals.read',
+    write: 'professionals.write'
+  },
   billing: {
     read: 'billing.read',
     write: 'billing.write',

@@ -98,6 +98,7 @@ from app.modules.payments.models import (  # noqa: F401
     PaymentHistory,
     Refund,
 )
+from app.modules.professionals.models import Professional  # noqa: F401
 from app.modules.recalls.models import (  # noqa: F401
     Recall,
     RecallContactAttempt,

@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "DentalPin",
+    "name": "Dental Demo",
     "tagline": "Dental clinic management"
   },
   "demo": {
@@ -62,7 +62,7 @@
     "next": "Next",
     "back": "Back",
     "submit": "Create and start",
-    "success": "All set! Welcome to DentalPin",
+    "success": "All set! Welcome to Dental Demo",
     "firstNameRequired": "Enter the first name",
     "lastNameRequired": "Enter the last name",
     "emailRequired": "Enter the email",
@@ -126,6 +126,8 @@
     "demographics": "Demographics",
     "nationalId": "ID document",
     "nationalIdType": "Document type",
+    "curp": "CURP",
+    "ine": "INE",
     "passport": "Passport",
     "profession": "Profession",
     "workplace": "Workplace",
@@ -163,9 +165,7 @@
       "label": "Gender",
       "select": "Select gender",
       "male": "Male",
-      "female": "Female",
-      "other": "Other",
-      "preferNotSay": "Prefer not to say"
+      "female": "Female"
     },
     "emergencyContact": {
       "title": "Emergency contact",
@@ -880,7 +880,7 @@
       "afternoon": "Good afternoon",
       "evening": "Good evening"
     },
-    "welcome": "Welcome to DentalPin",
+    "welcome": "Welcome to Dental Demo",
     "welcomeMessage": "Start by creating your first patient.",
     "quickActions": {
       "newAppointment": "New appointment",

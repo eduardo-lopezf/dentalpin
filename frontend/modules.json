@@ -16,7 +16,8 @@
     "/module_layers/recalls/frontend",
     "/module_layers/notifications/frontend",
     "/module_layers/patient_timeline/frontend",
-    "/module_layers/reports/frontend"
+    "/module_layers/reports/frontend",
+    "/module_layers/professionals/frontend"
   ],
   "modules": [
     {
@@ -86,6 +87,10 @@
     {
       "name": "reports",
       "path": "/module_layers/reports/frontend"
+    },
+    {
+      "name": "professionals",
+      "path": "/module_layers/professionals/frontend"
     }
   ],
   "version": 1

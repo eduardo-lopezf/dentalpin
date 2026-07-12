@@ -43,9 +43,9 @@ class Patient(Base, TimestampMixin):
     do_not_contact: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # Extended demographics
-    gender: Mapped[str | None] = mapped_column(String(20))  # male, female, other, prefer_not_say
-    national_id: Mapped[str | None] = mapped_column(String(50))  # DNI/NIE/Passport
-    national_id_type: Mapped[str | None] = mapped_column(String(20))  # dni, nie, passport
+    gender: Mapped[str | None] = mapped_column(String(20))  # male, female
+    national_id: Mapped[str | None] = mapped_column(String(50))  # CURP/INE/Passport
+    national_id_type: Mapped[str | None] = mapped_column(String(20))  # curp, ine, passport
     profession: Mapped[str | None] = mapped_column(String(100))
     workplace: Mapped[str | None] = mapped_column(String(200))
     preferred_language: Mapped[str] = mapped_column(String(10), default="es")

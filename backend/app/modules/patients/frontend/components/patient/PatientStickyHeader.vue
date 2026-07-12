@@ -59,9 +59,7 @@ const genderLabel = computed(() => {
   if (!g) return null
   const map: Record<string, string> = {
     male: t('patients.gender.male'),
-    female: t('patients.gender.female'),
-    other: t('patients.gender.other'),
-    prefer_not_say: t('patients.gender.preferNotSay')
+    female: t('patients.gender.female')
   }
   return map[g] ?? null
 })

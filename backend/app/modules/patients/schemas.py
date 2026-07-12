@@ -8,7 +8,7 @@ shapes live in ``app.modules.patients_clinical.schemas``.
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 # --- Billing -------------------------------------------------------------
 
@@ -118,3 +118,21 @@ class PatientExtendedUpdate(PatientUpdate):
     preferred_language: str | None = Field(default=None, max_length=10)
     address: PatientAddress | None = None
     photo_url: str | None = Field(default=None, max_length=500)
+
+    @field_validator("gender")
+    @classmethod
+    def validate_gender(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if value not in {"male", "female"}:
+            raise ValueError("gender must be either 'male' or 'female'")
+        return value
+
+    @field_validator("national_id_type")
+    @classmethod
+    def validate_national_id_type(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if value not in {"curp", "ine", "passport"}:
+            raise ValueError("national_id_type must be either 'curp', 'ine' or 'passport'")
+        return value

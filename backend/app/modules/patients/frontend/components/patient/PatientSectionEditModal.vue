@@ -91,15 +91,13 @@ const billingForm = reactive({
 // Gender options
 const genderOptions = computed(() => [
   { label: t('patients.gender.male'), value: 'male' },
-  { label: t('patients.gender.female'), value: 'female' },
-  { label: t('patients.gender.other'), value: 'other' },
-  { label: t('patients.gender.preferNotSay'), value: 'prefer_not_say' }
+  { label: t('patients.gender.female'), value: 'female' }
 ])
 
 // National ID type options
 const nationalIdTypeOptions = computed(() => [
-  { label: 'DNI', value: 'dni' },
-  { label: 'NIE', value: 'nie' },
+  { label: t('patients.curp'), value: 'curp' },
+  { label: t('patients.ine'), value: 'ine' },
   { label: t('patients.passport'), value: 'passport' }
 ])
 

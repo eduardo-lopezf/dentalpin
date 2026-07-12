@@ -91,7 +91,7 @@ def get_clinic_data() -> dict:
         },
         "phone": t({"es": "+34 912 345 678", "en": "+1 (212) 555-0100"}),
         "email": "info@demo.clinic",
-        "currency": t({"es": "EUR", "en": "USD"}),
+        "currency": "MXN",
         "timezone": t({"es": "Europe/Madrid", "en": "America/New_York"}),
         "settings": {
             "slot_duration_min": 30,
@@ -2625,7 +2625,7 @@ def generate_invoices_data(catalog_items_map: dict[str, dict], budgets_result: d
                     "clinic_id": CLINIC_ID,
                     "patient_id": patient["id"],
                     "amount": amount,
-                    "currency": "EUR",
+                    "currency": "MXN",
                     "method": payment_data["method"],
                     "payment_date": pay_date,
                     "reference": f"REF-{payment_idx:04d}",
