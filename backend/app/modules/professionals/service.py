@@ -35,17 +35,22 @@ class ProfessionalService:
             full_name = func.concat(Professional.first_name, " ", Professional.last_name)
             conditions.append(
                 and_(
-                    *(or_(
-                        Professional.first_name.ilike(f"%{term}%"),
-                        Professional.last_name.ilike(f"%{term}%"),
-                        full_name.ilike(f"%{term}%"),
-                        Professional.specialty.ilike(f"%{term}%"),
-                        Professional.license_number.ilike(f"%{term}%"),
-                    ) for term in terms)
+                    *(
+                        or_(
+                            Professional.first_name.ilike(f"%{term}%"),
+                            Professional.last_name.ilike(f"%{term}%"),
+                            full_name.ilike(f"%{term}%"),
+                            Professional.specialty.ilike(f"%{term}%"),
+                            Professional.license_number.ilike(f"%{term}%"),
+                        )
+                        for term in terms
+                    )
                 )
             )
 
-        total = (await db.execute(select(func.count(Professional.id)).where(*conditions))).scalar() or 0
+        total = (
+            await db.execute(select(func.count(Professional.id)).where(*conditions))
+        ).scalar() or 0
         result = await db.execute(
             select(Professional)
             .where(*conditions)

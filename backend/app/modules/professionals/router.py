@@ -57,7 +57,9 @@ async def get_professional(
     return ApiResponse(data=ProfessionalResponse.model_validate(professional))
 
 
-@router.post("", response_model=ApiResponse[ProfessionalResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=ApiResponse[ProfessionalResponse], status_code=status.HTTP_201_CREATED
+)
 async def create_professional(
     data: ProfessionalCreate,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
@@ -79,5 +81,7 @@ async def update_professional(
     professional = await ProfessionalService.get(db, ctx.clinic_id, professional_id)
     if professional is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Professional not found")
-    updated = await ProfessionalService.update(db, professional, data.model_dump(exclude_unset=True))
+    updated = await ProfessionalService.update(
+        db, professional, data.model_dump(exclude_unset=True)
+    )
     return ApiResponse(data=ProfessionalResponse.model_validate(updated))
