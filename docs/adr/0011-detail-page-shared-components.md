@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Date:** 2026-05-13
-- **Deciders:** Ramon Martinez (frontend)
+- **Deciders:** Eduardo López (frontend)
 - **Tags:** frontend, ui, design-system
 
 ## Context

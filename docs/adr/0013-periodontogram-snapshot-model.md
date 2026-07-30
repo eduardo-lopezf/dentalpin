@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Date:** 2026-05-26
-- **Deciders:** Ramon Martinez (product), Claude (engineering)
+- **Deciders:** Eduardo López (product)
 - **Tags:** modules, periodontogram, data-model
 
 ## Context

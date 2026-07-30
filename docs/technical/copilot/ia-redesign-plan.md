@@ -1,6 +1,6 @@
 # IA (Copilot) — UX redesign & phased technical plan
 
-Status: **proposal / not started**. Owner: Ramon. Last updated: 2026-06-08.
+Status: **proposal / not started**. Owner: Eduardo. Last updated: 2026-06-08.
 
 This is the technical plan that follows the design exploration for the copilot redesign,
 rebranded in the UI as **"IA"**. It supersedes nothing in

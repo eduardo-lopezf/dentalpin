@@ -3,7 +3,7 @@
 > **Status:** plan técnico aprobado para implementación. Acompaña al plan de diseño previo.
 > **Issue tracker:** (pendiente abrir issue principal).
 > **Fecha:** 2026-05-25.
-> **Autor:** Ramon Martinez + Claude.
+> **Autor:** Eduardo López
 > **Phase B precondición:** ninguna — `periodontogram` puede arrancar en paralelo a otros módulos abiertos.
 
 ---

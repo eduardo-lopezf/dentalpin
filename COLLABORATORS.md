@@ -169,7 +169,7 @@ Las cifras concretas pueden actualizarse con preaviso razonable, y cualquier cam
 
 ## 11. Proceso de incorporación
 
-1. **Contacto inicial** escribiendo a **ramon.martinez@dentaltix.com**. En esta fase inicial del proyecto, no hay todavía formulario ni portal: todas las conversaciones de partners las llevo personalmente yo, Ramón, fundador de Dentaltix.
+1. **Contacto inicial** escribiendo a **eduardolf@gmail.com**. En esta fase inicial del proyecto, no hay todavía formulario ni portal: todas las conversaciones de partners las llevo personalmente yo, Eduardo, fundador de Dentaltix.
 2. **Conversación de encaje**: caso de uso, categoría, modelo de negocio, alineamiento con esta política.
 3. **Acuerdo escrito**: contrato de marketplace y, si aplica, addendum de Founding Partner o Strategic.
 4. **Desarrollo** del módulo siguiendo la guía técnica.
@@ -195,7 +195,7 @@ La política vigente siempre es la publicada en este archivo del repositorio ofi
 
 ## 13. Contacto
 
-DentalPin está en una fase muy temprana, así que de momento el canal es directo y personal: **ramon.martinez@dentaltix.com**. Soy Ramón, fundador de Dentaltix, y llevo personalmente cada conversación con colaboradores. Cuando el equipo y la adopción crezcan, abriremos canales dedicados (`partners@`, `brand@`, portal de partners) y lo anunciaremos aquí.
+DentalPin está en una fase muy temprana, así que de momento el canal es directo y personal: **eduardolf@gmail.com.com**. Soy Eduardo, fundador de Dentaltix, y llevo personalmente cada conversación con colaboradores. Cuando el equipo y la adopción crezcan, abriremos canales dedicados (`partners@`, `brand@`, portal de partners) y lo anunciaremos aquí.
 
 - ¿Quieres explorar una colaboración? Escríbeme y nos sentamos lo antes posible a ver si tiene sentido.
 - ¿Asuntos de marca o uso de logotipo? Mismo email, indícalo en el asunto.

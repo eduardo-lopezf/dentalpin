@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Date:** 2026-04-28
-- **Deciders:** Ramon Martinez
+- **Deciders:** Eduardo López
 - **Tags:** security, privacy, budget, public-api
 
 ## Context
