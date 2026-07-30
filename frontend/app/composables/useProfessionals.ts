@@ -1,4 +1,5 @@
 import type { Professional, PaginatedResponse } from '~/types'
+import { useApi } from '~/composables/useApi'
 
 const PROFESSIONAL_COLORS = [
   '#3B82F6', // blue
@@ -26,11 +27,11 @@ export function useProfessionals() {
     error.value = null
 
     try {
-      const response = await api.get<PaginatedResponse<Professional>>('/api/v1/auth/professionals')
+      const response = await api.get<PaginatedResponse<Professional>>('/api/v1/professionals')
       professionals.value = response.data
 
       professionalColors.value = new Map()
-      response.data.forEach((prof, index) => {
+      professionals.value.forEach((prof: Professional, index: number) => {
         const color = PROFESSIONAL_COLORS[index % PROFESSIONAL_COLORS.length]
         if (color) {
           professionalColors.value.set(prof.id, color)
@@ -45,7 +46,7 @@ export function useProfessionals() {
   }
 
   function getProfessionalById(id: string): Professional | undefined {
-    return professionals.value.find(p => p.id === id)
+    return professionals.value.find((p: Professional) => p.id === id)
   }
 
   function getProfessionalColor(id: string): string {

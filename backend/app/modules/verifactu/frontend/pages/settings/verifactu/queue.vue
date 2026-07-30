@@ -13,6 +13,7 @@ const {
 } = useVerifactu()
 const { can } = usePermissions()
 const toast = useToast?.()
+const { format: formatCurrency } = useCurrency()
 
 const tab = ref<'pending' | 'rejected' | 'failed_transient'>('pending')
 const items = ref<VerifactuQueueItem[]>([])
@@ -185,7 +186,7 @@ onMounted(refresh)
         class="py-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
       >
         <div class="text-sm min-w-0 flex-1">
-          <div class="font-medium">{{ item.serie_numero }} · {{ item.importe_total }}€</div>
+          <div class="font-medium">{{ item.serie_numero }} · {{ formatCurrency(item.importe_total) }}</div>
           <div
             v-if="item.aeat_descripcion_error_es || item.aeat_descripcion_error"
             class="text-red-600 break-words mt-1"

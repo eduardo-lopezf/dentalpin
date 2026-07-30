@@ -110,8 +110,8 @@ const form = ref({
   country: '',
   phone: '',
   email: '',
-  timezone: 'Europe/Madrid',
-  currency: 'EUR'
+  timezone: 'America/Mexico_City',
+  currency: 'MXN'
 })
 
 function loadForm() {

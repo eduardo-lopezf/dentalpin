@@ -19,6 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { format: formatCurrency } = useCurrency()
 </script>
 
 <template>
@@ -37,7 +38,7 @@ const { t } = useI18n()
             <div v-if="planNumber"><strong>{{ planNumber }}</strong></div>
             <div v-if="itemCount !== undefined">{{ t('treatmentPlans.itemCount', { count: itemCount }, itemCount) }}</div>
             <div v-if="totalEstimated !== null && totalEstimated !== undefined">
-              {{ totalEstimated.toFixed(2) }} €
+              {{ formatCurrency(totalEstimated) }}
             </div>
           </div>
         </div>
