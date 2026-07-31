@@ -14,7 +14,7 @@ async def test_get_clinic_hours_returns_default(
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["clinic_id"] == str(test_clinic.id)
-    assert data["timezone"] == "Europe/Madrid"
+    assert data["timezone"] == "America/Mexico_City"
     assert len(data["days"]) == 7
 
 
@@ -23,7 +23,7 @@ async def test_put_clinic_hours_replaces_shifts(
     client: AsyncClient, auth_headers: dict, test_clinic
 ):
     payload = {
-        "timezone": "Europe/Madrid",
+        "timezone": "America/Mexico_City",
         "days": [
             {
                 "weekday": 0,

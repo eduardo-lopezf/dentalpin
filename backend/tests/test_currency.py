@@ -38,11 +38,11 @@ def test_format_currency_locale_dash_normalized() -> None:
 
 
 @pytest.mark.asyncio
-async def test_clinic_currency_default_is_eur(
+async def test_clinic_currency_default_is_mx(
     db_session: AsyncSession, test_clinic: Clinic
 ) -> None:
     await db_session.refresh(test_clinic)
-    assert test_clinic.currency == "EUR"
+    assert test_clinic.currency == "MXN"
 
 
 @pytest.mark.asyncio
