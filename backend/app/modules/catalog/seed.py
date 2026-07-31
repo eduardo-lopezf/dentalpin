@@ -43,15 +43,9 @@ VAT_TYPES: list[dict[str, Any]] = [
         "is_default": True,
     },
     {
-        "key": "reduced",
-        "names": {"es": "Reducido (10%)", "en": "Reduced (10%)"},
-        "rate": 10.0,
-        "is_default": False,
-    },
-    {
         "key": "standard",
-        "names": {"es": "General (21%)", "en": "Standard (21%)"},
-        "rate": 21.0,
+        "names": {"es": "General (16%)", "en": "Standard (16%)"},
+        "rate": 16.0,
         "is_default": False,
     },
 ]
