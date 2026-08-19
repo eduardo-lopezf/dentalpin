@@ -27,14 +27,29 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth.models import ClinicMembership, User
+from app.modules.professionals.models import Professional
+from app.core.auth.models import User, ClinicMembership
 
 from .models import Appointment
 
 
 async def _fetch_professionals(db: AsyncSession, clinic_id: UUID) -> list[tuple[UUID, str, str]]:
-    """Return (id, first_name, last_name) for every active dentist /
-    hygienist in the clinic."""
+    """Return every active, schedulable professional in the clinic."""
+    # First, load explicit directory `Professional` rows.
+    result = await db.execute(
+        select(Professional.id, Professional.first_name, Professional.last_name).where(
+            Professional.clinic_id == clinic_id,
+            Professional.professional_type.in_(["dentist", "hygienist"]),
+            Professional.is_active.is_(True),
+        )
+    )
+    pros: list[tuple[UUID, str, str]] = [(r.id, r.first_name, r.last_name) for r in result.all()]
+
+    # Also include active `User` accounts that have a ClinicMembership with a
+    # clinical role (dentist/hygienist) and don't already have a directory
+    # Professional row. This keeps the kanban working in test harnesses that
+    # seed users+memberships instead of directory professionals.
+    existing_ids = {p[0] for p in pros}
     result = await db.execute(
         select(User.id, User.first_name, User.last_name)
         .join(ClinicMembership, ClinicMembership.user_id == User.id)
@@ -44,7 +59,12 @@ async def _fetch_professionals(db: AsyncSession, clinic_id: UUID) -> list[tuple[
             User.is_active.is_(True),
         )
     )
-    return [(r.id, r.first_name, r.last_name) for r in result.all()]
+    for r in result.all():
+        if r.id in existing_ids:
+            continue
+        pros.append((r.id, r.first_name, r.last_name))
+
+    return pros
 
 
 async def _fetch_active_treatments(

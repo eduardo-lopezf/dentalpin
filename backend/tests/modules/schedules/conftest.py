@@ -8,6 +8,7 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.models import Clinic, ClinicMembership, User
+from app.modules.professionals.models import Professional
 from app.core.auth.service import hash_password
 
 
@@ -34,6 +35,18 @@ async def dentist_user(db_session: AsyncSession, test_clinic: Clinic) -> User:
             role="dentist",
         )
     )
+    # Create a matching directory `Professional` so schedules FK is satisfied
+    db_session.add(
+        Professional(
+            id=user.id,
+            clinic_id=test_clinic.id,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            professional_type="dentist",
+            email=user.email,
+            is_active=True,
+        )
+    )
     await db_session.commit()
     return user
 
@@ -57,6 +70,17 @@ async def hygienist_user(db_session: AsyncSession, test_clinic: Clinic) -> User:
             user_id=user.id,
             clinic_id=test_clinic.id,
             role="hygienist",
+        )
+    )
+    db_session.add(
+        Professional(
+            id=user.id,
+            clinic_id=test_clinic.id,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            professional_type="hygienist",
+            email=user.email,
+            is_active=True,
         )
     )
     await db_session.commit()

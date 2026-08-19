@@ -6,6 +6,8 @@ from uuid import uuid4
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import event, text, select
+from sqlalchemy.orm import Session
 
 from app.database import Base, TimestampMixin
 
@@ -89,3 +91,59 @@ class ClinicMembership(Base, TimestampMixin):
     # Relationships
     user: Mapped["User"] = relationship(back_populates="memberships")
     clinic: Mapped["Clinic"] = relationship(back_populates="memberships")
+
+
+@event.listens_for(Session, "after_flush")
+def _ensure_professional_on_membership(session, flush_context) -> None:
+    """After flush, create minimal `Professional` ORM rows for new
+    `ClinicMembership` instances with clinical roles. This uses the same
+    ORM session so pending `Clinic` rows are visible and the FK will not
+    fail on subsequent inserts.
+    """
+    for obj in list(session.new):
+        if not isinstance(obj, ClinicMembership):
+            continue
+        if obj.role not in ("dentist", "hygienist"):
+            continue
+        # Check if a Professional already exists for this id+clinic.
+        # Use the ORM model to build a proper SELECT and avoid SQL string hacks.
+        try:
+            from app.modules.professionals.models import Professional
+
+            exists = session.execute(
+                select(Professional.id).where(
+                    Professional.id == obj.user_id, Professional.clinic_id == obj.clinic_id
+                )
+            ).scalar_one_or_none()
+            if exists:
+                continue
+
+            # Add minimal Professional via ORM so it's part of this unit-of-work.
+            # If there's a corresponding `User`, mirror basic fields so the
+            # directory profile contains a usable name and active flag.
+            first_name = ""
+            last_name = ""
+            is_active = True
+            try:
+                user = session.get(User, obj.user_id)
+                if user is not None:
+                    first_name = getattr(user, "first_name", "") or ""
+                    last_name = getattr(user, "last_name", "") or ""
+                    is_active = bool(getattr(user, "is_active", True))
+            except Exception:
+                # Best-effort: ignore inspection failures and create a
+                # minimal professional.
+                pass
+
+            prof = Professional(
+                id=obj.user_id,
+                clinic_id=obj.clinic_id,
+                first_name=first_name,
+                last_name=last_name,
+                professional_type=obj.role,
+                is_active=is_active,
+            )
+            session.add(prof)
+        except Exception:
+            # Best-effort: do not raise if something goes wrong in mirroring.
+            continue

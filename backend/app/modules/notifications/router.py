@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import get_db
+from app.modules.professionals.models import Professional
 
 from .gateway import NotificationGateway
 from .schemas import (
@@ -382,9 +383,9 @@ async def send_notification(
 
         # Get professional
         if appointment.professional_id:
-            from app.core.auth.models import User
-
-            result = await db.execute(select(User).where(User.id == appointment.professional_id))
+            result = await db.execute(
+                select(Professional).where(Professional.id == appointment.professional_id)
+            )
             professional = result.scalar_one_or_none()
             if professional:
                 context["professional_name"] = f"{professional.first_name} {professional.last_name}"

@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- fix(professionals): `assigned_professional_id` on `recalls` now points
+  at `professionals.id` (directory) instead of `users.id`, matching the
+  `agenda`/`schedules`/`treatment_plan`/`budget` directory-professional
+  rewire (`ag_0006`/`sch_0002`/`tp_0007`/`bud_0004`). Assigning a
+  professional to a recall was failing with a 500
+  (`ForeignKeyViolationError`) because the frontend already sends a
+  directory professional id. Migration `rec_0002` backfills existing
+  rows via the same deterministic account→profile mapping. Adds
+  `professionals` to `manifest.depends`. `create`/`update` now validate
+  the assigned professional against the directory (active
+  dentist/hygienist in-clinic) — previously unchecked. `recommended_by`
+  is untouched — it still FKs to `users.id` (who suggested the recall,
+  not who it's clinically attributed to). `PATCH /{recall_id}` now
+  catches `ValueError` from the service (404, matching `POST /`'s
+  existing convention) instead of letting it fall through as a 500 —
+  the new validation was the first thing that could raise from
+  `update()`.
+
 - fix(security): reject `create` when `patient_id` belongs to another
   clinic (audit multi-tenancy #1, #95). Previously the recall was
   inserted with the caller's `clinic_id` but no check that the patient

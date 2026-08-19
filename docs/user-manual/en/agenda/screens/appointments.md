@@ -26,7 +26,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/agenda/frontend/pages/appointments/index.vue
   - backend/app/modules/agenda/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 7406862
 ---
 
 # Appointments
@@ -103,9 +103,9 @@ professionals and rooms, and walk them through their workflow
 
 - **"New appointment" button is missing.** Your role lacks
   `agenda.appointments.write`.
-- **No professionals show up in the filter.** No clinic members with
-  an active clinical role exist yet. Create or activate professionals
-  under *Settings → Users*.
+- **No professionals show up in the filter.** There are no active dentists
+  or hygienists in the Professionals directory. Create or activate their
+  profile under *Professionals*.
 - **A moved appointment snaps back.** The backend rejected the change
   with HTTP 409 (typically because the professional or room already
   has another appointment in that slot). Check the error toast and

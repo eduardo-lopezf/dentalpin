@@ -11,30 +11,31 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.auth.models import ClinicMembership
 from app.core.events import event_bus
 from app.core.events.types import EventType
 from app.modules.odontogram.models import Treatment
 from app.modules.patients.models import Patient
+from app.modules.professionals.models import Professional
 
 from .models import PlannedTreatmentItem, PlannedTreatmentItemSession, TreatmentPlan
 
 
 async def _validate_professional_in_clinic(
-    db: AsyncSession, clinic_id: UUID, user_id: UUID
+    db: AsyncSession, clinic_id: UUID, professional_id: UUID
 ) -> None:
-    """Confirm ``user_id`` is a dentist/hygienist member of ``clinic_id``.
+    """Confirm ``professional_id`` is an active dentist/hygienist in ``clinic_id``.
 
     Used when assigning a doctor to a plan item (or the plan itself) to
-    avoid leaking users across tenants or assigning a non-clinical role.
-    Raises ``ValueError`` so the router maps it to a 400 response, in
-    line with the other validation errors in this module.
+    avoid leaking professionals across tenants or assigning a non-clinical
+    profile. Raises ``ValueError`` so the router maps it to a 400 response,
+    in line with the other validation errors in this module.
     """
     result = await db.execute(
-        select(ClinicMembership.id).where(
-            ClinicMembership.clinic_id == clinic_id,
-            ClinicMembership.user_id == user_id,
-            ClinicMembership.role.in_(("dentist", "hygienist")),
+        select(Professional.id).where(
+            Professional.id == professional_id,
+            Professional.clinic_id == clinic_id,
+            Professional.professional_type.in_(("dentist", "hygienist")),
+            Professional.is_active.is_(True),
         )
     )
     if result.scalar_one_or_none() is None:
@@ -309,6 +310,10 @@ class TreatmentPlanService:
         patient = await db.get(Patient, patient_id)
         if not patient or patient.clinic_id != clinic_id:
             raise ValueError("Invalid patient")
+
+        assigned_professional_id = data.get("assigned_professional_id")
+        if assigned_professional_id is not None:
+            await _validate_professional_in_clinic(db, clinic_id, assigned_professional_id)
 
         plan_number = await TreatmentPlanService.generate_plan_number(db, clinic_id)
 

@@ -10,7 +10,8 @@ surface (appointments CRUD, transitions, cabinet assignments, kanban).
 
 ## Dependencies
 
-`manifest.depends = ["patients", "catalog"]`.
+`manifest.depends` includes `professionals`: appointments reference the
+clinic directory's `professionals.id`, never a product-account ID.
 
 ## Permissions
 
@@ -78,6 +79,8 @@ None.
   appointments + the optional `schedules` availability payload. Do not
   add a backend free-slot endpoint without ADR — the data flow stays
   client-side and the schedules dependency stays optional.
+- **Professional identity.** `Appointment.professional_id` is a directory
+  profile that is active and of type `dentist` or `hygienist`.
 
 ## Related ADRs
 

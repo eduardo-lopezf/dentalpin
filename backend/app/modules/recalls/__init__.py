@@ -7,7 +7,9 @@ The module owns the recall state machine + monthly call list +
 treatment_plan; it never imports any of those modules' models or
 services. Treatment-plan integration goes through the enriched
 ``treatment_plan.treatment_completed`` payload (``treatment_category_key``
-snapshot) so we keep the dependency at ``["patients", "agenda"]``.
+snapshot) so we keep the dependency at ``["patients", "agenda", "professionals"]``
+— ``professionals`` is needed because ``assigned_professional_id`` FKs
+to the directory, not to ``treatment_plan``.
 """
 
 from __future__ import annotations
@@ -38,7 +40,7 @@ class RecallsModule(BaseModule):
         "author": "DentalPin Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": ["patients", "agenda"],
+        "depends": ["patients", "agenda", "professionals"],
         "installable": True,
         "auto_install": True,
         "removable": True,

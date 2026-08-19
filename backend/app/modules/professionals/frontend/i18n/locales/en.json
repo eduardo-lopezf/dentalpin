@@ -1,13 +1,13 @@
 {
   "professionals": {
-    "nav": "Dentists & Collaborators",
-    "title": "Dentists & Collaborators",
+    "nav": "Professionals",
+    "title": "Professionals",
     "description": "Manage your clinic's professional profiles.",
     "create": "Add professional",
     "edit": "Edit profile",
     "saved": "The profile has been saved.",
     "empty": "There are no professionals yet",
-    "emptyDescription": "Add dentists and collaborators to keep their professional information readily available.",
+    "emptyDescription": "Add dentists, hygienists and collaborators to keep their professional information readily available.",
     "noResults": "No professionals match the selected filters",
     "searchPlaceholder": "Search by name, specialty or license",
     "firstName": "First name",
@@ -17,11 +17,15 @@
     "licenseNumber": "Professional license",
     "licenseShort": "License",
     "photoUrl": "Photo URL",
+    "photoAfterSave": "You can upload a photo after saving for the first time.",
+    "uploadPhotoAction": "Choose file",
+    "photoUploaded": "The photo was uploaded successfully.",
     "email": "Email",
     "phone": "Phone",
     "notes": "Notes",
     "types": {
       "dentist": "Dentist",
+      "hygienist": "Hygienist",
       "collaborator": "Collaborator"
     },
     "status": {
@@ -34,7 +38,8 @@
     },
     "errors": {
       "load": "The professionals directory could not be loaded.",
-      "save": "The profile could not be saved. Please try again."
+      "save": "The profile could not be saved. Please try again.",
+      "photoUpload": "The photo could not be uploaded. Please try again."
     }
   }
 }

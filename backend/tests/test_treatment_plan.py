@@ -487,23 +487,21 @@ async def _add_professional(
     email: str,
     role: str = "dentist",
 ) -> str:
-    """Create a User + ClinicMembership for tests that need extra doctors."""
-    from app.core.auth.models import User
-    from app.core.auth.service import hash_password
+    """Create a directory ``Professional`` for tests that need extra doctors."""
+    from app.modules.professionals.models import Professional
 
-    user = User(
+    professional = Professional(
         id=uuid4(),
-        email=email,
-        password_hash=hash_password("TestPass123"),
+        clinic_id=clinic_id,
         first_name="Dr",
         last_name=email.split("@")[0],
+        professional_type=role,
+        email=email,
         is_active=True,
     )
-    db_session.add(user)
-    await db_session.flush()
-    db_session.add(ClinicMembership(id=uuid4(), user_id=user.id, clinic_id=clinic_id, role=role))
+    db_session.add(professional)
     await db_session.commit()
-    return str(user.id)
+    return str(professional.id)
 
 
 @pytest.mark.asyncio

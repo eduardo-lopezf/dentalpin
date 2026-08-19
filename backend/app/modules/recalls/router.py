@@ -279,9 +279,12 @@ async def update_recall(
     _: Annotated[None, Depends(require_permission("recalls.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[RecallResponse]:
-    recall = await RecallService.update(
-        db, ctx.clinic_id, recall_id, data.model_dump(exclude_unset=True)
-    )
+    try:
+        recall = await RecallService.update(
+            db, ctx.clinic_id, recall_id, data.model_dump(exclude_unset=True)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     if not recall:
         raise HTTPException(status_code=404, detail="Recall not found")
     await db.commit()

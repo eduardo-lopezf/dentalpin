@@ -1,6 +1,6 @@
 ---
 module: schedules
-last_verified_commit: 0e9a0ac
+last_verified_commit: 7406862
 ---
 
 # Schedules — technical overview
@@ -21,8 +21,8 @@ Issue #39 — ADR 0002 lessons applied.
 
 - `ClinicHours` — weekday × time-range, plus a "closed" flag.
 - `ClinicOverride` — date-bounded override of clinic hours.
-- `ProfessionalHours` — per-user weekday template.
-- `ProfessionalOverride` — date-bounded override per user.
+- `ProfessionalHours` — per-directory-professional weekday template.
+- `ProfessionalOverride` — date-bounded override per directory professional.
 - `OccupancyAggregate` — denormalised counts per (professional, day,
   hour) recomputed from agenda events.
 
@@ -30,7 +30,7 @@ Source: `backend/app/modules/schedules/models.py`.
 
 ## Direction of integration (critical)
 
-`manifest.depends = ["agenda"]` — schedules **reads** appointment data
+`manifest.depends = ["agenda", "professionals"]` — schedules **reads** appointment data
 through events. Agenda **must never** declare `depends: ["schedules"]`,
 otherwise schedules becomes mandatory and the uninstall story collapses.
 Integration goes one way:
@@ -38,6 +38,9 @@ Integration goes one way:
 - Schedules → consumes agenda events (`appointment.{scheduled,updated,cancelled}`).
 - Agenda's frontend → calls `GET /api/v1/schedules/availability` with a
   404-tolerant fallback (legacy 08:00–21:00 bounds when uninstalled).
+
+Professional schedules use `professionals.id`, matching Agenda. The profile
+must be active and typed as `dentist` or `hygienist`.
 
 This is the canonical example of a removable optional module — see
 [ADR 0002](../../adr/0002-per-module-alembic-branches.md) for the

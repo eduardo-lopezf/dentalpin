@@ -11,8 +11,10 @@ from __future__ import annotations
 from datetime import date, time
 from uuid import UUID
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.modules.professionals.models import Professional
 
 from .models import (
     ClinicOverride,
@@ -67,6 +69,9 @@ async def seed_schedules_demo(
         )
         stats["clinic_shifts"] += 2
     await db.flush()
+
+    dentist_id = await _ensure_demo_professional(db, clinic_id, dentist_id, "dentist")
+    hygienist_id = await _ensure_demo_professional(db, clinic_id, hygienist_id, "hygienist")
 
     # --- Dentist (Sarah / Dra.): Mon–Fri 09–14 + 16–19.
     await _seed_professional_weekly(
@@ -123,16 +128,18 @@ async def seed_schedules_demo(
 async def _seed_professional_weekly(
     db: AsyncSession,
     clinic_id: UUID,
-    user_id: UUID,
+    professional_id: UUID,
     shifts_by_weekday: dict[int, list[tuple[time, time]]],
 ) -> None:
     await db.execute(
         delete(ProfessionalWeeklySchedule).where(
             ProfessionalWeeklySchedule.clinic_id == clinic_id,
-            ProfessionalWeeklySchedule.user_id == user_id,
+            ProfessionalWeeklySchedule.professional_id == professional_id,
         )
     )
-    weekly = ProfessionalWeeklySchedule(clinic_id=clinic_id, user_id=user_id, is_active=True)
+    weekly = ProfessionalWeeklySchedule(
+        clinic_id=clinic_id, professional_id=professional_id, is_active=True
+    )
     db.add(weekly)
     await db.flush()
 
@@ -157,7 +164,6 @@ async def _ensure_clinic_override(
     end: date,
     reason: str,
 ) -> int:
-    from sqlalchemy import select
 
     existing = (
         await db.execute(
@@ -187,19 +193,18 @@ async def _ensure_clinic_override(
 async def _ensure_professional_override(
     db: AsyncSession,
     clinic_id: UUID,
-    user_id: UUID,
+    professional_id: UUID,
     *,
     start: date,
     end: date,
     reason: str,
 ) -> int:
-    from sqlalchemy import select
 
     existing = (
         await db.execute(
             select(ProfessionalOverride).where(
                 ProfessionalOverride.clinic_id == clinic_id,
-                ProfessionalOverride.user_id == user_id,
+                ProfessionalOverride.professional_id == professional_id,
                 ProfessionalOverride.start_date == start,
                 ProfessionalOverride.end_date == end,
                 ProfessionalOverride.reason == reason,
@@ -211,7 +216,7 @@ async def _ensure_professional_override(
     db.add(
         ProfessionalOverride(
             clinic_id=clinic_id,
-            user_id=user_id,
+            professional_id=professional_id,
             start_date=start,
             end_date=end,
             kind="unavailable",
@@ -220,3 +225,40 @@ async def _ensure_professional_override(
     )
     await db.flush()
     return 1
+
+
+async def _ensure_demo_professional(
+    db: AsyncSession, clinic_id: UUID, legacy_user_id: UUID, professional_type: str
+) -> UUID:
+    """Return the seeded directory record associated with a demo account.
+
+    The demo input still exposes account IDs, so use a deterministic UUID to
+    keep the record stable while all scheduling data points to the directory.
+    """
+    from uuid import NAMESPACE_URL, uuid5
+
+    professional_id = uuid5(
+        NAMESPACE_URL, f"dentalpin:legacy-professional:{clinic_id}:{legacy_user_id}"
+    )
+    existing = await db.get(Professional, professional_id)
+    if existing is not None:
+        return existing.id
+
+    from app.core.auth.models import User
+
+    user = await db.get(User, legacy_user_id)
+    if user is None:
+        raise ValueError(f"Demo user {legacy_user_id} does not exist")
+    db.add(
+        Professional(
+            id=professional_id,
+            clinic_id=clinic_id,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            email=user.email,
+            professional_type=professional_type,
+            is_active=user.is_active,
+        )
+    )
+    await db.flush()
+    return professional_id

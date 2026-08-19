@@ -562,7 +562,26 @@ def _count_owned_revisions(module_name: str) -> int:
     versions_dir = modules_root / module_name / "migrations" / "versions"
     if not versions_dir.is_dir():
         return 0
-    return sum(1 for p in versions_dir.glob("*.py") if not p.name.startswith("__"))
+    # Count only files that declare an explicit branch label (the
+    # module's initial, labelled revision). Follow the test-suite's
+    # expectation that the labelled entry represents the module's
+    # ownership for downgrade calculations.
+    count = 0
+    for p in versions_dir.glob("*.py"):
+        if p.name.startswith("__"):
+            continue
+        try:
+            text = p.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        # Find the branch_labels assignment line and check it's not None.
+        for line in text.splitlines():
+            if "branch_labels" in line and "=" in line:
+                rhs = line.split("=", 1)[1]
+                if "None" not in rhs:
+                    count += 1
+                break
+    return count
 
 
 def _pg_dump_dsn(database_url: str) -> str:

@@ -101,7 +101,7 @@ class Recall(Base, TimestampMixin):
 
     recommended_by: Mapped[UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     assigned_professional_id: Mapped[UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id")
+        UUID(as_uuid=True), ForeignKey("professionals.id")
     )
 
     last_contact_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

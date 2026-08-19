@@ -111,8 +111,10 @@ async def process_appointment_reminders() -> None:
                     # Get professional info
                     professional_name = None
                     if appointment.professional_id:
+                        from app.modules.professionals.models import Professional
+
                         result = await db.execute(
-                            select(User).where(User.id == appointment.professional_id)
+                            select(Professional).where(Professional.id == appointment.professional_id)
                         )
                         professional = result.scalar_one_or_none()
                         if professional:
@@ -210,8 +212,10 @@ async def send_single_reminder(appointment_id: UUID, clinic_id: UUID) -> bool:
             # Get professional
             professional_name = None
             if appointment.professional_id:
+                from app.modules.professionals.models import Professional
+
                 result = await db.execute(
-                    select(User).where(User.id == appointment.professional_id)
+                    select(Professional).where(Professional.id == appointment.professional_id)
                 )
                 professional = result.scalar_one_or_none()
                 if professional:

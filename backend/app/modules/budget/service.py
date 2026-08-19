@@ -10,8 +10,31 @@ from sqlalchemy.orm import joinedload
 
 from app.core.list_query import parse_sort
 from app.modules.catalog.models import TreatmentCatalogItem, VatType
+from app.modules.professionals.models import Professional
 
 from .models import Budget, BudgetHistory, BudgetItem
+
+
+async def _validate_professional_in_clinic(
+    db: AsyncSession, clinic_id: UUID, professional_id: UUID
+) -> None:
+    """Confirm ``professional_id`` is an active dentist/hygienist in ``clinic_id``.
+
+    Mirrors ``treatment_plan``'s validation of the same name — avoids
+    leaking professionals across tenants or assigning a non-clinical
+    profile. Raises ``ValueError`` so the router maps it to a 400.
+    """
+    result = await db.execute(
+        select(Professional.id).where(
+            Professional.id == professional_id,
+            Professional.clinic_id == clinic_id,
+            Professional.professional_type.in_(("dentist", "hygienist")),
+            Professional.is_active.is_(True),
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise ValueError("Professional not found in this clinic")
+
 
 # Public sort field → SQL column. ``payment_status`` is intentionally
 # absent — that sort would require joining payments which violates
@@ -372,6 +395,10 @@ class BudgetService:
         historic Gesdén presupuestos keep their original year+number
         instead of getting renumbered into the current year.
         """
+        assigned_professional_id = data.get("assigned_professional_id")
+        if assigned_professional_id is not None:
+            await _validate_professional_in_clinic(db, clinic_id, assigned_professional_id)
+
         # Allow caller to pre-set the budget_number (migration import).
         # When absent or None, fall through to the regular generator.
         override = data.pop("budget_number", None)
@@ -553,6 +580,13 @@ class BudgetService:
         """Update a budget (only allowed in draft status)."""
         if budget.status != "draft":
             raise ValueError("Only draft budgets can be edited")
+
+        new_professional_id = data.get("assigned_professional_id")
+        if (
+            new_professional_id is not None
+            and new_professional_id != budget.assigned_professional_id
+        ):
+            await _validate_professional_in_clinic(db, budget.clinic_id, new_professional_id)
 
         # Store previous state for history
         previous_state = {

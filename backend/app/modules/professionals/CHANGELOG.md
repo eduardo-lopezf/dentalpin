@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- feat(scheduling): adds the `hygienist` profile type. Active dentists and
+  hygienists are now the scheduling source of truth for Agenda and Schedules.
+
 - Initial release of the clinic directory for dentists and collaborators.
 - Adds profile fields for photo URL, specialty, professional-license number,
   contact information, notes and active status.

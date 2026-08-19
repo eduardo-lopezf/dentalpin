@@ -26,7 +26,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/agenda/frontend/pages/appointments/index.vue
   - backend/app/modules/agenda/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 7406862
 ---
 
 # Citas
@@ -104,9 +104,9 @@ flujo (programada → confirmada → en sala → completada → cobrada).
 
 - **No veo el botón "Nueva cita".** Tu rol no tiene
   `agenda.appointments.write`.
-- **No salen profesionales en el filtro.** Aún no hay miembros de la
-  clínica con rol clínico activo. Crea o activa profesionales desde
-  *Ajustes → Usuarios*.
+- **No salen profesionales en el filtro.** No hay dentistas o higienistas
+  activos en el directorio de Profesionales. Crea o activa su perfil desde
+  *Profesionales*.
 - **Una cita movida vuelve a su sitio.** El backend rechazó el cambio
   con HTTP 409 (típicamente porque el profesional o el gabinete tiene
   otra cita en esa franja). Mira el *toast* de error y prueba otra

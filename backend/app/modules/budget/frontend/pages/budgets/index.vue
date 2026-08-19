@@ -223,9 +223,9 @@ function paymentStatusFilterCtx() {
 }
 
 async function professionalFetcher(query: string) {
-  // Cheap: hits /api/v1/auth/professionals which is already paginated.
+  // Cheap: hits professionals directory endpoint which is already paginated.
   const res = await api.get<{ data: Array<{ id: string; first_name: string; last_name: string; email?: string }> }>(
-    `/api/v1/auth/professionals${query ? `?q=${encodeURIComponent(query)}` : ''}`,
+    `/api/v1/professionals${query ? `?q=${encodeURIComponent(query)}` : ''}`,
   )
   return res.data.map((p) => ({
     id: p.id,

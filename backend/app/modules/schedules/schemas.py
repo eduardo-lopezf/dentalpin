@@ -113,7 +113,8 @@ class ClinicOverrideResponse(BaseModel):
 class ProfessionalHoursResponse(BaseModel):
     id: UUID
     clinic_id: UUID
-    user_id: UUID
+    professional_id: UUID
+    user_id: UUID | None = None
     is_active: bool
     days: list[WeekdayShiftsOut]
 
@@ -156,7 +157,8 @@ class ProfessionalOverrideUpdate(ProfessionalOverrideBase):
 class ProfessionalOverrideResponse(BaseModel):
     id: UUID
     clinic_id: UUID
-    user_id: UUID
+    professional_id: UUID
+    user_id: UUID | None = None
     start_date: date
     end_date: date
     kind: str

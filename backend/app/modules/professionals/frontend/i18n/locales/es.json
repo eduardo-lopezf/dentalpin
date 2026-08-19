@@ -17,11 +17,15 @@
     "licenseNumber": "Cédula profesional",
     "licenseShort": "Cédula",
     "photoUrl": "URL de la foto",
+    "photoAfterSave": "Podrás subir una foto después de guardar por primera vez.",
+    "uploadPhotoAction": "Elegir archivo",
+    "photoUploaded": "La foto se subió correctamente.",
     "email": "Correo electrónico",
     "phone": "Teléfono",
     "notes": "Notas",
     "types": {
       "dentist": "Dentista",
+      "hygienist": "Higienista",
       "collaborator": "Colaborador"
     },
     "status": {
@@ -34,7 +38,8 @@
     },
     "errors": {
       "load": "No se pudo cargar el directorio de profesionales.",
-      "save": "No se pudo guardar el perfil. Inténtalo de nuevo."
+      "save": "No se pudo guardar el perfil. Inténtalo de nuevo.",
+      "photoUpload": "No se pudo subir la foto. Inténtalo de nuevo."
     }
   }
 }

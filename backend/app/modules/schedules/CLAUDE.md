@@ -17,11 +17,14 @@ Routes mounted at `/api/v1/schedules/`.
 
 ## Dependencies
 
-`manifest.depends = ["agenda"]`. Schedules **reads** appointment data
+`manifest.depends = ["agenda", "professionals"]`. Schedules **reads** appointment data
 to compute occupancy, but **agenda must NEVER declare
 `depends: ["schedules"]`** — that would make schedules required and
 defeat the uninstall story. Integration goes the other way: agenda's
 frontend calls `/api/v1/schedules/availability` with a fallback.
+
+Professional schedules and overrides reference the directory's
+`professionals.id`; accounts are not scheduling resources.
 
 ## Permissions
 

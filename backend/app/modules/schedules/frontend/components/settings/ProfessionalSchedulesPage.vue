@@ -4,7 +4,6 @@ import { PERMISSIONS } from '~~/app/config/permissions'
 
 const { t } = useI18n()
 const toast = useToast()
-const auth = useAuth()
 const { can } = usePermissions()
 const { professionals, fetchProfessionals } = useProfessionals()
 const {
@@ -22,7 +21,6 @@ const isAdmin = computed(() => can(PERMISSIONS.schedules.professionalRead) || ca
 const canWrite = computed(() => {
   if (!selectedProfessional.value) return false
   if (can(PERMISSIONS.schedules.professionalWrite)) return true
-  if (selectedProfessional.value === auth.user.value?.id && can(PERMISSIONS.schedules.professionalOwnWrite)) return true
   return false
 })
 
@@ -163,9 +161,6 @@ function padTime(value: string): string {
 
 onMounted(async () => {
   await fetchProfessionals()
-  if (!isAdmin.value && auth.user.value) {
-    selectedProfessional.value = auth.user.value.id
-  }
 })
 </script>
 

@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from app.modules.catalog.models import TreatmentCatalogItem, VatType
     from app.modules.odontogram.models import Treatment
     from app.modules.patients.models import Patient
+    from app.modules.professionals.models import Professional
 
 
 class Budget(Base, TimestampMixin):
@@ -62,7 +63,7 @@ class Budget(Base, TimestampMixin):
     # Assignments
     created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
     assigned_professional_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("users.id"), default=None
+        ForeignKey("professionals.id"), default=None
     )
 
     # Global discount
@@ -145,7 +146,7 @@ class Budget(Base, TimestampMixin):
     clinic: Mapped["Clinic"] = relationship(foreign_keys=[clinic_id])
     patient: Mapped["Patient"] = relationship()
     creator: Mapped["User"] = relationship(foreign_keys=[created_by])
-    assigned_professional: Mapped["User | None"] = relationship(
+    assigned_professional: Mapped["Professional | None"] = relationship(
         foreign_keys=[assigned_professional_id]
     )
     parent_budget: Mapped["Budget | None"] = relationship(

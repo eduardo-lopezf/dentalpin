@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.auth.models import ClinicMembership
+from app.modules.professionals.models import Professional
 
 from ..models import (
     ProfessionalOverride,
@@ -21,33 +21,36 @@ from ..models import (
 
 class ProfessionalHoursService:
     @staticmethod
-    async def is_professional(db: AsyncSession, clinic_id: UUID, user_id: UUID) -> bool:
+    async def is_professional(db: AsyncSession, clinic_id: UUID, professional_id: UUID) -> bool:
         result = await db.execute(
-            select(ClinicMembership.id).where(
-                ClinicMembership.clinic_id == clinic_id,
-                ClinicMembership.user_id == user_id,
-                ClinicMembership.role.in_(["dentist", "hygienist"]),
+            select(Professional.id).where(
+                Professional.clinic_id == clinic_id,
+                Professional.id == professional_id,
+                Professional.is_active.is_(True),
+                Professional.professional_type.in_(["dentist", "hygienist"]),
             )
         )
         return result.scalar_one_or_none() is not None
 
     @staticmethod
     async def get_or_create_weekly(
-        db: AsyncSession, clinic_id: UUID, user_id: UUID
+        db: AsyncSession, clinic_id: UUID, professional_id: UUID
     ) -> ProfessionalWeeklySchedule:
         result = await db.execute(
             select(ProfessionalWeeklySchedule)
             .options(selectinload(ProfessionalWeeklySchedule.shifts))
             .where(
                 ProfessionalWeeklySchedule.clinic_id == clinic_id,
-                ProfessionalWeeklySchedule.user_id == user_id,
+                ProfessionalWeeklySchedule.professional_id == professional_id,
             )
         )
         weekly = result.scalar_one_or_none()
         if weekly is not None:
             return weekly
 
-        weekly = ProfessionalWeeklySchedule(clinic_id=clinic_id, user_id=user_id, is_active=True)
+        weekly = ProfessionalWeeklySchedule(
+            clinic_id=clinic_id, professional_id=professional_id, is_active=True
+        )
         db.add(weekly)
         await db.flush()
         await db.refresh(weekly, ["shifts"])
@@ -83,7 +86,7 @@ class ProfessionalHoursService:
     async def list_overrides(
         db: AsyncSession,
         clinic_id: UUID,
-        user_id: UUID,
+        professional_id: UUID,
         start: date | None = None,
         end: date | None = None,
     ) -> list[ProfessionalOverride]:
@@ -92,7 +95,7 @@ class ProfessionalHoursService:
             .options(selectinload(ProfessionalOverride.shifts))
             .where(
                 ProfessionalOverride.clinic_id == clinic_id,
-                ProfessionalOverride.user_id == user_id,
+                ProfessionalOverride.professional_id == professional_id,
             )
         )
         if start is not None:
@@ -107,7 +110,7 @@ class ProfessionalHoursService:
     async def get_override(
         db: AsyncSession,
         clinic_id: UUID,
-        user_id: UUID,
+        professional_id: UUID,
         override_id: UUID,
     ) -> ProfessionalOverride | None:
         result = await db.execute(
@@ -116,17 +119,19 @@ class ProfessionalHoursService:
             .where(
                 ProfessionalOverride.id == override_id,
                 ProfessionalOverride.clinic_id == clinic_id,
-                ProfessionalOverride.user_id == user_id,
+                ProfessionalOverride.professional_id == professional_id,
             )
         )
         return result.scalar_one_or_none()
 
     @staticmethod
     async def create_override(
-        db: AsyncSession, clinic_id: UUID, user_id: UUID, data: dict[str, Any]
+        db: AsyncSession, clinic_id: UUID, professional_id: UUID, data: dict[str, Any]
     ) -> ProfessionalOverride:
         shifts = data.pop("shifts", []) or []
-        override = ProfessionalOverride(clinic_id=clinic_id, user_id=user_id, **data)
+        override = ProfessionalOverride(
+            clinic_id=clinic_id, professional_id=professional_id, **data
+        )
         db.add(override)
         await db.flush()
         for s in shifts:

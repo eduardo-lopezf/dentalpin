@@ -27,7 +27,13 @@ Public subset (no staff auth, 2-factor verification — ADR 0006) under
 
 ## Dependencies
 
-`manifest.depends = ["patients", "catalog", "odontogram"]`.
+`manifest.depends = ["patients", "catalog", "odontogram", "professionals"]`.
+
+`assigned_professional_id` on `Budget` FKs to `professionals.id`, not
+`users.id` — the assigned doctor is a directory profile, independent of
+any product account (see `professionals` module). `created_by` stays
+FK'd to `users.id`: it records who performed the action in the app, not
+who the clinical work is attributed to.
 
 ## Permissions
 

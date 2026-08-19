@@ -14,11 +14,11 @@ class ProfessionalsModule(BaseModule):
     manifest = {
         "name": "professionals",
         "version": "0.1.0",
-        "summary": "Dentists and collaborators directory with professional profiles.",
+        "summary": "Clinic directory and scheduling source of truth for professionals.",
         "author": "DentalPin Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": [],
+        "depends": ["media"],
         "installable": True,
         "auto_install": True,
         "removable": True,

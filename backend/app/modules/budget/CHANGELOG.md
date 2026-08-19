@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- fix(professionals): `assigned_professional_id` on `budgets` now points
+  at `professionals.id` (directory) instead of `users.id`, matching the
+  `agenda`/`schedules`/`treatment_plan` directory-professional rewire
+  (`ag_0006`/`sch_0002`/`tp_0007`). Assigning a professional to a budget
+  was failing with a 500 (`ForeignKeyViolationError`) because the
+  frontend already sends a directory professional id. Migration
+  `bud_0004` backfills existing rows via the same deterministic
+  account→profile mapping. Adds `professionals` to `manifest.depends`.
+  `create_budget`/`update_budget` now validate the assigned professional
+  against the directory (active dentist/hygienist in-clinic) instead of
+  accepting any id unchecked. `POST /budgets` now catches `ValueError`
+  from the service (400, matching `PUT /budgets/{id}`'s existing
+  convention) instead of letting it fall through as a 500 — the new
+  validation was the first thing that could raise from `create_budget`.
+
 - refactor(scheduler): declare the budget cron jobs (`expire_budgets`,
   `send_budget_reminders`, `purge_budget_access_logs`) via
   `get_scheduled_jobs()` instead of being imported by name in

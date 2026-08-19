@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.events import event_bus
 from app.core.events.types import EventType
 from app.modules.patients.models import Patient
+from app.modules.professionals.models import Professional
 
 from .models import (
     DEFAULT_CATEGORY_TO_REASON,
@@ -29,6 +30,27 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+async def _validate_professional_in_clinic(
+    db: AsyncSession, clinic_id: UUID, professional_id: UUID
+) -> None:
+    """Confirm ``professional_id`` is an active dentist/hygienist in ``clinic_id``.
+
+    Mirrors ``treatment_plan``'s validation of the same name — avoids
+    leaking professionals across tenants or assigning a non-clinical
+    profile. Raises ``ValueError`` so the router maps it to a 400.
+    """
+    result = await db.execute(
+        select(Professional.id).where(
+            Professional.id == professional_id,
+            Professional.clinic_id == clinic_id,
+            Professional.professional_type.in_(("dentist", "hygienist")),
+            Professional.is_active.is_(True),
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise ValueError("Professional not found in this clinic")
 
 
 # Status sets used in multiple queries.
@@ -262,6 +284,10 @@ class RecallService:
         if patient_in_clinic.scalar_one_or_none() is None:
             raise ValueError("Patient not found in this clinic")
 
+        assigned_professional_id = data.get("assigned_professional_id")
+        if assigned_professional_id is not None:
+            await _validate_professional_in_clinic(db, clinic_id, assigned_professional_id)
+
         existing = await RecallService.find_pending_for(
             db, clinic_id, data["patient_id"], data["reason"]
         )
@@ -319,7 +345,13 @@ class RecallService:
         if "priority" in data and data["priority"]:
             recall.priority = data["priority"]
         if "assigned_professional_id" in data:
-            recall.assigned_professional_id = data["assigned_professional_id"]
+            new_professional_id = data["assigned_professional_id"]
+            if (
+                new_professional_id is not None
+                and new_professional_id != recall.assigned_professional_id
+            ):
+                await _validate_professional_in_clinic(db, clinic_id, new_professional_id)
+            recall.assigned_professional_id = new_professional_id
         await db.flush()
         return recall
 

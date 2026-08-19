@@ -34,12 +34,18 @@ Routes mounted at `/api/v1/recalls/`.
 
 ## Dependencies
 
-`manifest.depends = ["patients", "agenda"]`.
+`manifest.depends = ["patients", "agenda", "professionals"]`.
 
 Treatment-plan integration is **event-driven only** — recalls reads
 the `treatment_category_key` snapshot field that treatment_plan added
 to its `treatment_plan.treatment_completed` payload. Recalls does
 NOT depend on treatment_plan or catalog: no imports, no FKs.
+
+`assigned_professional_id` on `Recall` FKs to `professionals.id`, not
+`users.id` — the assigned doctor is a directory profile, independent of
+any product account (see `professionals` module). `recommended_by`
+stays FK'd to `users.id`: it records which staff account suggested the
+recall, not who the follow-up is clinically attributed to.
 
 ## Permissions
 

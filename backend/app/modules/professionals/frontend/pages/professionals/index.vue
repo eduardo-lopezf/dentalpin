@@ -39,6 +39,18 @@ const { t } = useI18n()
 const api = useApi()
 const toast = useToast()
 const { can } = usePermissions()
+const config = useRuntimeConfig()
+
+// photo_url from the backend is a relative path (/api/v1/...) — fine for
+// $fetch/useApi calls, which prepend their own baseURL, but <img src>
+// has no such context and resolves relative paths against the current
+// page's own origin. Prepend the real API origin explicitly here.
+function resolvePhotoUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined
+  if (/^https?:\/\//.test(url)) return url
+  const base = import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
+  return `${base}${url}`
+}
 
 if (!can(PERMISSIONS.professionals.read)) {
   await navigateTo('/')
@@ -55,7 +67,13 @@ const typeFilter = ref<'all' | ProfessionalType>('all')
 const showInactive = ref(false)
 const isModalOpen = ref(false)
 const isSaving = ref(false)
+const isUploadingPhoto = ref(false)
 const editingId = ref<string | null>(null)
+const photoFileInputRef = ref<HTMLInputElement | null>(null)
+// The /photo endpoint requires Bearer auth and returns a relative path —
+// a plain <img src> can't load it (no auth header, wrong origin). We
+// fetch it as a blob ourselves and hand the <img> an object URL instead.
+const modalPhotoSrc = ref<string | undefined>(undefined)
 
 const form = reactive<ProfessionalForm>({
   first_name: '',
@@ -74,6 +92,40 @@ const typeOptions = computed(() => [
   { label: t('professionals.types.dentist'), value: 'dentist' },
   { label: t('professionals.types.collaborator'), value: 'collaborator' }
 ])
+
+// Curated specialty lists. `specialty` stays a free-text column in the
+// backend (no enum/CHECK there) — these are just the options offered in
+// the UI, picked by `professional_type`, not a hard validation rule.
+const DENTIST_SPECIALTIES = [
+  'Odontología General',
+  'Ortodoncia',
+  'Endodoncia',
+  'Periodoncia',
+  'Cirugía Oral y Maxilofacial',
+  'Odontopediatría',
+  'Prostodoncia',
+  'Patología Oral',
+  'Radiología Oral y Maxilofacial',
+  'Odontología Estética'
+]
+
+const COLLABORATOR_SPECIALTIES = [
+  'Laboratorio',
+  'Proveedor',
+  'Higienista Dental',
+  'Asistente Dental'
+]
+
+const specialtyOptions = computed(() =>
+  form.professional_type === 'dentist' ? DENTIST_SPECIALTIES : COLLABORATOR_SPECIALTIES
+)
+
+// Only fires on genuine user interaction with the type select (not on
+// openEdit()'s Object.assign) — clears specialty since a value valid for
+// one type (e.g. "Ortodoncia") isn't valid for the other.
+function handleTypeChange() {
+  form.specialty = ''
+}
 
 const filterOptions = computed(() => [
   { label: t('professionals.filters.allTypes'), value: 'all' },
@@ -97,6 +149,10 @@ function resetForm() {
     is_active: true
   })
   editingId.value = null
+  if (modalPhotoSrc.value) {
+    URL.revokeObjectURL(modalPhotoSrc.value)
+    modalPhotoSrc.value = undefined
+  }
 }
 
 function nullable(value: string): string | null {
@@ -161,6 +217,7 @@ function openEdit(professional: Professional) {
     is_active: professional.is_active
   })
   isModalOpen.value = true
+  refreshModalPhotoSrc()
 }
 
 async function save() {
@@ -192,6 +249,76 @@ async function save() {
 
 function labelForType(type: ProfessionalType) {
   return t(`professionals.types.${type}`)
+}
+
+// Local photo upload — only available in edit mode (needs an existing
+// professional_id, per the /photo endpoint). Uses $fetch directly with
+// a manual Authorization header, mirroring useAuth.ts's proven pattern,
+// instead of assuming useApi() (used elsewhere in this file for JSON
+// calls) handles multipart/FormData bodies correctly.
+// Fetches a Bearer-protected photo as a blob and returns a local object
+// URL — the only way an <img> tag can display it, since <img> never
+// sends custom Authorization headers.
+async function resolvePhotoBlobUrl(relativeUrl: string): Promise<string> {
+  const auth = useAuth()
+  const config = useRuntimeConfig()
+  const apiBaseUrl = import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
+  const blob = await $fetch<Blob>(relativeUrl, {
+    baseURL: apiBaseUrl,
+    headers: { Authorization: `Bearer ${auth.accessToken.value}` },
+    responseType: 'blob'
+  })
+  return URL.createObjectURL(blob)
+}
+
+async function refreshModalPhotoSrc() {
+  if (modalPhotoSrc.value) {
+    URL.revokeObjectURL(modalPhotoSrc.value)
+    modalPhotoSrc.value = undefined
+  }
+  if (!form.photo_url) return
+  try {
+    modalPhotoSrc.value = await resolvePhotoBlobUrl(form.photo_url)
+  } catch {
+    modalPhotoSrc.value = undefined
+  }
+}
+
+async function uploadPhoto(file: File) {
+  if (!editingId.value) return
+  const auth = useAuth()
+  const config = useRuntimeConfig()
+  const apiBaseUrl = import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
+
+  isUploadingPhoto.value = true
+  try {
+    const body = new FormData()
+    body.append('file', file)
+    const response = await $fetch<ApiResponse<Professional>>(
+      `/api/v1/professionals/${editingId.value}/photo`,
+      {
+        baseURL: apiBaseUrl,
+        method: 'POST',
+        body,
+        headers: { Authorization: `Bearer ${auth.accessToken.value}` }
+      }
+    )
+    form.photo_url = response.data.photo_url ?? ''
+    await refreshModalPhotoSrc()
+    toast.add({ title: t('common.success'), description: t('professionals.photoUploaded'), color: 'success' })
+    await load()
+  } catch {
+    toast.add({ title: t('common.error'), description: t('professionals.errors.photoUpload'), color: 'error' })
+  } finally {
+    isUploadingPhoto.value = false
+  }
+}
+
+function onPhotoFileSelected(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  target.value = ''
+  if (file) uploadPhoto(file)
 }
 
 watch([typeFilter, showInactive], () => {
@@ -342,6 +469,37 @@ onMounted(load)
         </template>
 
         <form class="space-y-4" @submit.prevent="save">
+          <div class="flex items-center gap-4">
+            <div class="relative shrink-0">
+              <UAvatar
+                :src="modalPhotoSrc"
+                :alt="`${form.first_name} ${form.last_name}`"
+                size="xl"
+              />
+              <UButton
+                v-if="editingId"
+                type="button"
+                icon="i-lucide-camera"
+                color="primary"
+                variant="solid"
+                size="xs"
+                class="absolute -bottom-1 -right-1 rounded-full"
+                :loading="isUploadingPhoto"
+                :aria-label="t('professionals.uploadPhotoAction')"
+                @click="photoFileInputRef?.click()"
+              />
+              <input
+                ref="photoFileInputRef"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="onPhotoFileSelected"
+              >
+            </div>
+            <p v-if="!editingId" class="text-caption text-subtle">
+              {{ t('professionals.photoAfterSave') }}
+            </p>
+          </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField :label="t('professionals.firstName')" required>
               <UInput v-model="form.first_name" required />
@@ -350,22 +508,28 @@ onMounted(load)
               <UInput v-model="form.last_name" required />
             </UFormField>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <UFormField :label="t('professionals.type')" required>
-              <USelect v-model="form.professional_type" :items="typeOptions" value-key="value" label-key="label" />
-            </UFormField>
-            <UFormField :label="t('professionals.specialty')">
-              <UInput v-model="form.specialty" />
-            </UFormField>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <UFormField :label="t('professionals.licenseNumber')">
-              <UInput v-model="form.license_number" />
-            </UFormField>
-            <UFormField :label="t('professionals.photoUrl')">
-              <UInput v-model="form.photo_url" type="url" placeholder="https://" />
-            </UFormField>
-          </div>
+          <UFormField :label="t('professionals.type')" required>
+            <USelect
+              v-model="form.professional_type"
+              :items="typeOptions"
+              value-key="value"
+              label-key="label"
+              class="w-full"
+              @update:model-value="handleTypeChange"
+            />
+          </UFormField>
+          <UFormField :label="t('professionals.specialty')">
+            <USelect
+              v-model="form.specialty"
+              :items="specialtyOptions"
+              placeholder="—"
+              class="w-full"
+            />
+          </UFormField>
+          <UFormField :label="t('professionals.licenseNumber')">
+            <UInput v-model="form.license_number" />
+          </UFormField>
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField :label="t('professionals.email')">
               <UInput v-model="form.email" type="email" />

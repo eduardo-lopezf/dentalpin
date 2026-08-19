@@ -1,15 +1,13 @@
 ---
 module: agenda
-last_verified_commit: 0000000
+last_verified_commit: 7406862
 ---
 
 # Agenda — technical overview
 
-> _Scaffolded stub — replace with proper documentation when this module is next touched._
-
-Auto-discovered facts about the `agenda` module. See the module's
-own notes at `backend/app/modules/agenda/CLAUDE.md` for context
-the scaffold could not infer.
+Appointments are assigned to active clinic-directory profiles of type
+`dentist` or `hygienist`. `appointments.professional_id` is a foreign key
+to `professionals.id`, never to a product user account.
 
 ## API surface
 
@@ -32,6 +30,9 @@ the scaffold could not infer.
 ## Frontend
 
 - `backend/app/modules/agenda/frontend/pages/appointments/index.vue` → `/appointments`
+
+The professional picker, calendar columns and kanban strip all consume the
+same directory records. Collaborators and inactive profiles cannot be booked.
 
 ## Permissions
 

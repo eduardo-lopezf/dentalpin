@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- feat(professionals): appointments now reference active dentist/hygienist
+  directory profiles instead of product accounts. Includes a conservative
+  migration of existing appointment identities.
+
 - feat(agents): two new copilot tools — `reschedule_appointment` (WRITE,
   wraps `AppointmentService.update_appointment`, surfaces `slot_conflict`
   as a structured error) and `update_appointment_status` (WRITE, wraps

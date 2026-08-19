@@ -101,13 +101,20 @@ export interface MeResponse {
 
 export type UserRole = 'admin' | 'dentist' | 'hygienist' | 'assistant' | 'receptionist'
 
-// Professional type (dentists and hygienists)
+// Clinic directory profile. Only dentists and hygienists are schedulable.
 export interface Professional {
   id: string
-  email: string
   first_name: string
   last_name: string
-  role: 'dentist' | 'hygienist'
+  full_name: string
+  professional_type: 'dentist' | 'hygienist' | 'collaborator'
+  specialty: string | null
+  license_number: string | null
+  email: string | null
+  phone: string | null
+  photo_url: string | null
+  notes: string | null
+  is_active: boolean
 }
 
 export interface UserCreate {

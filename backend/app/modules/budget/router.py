@@ -164,7 +164,12 @@ async def create_budget(
             detail="Patient not found",
         )
 
-    budget = await BudgetService.create_budget(db, ctx.clinic_id, ctx.user_id, data.model_dump())
+    try:
+        budget = await BudgetService.create_budget(
+            db, ctx.clinic_id, ctx.user_id, data.model_dump()
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # Reload with relationships
     budget = await BudgetService.get_budget(db, ctx.clinic_id, budget.id, include_items=True)

@@ -1,13 +1,13 @@
 ---
 module: professionals
-last_verified_commit: 0000000
+last_verified_commit: 7406862
 ---
 
 # Professionals — technical overview
 
-The professionals module owns the clinic-local directory of dentists and
-collaborators. It is independent from authentication accounts, so external
-specialists can have a profile without being able to sign in.
+The professionals module owns the clinic-local directory of dentists,
+hygienists and collaborators. It is independent from authentication accounts,
+so external specialists can have a profile without being able to sign in.
 
 ## Data
 
@@ -15,6 +15,9 @@ specialists can have a profile without being able to sign in.
 specialty, professional-license number, contact fields, profile photo URL,
 notes and active status. Records are deactivated with `is_active` rather than
 deleted.
+
+Agenda and Schedules reference the profile ID directly. Only active dentists
+and hygienists are schedulable; collaborators remain directory-only profiles.
 
 ## API surface
 
@@ -31,6 +34,5 @@ inactive profiles and a create/edit modal.
 
 ## Boundaries
 
-The module has no cross-module dependencies or event subscriptions. Any
-future connection with schedules, user accounts or treatment assignments must
-be explicitly designed as an event contract or declared dependency.
+The module has no dependencies or event subscriptions. Agenda and Schedules
+declare their dependency on this module before referencing its records.

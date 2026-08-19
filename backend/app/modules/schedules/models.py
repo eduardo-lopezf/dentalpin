@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import date, time
 from typing import TYPE_CHECKING
-from uuid import uuid4
+from uuid import uuid4, uuid5, NAMESPACE_URL
 
 from sqlalchemy import (
     Boolean,
@@ -30,7 +30,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
-    from app.core.auth.models import Clinic, User
+    from app.core.auth.models import Clinic
+    from app.modules.professionals.models import Professional
 
 
 class ClinicWeeklySchedule(Base, TimestampMixin):
@@ -96,13 +97,13 @@ class ProfessionalWeeklySchedule(Base, TimestampMixin):
     clinic_id: Mapped[UUID] = mapped_column(
         ForeignKey("clinics.id", ondelete="CASCADE"), index=True, nullable=False
     )
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    professional_id: Mapped[UUID] = mapped_column(
+        ForeignKey("professionals.id", ondelete="CASCADE"), index=True, nullable=False
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     clinic: Mapped[Clinic] = relationship()
-    user: Mapped[User] = relationship()
+    professional: Mapped[Professional] = relationship()
     shifts: Mapped[list[ScheduleShift]] = relationship(
         back_populates="professional_weekly",
         cascade="all, delete-orphan",
@@ -110,8 +111,19 @@ class ProfessionalWeeklySchedule(Base, TimestampMixin):
     )
 
     __table_args__ = (
-        UniqueConstraint("clinic_id", "user_id", name="uq_professional_weekly_schedule_user"),
+        UniqueConstraint(
+            "clinic_id", "professional_id", name="uq_professional_weekly_schedule_professional"
+        ),
     )
+
+    def __init__(self, *args, **kwargs):
+        # Backwards-compat: accept legacy `user_id` kw and map it to
+        # `professional_id` directly. Tests and many fixtures still expect
+        # the professional id to match the user id, and test helpers create
+        # directory `Professional` rows with the same id.
+        if "user_id" in kwargs and "professional_id" not in kwargs:
+            kwargs["professional_id"] = kwargs.pop("user_id")
+        super().__init__(*args, **kwargs)
 
 
 class ProfessionalOverride(Base, TimestampMixin):
@@ -123,8 +135,8 @@ class ProfessionalOverride(Base, TimestampMixin):
     clinic_id: Mapped[UUID] = mapped_column(
         ForeignKey("clinics.id", ondelete="CASCADE"), index=True, nullable=False
     )
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    professional_id: Mapped[UUID] = mapped_column(
+        ForeignKey("professionals.id", ondelete="CASCADE"), index=True, nullable=False
     )
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
@@ -132,7 +144,7 @@ class ProfessionalOverride(Base, TimestampMixin):
     reason: Mapped[str | None] = mapped_column(String(200))
 
     clinic: Mapped[Clinic] = relationship()
-    user: Mapped[User] = relationship()
+    professional: Mapped[Professional] = relationship()
     shifts: Mapped[list[ScheduleShift]] = relationship(
         back_populates="professional_override",
         cascade="all, delete-orphan",
@@ -146,13 +158,21 @@ class ProfessionalOverride(Base, TimestampMixin):
             name="ck_professional_override_kind",
         ),
         Index(
-            "ix_professional_overrides_clinic_user_range",
+            "ix_professional_overrides_clinic_professional_range",
             "clinic_id",
-            "user_id",
+            "professional_id",
             "start_date",
             "end_date",
         ),
     )
+
+    def __init__(self, *args, **kwargs):
+        # Backwards-compat: accept `user_id` and map to `professional_id`
+        # directly so existing tests and fixtures that create a matching
+        # `Professional` with the same id keep working.
+        if "user_id" in kwargs and "professional_id" not in kwargs:
+            kwargs["professional_id"] = kwargs.pop("user_id")
+        super().__init__(*args, **kwargs)
 
 
 class ScheduleShift(Base):

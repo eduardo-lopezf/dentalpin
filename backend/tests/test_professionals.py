@@ -51,6 +51,23 @@ async def clinic_with_professionals(
     db_session.add(dentist)
     await db_session.flush()
 
+    # Mirror a directory Professional for compatibility with directory-based
+    # scheduling: create a Professional with the same id as the user so
+    # existing tests that use the user id as professional_id continue to work.
+    from app.modules.professionals.models import Professional
+
+    db_session.add(
+        Professional(
+            id=dentist.id,
+            clinic_id=clinic.id,
+            first_name=dentist.first_name,
+            last_name=dentist.last_name,
+            professional_type="dentist",
+            email=dentist.email,
+            is_active=True,
+        )
+    )
+
     dentist_membership = ClinicMembership(
         id=uuid4(),
         user_id=dentist.id,
@@ -78,6 +95,19 @@ async def clinic_with_professionals(
         role="hygienist",
     )
     db_session.add(hygienist_membership)
+
+    # Mirror a directory Professional for the hygienist as well.
+    db_session.add(
+        Professional(
+            id=hygienist.id,
+            clinic_id=clinic.id,
+            first_name=hygienist.first_name,
+            last_name=hygienist.last_name,
+            professional_type="hygienist",
+            email=hygienist.email,
+            is_active=True,
+        )
+    )
 
     # Create receptionist user (should NOT appear in professionals list)
     receptionist = User(

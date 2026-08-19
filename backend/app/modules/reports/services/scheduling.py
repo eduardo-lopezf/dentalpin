@@ -7,8 +7,8 @@ from uuid import UUID
 from sqlalchemy import case, extract, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth.models import User
 from app.modules.agenda.models import Appointment
+from app.modules.professionals.models import Professional
 
 
 class SchedulingReportService:
@@ -195,9 +195,11 @@ class SchedulingReportService:
         prof_ids = [r.professional_id for r in rows if r.professional_id]
         prof_names: dict[UUID, str] = {}
         if prof_ids:
-            result = await db.execute(select(User).where(User.id.in_(prof_ids)))
-            for user in result.scalars():
-                prof_names[user.id] = f"{user.first_name} {user.last_name}"
+            result = await db.execute(select(Professional).where(Professional.id.in_(prof_ids)))
+            for professional in result.scalars():
+                prof_names[professional.id] = (
+                    f"{professional.first_name} {professional.last_name}"
+                )
 
         return [
             {

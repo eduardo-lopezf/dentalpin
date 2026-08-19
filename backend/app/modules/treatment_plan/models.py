@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from app.modules.budget.models import Budget
     from app.modules.odontogram.models import Treatment
     from app.modules.patients.models import Patient
+    from app.modules.professionals.models import Professional
 
 
 class TreatmentPlan(Base, TimestampMixin):
@@ -73,7 +74,7 @@ class TreatmentPlan(Base, TimestampMixin):
     )
 
     # Assignments
-    assigned_professional_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
+    assigned_professional_id: Mapped[UUID | None] = mapped_column(ForeignKey("professionals.id"))
     created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
 
     # Clinical notes
@@ -87,7 +88,7 @@ class TreatmentPlan(Base, TimestampMixin):
     clinic: Mapped["Clinic"] = relationship(foreign_keys=[clinic_id])
     patient: Mapped["Patient"] = relationship()
     budget: Mapped["Budget | None"] = relationship()
-    assigned_professional: Mapped["User | None"] = relationship(
+    assigned_professional: Mapped["Professional | None"] = relationship(
         foreign_keys=[assigned_professional_id]
     )
     creator: Mapped["User"] = relationship(foreign_keys=[created_by])
@@ -148,7 +149,7 @@ class PlannedTreatmentItem(Base, TimestampMixin):
     # independent — changing the plan-level doctor does not cascade here unless
     # the caller passes ``reassign_pending_items=True`` on the plan update.
     assigned_professional_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True, index=True
+        ForeignKey("professionals.id"), nullable=True, index=True
     )
 
     notes: Mapped[str | None] = mapped_column(Text)
@@ -158,7 +159,7 @@ class PlannedTreatmentItem(Base, TimestampMixin):
     treatment_plan: Mapped["TreatmentPlan"] = relationship(back_populates="items")
     treatment: Mapped["Treatment"] = relationship()
     completer: Mapped["User | None"] = relationship(foreign_keys=[completed_by])
-    assigned_professional: Mapped["User | None"] = relationship(
+    assigned_professional: Mapped["Professional | None"] = relationship(
         foreign_keys=[assigned_professional_id]
     )
     sessions: Mapped[list["PlannedTreatmentItemSession"]] = relationship(

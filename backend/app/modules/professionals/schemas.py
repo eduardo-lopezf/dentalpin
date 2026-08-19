@@ -6,7 +6,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-ProfessionalType = Literal["dentist", "collaborator"]
+# Only dentists and hygienists can receive appointments. Collaborators
+# remain useful in the directory (labs, suppliers, assistants) but are not
+# schedulable resources.
+ProfessionalType = Literal["dentist", "hygienist", "collaborator"]
 
 
 class ProfessionalCreate(BaseModel):

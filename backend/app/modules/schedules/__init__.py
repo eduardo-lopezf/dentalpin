@@ -44,7 +44,7 @@ class SchedulesModule(BaseModule):
         "author": "DentalPin Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": ["agenda"],
+        "depends": ["agenda", "professionals"],
         "installable": True,
         "auto_install": True,
         "removable": True,

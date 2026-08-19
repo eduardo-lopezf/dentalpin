@@ -123,14 +123,14 @@ async def _load_clinic_overrides(
 
 
 async def _load_professional_weekly(
-    db: AsyncSession, clinic_id: UUID, user_id: UUID
+    db: AsyncSession, clinic_id: UUID, professional_id: UUID
 ) -> ProfessionalWeeklySchedule | None:
     result = await db.execute(
         select(ProfessionalWeeklySchedule)
         .options(selectinload(ProfessionalWeeklySchedule.shifts))
         .where(
             ProfessionalWeeklySchedule.clinic_id == clinic_id,
-            ProfessionalWeeklySchedule.user_id == user_id,
+            ProfessionalWeeklySchedule.professional_id == professional_id,
         )
     )
     return result.scalar_one_or_none()
@@ -139,7 +139,7 @@ async def _load_professional_weekly(
 async def _load_professional_overrides(
     db: AsyncSession,
     clinic_id: UUID,
-    user_id: UUID,
+    professional_id: UUID,
     start: date,
     end: date,
 ) -> list[ProfessionalOverride]:
@@ -148,7 +148,7 @@ async def _load_professional_overrides(
         .options(selectinload(ProfessionalOverride.shifts))
         .where(
             ProfessionalOverride.clinic_id == clinic_id,
-            ProfessionalOverride.user_id == user_id,
+            ProfessionalOverride.professional_id == professional_id,
             ProfessionalOverride.start_date <= end,
             ProfessionalOverride.end_date >= start,
         )

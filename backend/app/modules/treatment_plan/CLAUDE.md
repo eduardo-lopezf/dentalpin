@@ -45,9 +45,16 @@ Routes mounted at `/api/v1/treatment-plans/`.
 
 ## Dependencies
 
-`manifest.depends = ["patients", "agenda", "odontogram", "catalog", "budget", "media"]`.
-Six dependencies. Anything not on this list is off-limits — no imports,
+`manifest.depends = ["patients", "agenda", "odontogram", "catalog", "budget", "media", "professionals"]`.
+Seven dependencies. Anything not on this list is off-limits — no imports,
 no FKs.
+
+`assigned_professional_id` (on `TreatmentPlan` and `PlannedTreatmentItem`)
+FKs to `professionals.id`, not `users.id` — the assigned doctor is a
+directory profile, independent of any product account (see `professionals`
+module). `created_by`/`completed_by` stay FK'd to `users.id`: those record
+who performed the action in the app, not who the clinical work is
+attributed to.
 
 ## Permissions
 

@@ -68,10 +68,10 @@ class NotificationHandlers:
                 # Get professional info if assigned
                 professional_name = None
                 if appointment.professional_id:
-                    from app.core.auth.models import User
+                    from app.modules.professionals.models import Professional
 
                     result = await db.execute(
-                        select(User).where(User.id == appointment.professional_id)
+                        select(Professional).where(Professional.id == appointment.professional_id)
                     )
                     professional = result.scalar_one_or_none()
                     if professional:
@@ -148,10 +148,10 @@ class NotificationHandlers:
                 # Get professional info
                 professional_name = None
                 if appointment.professional_id:
-                    from app.core.auth.models import User
+                    from app.modules.professionals.models import Professional
 
                     result = await db.execute(
-                        select(User).where(User.id == appointment.professional_id)
+                        select(Professional).where(Professional.id == appointment.professional_id)
                     )
                     professional = result.scalar_one_or_none()
                     if professional:

@@ -98,7 +98,8 @@ def _professional_weekly_to_response(
     return ProfessionalHoursResponse(
         id=weekly.id,
         clinic_id=weekly.clinic_id,
-        user_id=weekly.user_id,
+        professional_id=weekly.professional_id,
+        user_id=weekly.professional_id,
         is_active=weekly.is_active,
         days=[WeekdayShiftsOut(weekday=wd, shifts=by_day[wd]) for wd in range(7)],
     )
@@ -132,7 +133,8 @@ def _professional_override_to_response(
     return ProfessionalOverrideResponse(
         id=override.id,
         clinic_id=override.clinic_id,
-        user_id=override.user_id,
+        professional_id=override.professional_id,
+        user_id=override.professional_id,
         start_date=override.start_date,
         end_date=override.end_date,
         kind=override.kind,
@@ -141,13 +143,14 @@ def _professional_override_to_response(
     )
 
 
-def _require_professional_access(ctx: ClinicContext, user_id: UUID, action: str) -> None:
-    """Raise 403 if the user lacks rights to read/write someone else's schedule."""
+def _require_professional_access(ctx: ClinicContext, action: str) -> None:
+    """Require management rights for a directory professional's schedule.
+
+    Profiles are deliberately independent from product accounts, therefore
+    an account's ``own`` permission cannot identify a schedule safely.
+    """
     perm_general = f"schedules.professional.{action}"
-    perm_own = f"schedules.professional.own.{action}"
     if has_permission(ctx.role, perm_general):
-        return
-    if has_permission(ctx.role, perm_own) and user_id == ctx.user_id:
         return
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
@@ -284,35 +287,35 @@ async def delete_clinic_override(
 
 
 @router.get(
-    "/professionals/{user_id}/hours",
+    "/professionals/{professional_id}/hours",
     response_model=ApiResponse[ProfessionalHoursResponse],
 )
 async def get_professional_hours(
-    user_id: UUID,
+    professional_id: UUID,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[ProfessionalHoursResponse]:
-    _require_professional_access(ctx, user_id, "read")
-    if not await ProfessionalHoursService.is_professional(db, ctx.clinic_id, user_id):
+    _require_professional_access(ctx, "read")
+    if not await ProfessionalHoursService.is_professional(db, ctx.clinic_id, professional_id):
         raise HTTPException(status_code=404, detail="Professional not found")
-    weekly = await ProfessionalHoursService.get_or_create_weekly(db, ctx.clinic_id, user_id)
+    weekly = await ProfessionalHoursService.get_or_create_weekly(db, ctx.clinic_id, professional_id)
     return ApiResponse(data=_professional_weekly_to_response(weekly))
 
 
 @router.put(
-    "/professionals/{user_id}/hours",
+    "/professionals/{professional_id}/hours",
     response_model=ApiResponse[ProfessionalHoursResponse],
 )
 async def update_professional_hours(
-    user_id: UUID,
+    professional_id: UUID,
     payload: ProfessionalHoursUpdate,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[ProfessionalHoursResponse]:
-    _require_professional_access(ctx, user_id, "write")
-    if not await ProfessionalHoursService.is_professional(db, ctx.clinic_id, user_id):
+    _require_professional_access(ctx, "write")
+    if not await ProfessionalHoursService.is_professional(db, ctx.clinic_id, professional_id):
         raise HTTPException(status_code=404, detail="Professional not found")
-    weekly = await ProfessionalHoursService.get_or_create_weekly(db, ctx.clinic_id, user_id)
+    weekly = await ProfessionalHoursService.get_or_create_weekly(db, ctx.clinic_id, professional_id)
     weekly = await ProfessionalHoursService.replace_weekly_shifts(
         db,
         weekly,
@@ -328,43 +331,43 @@ async def update_professional_hours(
 
 
 @router.get(
-    "/professionals/{user_id}/overrides",
+    "/professionals/{professional_id}/overrides",
     response_model=ApiResponse[list[ProfessionalOverrideResponse]],
 )
 async def list_professional_overrides(
-    user_id: UUID,
+    professional_id: UUID,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
     db: Annotated[AsyncSession, Depends(get_db)],
     start: date | None = None,
     end: date | None = None,
 ) -> ApiResponse[list[ProfessionalOverrideResponse]]:
-    _require_professional_access(ctx, user_id, "read")
-    if not await ProfessionalHoursService.is_professional(db, ctx.clinic_id, user_id):
+    _require_professional_access(ctx, "read")
+    if not await ProfessionalHoursService.is_professional(db, ctx.clinic_id, professional_id):
         raise HTTPException(status_code=404, detail="Professional not found")
     overrides = await ProfessionalHoursService.list_overrides(
-        db, ctx.clinic_id, user_id, start, end
+        db, ctx.clinic_id, professional_id, start, end
     )
     return ApiResponse(data=[_professional_override_to_response(o) for o in overrides])
 
 
 @router.post(
-    "/professionals/{user_id}/overrides",
+    "/professionals/{professional_id}/overrides",
     response_model=ApiResponse[ProfessionalOverrideResponse],
     status_code=status.HTTP_201_CREATED,
 )
 async def create_professional_override(
-    user_id: UUID,
+    professional_id: UUID,
     payload: ProfessionalOverrideCreate,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[ProfessionalOverrideResponse]:
-    _require_professional_access(ctx, user_id, "write")
-    if not await ProfessionalHoursService.is_professional(db, ctx.clinic_id, user_id):
+    _require_professional_access(ctx, "write")
+    if not await ProfessionalHoursService.is_professional(db, ctx.clinic_id, professional_id):
         raise HTTPException(status_code=404, detail="Professional not found")
     override = await ProfessionalHoursService.create_override(
         db,
         ctx.clinic_id,
-        user_id,
+        professional_id,
         {
             "start_date": payload.start_date,
             "end_date": payload.end_date,
@@ -379,18 +382,20 @@ async def create_professional_override(
 
 
 @router.put(
-    "/professionals/{user_id}/overrides/{override_id}",
+    "/professionals/{professional_id}/overrides/{override_id}",
     response_model=ApiResponse[ProfessionalOverrideResponse],
 )
 async def update_professional_override(
-    user_id: UUID,
+    professional_id: UUID,
     override_id: UUID,
     payload: ProfessionalOverrideUpdate,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[ProfessionalOverrideResponse]:
-    _require_professional_access(ctx, user_id, "write")
-    override = await ProfessionalHoursService.get_override(db, ctx.clinic_id, user_id, override_id)
+    _require_professional_access(ctx, "write")
+    override = await ProfessionalHoursService.get_override(
+        db, ctx.clinic_id, professional_id, override_id
+    )
     if override is None:
         raise HTTPException(status_code=404, detail="Override not found")
     override = await ProfessionalHoursService.update_override(
@@ -410,17 +415,19 @@ async def update_professional_override(
 
 
 @router.delete(
-    "/professionals/{user_id}/overrides/{override_id}",
+    "/professionals/{professional_id}/overrides/{override_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_professional_override(
-    user_id: UUID,
+    professional_id: UUID,
     override_id: UUID,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> None:
-    _require_professional_access(ctx, user_id, "write")
-    override = await ProfessionalHoursService.get_override(db, ctx.clinic_id, user_id, override_id)
+    _require_professional_access(ctx, "write")
+    override = await ProfessionalHoursService.get_override(
+        db, ctx.clinic_id, professional_id, override_id
+    )
     if override is None:
         raise HTTPException(status_code=404, detail="Override not found")
     await ProfessionalHoursService.delete_override(db, override)

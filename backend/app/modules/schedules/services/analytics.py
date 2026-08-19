@@ -16,8 +16,8 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth.models import ClinicMembership, User
 from app.modules.agenda.models import Appointment, Cabinet
+from app.modules.professionals.models import Professional
 
 from .availability import AvailabilityService
 
@@ -88,30 +88,26 @@ class AnalyticsService:
         end: date,
         professional_id: UUID | None = None,
     ) -> list[dict[str, Any]]:
-        membership_filter = (
-            select(ClinicMembership.user_id)
+        professionals_query = (
+            select(Professional.id, Professional.first_name, Professional.last_name)
             .where(
-                ClinicMembership.clinic_id == clinic_id,
-                ClinicMembership.role.in_(["dentist", "hygienist"]),
+                Professional.clinic_id == clinic_id,
+                Professional.is_active.is_(True),
+                Professional.professional_type.in_(["dentist", "hygienist"]),
             )
-            .subquery()
-        )
-        users_query = (
-            select(User.id, User.first_name, User.last_name)
-            .where(User.id.in_(select(membership_filter.c.user_id)))
-            .order_by(User.last_name, User.first_name)
+            .order_by(Professional.last_name, Professional.first_name)
         )
         if professional_id is not None:
-            users_query = users_query.where(User.id == professional_id)
-        users = (await db.execute(users_query)).all()
-        if not users:
+            professionals_query = professionals_query.where(Professional.id == professional_id)
+        professionals = (await db.execute(professionals_query)).all()
+        if not professionals:
             return []
 
         tz_name, _ = await AvailabilityService.resolve(db, clinic_id, start, end)
         tz = ZoneInfo(tz_name)
         result_rows: list[dict[str, Any]] = []
-        for user in users:
-            _, ranges = await AvailabilityService.resolve(db, clinic_id, start, end, user.id)
+        for professional in professionals:
+            _, ranges = await AvailabilityService.resolve(db, clinic_id, start, end, professional.id)
             working_minutes = sum(
                 int((r.end - r.start).total_seconds() / 60) for r in ranges if r.state == "open"
             )
@@ -131,7 +127,7 @@ class AnalyticsService:
                         )
                     ).where(
                         Appointment.clinic_id == clinic_id,
-                        Appointment.professional_id == user.id,
+                        Appointment.professional_id == professional.id,
                         Appointment.status != "cancelled",
                         Appointment.start_time >= _bound(start, "lo", tz),
                         Appointment.start_time <= _bound(end, "hi", tz),
@@ -142,8 +138,10 @@ class AnalyticsService:
             rate = (booked / working_minutes) if working_minutes else 0.0
             result_rows.append(
                 {
-                    "professional_id": user.id,
-                    "professional_name": f"{user.first_name} {user.last_name}".strip(),
+                    "professional_id": professional.id,
+                    "professional_name": (
+                        f"{professional.first_name} {professional.last_name}".strip()
+                    ),
                     "booked_minutes": booked,
                     "working_minutes": working_minutes,
                     "utilization_rate": min(rate, 1.0),

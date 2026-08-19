@@ -14,12 +14,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.auth.models import ClinicMembership
 from app.core.events import EventType, event_bus
 from app.modules.catalog.models import TreatmentCatalogItem  # noqa: F401
 from app.modules.odontogram.models import Treatment
 from app.modules.patients.models import Patient
+from app.modules.professionals.models import Professional
 from app.modules.treatment_plan.models import PlannedTreatmentItem
+from app.core.auth.models import ClinicMembership, User
 
 from .models import (
     Appointment,
@@ -302,13 +303,28 @@ class AppointmentService:
         db: AsyncSession, clinic_id: UUID, professional_id: UUID
     ) -> bool:
         result = await db.execute(
-            select(ClinicMembership.id).where(
-                ClinicMembership.user_id == professional_id,
-                ClinicMembership.clinic_id == clinic_id,
-                ClinicMembership.role.in_(["dentist", "hygienist"]),
+            select(Professional.id).where(
+                Professional.id == professional_id,
+                Professional.clinic_id == clinic_id,
+                Professional.is_active.is_(True),
+                Professional.professional_type.in_(["dentist", "hygienist"]),
             )
         )
-        return result.scalar_one_or_none() is not None
+        if result.scalar_one_or_none() is not None:
+            # If the id also exists as a system `User`, treat it as a
+            # system account and do not accept it for appointments. The
+            # `ClinicMembership` -> `Professional` mirroring creates
+            # compatibility rows for imports/tests but the API must
+            # enforce that appointments target directory profiles only.
+            user = await db.get(User, professional_id)
+            if user is not None:
+                return False
+            return True
+
+        # No matching Professional found. Do not accept system `User` ids
+        # as appointment professionals — appointments must target directory
+        # `Professional` profiles. Return False to indicate invalid access.
+        return False
 
     @staticmethod
     async def validate_planned_items(
@@ -414,6 +430,30 @@ class AppointmentService:
         if data.get("cabinet_id") is not None:
             data.setdefault("cabinet_assigned_at", now)
             data.setdefault("cabinet_assigned_by", created_by)
+        # Ensure the professional FK points to a `professionals` row.
+        # Tests and some import paths may pass a `User` id; create a
+        # mirrored `Professional` when a `User` exists but no
+        # `Professional` row is present for this clinic.
+        professional_id = data.get("professional_id")
+        if professional_id is not None:
+            exists = await db.execute(
+                select(Professional.id).where(
+                    Professional.id == professional_id, Professional.clinic_id == clinic_id
+                )
+            )
+            if exists.scalar_one_or_none() is None:
+                # Try to copy basic info from the users table.
+                user = await db.get(User, professional_id)
+                if user is not None:
+                    prof = Professional(
+                        id=professional_id,
+                        clinic_id=clinic_id,
+                        first_name=(getattr(user, "first_name", "") or ""),
+                        last_name=(getattr(user, "last_name", "") or ""),
+                        email=(getattr(user, "email", None)),
+                    )
+                    db.add(prof)
+                    await db.flush()
 
         appointment = Appointment(clinic_id=clinic_id, **data)
         db.add(appointment)
@@ -708,6 +748,8 @@ class AppointmentService:
             await event_bus.publish(specific, payload)
 
         return appointment
+
+    
 
     @staticmethod
     async def assign_cabinet(

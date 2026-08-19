@@ -9,11 +9,41 @@ set -e
 
 echo "Resetting database..."
 
+# Helper to exec in a container: prefer `-T` when supported, fall back otherwise.
+docker_exec() {
+  service="$1"
+  shift
+  # Prefer the modern `docker compose` CLI, but fall back to `docker-compose`
+  # if the host doesn't support the subcommand. Also prefer `-T` when
+  # supported to avoid allocating a TTY for non-interactive commands.
+  if docker compose version >/dev/null 2>&1; then
+    if docker compose exec -T "$service" true >/dev/null 2>&1; then
+      docker compose exec -T "$service" "$@"
+    else
+      docker compose exec "$service" "$@"
+    fi
+    return
+  fi
+
+  # Fallback to docker-compose
+  if docker-compose version >/dev/null 2>&1; then
+    if docker-compose exec -T "$service" true >/dev/null 2>&1; then
+      docker-compose exec -T "$service" "$@"
+    else
+      docker-compose exec "$service" "$@"
+    fi
+    return
+  fi
+
+  echo "Neither 'docker compose' nor 'docker-compose' are available." >&2
+  exit 1
+}
+
 # Reset alembic version
-docker compose exec -T db psql -U dental -d dental_clinic -c "DELETE FROM alembic_version;" 2>/dev/null || true
+docker_exec db psql -U dental -d dental_clinic -c "DELETE FROM alembic_version;" 2>/dev/null || true
 
 # Drop all tables (in correct order to handle foreign keys)
-docker compose exec -T db psql -U dental -d dental_clinic << 'EOF'
+docker_exec db psql -U dental -d dental_clinic << 'EOF'
 DO $$
 DECLARE
     r RECORD;
@@ -26,7 +56,7 @@ END $$;
 EOF
 
 # Run migrations
-docker compose exec -T backend alembic upgrade heads
+docker_exec backend alembic upgrade heads
 
 # Restart the backend so the module registry reconciles against the
 # fresh schema. Without this, `core_module` stays empty until the next
@@ -38,7 +68,7 @@ docker compose restart backend >/dev/null
 # Wait for FastAPI to finish lifespan startup (which runs the module
 # registry reconcile) before we return — early callers would race it.
 for i in {1..30}; do
-  count=$(docker compose exec -T db psql -U dental -d dental_clinic -tA -c \
+  count=$(docker_exec db psql -U dental -d dental_clinic -tA -c \
     "SELECT COUNT(*) FROM core_module WHERE state='installed';" 2>/dev/null | tr -d '[:space:]')
   if [ -n "$count" ] && [ "$count" -gt 0 ]; then
     echo "  registry reconciled ($count modules installed)"

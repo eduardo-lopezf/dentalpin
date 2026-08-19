@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- fix(professionals): ``assigned_professional_id`` on ``treatment_plans``
+  and ``planned_treatment_items`` now points at ``professionals.id``
+  (directory) instead of ``users.id``, matching the ``agenda``/``schedules``
+  directory-professional rewire (``ag_0006``/``sch_0002``). Creating a plan
+  with an assigned professional was failing with a 500
+  (``ForeignKeyViolationError``) because the frontend already sends a
+  directory professional id. Migration ``tp_0007`` backfills existing rows
+  via the same deterministic account→profile mapping. Adds ``professionals``
+  to ``manifest.depends``. ``_validate_professional_in_clinic`` now checks
+  the directory instead of ``clinic_memberships``, and ``create()`` calls it
+  (previously only ``update()``/``add_item`` did, so a bad id on create
+  reached the database unchecked).
+
 - refactor(scheduler): declare the ``auto_close_expired_plans`` cron job
   via ``get_scheduled_jobs()`` instead of being imported by name in
   ``app/core/scheduler.py``.

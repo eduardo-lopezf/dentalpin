@@ -99,3 +99,6 @@ markers = [
     "alembic_roundtrip: full base → head → base migration cycle (slow, needs DB)",
 ]
 addopts = "-m 'not alembic_roundtrip'"
+filterwarnings = [
+    "ignore:coroutine 'Connection._cancel' was never awaited:RuntimeWarning",
+]

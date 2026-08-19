@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- feat(professionals): weekly schedules and overrides now reference active
+  dentist/hygienist directory profiles, matching Agenda.
+
 - fix(agents): `find_free_slots` now returns contiguous free **windows**
   (`free_windows` with real `start`/`end`/`minutes`) instead of a single
   fixed-size slot per gap that masked its true extent. The agent could not
