@@ -199,7 +199,17 @@ async def seed_clinic(db: AsyncSession) -> Clinic:
 
 
 async def seed_users(db: AsyncSession, password_hash: str) -> list[User]:
-    """Create demo users with their clinic memberships."""
+    """Create demo users with their clinic memberships.
+
+    Dentist/hygienist users also get a mirrored `professionals.Professional`
+    row with the same id: appointments/budgets/treatment_plan FK to the
+    directory, never to a bare account (agenda/CLAUDE.md "Professional
+    identity"), and `demo_data.py` reuses `USER_DENTIST_ID`/
+    `USER_HYGIENIST_ID` throughout as `professional_id`/
+    `assigned_professional_id`.
+    """
+    from app.modules.professionals.models import Professional
+
     users: list[User] = []
     for user_data in get_users_data():
         user = User(
@@ -223,6 +233,21 @@ async def seed_users(db: AsyncSession, password_hash: str) -> list[User]:
                 role=user_data["role"],
             )
         )
+
+        if user_data["role"] in ("dentist", "hygienist"):
+            db.add(
+                Professional(
+                    id=user_data["id"],
+                    clinic_id=CLINIC_ID,
+                    first_name=user_data["first_name"],
+                    last_name=user_data["last_name"],
+                    professional_type=user_data["role"],
+                    license_number=user_data.get("professional_id"),
+                    email=user_data["email"],
+                    is_active=True,
+                )
+            )
+
         print(f"  Created user: {user.email} ({user_data['role']})")
 
     await db.flush()

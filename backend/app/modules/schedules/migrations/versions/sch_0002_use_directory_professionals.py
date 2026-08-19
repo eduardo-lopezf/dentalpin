@@ -94,6 +94,56 @@ def _migrate_profiles(bind) -> None:
         )
 
 
+def _reverse_migrate_profiles(bind) -> None:
+    """Best-effort reverse of ``_migrate_profiles``.
+
+    For every directory profile a schedule/override row now points at,
+    find the clinic member whose ``(clinic_id, user_id)`` hashes to that
+    id and point the row back at the account. A profile with no matching
+    member (created directly in the directory, never derived from a
+    user) can't be reversed — those rows are left pointing at the
+    profile id, which violates the FK the caller recreates next; that's
+    the expected, documented data loss for a downgrade of this migration.
+    """
+    for table in ("professional_weekly_schedules", "professional_overrides"):
+        rows = bind.execute(
+            sa.text(
+                f"""
+                SELECT DISTINCT clinic_id, professional_id
+                FROM {table}
+                WHERE professional_id IS NOT NULL
+                """
+            )
+        ).mappings()
+        for row in rows:
+            candidates = bind.execute(
+                sa.text(
+                    """
+                    SELECT user_id FROM clinic_memberships
+                    WHERE clinic_id = :clinic_id AND role IN ('dentist', 'hygienist')
+                    """
+                ),
+                {"clinic_id": row["clinic_id"]},
+            ).scalars()
+            for user_id in candidates:
+                if _directory_id(row["clinic_id"], user_id) == row["professional_id"]:
+                    bind.execute(
+                        sa.text(
+                            f"""
+                            UPDATE {table}
+                            SET professional_id = :user_id
+                            WHERE clinic_id = :clinic_id AND professional_id = :professional_id
+                            """
+                        ),
+                        {
+                            "user_id": user_id,
+                            "clinic_id": row["clinic_id"],
+                            "professional_id": row["professional_id"],
+                        },
+                    )
+                    break
+
+
 def upgrade() -> None:
     bind = op.get_bind()
     op.drop_constraint(
@@ -167,6 +217,78 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    raise NotImplementedError(
-        "sch_0002 is irreversible: account IDs are intentionally replaced by independent profiles"
+    bind = op.get_bind()
+
+    op.drop_index(
+        "ix_professional_overrides_clinic_professional_range",
+        table_name="professional_overrides",
+    )
+    op.drop_index(
+        "ix_professional_overrides_professional_id",
+        table_name="professional_overrides",
+    )
+    op.drop_constraint(
+        "professional_overrides_professional_id_fkey",
+        "professional_overrides",
+        type_="foreignkey",
+    )
+
+    op.drop_constraint(
+        "uq_professional_weekly_schedule_professional",
+        "professional_weekly_schedules",
+        type_="unique",
+    )
+    op.drop_index(
+        "ix_professional_weekly_schedules_professional_id",
+        table_name="professional_weekly_schedules",
+    )
+    op.drop_constraint(
+        "professional_weekly_schedules_professional_id_fkey",
+        "professional_weekly_schedules",
+        type_="foreignkey",
+    )
+
+    # Reverse the data before renaming the columns back — same reason
+    # the forward migration migrates before renaming: the helper reads
+    # `professional_id`, which only exists under that name until now.
+    _reverse_migrate_profiles(bind)
+
+    op.alter_column("professional_overrides", "professional_id", new_column_name="user_id")
+    op.create_foreign_key(
+        "professional_overrides_user_id_fkey",
+        "professional_overrides",
+        "users",
+        ["user_id"],
+        ["id"],
+        ondelete="CASCADE",
+    )
+    op.create_index(
+        "ix_professional_overrides_user_id",
+        "professional_overrides",
+        ["user_id"],
+    )
+    op.create_index(
+        "ix_professional_overrides_clinic_user_range",
+        "professional_overrides",
+        ["clinic_id", "user_id", "start_date", "end_date"],
+    )
+
+    op.alter_column("professional_weekly_schedules", "professional_id", new_column_name="user_id")
+    op.create_foreign_key(
+        "professional_weekly_schedules_user_id_fkey",
+        "professional_weekly_schedules",
+        "users",
+        ["user_id"],
+        ["id"],
+        ondelete="CASCADE",
+    )
+    op.create_index(
+        "ix_professional_weekly_schedules_user_id",
+        "professional_weekly_schedules",
+        ["user_id"],
+    )
+    op.create_unique_constraint(
+        "uq_professional_weekly_schedule_user",
+        "professional_weekly_schedules",
+        ["clinic_id", "user_id"],
     )

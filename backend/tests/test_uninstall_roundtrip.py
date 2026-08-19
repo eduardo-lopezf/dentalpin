@@ -3,7 +3,10 @@
 Two scenarios:
 
 * **Schedules roundtrip** — drives Alembic via subprocess to prove that
-  ``alembic downgrade schedules@base`` drops only schedules tables and
+  downgrading the schedules branch all the way back (``schedules@-N``,
+  ``N`` = revisions the branch owns — ``schedules@base`` would cascade
+  into every other branch's shared ancestor, see
+  ``processor._downgrade_target_for``) drops only schedules tables and
   leaves every other module's schema untouched, and that
   ``alembic upgrade schedules@head`` restores them. This exercises the
   combined Bug #1 (right downgrade target) + Bug #2 (branch isolation)
@@ -26,6 +29,7 @@ import asyncpg
 import pytest
 
 from app.config import settings
+from app.core.plugins.processor import _count_owned_revisions
 
 pytestmark = pytest.mark.alembic_roundtrip
 
@@ -85,9 +89,11 @@ def test_schedules_uninstall_roundtrip_is_branch_scoped() -> None:
     baseline_non_schedules = before - SCHEDULES_TABLES
 
     # Branch-scoped downgrade — the uninstall path the processor now uses.
-    # ``<label>@-N`` walks N steps back on the labelled branch; schedules
-    # ships one revision so N=1.
-    _alembic("downgrade", "schedules@-1")
+    # ``<label>@-N`` walks N steps back on the labelled branch; N must be
+    # every revision the branch owns (computed the same way
+    # ``_downgrade_target_for`` does), not a hardcoded count that goes
+    # stale the moment a second revision lands.
+    _alembic("downgrade", f"schedules@-{_count_owned_revisions('schedules')}")
 
     after_down = _list_tables()
     assert SCHEDULES_TABLES.isdisjoint(after_down), (
@@ -110,8 +116,7 @@ def test_periodontogram_uninstall_roundtrip_is_branch_scoped() -> None:
     """install → uninstall → reinstall drops only periodontogram's tables.
 
     Mirrors the schedules round-trip: the partial unique index protecting
-    the single-draft invariant must also be re-created cleanly. The module
-    ships one revision so ``periodontogram@-1`` is equivalent to ``base``.
+    the single-draft invariant must also be re-created cleanly.
     """
     _alembic("upgrade", "heads")
     before = _list_tables()
@@ -120,7 +125,7 @@ def test_periodontogram_uninstall_roundtrip_is_branch_scoped() -> None:
     )
     baseline_non_periodontogram = before - PERIODONTOGRAM_TABLES
 
-    _alembic("downgrade", "periodontogram@-1")
+    _alembic("downgrade", f"periodontogram@-{_count_owned_revisions('periodontogram')}")
 
     after_down = _list_tables()
     assert PERIODONTOGRAM_TABLES.isdisjoint(after_down), (

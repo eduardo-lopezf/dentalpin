@@ -18,6 +18,7 @@ import asyncpg
 import pytest
 
 from app.config import settings
+from app.core.plugins.processor import _count_owned_revisions
 
 pytestmark = pytest.mark.alembic_roundtrip
 
@@ -68,7 +69,12 @@ def test_recalls_uninstall_roundtrip_is_branch_scoped() -> None:
     )
     baseline_other = before - RECALLS_TABLES
 
-    _alembic("downgrade", "recalls@-1")
+    # Branch-scoped downgrade target, computed the same way the real
+    # uninstall path does (`_downgrade_target_for`) — a hardcoded
+    # `recalls@-1` goes stale the moment the branch grows a second
+    # revision, since `@-N` counts revisions *back from head*, not
+    # "fully uninstalled".
+    _alembic("downgrade", f"recalls@-{_count_owned_revisions('recalls')}")
 
     after_down = _list_tables()
     assert RECALLS_TABLES.isdisjoint(after_down), (

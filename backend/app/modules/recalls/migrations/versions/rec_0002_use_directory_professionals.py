@@ -104,6 +104,56 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    raise NotImplementedError(
-        "rec_0002 is irreversible: account IDs are intentionally replaced by independent profiles"
+    bind = op.get_bind()
+
+    op.drop_constraint(
+        "recalls_assigned_professional_id_fkey",
+        "recalls",
+        type_="foreignkey",
+    )
+
+    # Best-effort reverse of the deterministic conversion: for every
+    # directory profile a recall now points at, find the clinic member
+    # whose (clinic_id, user_id) hashes to that id and point the recall
+    # back at the account. A profile with no matching member (created
+    # directly in the directory, never derived from a user) can't be
+    # reversed — its recalls are left pointing at the profile id, which
+    # violates the FK below and is the expected, documented data loss
+    # for a downgrade of this migration.
+    rows = bind.execute(
+        sa.text(
+            """
+            SELECT DISTINCT r.id AS recall_id, r.assigned_professional_id AS professional_id,
+                   r.clinic_id
+            FROM recalls AS r
+            WHERE r.assigned_professional_id IS NOT NULL
+            """
+        )
+    ).mappings()
+    for row in rows:
+        candidates = bind.execute(
+            sa.text(
+                """
+                SELECT user_id FROM clinic_memberships
+                WHERE clinic_id = :clinic_id AND role IN ('dentist', 'hygienist')
+                """
+            ),
+            {"clinic_id": row["clinic_id"]},
+        ).scalars()
+        for user_id in candidates:
+            if _directory_id(row["clinic_id"], user_id) == row["professional_id"]:
+                bind.execute(
+                    sa.text(
+                        "UPDATE recalls SET assigned_professional_id = :user_id WHERE id = :id"
+                    ),
+                    {"user_id": user_id, "id": row["recall_id"]},
+                )
+                break
+
+    op.create_foreign_key(
+        "recalls_assigned_professional_id_fkey",
+        "recalls",
+        "users",
+        ["assigned_professional_id"],
+        ["id"],
     )

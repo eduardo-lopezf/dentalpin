@@ -557,31 +557,19 @@ def _count_owned_revisions(module_name: str) -> int:
     Counts ``.py`` files in ``app/modules/<name>/migrations/versions/``
     (excluding ``__init__`` and other non-revision files). Zero when
     the module has no branch of its own.
+
+    Every file in that directory belongs to the module's own branch —
+    only the *first* revision re-declares ``branch_labels`` (later
+    revisions chain onto it via ``down_revision`` and inherit the
+    branch), so counting only labelled files undercounts as soon as a
+    branch grows past one revision, producing a ``<label>@-N`` target
+    that stops short of a full uninstall.
     """
     modules_root = Path(__file__).resolve().parents[3] / "app" / "modules"
     versions_dir = modules_root / module_name / "migrations" / "versions"
     if not versions_dir.is_dir():
         return 0
-    # Count only files that declare an explicit branch label (the
-    # module's initial, labelled revision). Follow the test-suite's
-    # expectation that the labelled entry represents the module's
-    # ownership for downgrade calculations.
-    count = 0
-    for p in versions_dir.glob("*.py"):
-        if p.name.startswith("__"):
-            continue
-        try:
-            text = p.read_text(encoding="utf-8")
-        except Exception:
-            continue
-        # Find the branch_labels assignment line and check it's not None.
-        for line in text.splitlines():
-            if "branch_labels" in line and "=" in line:
-                rhs = line.split("=", 1)[1]
-                if "None" not in rhs:
-                    count += 1
-                break
-    return count
+    return sum(1 for p in versions_dir.glob("*.py") if not p.name.startswith("__"))
 
 
 def _pg_dump_dsn(database_url: str) -> str:

@@ -36,10 +36,12 @@ def test_module_branch_label_on_main_chain_is_none() -> None:
 
 
 def test_downgrade_target_uses_branch_relative_for_branched_module() -> None:
-    # schedules owns exactly one revision (sch_0001), so the relative
-    # target walks the branch one step down — landing on the shared
-    # ancestor without touching the main branch.
-    assert _downgrade_target_for("schedules", "sch_0001") == "schedules@-1"
+    # schedules owns two revisions (sch_0001, sch_0002), so the relative
+    # target must walk the branch back that many steps to fully unwind
+    # it — landing on the shared ancestor without touching the main
+    # branch. A count stuck at 1 would stop at sch_0001, leaving the
+    # branch's own tables in place (the bug this test guards against).
+    assert _downgrade_target_for("schedules", "sch_0001") == "schedules@-2"
 
 
 def test_downgrade_target_falls_back_to_parent_for_unlabelled_revision() -> None:
@@ -54,7 +56,8 @@ def test_downgrade_target_base_when_no_base_revision() -> None:
 
 
 def test_count_owned_revisions_for_schedules() -> None:
-    assert _count_owned_revisions("schedules") == 1
+    # sch_0001 (initial) + sch_0002 (directory professionals rewire).
+    assert _count_owned_revisions("schedules") == 2
 
 
 def test_count_owned_revisions_for_legacy_main_linear_module_is_zero() -> None:
