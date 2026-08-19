@@ -107,7 +107,9 @@ class AnalyticsService:
         tz = ZoneInfo(tz_name)
         result_rows: list[dict[str, Any]] = []
         for professional in professionals:
-            _, ranges = await AvailabilityService.resolve(db, clinic_id, start, end, professional.id)
+            _, ranges = await AvailabilityService.resolve(
+                db, clinic_id, start, end, professional.id
+            )
             working_minutes = sum(
                 int((r.end - r.start).total_seconds() / 60) for r in ranges if r.state == "open"
             )

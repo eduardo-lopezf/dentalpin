@@ -43,7 +43,7 @@ async def process_appointment_reminders() -> None:
 
     The reminder window is: now < start_time <= now + hours_before
     """
-    from app.core.auth.models import Clinic, User
+    from app.core.auth.models import Clinic
     from app.modules.agenda.models import Appointment
     from app.modules.notifications.gateway import NotificationGateway
     from app.modules.notifications.models import ClinicNotificationSettings
@@ -114,7 +114,9 @@ async def process_appointment_reminders() -> None:
                         from app.modules.professionals.models import Professional
 
                         result = await db.execute(
-                            select(Professional).where(Professional.id == appointment.professional_id)
+                            select(Professional).where(
+                                Professional.id == appointment.professional_id
+                            )
                         )
                         professional = result.scalar_one_or_none()
                         if professional:
@@ -177,7 +179,7 @@ async def send_single_reminder(appointment_id: UUID, clinic_id: UUID) -> bool:
     Returns:
         True if sent successfully, False otherwise.
     """
-    from app.core.auth.models import Clinic, User
+    from app.core.auth.models import Clinic
     from app.modules.agenda.models import Appointment
     from app.modules.notifications.gateway import NotificationGateway
     from app.modules.patients.models import Patient

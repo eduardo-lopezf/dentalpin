@@ -11,26 +11,26 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | Module | Version | Category | Depends | Install | Removable | Permissions | Emits | Consumes | FE layer |
 |--------|---------|----------|---------|---------|-----------|-------------|-------|----------|----------|
 | `accounting_export` | 0.1.0 | official | billing, payments | manual | yes | 2 | 0 | 0 | yes |
-| `agenda` | 0.4.0 | official | patients, catalog, odontogram | auto | no | 4 | 11 | 0 | yes |
+| `agenda` | 0.4.0 | official | patients, catalog, odontogram, professionals | auto | no | 4 | 11 | 0 | yes |
 | `billing` | 0.1.0 | official | patients, catalog, budget, payments | auto | no | 3 | 3 | 1 | yes |
-| `budget` | 0.1.0 | official | patients, catalog, odontogram | auto | no | 5 | 7 | 4 | yes |
+| `budget` | 0.1.0 | official | patients, catalog, odontogram, professionals | auto | no | 5 | 7 | 4 | yes |
 | `catalog` | 0.1.0 | official | — | auto | no | 3 | 0 | 0 | yes |
 | `clinical_notes` | 0.2.0 | official | patients, odontogram, treatment_plan, media, agenda | auto | no | 2 | 6 | 0 | yes |
 | `copilot` | 0.1.0 | official | — | auto | yes | 5 | 3 | 1 | yes |
 | `media` | 0.2.0 | official | patients | auto | no | 4 | 7 | 1 | yes |
 | `migration_import` | 0.1.0 | official | patients, patients_clinical, clinical_notes, agenda, schedules, recalls, catalog, budget, odontogram, treatment_plan, billing, payments, media | manual | yes | 4 | 5 | 0 | yes |
-| `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog | auto | no | 8 | 7 | 6 | yes |
+| `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog, professionals | auto | no | 8 | 7 | 6 | yes |
 | `odontogram` | 0.3.0 | official | patients, catalog | auto | no | 4 | 7 | 0 | yes |
 | `patient_timeline` | 0.1.0 | official | patients | auto | no | 1 | 0 | 35 | yes |
 | `patients` | 0.1.0 | official | — | auto | no | 2 | 3 | 0 | yes |
 | `patients_clinical` | 0.1.0 | official | patients | auto | no | 4 | 1 | 0 | yes |
 | `payments` | 0.1.0 | official | patients, budget | auto | no | 4 | 3 | 2 | yes |
 | `periodontogram` | 0.1.0 | official | patients, odontogram | manual | yes | 2 | 1 | 2 | yes |
-| `professionals` | 0.1.0 | official | — | auto | yes | 2 | 0 | 0 | yes |
-| `recalls` | 0.1.0 | official | patients, agenda | auto | yes | 3 | 4 | 5 | yes |
-| `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments | auto | no | 3 | 0 | 0 | yes |
-| `schedules` | 0.1.0 | official | agenda | auto | yes | 8 | 0 | 3 | yes |
-| `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media | auto | no | 5 | 13 | 5 | yes |
+| `professionals` | 0.1.0 | official | media | auto | yes | 2 | 0 | 0 | yes |
+| `recalls` | 0.1.0 | official | patients, agenda, professionals | auto | yes | 3 | 4 | 5 | yes |
+| `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments, professionals | auto | no | 3 | 0 | 0 | yes |
+| `schedules` | 0.1.0 | official | agenda, professionals | auto | yes | 8 | 0 | 3 | yes |
+| `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media, professionals | auto | no | 5 | 13 | 5 | yes |
 | `verifactu` | 0.1.0 | official | billing, catalog | manual | yes | 5 | 1 | 1 | yes |
 | `whatsapp_kapso` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | yes |
 
@@ -61,7 +61,7 @@ Appointments, scheduling, cabinets.
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
-- **Depends:** `patients`, `catalog`, `odontogram`
+- **Depends:** `patients`, `catalog`, `odontogram`, `professionals`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `agenda.appointments.read`
@@ -113,7 +113,7 @@ Dental treatment quotes, versioning, signatures.
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
-- **Depends:** `patients`, `catalog`, `odontogram`
+- **Depends:** `patients`, `catalog`, `odontogram`, `professionals`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `budget.accept_in_clinic`
@@ -260,7 +260,7 @@ Email templates, preferences, SMTP, event-driven sending.
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
-- **Depends:** `patients`, `agenda`, `budget`, `billing`, `catalog`
+- **Depends:** `patients`, `agenda`, `budget`, `billing`, `catalog`, `professionals`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `notifications.logs.read`
@@ -451,13 +451,13 @@ SEPA periodontal charting — snapshots, probing sites, BoP/PI/CAL indices.
 
 ### `professionals` — v0.1.0
 
-Dentists and collaborators directory with professional profiles.
+Clinic directory and scheduling source of truth for professionals.
 
 - **Author:** DentalPin Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
-- **Depends:** —
+- **Depends:** `media`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `professionals.read`
@@ -474,7 +474,7 @@ Patient recalls: schedule call-backs, work the monthly call list, log attempts, 
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
-- **Depends:** `patients`, `agenda`
+- **Depends:** `patients`, `agenda`, `professionals`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `recalls.delete`
@@ -501,7 +501,7 @@ Cross-module reporting: billing, budgets, scheduling.
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
-- **Depends:** `patients`, `agenda`, `catalog`, `budget`, `billing`, `payments`
+- **Depends:** `patients`, `agenda`, `catalog`, `budget`, `billing`, `payments`, `professionals`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `reports.billing.read`
@@ -519,7 +519,7 @@ Clinic + professional operating hours, overrides, availability, and occupancy an
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
-- **Depends:** `agenda`
+- **Depends:** `agenda`, `professionals`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `schedules.analytics.read`
@@ -545,7 +545,7 @@ Patient treatment plans with budget + odontogram sync.
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
-- **Depends:** `patients`, `agenda`, `odontogram`, `catalog`, `budget`, `media`
+- **Depends:** `patients`, `agenda`, `odontogram`, `catalog`, `budget`, `media`, `professionals`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `treatment_plan.plans.close`

@@ -27,8 +27,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth.models import ClinicMembership, User
 from app.modules.professionals.models import Professional
-from app.core.auth.models import User, ClinicMembership
 
 from .models import Appointment
 

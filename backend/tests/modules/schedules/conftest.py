@@ -8,8 +8,8 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.models import Clinic, ClinicMembership, User
-from app.modules.professionals.models import Professional
 from app.core.auth.service import hash_password
+from app.modules.professionals.models import Professional
 
 
 @pytest_asyncio.fixture

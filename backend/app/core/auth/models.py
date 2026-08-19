@@ -3,11 +3,9 @@
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, event, select
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import event, text, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from app.database import Base, TimestampMixin
 

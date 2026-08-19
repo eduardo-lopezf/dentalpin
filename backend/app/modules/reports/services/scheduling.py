@@ -197,9 +197,7 @@ class SchedulingReportService:
         if prof_ids:
             result = await db.execute(select(Professional).where(Professional.id.in_(prof_ids)))
             for professional in result.scalars():
-                prof_names[professional.id] = (
-                    f"{professional.first_name} {professional.last_name}"
-                )
+                prof_names[professional.id] = f"{professional.first_name} {professional.last_name}"
 
         return [
             {

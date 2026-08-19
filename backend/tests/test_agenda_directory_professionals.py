@@ -16,7 +16,9 @@ from app.modules.professionals.models import Professional
 async def directory_clinic(
     db_session: AsyncSession, auth_headers: dict[str, str], client: AsyncClient
 ) -> dict[str, str]:
-    actor_id = (await client.get("/api/v1/auth/me", headers=auth_headers)).json()["data"]["user"]["id"]
+    actor_id = (await client.get("/api/v1/auth/me", headers=auth_headers)).json()["data"]["user"][
+        "id"
+    ]
     clinic = Clinic(
         id=uuid4(),
         name="Directory Agenda Clinic",

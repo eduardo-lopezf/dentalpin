@@ -35,7 +35,6 @@ from uuid import UUID
 
 from app.modules.agenda.service import AppointmentService
 from app.modules.clinical_notes.models import ClinicalNote
-from sqlalchemy import select
 
 from ..models import ImportWarning
 from .base import MapperContext
@@ -89,7 +88,6 @@ class AppointmentMapper:
         # mapper does not need to create directory rows itself and can
         # avoid importing the `professionals` module directly (module
         # isolation requirement).
-        mapping_table = await ctx.resolver.mapping_table("professional", str(professional_uuid))
         if patient_id is None or professional_id is None:
             await _warn(
                 ctx,

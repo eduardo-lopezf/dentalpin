@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import date, time
 from typing import TYPE_CHECKING
-from uuid import uuid4, uuid5, NAMESPACE_URL
+from uuid import uuid4
 
 from sqlalchemy import (
     Boolean,

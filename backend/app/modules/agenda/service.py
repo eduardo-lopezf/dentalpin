@@ -14,13 +14,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.auth.models import User
 from app.core.events import EventType, event_bus
 from app.modules.catalog.models import TreatmentCatalogItem  # noqa: F401
 from app.modules.odontogram.models import Treatment
 from app.modules.patients.models import Patient
 from app.modules.professionals.models import Professional
 from app.modules.treatment_plan.models import PlannedTreatmentItem
-from app.core.auth.models import ClinicMembership, User
 
 from .models import (
     Appointment,
@@ -748,8 +748,6 @@ class AppointmentService:
             await event_bus.publish(specific, payload)
 
         return appointment
-
-    
 
     @staticmethod
     async def assign_cabinet(
