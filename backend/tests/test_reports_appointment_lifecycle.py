@@ -26,6 +26,7 @@ from app.modules.agenda.models import (
     Cabinet,
 )
 from app.modules.patients.models import Patient
+from app.modules.professionals.models import Professional
 from app.modules.reports.services import AppointmentLifecycleService
 
 
@@ -56,13 +57,23 @@ async def _world(db: AsyncSession) -> dict[str, UUID]:
         is_active=True,
     )
     patient = Patient(id=uuid4(), clinic_id=clinic.id, first_name="P", last_name="Q")
-    db.add_all([clinic, dentist, cabinet_a, cabinet_b, patient])
+    # Appointments target the `professionals` directory, never a bare
+    # account id (agenda/CLAUDE.md "Professional identity").
+    professional = Professional(
+        id=uuid4(),
+        clinic_id=clinic.id,
+        first_name="D",
+        last_name="T",
+        professional_type="dentist",
+        is_active=True,
+    )
+    db.add_all([clinic, dentist, cabinet_a, cabinet_b, patient, professional])
     await db.flush()
     db.add(ClinicMembership(id=uuid4(), user_id=dentist.id, clinic_id=clinic.id, role="dentist"))
     await db.commit()
     return {
         "clinic_id": clinic.id,
-        "dentist_id": dentist.id,
+        "dentist_id": professional.id,
         "cabinet_a": cabinet_a.id,
         "cabinet_b": cabinet_b.id,
         "patient_id": patient.id,

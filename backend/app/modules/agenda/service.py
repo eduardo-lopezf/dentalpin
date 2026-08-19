@@ -302,6 +302,12 @@ class AppointmentService:
     async def validate_professional_access(
         db: AsyncSession, clinic_id: UUID, professional_id: UUID
     ) -> bool:
+        # Appointments must target a directory `Professional` profile
+        # (agenda/CLAUDE.md "Professional identity") — a bare `User`/
+        # account id is never valid here, even when a `Professional` row
+        # happens to share its id with a `User` (the mirroring in
+        # `create_appointment` and various test fixtures do this on
+        # purpose so legacy account-based ids keep working transparently).
         result = await db.execute(
             select(Professional.id).where(
                 Professional.id == professional_id,
@@ -310,21 +316,7 @@ class AppointmentService:
                 Professional.professional_type.in_(["dentist", "hygienist"]),
             )
         )
-        if result.scalar_one_or_none() is not None:
-            # If the id also exists as a system `User`, treat it as a
-            # system account and do not accept it for appointments. The
-            # `ClinicMembership` -> `Professional` mirroring creates
-            # compatibility rows for imports/tests but the API must
-            # enforce that appointments target directory profiles only.
-            user = await db.get(User, professional_id)
-            if user is not None:
-                return False
-            return True
-
-        # No matching Professional found. Do not accept system `User` ids
-        # as appointment professionals — appointments must target directory
-        # `Professional` profiles. Return False to indicate invalid access.
-        return False
+        return result.scalar_one_or_none() is not None
 
     @staticmethod
     async def validate_planned_items(

@@ -35,6 +35,7 @@ from app.modules.agenda.service import (
     InvalidTransitionError,
 )
 from app.modules.patients.models import Patient
+from app.modules.professionals.models import Professional
 
 
 async def _mkworld(db: AsyncSession) -> dict[str, UUID]:
@@ -89,13 +90,23 @@ async def _mkworld(db: AsyncSession) -> dict[str, UUID]:
         first_name="Juan",
         last_name="Paciente",
     )
-    db.add_all([cabinet, patient])
+    # Appointments target the `professionals` directory, never a bare
+    # account id (agenda/CLAUDE.md "Professional identity").
+    professional = Professional(
+        id=uuid4(),
+        clinic_id=clinic.id,
+        first_name="Dentist",
+        last_name="User",
+        professional_type="dentist",
+        is_active=True,
+    )
+    db.add_all([cabinet, patient, professional])
     await db.commit()
 
     return {
         "clinic_id": clinic.id,
         "admin_id": admin.id,
-        "dentist_id": dentist.id,
+        "dentist_id": professional.id,
         "cabinet_id": cabinet.id,
         "patient_id": patient.id,
     }

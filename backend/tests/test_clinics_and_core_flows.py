@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.models import Clinic, ClinicMembership, User
 from app.core.auth.service import hash_password
+from app.modules.professionals.models import Professional
 
 
 @pytest.fixture
@@ -65,6 +66,19 @@ async def clinic_setup(
     )
     db_session.add(dentist_membership)
 
+    # Appointments target the `professionals` directory, never a bare
+    # account id (agenda/CLAUDE.md "Professional identity").
+    professional = Professional(
+        id=uuid4(),
+        clinic_id=clinic.id,
+        first_name="Test",
+        last_name="Dentist",
+        professional_type="dentist",
+        email="dentist@test.clinic",
+        is_active=True,
+    )
+    db_session.add(professional)
+
     # Default cabinet so appointment tests resolve the cabinet FK.
     from app.modules.agenda.models import Cabinet
 
@@ -83,7 +97,7 @@ async def clinic_setup(
     return {
         "clinic_id": str(clinic.id),
         "user_id": user_id,
-        "dentist_id": str(dentist.id),
+        "dentist_id": str(professional.id),
     }
 
 

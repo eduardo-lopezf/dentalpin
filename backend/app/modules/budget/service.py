@@ -378,7 +378,7 @@ class BudgetService:
                 joinedload(Budget.signatures),
             )
 
-        result = await db.execute(query)
+        result = await db.execute(query.execution_options(populate_existing=True))
         return result.unique().scalar_one_or_none()
 
     @staticmethod

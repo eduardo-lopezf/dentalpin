@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth.models import Clinic, ClinicMembership, User
 from app.core.auth.service import hash_password
 from app.core.events import EventType, event_bus
+from app.modules.professionals.models import Professional
 
 
 @pytest_asyncio.fixture
@@ -62,6 +63,18 @@ async def clinic_setup(
         ClinicMembership(id=uuid4(), user_id=dentist.id, clinic_id=clinic.id, role="dentist")
     )
 
+    # Appointments target the `professionals` directory, never a bare
+    # account id (agenda/CLAUDE.md "Professional identity").
+    professional = Professional(
+        id=uuid4(),
+        clinic_id=clinic.id,
+        first_name="Ada",
+        last_name="Lovelace",
+        professional_type="dentist",
+        is_active=True,
+    )
+    db_session.add(professional)
+
     from app.modules.agenda.models import Cabinet
 
     db_session.add(
@@ -79,7 +92,7 @@ async def clinic_setup(
     return {
         "clinic_id": str(clinic.id),
         "user_id": user_id,
-        "dentist_id": str(dentist.id),
+        "dentist_id": str(professional.id),
     }
 
 

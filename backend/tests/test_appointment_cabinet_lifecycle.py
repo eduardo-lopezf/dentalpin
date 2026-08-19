@@ -36,6 +36,7 @@ from app.modules.agenda.service import (
     CabinetRequiredError,
 )
 from app.modules.patients.models import Patient
+from app.modules.professionals.models import Professional
 
 
 async def _world(db: AsyncSession) -> dict[str, UUID]:
@@ -73,7 +74,17 @@ async def _world(db: AsyncSession) -> dict[str, UUID]:
         is_active=True,
     )
     patient = Patient(id=uuid4(), clinic_id=clinic.id, first_name="P", last_name="Q")
-    db.add_all([clinic, admin, dentist, cabinet_a, cabinet_b, patient])
+    # Appointments target the `professionals` directory, never a bare
+    # account id (agenda/CLAUDE.md "Professional identity").
+    professional = Professional(
+        id=uuid4(),
+        clinic_id=clinic.id,
+        first_name="Dra",
+        last_name="Who",
+        professional_type="dentist",
+        is_active=True,
+    )
+    db.add_all([clinic, admin, dentist, cabinet_a, cabinet_b, patient, professional])
     await db.flush()
     db.add_all(
         [
@@ -85,7 +96,7 @@ async def _world(db: AsyncSession) -> dict[str, UUID]:
     return {
         "clinic_id": clinic.id,
         "admin_id": admin.id,
-        "dentist_id": dentist.id,
+        "dentist_id": professional.id,
         "cabinet_a": cabinet_a.id,
         "cabinet_b": cabinet_b.id,
         "patient_id": patient.id,
