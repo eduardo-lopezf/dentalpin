@@ -172,7 +172,16 @@ test.describe('periodontogram — admin', () => {
     // Open the close-session confirmation modal from the sticky bar.
     // The backend accepts closing an empty draft — the <50% rule is a
     // soft frontend nudge, not a hard guard.
+    //
+    // Scoped to <main>: the app header also has a button named exactly
+    // "Cerrar sesión" (auth.logout, top-right of every page). An
+    // unscoped `.first()` picks whichever is first in DOM order — the
+    // header, which sits before the page content — so it logs the user
+    // out instead of opening this modal. That's the actual bug behind
+    // this test's failure: the confirmation title never appears because
+    // we're on /login, not because the modal is slow or unmounted.
     const closeTrigger = loggedIn
+      .getByRole('main')
       .getByRole('button', { name: /^(Cerrar sesión|Close session)$/i })
       .first()
     await expect(closeTrigger).toBeVisible({ timeout: 10_000 })
