@@ -160,20 +160,30 @@ test.describe('periodontogram — admin', () => {
     await ensureDraftExists(loggedIn, patientId)
     await navigateToPerioTab(loggedIn, patientId)
 
+    // Let the draft's initial load/autosave cycle settle before acting
+    // on it — unlike the "patch a site" test above, nothing here was
+    // otherwise waiting for the banner's saving/dirty state to clear,
+    // so an in-flight save could still be resolving (and re-rendering
+    // the banner) right as we click.
+    await expect(loggedIn.getByText(/Guardado|Saved/i).first()).toBeVisible({
+      timeout: 10_000
+    })
+
     // Open the close-session confirmation modal from the sticky bar.
     // The backend accepts closing an empty draft — the <50% rule is a
     // soft frontend nudge, not a hard guard.
-    await loggedIn
+    const closeTrigger = loggedIn
       .getByRole('button', { name: /^(Cerrar sesión|Close session)$/i })
       .first()
-      .click()
+    await expect(closeTrigger).toBeVisible({ timeout: 10_000 })
+    await closeTrigger.click()
 
     // Wait for the confirmation modal title (renders inside the
     // UModal header via the :title prop in Nuxt UI v3).
     const modalTitle = loggedIn.getByText(
       /Cerrar sesión periodontal|Close periodontal session/i
     ).first()
-    await expect(modalTitle).toBeVisible({ timeout: 5_000 })
+    await expect(modalTitle).toBeVisible({ timeout: 10_000 })
 
     // Confirm in the modal footer. Scope to the dialog so we don't
     // race with the sticky-bar trigger button that carries the same
