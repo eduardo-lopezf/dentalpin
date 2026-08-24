@@ -18,13 +18,13 @@ events for recalls, timeline, and other modules.
 
 ## Screens
 
-- [Plans inbox](./screens/treatment-plans.md) — five-tab inbox
+- [Plans inbox](./screens/treatments_plans.md) — five-tab inbox
   (Drafts / Pending / Active / Completed / Closed) plus the
   follow-up pipeline.
-- [Plan detail](./screens/treatment-plans_id.md) — edit items, move
+- [Plan detail](./screens/treatments_plans_id.md) — edit items, move
   through states, mark treatments as done, see the linked budget,
   and record contacts.
-- [New plan](./screens/treatment-plans_new.md) — create a plan for
+- [New plan](./screens/treatments_plans_new.md) — create a plan for
   a patient.
 
 ## Quick reference

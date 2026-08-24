@@ -617,14 +617,14 @@ export interface SpecialtyUpdate {
 
 /** Specialty as embedded in a catalog item response. */
 /** Stage of care; mirrors TREATMENT_PHASES in the backend catalog models. */
-export type TreatmentPhase =
-  | 'diagnostico'
-  | 'urgencia'
-  | 'preventivo'
-  | 'estabilizacion'
-  | 'rehabilitacion'
-  | 'estetica'
-  | 'mantenimiento'
+export type TreatmentPhase
+  = | 'diagnostico'
+    | 'urgencia'
+    | 'preventivo'
+    | 'estabilizacion'
+    | 'rehabilitacion'
+    | 'estetica'
+    | 'mantenimiento'
 
 export interface SpecialtyBrief {
   id: string

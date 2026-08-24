@@ -13,7 +13,12 @@ import { test, expect } from './_fixtures'
 const LABELS = {
   patients: /patients|pacientes/i,
   schedule: /schedule|agenda|citas|appointments/i,
-  plans: /^(treatment plans|planes de tratamiento)$/i,
+  // Treatment plans no longer have their own nav entry — they live
+  // under the "Treatments" section owned by `catalog` (nav.treatments,
+  // /treatments), alongside the treatment catalog. See
+  // backend/app/modules/treatment_plan/__init__.py's frontend.navigation
+  // comment ("One menu entry, two surfaces").
+  treatments: /^(treatments|tratamientos)$/i,
   quotes: /quotes|budgets|presupuestos/i,
   invoices: /invoices|facturas/i,
   reports: /reports|informes/i
@@ -50,7 +55,7 @@ test.describe('dentist has full clinical access', () => {
     for (const label of [
       LABELS.patients,
       LABELS.schedule,
-      LABELS.plans,
+      LABELS.treatments,
       LABELS.quotes,
       LABELS.invoices
     ]) {

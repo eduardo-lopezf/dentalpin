@@ -22,7 +22,7 @@ last_verified_commit: b1b82f5
 
 Formulario para crear un plan de tratamiento para un paciente. Al
 guardar, el plan nace en estado `draft` y se abre el
-[detalle](./treatments/plans_id.md) para añadir ítems, confirmar y
+[detalle](./treatments_plans_id.md) para añadir ítems, confirmar y
 generar presupuesto.
 
 ## De un vistazo

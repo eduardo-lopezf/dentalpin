@@ -26,7 +26,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `patients_clinical` | 0.1.0 | official | patients | auto | no | 4 | 1 | 0 | yes |
 | `payments` | 0.1.0 | official | patients, budget | auto | no | 4 | 3 | 2 | yes |
 | `periodontogram` | 0.1.0 | official | patients, odontogram | manual | yes | 2 | 1 | 2 | yes |
-| `professionals` | 0.1.0 | official | media | auto | yes | 2 | 0 | 0 | yes |
+| `professionals` | 0.1.0 | official | media, catalog | auto | yes | 2 | 0 | 0 | yes |
 | `recalls` | 0.1.0 | official | patients, agenda, professionals | auto | yes | 3 | 4 | 5 | yes |
 | `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments, professionals | auto | no | 3 | 0 | 0 | yes |
 | `schedules` | 0.1.0 | official | agenda, professionals | auto | yes | 8 | 0 | 3 | yes |
@@ -457,7 +457,7 @@ Clinic directory and scheduling source of truth for professionals.
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
-- **Depends:** `media`
+- **Depends:** `media`, `catalog`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `professionals.read`

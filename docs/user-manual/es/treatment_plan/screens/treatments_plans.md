@@ -66,7 +66,7 @@ más una vista de pipeline con la cola de seguimiento.
 
 1. Cambia de pestaña o entra a la pipeline.
 2. Filtra por profesional, fecha o motivo de cierre si procede.
-3. Pulsa una fila para abrir el [detalle](./treatments/plans_id.md).
+3. Pulsa una fila para abrir el [detalle](./treatments_plans_id.md).
 
 ## Crear un plan
 

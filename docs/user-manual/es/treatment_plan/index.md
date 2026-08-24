@@ -18,13 +18,13 @@ recalls, timeline y otros módulos.
 
 ## Pantallas
 
-- [Bandeja de planes](./screens/treatment-plans.md) — bandeja con
+- [Bandeja de planes](./screens/treatments_plans.md) — bandeja con
   cinco pestañas (Borradores / Pendientes / Activos / Completados /
   Cerrados) y la cola de seguimiento.
-- [Detalle del plan](./screens/treatment-plans_id.md) — editar
+- [Detalle del plan](./screens/treatments_plans_id.md) — editar
   ítems, mover de estado, marcar tratamientos como hechos, ver el
   presupuesto enlazado y registrar contactos.
-- [Nuevo plan](./screens/treatment-plans_new.md) — crear un plan
+- [Nuevo plan](./screens/treatments_plans_new.md) — crear un plan
   para un paciente.
 
 ## Referencia rápida

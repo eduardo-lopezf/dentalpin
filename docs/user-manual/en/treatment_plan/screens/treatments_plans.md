@@ -64,7 +64,7 @@ surfaces the follow-up queue.
 
 1. Switch tabs or enter the pipeline.
 2. Filter by professional, date, or closure reason as needed.
-3. Click a row to open the [detail](./treatments/plans_id.md).
+3. Click a row to open the [detail](./treatments_plans_id.md).
 
 ## Create a plan
 

@@ -21,7 +21,7 @@ last_verified_commit: b1b82f5
 # New treatment plan
 
 Form to create a treatment plan for a patient. On save, the plan is
-born in `draft` and the [detail](./treatments/plans_id.md) opens so
+born in `draft` and the [detail](./treatments_plans_id.md) opens so
 you can add items, confirm, and generate a budget.
 
 ## At a glance

@@ -76,9 +76,26 @@ jobs:
   manifest-consistency:
     # Static manifest sanity — every entry point in pyproject.toml must
     # resolve, declare a valid manifest, and its role permissions must
-    # match the ROLE_PERMISSIONS table. Runs without a database so we
-    # get a quick signal on PRs that touch modules.
+    # match the ROLE_PERMISSIONS table. The checks themselves touch no
+    # data, but conftest.py's pytest_sessionstart unconditionally
+    # provisions/resets a *_test database before any test runs (so a
+    # lone `pytest` never lands on the dev DB) — this job still needs a
+    # real Postgres to connect to for that, same as backend-test.
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: stub
+          POSTGRES_USER: dental
+          POSTGRES_PASSWORD: testpass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v5
 
