@@ -26,7 +26,8 @@
     "menu": "Menú",
     "openMenu": "Abrir menú",
     "close": "Cerrar",
-    "toggleSidebar": "Alternar barra lateral"
+    "toggleSidebar": "Alternar barra lateral",
+    "treatments": "Tratamientos"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -44,7 +45,16 @@
     "sessionExpired": "Tu sesión ha expirado",
     "networkError": "No se pudo conectar con el servidor",
     "serverError": "El servidor no está disponible. Inténtalo de nuevo en unos minutos",
-    "unknownError": "Error inesperado. Inténtalo de nuevo"
+    "unknownError": "Error inesperado. Inténtalo de nuevo",
+    "profile": "Perfil: {type}",
+    "tenantTypes": {
+      "basic": "Principiante",
+      "medium": "Medio",
+      "advanced": "Avanzado",
+      "clinic": "Clínica",
+      "clinic_pro": "Clínica Pro",
+      "hospital": "Hospital de Especialidades"
+    }
   },
   "setup": {
     "title": "Configuración inicial",
@@ -1384,6 +1394,8 @@
   "catalog": {
     "title": "Catálogo de Tratamientos",
     "description": "Gestiona los tratamientos, precios y configuración fiscal",
+    "byTreatmentType": "Tipo de Tratamiento",
+    "bySpecialty": "Por Especialidad",
     "items": "Tratamientos",
     "categories": "Categorías",
     "noItems": "No hay tratamientos en el catálogo",
@@ -1486,7 +1498,18 @@
       "pricing": "Precio",
       "scheduling": "Agenda",
       "clinical": "Clínico"
-    }
+    },
+    "codeLockedHelp": "El código de un tratamiento del sistema no se puede cambiar.",
+    "phases": {
+      "diagnostico": "Diagnóstico",
+      "urgencia": "Urgencia",
+      "preventivo": "Preventivo",
+      "estabilizacion": "Estabilización",
+      "rehabilitacion": "Rehabilitación",
+      "estetica": "Estética electiva",
+      "mantenimiento": "Mantenimiento"
+    },
+    "visible": "Visible"
   },
   "placeholders": {
     "selectRole": "Seleccionar rol..."
@@ -1516,6 +1539,32 @@
     "createError": "Error al crear tipo de IVA",
     "updateError": "Error al actualizar tipo de IVA",
     "deleteError": "Error al eliminar tipo de IVA"
+  },
+  "specialties": {
+    "name": "Nombre",
+    "namePlaceholder": "Ej: Cirugía Oral y Maxilofacial",
+    "new": "Nueva Especialidad",
+    "edit": "Editar Especialidad",
+    "delete": "Eliminar Especialidad",
+    "showInactive": "Mostrar inactivas",
+    "viewHint": "Agrupa los tratamientos del catálogo por especialidad. Usa \"Asignar tratamientos\" para vincularlos.",
+    "assignItems": "Asignar tratamientos",
+    "assignTitle": "Asignar tratamientos a {name}",
+    "selectedCount": "{count} seleccionados",
+    "noTreatments": "Ningún tratamiento asignado a esta especialidad todavía.",
+    "unassigned": "Sin especialidad",
+    "noItems": "No hay especialidades definidas",
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar la especialidad \"{name}\"?",
+    "deleteNote": "Se marcará como inactiva y dejará de estar disponible para asignar a tratamientos y dentistas.",
+    "created": "Especialidad creada",
+    "updated": "Especialidad actualizada",
+    "deleted": "Especialidad eliminada",
+    "itemsAssigned": "Tratamientos asignados",
+    "loadError": "Error al cargar especialidades",
+    "createError": "Error al crear especialidad",
+    "updateError": "Error al actualizar especialidad",
+    "deleteError": "Error al eliminar especialidad",
+    "assignError": "Error al asignar tratamientos"
   },
   "treatmentPlans": {
     "title": "Planes de tratamiento",
@@ -2854,5 +2903,25 @@
     "drawerTitle": "Ayuda de esta página",
     "unavailable": "Aún no hay ayuda contextual para esta página.",
     "openFullManual": "Abrir manual completo"
+  },
+  "treatments": {
+    "title": "Tratamientos",
+    "description": "Consulta el catálogo por categoría, especialidad y fase",
+    "manage": "Administrar catálogo",
+    "specialty": "Especialidad",
+    "phase": "Fase",
+    "filterCategory": "Categoría",
+    "filterSpecialty": "Especialidad",
+    "filterPhase": "Fase",
+    "onlyMyTeam": "Solo lo que mi equipo realiza",
+    "noStaffSpecialties": "Ningún profesional tiene especialidad asignada",
+    "count": "{shown} de {total}",
+    "clearFilters": "Limpiar filtros",
+    "noMatches": "Ningún tratamiento coincide con los filtros",
+    "noneVisible": "Ningún tratamiento marcado como visible. Márcalos en Ajustes → Catálogo de tratamientos.",
+    "nav": {
+      "plans": "Planes",
+      "catalog": "Catálogo"
+    }
   }
 }

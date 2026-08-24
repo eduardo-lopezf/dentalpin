@@ -83,7 +83,7 @@ function statusBadgeColor(status: string): string {
 }
 
 function openPlan(row: PipelineRow) {
-  router.push(`/treatment-plans/${row.plan_id}`)
+  router.push(`/treatments/plans/${row.plan_id}`)
 }
 
 function callPatient(row: PipelineRow) {

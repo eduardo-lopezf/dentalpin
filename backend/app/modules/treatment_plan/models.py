@@ -133,6 +133,12 @@ class PlannedTreatmentItem(Base, TimestampMixin):
         ForeignKey("treatments.id", ondelete="CASCADE"), index=True
     )
 
+    # Stage of care for this item, seeded from the catalog item's
+    # `default_phase` but decided here: the same extraction is an emergency
+    # for one patient and a planned rehabilitation step for another.
+    # Values: app.modules.catalog.models.TREATMENT_PHASES.
+    phase: Mapped[str | None] = mapped_column(String(20), default=None, index=True)
+
     # Ordering and status
     sequence_order: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(

@@ -585,6 +585,14 @@ class TreatmentPlanService:
             .where(Treatment.id == treatment_id)
         )
         treatment_loaded = treatment_full.scalar_one()
+
+        # Stage of care: an explicit value wins, otherwise seed from the
+        # catalog default. Stored on the item because the same treatment is
+        # an emergency for one patient and planned rehabilitation for another.
+        phase = data.get("phase")
+        if phase is None and treatment_loaded.catalog_item is not None:
+            phase = treatment_loaded.catalog_item.default_phase
+        item.phase = phase
         for session_row in _snapshot_sessions_from_catalog(item, treatment_loaded):
             session_row.plan_item_id = item.id
             db.add(session_row)

@@ -101,7 +101,7 @@ docker-compose exec backend python -m pytest -v
 cd backend && ruff check . && ruff format --check .
 cd frontend && npm run lint
 
-# Reset DB + reseed demo data (use after tests wipe tables)
+# Reset DB + reseed demo data (destructive — wipes the dev database)
 ./scripts/reset-db.sh        # drop, alembic upgrade heads
 ./scripts/seed-demo.sh       # demo clinic, users, sample data
 
@@ -341,6 +341,28 @@ docker-compose exec backend python -m pytest tests/test_auth.py -v
 docker-compose exec backend python -m pytest --cov=app
 ```
 
+**The suite runs against its own database.** Every test does
+`create_all`/`drop_all`, so `conftest.py` resolves a dedicated `*_test`
+database (`dental_clinic` → `dental_clinic_test`), creates it on first run,
+and prints the target at session start. `DATABASE_URL` is redirected, never
+used as-is — a run cannot touch the dev database or its demo login. CI
+already sets `DATABASE_URL` to `dental_clinic_test`, which is used verbatim.
+Override with `TEST_DATABASE_URL`; the name must end in `_test`.
+
+An interrupted run leaves its tables behind (`create_all` skips existing
+ones), so the session start drops and recreates the `public` schema.
+
+The backend image is multi-stage: `docker-compose.yml` builds the `dev`
+target (adds the `[dev]` extra — pytest, ruff), while deploys build `prod`,
+the last stage, which has neither. Keep `prod` last in the Dockerfile.
+
+Isolation has **two halves**: overriding `get_db` covers request-scoped
+sessions, and `conftest.py` also rebinds the global `engine` /
+`async_session_maker`, because event handlers and background tasks
+(`patient_timeline`, `payments`, `recalls`, `copilot`, `treatment_plan`,
+`migration_import`, ...) open their own sessions and bypass the override.
+`tests/test_db_isolation.py` pins both halves.
+
 Fixtures from `conftest.py`: `db_session`, `client`, `auth_headers`.
 
 ```python
@@ -371,7 +393,7 @@ TESTING=false
 
 ## Troubleshooting
 
-- **"relation does not exist"** / tables wiped after tests: `./scripts/reset-db.sh` then `./scripts/seed-demo.sh`. Manual fallback: `DELETE FROM alembic_version;` then `alembic upgrade heads`.
+- **"relation does not exist"** (missing/half-migrated schema): `./scripts/reset-db.sh` then `./scripts/seed-demo.sh` — destructive, it drops every table, so confirm before running it on a database you care about. Manual fallback: `DELETE FROM alembic_version;` then `alembic upgrade heads`.
 - **Frontend changes not showing**: `docker-compose up -d --build frontend`.
 - **Permission denied but should have access**: check `clinic_memberships` row, exact permission string, `/me` payload, then re-login.
 

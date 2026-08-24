@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from sqlalchemy import (
     Boolean,
+    Column,
     DateTime,
     Float,
     ForeignKey,
@@ -14,8 +15,10 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    Table,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -24,6 +27,31 @@ from app.database import Base, TimestampMixin
 
 # Supported pricing strategies. See app.modules.catalog.pricing for the computation.
 PRICING_STRATEGIES = ("flat", "per_tooth", "per_surface", "per_role")
+
+# Stage of care a treatment belongs to, in the order a plan is usually
+# sequenced. Distinct from both category (where a treatment is filed) and
+# specialty (who performs it): this is *when*.
+#
+#   diagnostico    exploration, imaging, study
+#   urgencia       pain relief, drainage, emergency pulpectomy
+#   preventivo     prophylaxis, sealants, fluoride
+#   estabilizacion eliminate disease: endodontics, perio therapy, fillings
+#   rehabilitacion restore function: crowns, prosthetics, implants, ortho
+#   estetica       elective, non-pathological: whitening, veneers
+#   mantenimiento  recall visits, periodic scaling, retainers
+#
+# The catalog value is a default. What a treatment actually *is* for a given
+# patient is decided when it is planned — an extraction can be an emergency
+# or a step in a planned rehabilitation — so the plan records its own.
+TREATMENT_PHASES = (
+    "diagnostico",
+    "urgencia",
+    "preventivo",
+    "estabilizacion",
+    "rehabilitacion",
+    "estetica",
+    "mantenimiento",
+)
 
 if TYPE_CHECKING:
     from app.core.auth.models import Clinic
@@ -63,6 +91,77 @@ class VatType(Base, TimestampMixin):
     __table_args__ = (
         Index("idx_vat_types_clinic", "clinic_id"),
         Index("idx_vat_types_default", "clinic_id", "is_default"),
+    )
+
+
+# Many-to-many between catalog items and specialties. A treatment may be
+# performed under more than one discipline (a simple extraction belongs to
+# both "Cirugía Oral" and general practice), so this is an association table
+# rather than a column on the item. Both sides cascade on delete: the link
+# is meaningless without either end.
+catalog_item_specialties = Table(
+    "catalog_item_specialties",
+    Base.metadata,
+    Column(
+        "catalog_item_id",
+        UUID(as_uuid=True),
+        ForeignKey("treatment_catalog_items.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "specialty_id",
+        UUID(as_uuid=True),
+        ForeignKey("specialties.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Index("idx_catalog_item_specialties_specialty", "specialty_id"),
+)
+
+
+class Specialty(Base, TimestampMixin):
+    """Dental specialty used to classify treatments and dentists.
+
+    Independent from ``TreatmentCategory``: a category groups treatments
+    by clinical area for catalog browsing, while a specialty tracks which
+    professional discipline a treatment belongs to (e.g. a "Cirugía"
+    category item like a third-molar extraction maps to the "Cirugía Oral
+    y Maxilofacial" specialty). A treatment may have zero or more
+    specialties, linked through ``catalog_item_specialties``.
+    """
+
+    __tablename__ = "specialties"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+
+    # Stable identifier for seeded specialties, mirroring TreatmentCategory.key.
+    # Seeding matches on this, so renaming "Ortodoncia" in the UI does not make
+    # the next seed run create a second one. NULL for clinic-created rows.
+    key: Mapped[str | None] = mapped_column(String(50), default=None)
+
+    # Localized names (JSONB for multi-language support)
+    names: Mapped[dict] = mapped_column(JSONB, default=dict)  # {"es": "Cirugía Oral", "en": "..."}
+
+    # Status
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Relationships
+    clinic: Mapped["Clinic"] = relationship()
+    catalog_items: Mapped[list["TreatmentCatalogItem"]] = relationship(
+        secondary=catalog_item_specialties,
+        back_populates="specialties",
+    )
+
+    __table_args__ = (
+        Index("idx_specialties_clinic", "clinic_id"),
+        # Partial: clinic-created specialties have no key and must not collide.
+        Index(
+            "uq_specialty_clinic_key",
+            "clinic_id",
+            "key",
+            unique=True,
+            postgresql_where=text("key IS NOT NULL"),
+        ),
     )
 
 
@@ -167,6 +266,9 @@ class TreatmentCatalogItem(Base, TimestampMixin):
     # Missing tier resolves to the highest populated tier <= n, or default_price.
     surface_prices: Mapped[dict | None] = mapped_column(JSONB, default=None)
 
+    # Default stage of care (see TREATMENT_PHASES). Overridable per plan item.
+    default_phase: Mapped[str | None] = mapped_column(String(20), default=None, index=True)
+
     # Treatment characteristics.
     # treatment_scope aligns with Treatment.scope enum:
     #   tooth / multi_tooth / global_mouth / global_arch
@@ -184,6 +286,13 @@ class TreatmentCatalogItem(Base, TimestampMixin):
 
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Whether the treatment is listed on the clinical /treatments page.
+    # Distinct from `is_active`: an active treatment is one the clinic still
+    # offers and can bill, while this only curates the browsing list — a
+    # clinic showing its 40 usual treatments keeps the rest active for
+    # budgets, odontogram and history. Defaults to visible so the page keeps
+    # showing everything until someone deliberately narrows it.
+    is_visible: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)  # System-seeded item
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
@@ -198,6 +307,11 @@ class TreatmentCatalogItem(Base, TimestampMixin):
         back_populates="catalog_item",
         cascade="all, delete-orphan",
         order_by="CatalogItemSession.sequence",
+    )
+    specialties: Mapped[list["Specialty"]] = relationship(
+        secondary=catalog_item_specialties,
+        back_populates="catalog_items",
+        order_by="Specialty.created_at",
     )
 
     __table_args__ = (

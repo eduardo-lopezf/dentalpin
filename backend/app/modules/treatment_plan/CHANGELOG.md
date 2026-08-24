@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- feat(nav)!: the module no longer owns a menu entry. The pipeline moved
+  from `/treatment-plans` to `/treatments/plans` (detail and new-plan pages
+  follow), reached through the "Tratamientos" section owned by `catalog`.
+  Server-side 301s keep existing bookmarks and already-sent links working.
+  API paths are unchanged — only the frontend routes moved.
+
+- feat(phases): `PlannedTreatmentItem.phase` records the stage of care for
+  this patient (migration `tp_0008`, `depends_on = cat_0007`). Seeded from
+  the catalog item's `default_phase` when the treatment is added, then owned
+  by the plan — the same extraction is an emergency for one patient and a
+  planned rehabilitation step for another, so reading through to the catalog
+  row would be wrong. `phase` accepted on item create/update.
+
 - fix(professionals): ``assigned_professional_id`` on ``treatment_plans``
   and ``planned_treatment_items`` now points at ``professionals.id``
   (directory) instead of ``users.id``, matching the ``agenda``/``schedules``

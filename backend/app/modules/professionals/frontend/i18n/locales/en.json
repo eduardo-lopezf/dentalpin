@@ -30,7 +30,8 @@
     },
     "status": {
       "active": "Active",
-      "inactive": "Inactive"
+      "inactive": "Inactive",
+      "hasSystemAccess": "User with access"
     },
     "filters": {
       "allTypes": "All profiles",
@@ -40,6 +41,7 @@
       "load": "The professionals directory could not be loaded.",
       "save": "The profile could not be saved. Please try again.",
       "photoUpload": "The photo could not be uploaded. Please try again."
-    }
+    },
+    "specialtyPlaceholder": "Select one or more"
   }
 }

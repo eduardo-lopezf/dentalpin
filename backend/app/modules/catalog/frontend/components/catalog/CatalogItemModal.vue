@@ -41,6 +41,10 @@ onMounted(() => {
 })
 
 const isCreateMode = computed(() => !props.item)
+// Seeded items are fully editable — a clinic sets its own prices, names and
+// durations, and deactivates what it does not offer. Only the internal code
+// stays locked: the seeder matches on it, so renaming it would make the next
+// seed run recreate the original alongside the renamed one.
 const isSystem = computed(() => !isCreateMode.value && props.item?.is_system)
 
 // Tabs
@@ -454,6 +458,7 @@ function handleClose() {
                 <UFormField
                   :label="t('catalog.code')"
                   class="md:col-span-1"
+                  :help="isSystem ? t('catalog.codeLockedHelp') : undefined"
                 >
                   <UInput
                     v-model="formData.internal_code"
@@ -473,7 +478,6 @@ function handleClose() {
                     value-key="value"
                     label-key="label"
                     :placeholder="t('catalog.selectCategory')"
-                    :disabled="isSystem"
                   />
                 </UFormField>
               </div>
@@ -504,7 +508,6 @@ function handleClose() {
                 </div>
                 <USwitch
                   v-model="formData.is_active"
-                  :disabled="isSystem"
                 />
               </div>
             </div>
@@ -566,7 +569,6 @@ function handleClose() {
                     :class="formData.pricing_strategy === opt.value
                       ? 'border-primary-accent bg-primary-soft/30 shadow-sm'
                       : 'border-default hover:border-muted bg-surface'"
-                    :disabled="isSystem"
                     @click="formData.pricing_strategy = opt.value"
                   >
                     <UIcon
@@ -781,7 +783,6 @@ function handleClose() {
                     :class="formData.treatment_scope === opt.value
                       ? 'border-primary-accent bg-primary-soft/30 shadow-sm'
                       : 'border-default hover:border-muted bg-surface'"
-                    :disabled="isSystem"
                     @click="formData.treatment_scope = opt.value"
                   >
                     <UIcon
@@ -810,7 +811,6 @@ function handleClose() {
                   </div>
                   <USwitch
                     v-model="formData.is_diagnostic"
-                    :disabled="isSystem"
                   />
                 </div>
                 <div class="flex items-center justify-between p-3 rounded-lg border border-default bg-surface-muted/30">
@@ -825,7 +825,6 @@ function handleClose() {
                   </div>
                   <USwitch
                     v-model="formData.requires_surfaces"
-                    :disabled="isSystem"
                   />
                 </div>
               </div>

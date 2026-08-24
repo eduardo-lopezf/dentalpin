@@ -68,6 +68,7 @@ export interface Clinic {
   email?: string
   timezone: string
   currency: string
+  tenant_type: string
   settings: {
     slot_duration_min?: number
   }
@@ -108,13 +109,15 @@ export interface Professional {
   last_name: string
   full_name: string
   professional_type: 'dentist' | 'hygienist' | 'collaborator'
-  specialty: string | null
+  /** Disciplines from the clinic's specialty catalog; a professional may practise several. */
+  specialties: SpecialtyBrief[]
   license_number: string | null
   email: string | null
   phone: string | null
   photo_url: string | null
   notes: string | null
   is_active: boolean
+  has_system_access: boolean
 }
 
 export interface UserCreate {
@@ -591,6 +594,45 @@ export interface VatTypeBrief {
 }
 
 // ============================================================================
+// Specialty Types
+// ============================================================================
+
+export interface Specialty {
+  id: string
+  clinic_id: string
+  names: Record<string, string>
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface SpecialtyCreate {
+  names: Record<string, string>
+}
+
+export interface SpecialtyUpdate {
+  names?: Record<string, string>
+  is_active?: boolean
+}
+
+/** Specialty as embedded in a catalog item response. */
+/** Stage of care; mirrors TREATMENT_PHASES in the backend catalog models. */
+export type TreatmentPhase =
+  | 'diagnostico'
+  | 'urgencia'
+  | 'preventivo'
+  | 'estabilizacion'
+  | 'rehabilitacion'
+  | 'estetica'
+  | 'mantenimiento'
+
+export interface SpecialtyBrief {
+  id: string
+  names: Record<string, string>
+  is_active: boolean
+}
+
+// ============================================================================
 // Catalog Types
 // ============================================================================
 
@@ -678,6 +720,8 @@ export interface TreatmentCatalogItem {
   // Tax - references VatType
   vat_type_id?: string
   vat_type?: VatTypeBrief
+  /** Stage of care this treatment usually belongs to. */
+  default_phase?: TreatmentPhase | null
   // Treatment characteristics
   treatment_scope: 'tooth' | 'multi_tooth' | 'global_mouth' | 'global_arch'
   is_diagnostic: boolean
@@ -686,6 +730,8 @@ export interface TreatmentCatalogItem {
   material_notes?: string
   // Status
   is_active: boolean
+  /** Listed on the clinical /treatments page. Independent of is_active. */
+  is_visible?: boolean
   is_system: boolean
   deleted_at?: string
   // Timestamps
@@ -695,6 +741,7 @@ export interface TreatmentCatalogItem {
   category?: TreatmentCatalogCategory
   odontogram_mapping?: OdontogramMapping
   sessions?: CatalogItemSession[]
+  specialties?: SpecialtyBrief[]
 }
 
 export interface TreatmentCatalogItemCreate {
@@ -723,6 +770,8 @@ export interface TreatmentCatalogItemCreate {
   odontogram_mapping?: OdontogramMappingCreate
   // Session template (multi-session billing)
   sessions?: CatalogItemSessionInput[]
+  /** Listed on the clinical /treatments page. Defaults to true. */
+  is_visible?: boolean
 }
 
 export interface TreatmentCatalogItemUpdate {
@@ -743,6 +792,8 @@ export interface TreatmentCatalogItemUpdate {
   requires_surfaces?: boolean
   material_notes?: string
   is_active?: boolean
+  /** Listed on the clinical /treatments page. Independent of is_active. */
+  is_visible?: boolean
   odontogram_mapping?: OdontogramMappingCreate
   sessions?: CatalogItemSessionInput[]
 }
@@ -820,6 +871,8 @@ export interface CatalogItemBrief {
   internal_code: string
   names: Record<string, string>
   default_price?: number
+  default_duration_minutes?: number
+  is_active?: boolean
 }
 
 // Budget Item

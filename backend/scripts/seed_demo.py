@@ -254,6 +254,60 @@ async def seed_users(db: AsyncSession, password_hash: str) -> list[User]:
     return users
 
 
+async def seed_professional_specialties(db: AsyncSession) -> int:
+    """Give the demo clinical staff their disciplines.
+
+    Runs after the catalog seeder, which creates the specialties. Without
+    this the "only what my team performs" filter on /treatments matches
+    nothing out of the box, and the directory shows no specialty at all.
+    """
+    from sqlalchemy import select
+
+    from app.modules.catalog.models import Specialty
+    from app.modules.professionals.models import Professional, professional_specialties
+
+    # professional_type -> specialty keys
+    wanted = {
+        "dentist": ["general", "ortodoncia"],
+        "hygienist": ["higiene"],
+    }
+
+    by_key = {
+        row.key: row.id
+        for row in (
+            await db.execute(select(Specialty).where(Specialty.clinic_id == CLINIC_ID))
+        ).scalars()
+        if row.key
+    }
+
+    professionals = (
+        (await db.execute(select(Professional).where(Professional.clinic_id == CLINIC_ID)))
+        .scalars()
+        .all()
+    )
+
+    linked = 0
+    for professional in professionals:
+        for key in wanted.get(professional.professional_type, []):
+            specialty_id = by_key.get(key)
+            if specialty_id is None:
+                continue
+            already = await db.scalar(
+                select(professional_specialties.c.specialty_id).where(
+                    professional_specialties.c.professional_id == professional.id,
+                    professional_specialties.c.specialty_id == specialty_id,
+                )
+            )
+            if already:
+                continue
+            await db.execute(
+                professional_specialties.insert(),
+                [{"professional_id": professional.id, "specialty_id": specialty_id}],
+            )
+            linked += 1
+    return linked
+
+
 async def seed_patients(db: AsyncSession) -> list[Patient]:
     """Create demo patients + their normalized clinical rows."""
     patients: list[Patient] = []
@@ -674,6 +728,9 @@ async def main(lang: str = "en") -> None:
             print(f"  Created {catalog_result['categories']} categories")
             print(f"  Created {catalog_result['items']} catalog items")
             catalog_map = await _load_catalog_map(db)
+
+            links = await seed_professional_specialties(db)
+            print(f"  Linked {links} professional specialties")
 
             print("\n[5/10] Creating odontogram data...")
             await seed_odontogram(db)

@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.modules.catalog.schemas import TreatmentPhase
+
 # ---------------------------------------------------------------------------
 # Nested brief schemas
 # ---------------------------------------------------------------------------
@@ -197,6 +199,9 @@ class TreatmentPlanDetailResponse(TreatmentPlanResponse):
 # ---------------------------------------------------------------------------
 # Planned treatment item schemas
 # ---------------------------------------------------------------------------
+#
+# Stage of care; the vocabulary is owned by the catalog module, which is in
+# this module's ``manifest.depends``.
 
 
 class PlannedTreatmentItemCreate(BaseModel):
@@ -205,6 +210,9 @@ class PlannedTreatmentItemCreate(BaseModel):
     treatment_id: UUID
     sequence_order: int | None = None
     notes: str | None = None
+    # Stage of care. When omitted, seeded from the catalog item's
+    # ``default_phase``; pass a value to override for this patient.
+    phase: TreatmentPhase | None = None
     # When omitted, the service inherits the plan's ``assigned_professional_id``.
     # Pass an explicit value to override at creation time.
     assigned_professional_id: UUID | None = None
@@ -215,6 +223,7 @@ class PlannedTreatmentItemUpdate(BaseModel):
 
     sequence_order: int | None = None
     notes: str | None = None
+    phase: TreatmentPhase | None = None
     # Nullable: passing ``None`` explicitly clears the assignment. The router
     # serializes with ``exclude_unset=True`` so omitting the field leaves the
     # item untouched.
@@ -246,6 +255,7 @@ class PlannedTreatmentItemResponse(BaseModel):
     treatment_plan_id: UUID
     treatment_id: UUID
     sequence_order: int
+    phase: str | None = None
     status: str
     completed_without_appointment: bool
     completed_at: datetime | None

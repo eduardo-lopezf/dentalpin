@@ -123,6 +123,7 @@ class ClinicMetadataResponse(BaseModel):
     email: str | None
     timezone: str
     currency: str
+    tenant_type: str
     settings: dict
     cabinets: list[_ClinicCabinetBrief]
 

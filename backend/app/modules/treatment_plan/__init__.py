@@ -80,15 +80,10 @@ class TreatmentPlanModule(BaseModule):
         },
         "frontend": {
             "layer_path": "frontend",
-            "navigation": [
-                {
-                    "label": "nav.treatmentPlans",
-                    "icon": "i-lucide-clipboard-list",
-                    "to": "/treatment-plans",
-                    "permission": "treatment_plan.plans.read",
-                    "order": 30,
-                },
-            ],
+            # No navigation entry of its own: the plan pipeline lives under
+            # the "Tratamientos" section owned by `catalog`, reached at
+            # /treatments/plans. One menu entry, two surfaces — see the
+            # section sub-nav in the catalog layer.
         },
     }
 

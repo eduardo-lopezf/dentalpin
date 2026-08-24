@@ -64,6 +64,15 @@ async function handleLogout() {
   await auth.logout()
 }
 
+// tenant_type is a reserved taxonomy (see backend TENANT_TYPES) — only
+// "clinic" has real functionality today, the rest are future tiers.
+// Falls back to the raw value so an unmapped tier still renders something.
+const tenantTypeLabel = computed(() => {
+  const type = clinic.currentClinic.value?.tenant_type
+  if (!type) return null
+  return t(`auth.tenantTypes.${type}`, type)
+})
+
 const settingsItem = computed(() => navigationItems.value.find(i => i.to === '/settings'))
 const mainNavItems = computed(() => navigationItems.value.filter(i => i.to !== '/settings'))
 
@@ -294,7 +303,7 @@ function isActive(to: string): boolean {
       <DemoBanner />
 
       <!-- Header -->
-      <header class="sticky top-0 z-40 flex items-center h-14 px-3 sm:px-4 bg-surface border-b border-subtle">
+      <header class="sticky top-0 z-40 flex items-center min-h-14 py-1.5 px-3 sm:px-4 bg-surface border-b border-subtle">
         <!-- Mobile hamburger -->
         <UButton
           class="md:hidden"
@@ -334,20 +343,28 @@ function isActive(to: string): boolean {
         <div class="flex-1" />
 
         <!-- Right actions -->
-        <div class="flex items-center gap-1">
-          <HelpButton />
-          <DensityToggle />
-          <UColorModeButton />
-          <UButton
-            variant="ghost"
-            color="neutral"
-            size="sm"
-            icon="i-lucide-log-out"
-            :aria-label="t('auth.logout')"
-            @click="handleLogout"
+        <div class="flex flex-col items-end gap-0.5">
+          <div class="flex items-center gap-1">
+            <HelpButton />
+            <DensityToggle />
+            <UColorModeButton />
+            <UButton
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              icon="i-lucide-log-out"
+              :aria-label="t('auth.logout')"
+              @click="handleLogout"
+            >
+              <span class="hidden sm:inline">{{ t('auth.logout') }}</span>
+            </UButton>
+          </div>
+          <span
+            v-if="tenantTypeLabel"
+            class="text-caption text-subtle pr-1"
           >
-            <span class="hidden sm:inline">{{ t('auth.logout') }}</span>
-          </UButton>
+            {{ t('auth.profile', { type: tenantTypeLabel }) }}
+          </span>
         </div>
       </header>
 

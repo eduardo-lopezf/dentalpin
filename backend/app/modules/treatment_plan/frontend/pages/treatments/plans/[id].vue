@@ -50,7 +50,7 @@ function handleCancelled() {
   if (patientId.value) {
     router.push(`/patients/${patientId.value}?tab=clinical&clinicalMode=plans`)
   } else {
-    router.push('/treatment-plans')
+    router.push('/treatments/plans')
   }
 }
 </script>
@@ -83,7 +83,7 @@ function handleCancelled() {
       </p>
       <UButton
         class="mt-4"
-        to="/treatment-plans"
+        to="/treatments/plans"
       >
         {{ t('treatmentPlans.title') }}
       </UButton>

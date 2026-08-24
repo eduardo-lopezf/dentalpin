@@ -7,6 +7,17 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+# Stage of care; mirrors app.modules.catalog.models.TREATMENT_PHASES.
+TreatmentPhase = Literal[
+    "diagnostico",
+    "urgencia",
+    "preventivo",
+    "estabilizacion",
+    "rehabilitacion",
+    "estetica",
+    "mantenimiento",
+]
+
 # ============================================================================
 # VAT Type Schemas
 # ============================================================================
@@ -56,6 +67,56 @@ class VatTypeBrief(BaseModel):
     is_system: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================================
+# Specialty Schemas
+# ============================================================================
+
+
+class SpecialtyCreate(BaseModel):
+    """Schema for creating a specialty."""
+
+    names: dict[str, str] = Field(default_factory=dict)  # {"es": "Nombre", "en": "Name"}
+
+
+class SpecialtyUpdate(BaseModel):
+    """Schema for updating a specialty."""
+
+    names: dict[str, str] | None = None
+    is_active: bool | None = None
+
+
+class SpecialtyResponse(BaseModel):
+    """Schema for specialty response."""
+
+    id: UUID
+    clinic_id: UUID
+    names: dict[str, str]
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SpecialtyBrief(BaseModel):
+    """Brief specialty info, embedded in catalog item responses."""
+
+    id: UUID
+    names: dict[str, str]
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SpecialtyItemsUpdate(BaseModel):
+    """Schema for replacing the treatments assigned to a specialty.
+
+    The list is authoritative: items missing from it are unassigned.
+    """
+
+    item_ids: list[UUID] = Field(default_factory=list)
 
 
 # ============================================================================
@@ -196,6 +257,9 @@ class CatalogItemCreate(BaseModel):
     # pricing_strategy == "per_surface". See pricing.py for tier resolution.
     surface_prices: dict[str, Decimal] | None = None
 
+    # Stage of care this treatment usually belongs to (see TREATMENT_PHASES).
+    default_phase: TreatmentPhase | None = None
+
     # Treatment characteristics (aligns with Treatment.scope).
     treatment_scope: Literal["tooth", "multi_tooth", "global_mouth", "global_arch"] = "tooth"
     is_diagnostic: bool = False
@@ -203,6 +267,9 @@ class CatalogItemCreate(BaseModel):
 
     # Material
     material_notes: str | None = None
+
+    # Listed on the clinical /treatments page (see model docstring).
+    is_visible: bool = True
 
     # Odontogram mapping (optional)
     odontogram_mapping: OdontogramMappingCreate | None = None
@@ -235,6 +302,9 @@ class CatalogItemUpdate(BaseModel):
     pricing_config: dict | None = None
     surface_prices: dict[str, Decimal] | None = None
 
+    # Stage of care
+    default_phase: TreatmentPhase | None = None
+
     # Treatment characteristics
     treatment_scope: Literal["tooth", "multi_tooth", "global_mouth", "global_arch"] | None = None
     is_diagnostic: bool | None = None
@@ -245,6 +315,7 @@ class CatalogItemUpdate(BaseModel):
 
     # Status
     is_active: bool | None = None
+    is_visible: bool | None = None
 
     # Odontogram mapping
     odontogram_mapping: OdontogramMappingCreate | None = None
@@ -283,6 +354,9 @@ class CatalogItemResponse(BaseModel):
     pricing_config: dict | None
     surface_prices: dict[str, Decimal] | None = None
 
+    # Stage of care
+    default_phase: str | None = None
+
     # Treatment characteristics
     treatment_scope: str
     is_diagnostic: bool
@@ -293,6 +367,7 @@ class CatalogItemResponse(BaseModel):
 
     # Status
     is_active: bool
+    is_visible: bool = True
     is_system: bool
     deleted_at: datetime | None
 
@@ -304,6 +379,7 @@ class CatalogItemResponse(BaseModel):
     category: CategoryResponse | None = None
     odontogram_mapping: OdontogramMappingResponse | None = None
     sessions: list[CatalogItemSessionResponse] = Field(default_factory=list)
+    specialties: list[SpecialtyBrief] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 

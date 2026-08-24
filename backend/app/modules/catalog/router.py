@@ -19,6 +19,10 @@ from .schemas import (
     CategoryResponse,
     CategoryUpdate,
     OdontogramTreatmentResponse,
+    SpecialtyCreate,
+    SpecialtyItemsUpdate,
+    SpecialtyResponse,
+    SpecialtyUpdate,
     VatTypeCreate,
     VatTypeResponse,
     VatTypeUpdate,
@@ -28,6 +32,8 @@ from .service import (
     CategoryService,
     OdontogramCatalogService,
     SessionTemplateError,
+    SpecialtyService,
+    UnknownCatalogItemError,
     VatTypeService,
 )
 
@@ -265,6 +271,136 @@ async def delete_vat_type(
 
 
 # ============================================================================
+# Specialty Endpoints
+# ============================================================================
+
+
+@router.get("/specialties", response_model=ApiResponse[list[SpecialtyResponse]])
+async def list_specialties(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    include_inactive: bool = Query(default=False),
+) -> ApiResponse[list[SpecialtyResponse]]:
+    """List all specialties for the clinic."""
+    specialties = await SpecialtyService.list_specialties(
+        db, ctx.clinic_id, include_inactive=include_inactive
+    )
+    return ApiResponse(data=[SpecialtyResponse.model_validate(s) for s in specialties])
+
+
+@router.get("/specialties/{specialty_id}", response_model=ApiResponse[SpecialtyResponse])
+async def get_specialty(
+    specialty_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[SpecialtyResponse]:
+    """Get a specialty by ID."""
+    specialty = await SpecialtyService.get_specialty(db, ctx.clinic_id, specialty_id)
+    if not specialty:
+        raise HTTPException(status_code=404, detail="Specialty not found")
+    return ApiResponse(data=SpecialtyResponse.model_validate(specialty))
+
+
+@router.post(
+    "/specialties",
+    response_model=ApiResponse[SpecialtyResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_specialty(
+    data: SpecialtyCreate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.admin"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[SpecialtyResponse]:
+    """Create a new specialty."""
+    specialty = await SpecialtyService.create_specialty(db, ctx.clinic_id, data.model_dump())
+    return ApiResponse(data=SpecialtyResponse.model_validate(specialty))
+
+
+@router.put("/specialties/{specialty_id}", response_model=ApiResponse[SpecialtyResponse])
+async def update_specialty(
+    specialty_id: UUID,
+    data: SpecialtyUpdate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.admin"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[SpecialtyResponse]:
+    """Update a specialty."""
+    specialty = await SpecialtyService.get_specialty(db, ctx.clinic_id, specialty_id)
+    if not specialty:
+        raise HTTPException(status_code=404, detail="Specialty not found")
+
+    updated = await SpecialtyService.update_specialty(
+        db, specialty, data.model_dump(exclude_unset=True)
+    )
+    return ApiResponse(data=SpecialtyResponse.model_validate(updated))
+
+
+@router.delete("/specialties/{specialty_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_specialty(
+    specialty_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.admin"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """Soft-delete a specialty."""
+    specialty = await SpecialtyService.get_specialty(db, ctx.clinic_id, specialty_id)
+    if not specialty:
+        raise HTTPException(status_code=404, detail="Specialty not found")
+
+    await SpecialtyService.delete_specialty(db, specialty)
+
+
+@router.get(
+    "/specialties/{specialty_id}/items",
+    response_model=ApiResponse[list[CatalogItemBrief]],
+)
+async def list_specialty_items(
+    specialty_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[CatalogItemBrief]]:
+    """List the treatments assigned to a specialty."""
+    specialty = await SpecialtyService.get_specialty(db, ctx.clinic_id, specialty_id)
+    if not specialty:
+        raise HTTPException(status_code=404, detail="Specialty not found")
+
+    items = await SpecialtyService.list_items(db, ctx.clinic_id, specialty_id)
+    return ApiResponse(data=[CatalogItemBrief.model_validate(i) for i in items])
+
+
+@router.put(
+    "/specialties/{specialty_id}/items",
+    response_model=ApiResponse[list[CatalogItemBrief]],
+)
+async def set_specialty_items(
+    specialty_id: UUID,
+    data: SpecialtyItemsUpdate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.admin"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[CatalogItemBrief]]:
+    """Replace the treatments assigned to a specialty.
+
+    The payload is authoritative: treatments absent from ``item_ids``
+    lose the assignment.
+    """
+    specialty = await SpecialtyService.get_specialty(db, ctx.clinic_id, specialty_id)
+    if not specialty:
+        raise HTTPException(status_code=404, detail="Specialty not found")
+
+    try:
+        items = await SpecialtyService.set_items(db, ctx.clinic_id, specialty, data.item_ids)
+    except UnknownCatalogItemError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    return ApiResponse(data=[CatalogItemBrief.model_validate(i) for i in items])
+
+
+# ============================================================================
 # Catalog Item Endpoints
 # ============================================================================
 
@@ -389,15 +525,24 @@ async def update_item(
     _: Annotated[None, Depends(require_permission("catalog.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[CatalogItemResponse]:
-    """Update a catalog item."""
+    """Update a catalog item.
+
+    Seeded (``is_system``) items are editable: a clinic must be able to set
+    its own prices, durations and names, and deactivating one it does not
+    offer is an update too. Only ``internal_code`` stays locked on them —
+    it is the key the seeder matches on, so renaming it would make the next
+    seed run recreate the original as a duplicate.
+
+    Gated by ``catalog.write``, which only the admin role holds.
+    """
     item = await CatalogService.get_item(db, ctx.clinic_id, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Catalog item not found")
 
-    if item.is_system:
+    if item.is_system and data.internal_code and data.internal_code != item.internal_code:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cannot modify system catalog item",
+            detail="Cannot change the internal code of a system catalog item",
         )
 
     # Verify category if changing

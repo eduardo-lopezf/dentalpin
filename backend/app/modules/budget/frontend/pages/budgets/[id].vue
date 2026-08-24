@@ -499,7 +499,7 @@ const infoItems = computed<InfoItem[]>(() => {
       key: 'plan',
       label: t('budget.treatmentPlan'),
       link: {
-        to: `/treatment-plans/${plan.id}`,
+        to: `/treatments/plans/${plan.id}`,
         label: plan.title ? `${plan.plan_number} — ${plan.title}` : plan.plan_number
       }
     })

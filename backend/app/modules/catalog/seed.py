@@ -25,10 +25,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import (
     CatalogItemSession,
+    Specialty,
     TreatmentCatalogItem,
     TreatmentCategory,
     TreatmentOdontogramMapping,
     VatType,
+    catalog_item_specialties,
 )
 
 # ============================================================================
@@ -49,6 +51,162 @@ VAT_TYPES: list[dict[str, Any]] = [
         "is_default": False,
     },
 ]
+
+
+# ============================================================================
+# Specialties
+# ============================================================================
+#
+# The discipline axis, independent of the browsing axis (`CATEGORIES`) — see
+# docs. A category answers "where do I find this treatment", a specialty
+# answers "who performs it", and neither is a subset of the other:
+# `cirugia` holds two specialties, while Implantología spans three categories.
+#
+# Clinics can add their own (Radiología, Patología Oral, Odontología del
+# Sueño, ...); these are the ones every general clinic needs.
+
+SPECIALTIES: list[dict[str, Any]] = [
+    {"key": "general", "names": {"es": "Odontología General", "en": "General Dentistry"}},
+    {"key": "higiene", "names": {"es": "Higiene Dental", "en": "Dental Hygiene"}},
+    {"key": "endodoncia", "names": {"es": "Endodoncia", "en": "Endodontics"}},
+    {"key": "periodoncia", "names": {"es": "Periodoncia", "en": "Periodontics"}},
+    {
+        "key": "cirugia",
+        "names": {"es": "Cirugía Oral y Maxilofacial", "en": "Oral and Maxillofacial Surgery"},
+    },
+    {"key": "implantologia", "names": {"es": "Implantología", "en": "Implantology"}},
+    {"key": "ortodoncia", "names": {"es": "Ortodoncia", "en": "Orthodontics"}},
+    {"key": "odontopediatria", "names": {"es": "Odontopediatría", "en": "Pediatric Dentistry"}},
+    {"key": "estetica", "names": {"es": "Estética Dental", "en": "Cosmetic Dentistry"}},
+    {
+        "key": "rehabilitacion",
+        "names": {"es": "Rehabilitación Oral", "en": "Oral Rehabilitation"},
+    },
+]
+
+# Baseline discipline for everything in a category.
+CATEGORY_SPECIALTIES: dict[str, list[str]] = {
+    "diagnostico": ["general"],
+    "preventivo": ["general", "higiene"],
+    "restauradora": ["general"],
+    "endodoncia": ["endodoncia"],
+    "periodoncia": ["periodoncia"],
+    "cirugia": ["cirugia"],
+    "ortodoncia": ["ortodoncia"],
+    "estetica": ["estetica"],
+    "protesis": ["rehabilitacion"],
+    "pediatrica": ["odontopediatria"],
+}
+
+# Where the category is too coarse, add disciplines by internal code. These
+# are additive — the category baseline still applies. Matched by prefix.
+ITEM_SPECIALTY_EXTRAS: list[tuple[str, list[str]]] = [
+    # Veneers are restorative work done for an aesthetic goal.
+    ("REST-VEN-", ["estetica"]),
+    # Crowns and bridges are prosthodontics even when a GP places them.
+    ("REST-CROWN-", ["rehabilitacion"]),
+    ("REST-BRIDGE-", ["rehabilitacion"]),
+    ("REST-INLAY-", ["rehabilitacion"]),
+    ("REST-OVER-", ["rehabilitacion"]),
+    # The implant-borne half of the restorative catalog.
+    ("REST-CROWN-IMPL-", ["implantologia"]),
+    ("REST-DEF-ABUT", ["implantologia", "rehabilitacion"]),
+    ("REST-HEAL-ABUT", ["implantologia", "rehabilitacion"]),
+    ("PROT-OVERDENT", ["implantologia"]),
+    # Surgery that exists to place or support implants.
+    ("SURG-IMP-", ["implantologia"]),
+    ("SURG-PERIIMP", ["implantologia", "periodoncia"]),
+    ("SURG-BONE-", ["implantologia"]),
+    ("SURG-SINUS", ["implantologia"]),
+    ("SURG-PRP", ["implantologia"]),
+    # Mucogingival and periapical surgery belong to their own disciplines too.
+    ("SURG-CONN-GRAFT", ["periodoncia"]),
+    ("SURG-CROWN-LENGTH", ["periodoncia"]),
+    ("SURG-APEC", ["endodoncia"]),
+    # Hygienist-delivered maintenance.
+    ("PERIO-MAINT", ["higiene"]),
+    ("PERIO-SCAL", ["higiene"]),
+    # Splints stabilising periodontally compromised teeth.
+    ("REST-SPLINT-PERIO", ["periodoncia"]),
+    # Paediatric variants of adult procedures.
+    ("ENDO-PED", ["odontopediatria"]),
+    ("PREV-CLEAN-PED", ["odontopediatria"]),
+    # Aesthetic composite work.
+    ("EST-COMP-AESTH", ["general"]),
+]
+
+
+def specialty_keys_for(category_key: str, internal_code: str) -> list[str]:
+    """Disciplines a seeded treatment belongs to: category baseline + extras."""
+    keys = list(CATEGORY_SPECIALTIES.get(category_key, []))
+    for prefix, extras in ITEM_SPECIALTY_EXTRAS:
+        if internal_code.startswith(prefix):
+            keys.extend(k for k in extras if k not in keys)
+    return keys
+
+
+# ============================================================================
+# Phases (stage of care)
+# ============================================================================
+#
+# The "when" axis. Baseline per category, refined per code where the category
+# mixes stages — `restauradora` holds both disease control (fillings) and
+# rehabilitation (crowns); `cirugia` holds emergency extractions and planned
+# implant surgery.
+
+CATEGORY_PHASES: dict[str, str] = {
+    "diagnostico": "diagnostico",
+    "preventivo": "preventivo",
+    "restauradora": "estabilizacion",
+    "endodoncia": "estabilizacion",
+    "periodoncia": "estabilizacion",
+    "cirugia": "estabilizacion",
+    "ortodoncia": "rehabilitacion",
+    "estetica": "estetica",
+    "protesis": "rehabilitacion",
+    "pediatrica": "estabilizacion",
+}
+
+# Prefix -> phase. First match wins, so list the specific before the general.
+ITEM_PHASES: list[tuple[str, str]] = [
+    # Anything explicitly urgent, whatever its category.
+    ("DX-URGENT", "urgencia"),
+    ("ENDO-URGENT", "urgencia"),
+    ("ENDO-MED-REFRESH", "urgencia"),
+    ("SURG-EXT-SIMPLE", "urgencia"),
+    ("PED-PULPOTOMY", "urgencia"),
+    ("PED-PULPECTOMY", "urgencia"),
+    # Restoring function rather than controlling disease.
+    ("REST-CROWN-", "rehabilitacion"),
+    ("REST-BRIDGE-", "rehabilitacion"),
+    ("REST-INLAY-", "rehabilitacion"),
+    ("REST-OVER-", "rehabilitacion"),
+    ("REST-DEF-ABUT", "rehabilitacion"),
+    ("REST-HEAL-ABUT", "rehabilitacion"),
+    ("SURG-IMP-", "rehabilitacion"),
+    ("SURG-BONE-", "rehabilitacion"),
+    ("SURG-SINUS", "rehabilitacion"),
+    # Elective aesthetics.
+    ("REST-VEN-", "estetica"),
+    # Recall and upkeep.
+    ("DX-REVIEW", "mantenimiento"),
+    ("PREV-CHECKUP", "mantenimiento"),
+    ("PERIO-MAINT", "mantenimiento"),
+    ("ORTO-REVIEW", "mantenimiento"),
+    ("ORTO-RET-", "mantenimiento"),
+    ("PROT-OCC-ADJ", "mantenimiento"),
+    ("PROT-REBASE", "mantenimiento"),
+    ("PROT-REPAIR", "mantenimiento"),
+]
+
+
+def phase_for(category_key: str, internal_code: str) -> str | None:
+    """Stage of care for a seeded treatment: per-code rule, else category."""
+    for prefix, phase in ITEM_PHASES:
+        if internal_code.startswith(prefix):
+            return phase
+    return CATEGORY_PHASES.get(category_key)
+
 
 # ============================================================================
 # Categories
@@ -1801,12 +1959,74 @@ async def _ensure_vat_types(db: AsyncSession, clinic_id: UUID) -> dict[str, UUID
     return vat_type_map
 
 
+async def _ensure_specialties(db: AsyncSession, clinic_id: UUID) -> dict[str, UUID]:
+    """Create the clinic's baseline specialties. Matched by ``key``, so a
+    renamed specialty is updated in place rather than duplicated."""
+    specialty_map: dict[str, UUID] = {}
+    for data in SPECIALTIES:
+        existing = await db.execute(
+            select(Specialty).where(
+                Specialty.clinic_id == clinic_id,
+                Specialty.key == data["key"],
+            )
+        )
+        specialty = existing.scalar_one_or_none()
+        if not specialty:
+            specialty = Specialty(clinic_id=clinic_id, key=data["key"], names=data["names"])
+            db.add(specialty)
+            await db.flush()
+        specialty_map[data["key"]] = specialty.id
+    return specialty_map
+
+
+async def _link_item_specialties(
+    db: AsyncSession,
+    item: TreatmentCatalogItem,
+    category_key: str,
+    specialty_map: dict[str, UUID],
+) -> int:
+    """Attach the baseline disciplines to a treatment.
+
+    Additive on purpose: a clinic that curated its own assignments keeps
+    them, and re-seeding only fills in what is missing.
+    """
+    wanted = [
+        specialty_map[key]
+        for key in specialty_keys_for(category_key, item.internal_code)
+        if key in specialty_map
+    ]
+    if not wanted:
+        return 0
+
+    existing = set(
+        (
+            await db.execute(
+                select(catalog_item_specialties.c.specialty_id).where(
+                    catalog_item_specialties.c.catalog_item_id == item.id
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    missing = [sid for sid in wanted if sid not in existing]
+    if missing:
+        await db.execute(
+            catalog_item_specialties.insert(),
+            [{"catalog_item_id": item.id, "specialty_id": sid} for sid in missing],
+        )
+    return len(missing)
+
+
 async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
     """Seed catalog items for a clinic. Idempotent (skips existing internal_codes)."""
     vat_type_map = await _ensure_vat_types(db, clinic_id)
+    specialty_map = await _ensure_specialties(db, clinic_id)
 
     categories_created = 0
     items_created = 0
+    specialty_links = 0
+    phases_set = 0
     category_map: dict[str, UUID] = {}
 
     for cat_data in CATEGORIES:
@@ -1845,7 +2065,16 @@ async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
                     TreatmentCatalogItem.internal_code == treatment_data["internal_code"],
                 )
             )
-            if existing.scalar_one_or_none():
+            already = existing.scalar_one_or_none()
+            if already:
+                # The item predates the specialty and phase axes, so those may
+                # still be missing even though the item itself is not.
+                specialty_links += await _link_item_specialties(
+                    db, already, category_key, specialty_map
+                )
+                if already.default_phase is None:
+                    already.default_phase = phase_for(category_key, already.internal_code)
+                    phases_set += 1
                 continue
 
             item = TreatmentCatalogItem(
@@ -1853,6 +2082,7 @@ async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
                 category_id=category_id,
                 vat_type_id=vat_type_id,
                 is_system=True,
+                default_phase=phase_for(category_key, treatment_data["internal_code"]),
                 **treatment_data,
             )
             db.add(item)
@@ -1882,6 +2112,7 @@ async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
                         )
                     )
 
+            specialty_links += await _link_item_specialties(db, item, category_key, specialty_map)
             items_created += 1
 
     await db.flush()
@@ -1890,6 +2121,9 @@ async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
         "categories": categories_created,
         "items": items_created,
         "vat_types": len(vat_type_map),
+        "specialties": len(specialty_map),
+        "specialty_links": specialty_links,
+        "phases_backfilled": phases_set,
     }
 
 

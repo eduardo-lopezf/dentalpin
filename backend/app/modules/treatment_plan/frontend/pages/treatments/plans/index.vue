@@ -55,12 +55,14 @@ const tabItems = computed(() => [
 ])
 
 function createPlan() {
-  router.push('/treatment-plans/new')
+  router.push('/treatments/plans/new')
 }
 </script>
 
 <template>
   <div>
+    <TreatmentsSectionNav class="mb-6" />
+
     <PageHeader
       :title="t('treatmentPlans.title')"
       :subtitle="t('pipeline.description')"

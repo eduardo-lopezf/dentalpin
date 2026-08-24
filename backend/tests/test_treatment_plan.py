@@ -62,6 +62,7 @@ async def _seed_catalog_crown(db_session: AsyncSession, clinic_id) -> str:
         default_price=Decimal("500.00"),
         pricing_strategy="flat",
         treatment_scope="tooth",
+        default_phase="rehabilitacion",
         vat_type_id=vat.id,
     )
     db_session.add(crown)
@@ -1220,3 +1221,51 @@ async def test_edit_completed_session_rejected(
         json={"label": "Cambio", "amount": 250.00},
     )
     assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_plan_item_inherits_catalog_phase(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """Adding a treatment seeds its stage of care from the catalog default."""
+    plan_resp = await client.post(
+        "/api/v1/treatment_plan/treatment-plans",
+        headers=auth_headers,
+        json={"patient_id": setup["patient_id"], "title": "Fases"},
+    )
+    plan_id = plan_resp.json()["data"]["id"]
+    treatment_id = await _create_treatment(client, auth_headers, setup)
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/items",
+        headers=auth_headers,
+        json={"treatment_id": treatment_id},
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["data"]["phase"] == "rehabilitacion"
+
+
+@pytest.mark.asyncio
+async def test_plan_item_phase_can_override_the_catalog(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """The plan owns the decision: the same crown can be urgent care.
+
+    This is why the phase is stored on the item and not read through to the
+    catalog row — one patient's planned rehabilitation is another's emergency.
+    """
+    plan_resp = await client.post(
+        "/api/v1/treatment_plan/treatment-plans",
+        headers=auth_headers,
+        json={"patient_id": setup["patient_id"], "title": "Fases"},
+    )
+    plan_id = plan_resp.json()["data"]["id"]
+    treatment_id = await _create_treatment(client, auth_headers, setup, tooth_number=25)
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/items",
+        headers=auth_headers,
+        json={"treatment_id": treatment_id, "phase": "urgencia"},
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["data"]["phase"] == "urgencia"

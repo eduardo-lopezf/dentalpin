@@ -59,7 +59,7 @@ watch([currentPage, selectedStatuses], () => {
 const totalPages = computed(() => Math.ceil(total.value / pageSize))
 
 function createPlan() {
-  router.push('/treatment-plans/new')
+  router.push('/treatments/plans/new')
 }
 
 async function handleDelete(plan: TreatmentPlan, event: Event) {
@@ -148,7 +148,7 @@ function getItemCount(plan: TreatmentPlan): number {
         <ListRow
           v-for="plan in plans"
           :key="plan.id"
-          :to="`/treatment-plans/${plan.id}`"
+          :to="`/treatments/plans/${plan.id}`"
         >
           <template #title>
             <span class="tnum">{{ plan.plan_number }}</span>

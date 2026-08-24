@@ -26,7 +26,8 @@
     "menu": "Menu",
     "openMenu": "Open menu",
     "close": "Close",
-    "toggleSidebar": "Toggle sidebar"
+    "toggleSidebar": "Toggle sidebar",
+    "treatments": "Treatments"
   },
   "auth": {
     "login": "Log in",
@@ -44,7 +45,16 @@
     "sessionExpired": "Your session has expired",
     "networkError": "Could not connect to the server",
     "serverError": "The server is unavailable. Please try again in a few minutes",
-    "unknownError": "Unexpected error. Please try again"
+    "unknownError": "Unexpected error. Please try again",
+    "profile": "Profile: {type}",
+    "tenantTypes": {
+      "basic": "Beginner",
+      "medium": "Medium",
+      "advanced": "Advanced",
+      "clinic": "Clinic",
+      "clinic_pro": "Clinic Pro",
+      "hospital": "Specialty Hospital"
+    }
   },
   "setup": {
     "title": "First-time setup",
@@ -1362,6 +1372,8 @@
   "catalog": {
     "title": "Treatment Catalog",
     "description": "Manage treatments, pricing, and tax configuration",
+    "byTreatmentType": "Treatment Type",
+    "bySpecialty": "By Specialty",
     "items": "Treatments",
     "categories": "Categories",
     "noItems": "No treatments in catalog",
@@ -1464,7 +1476,18 @@
       "pricing": "Pricing",
       "scheduling": "Scheduling",
       "clinical": "Clinical"
-    }
+    },
+    "codeLockedHelp": "The internal code of a system treatment cannot be changed.",
+    "phases": {
+      "diagnostico": "Diagnosis",
+      "urgencia": "Urgent care",
+      "preventivo": "Preventive",
+      "estabilizacion": "Stabilisation",
+      "rehabilitacion": "Rehabilitation",
+      "estetica": "Elective aesthetics",
+      "mantenimiento": "Maintenance"
+    },
+    "visible": "Visible"
   },
   "placeholders": {
     "selectRole": "Select role..."
@@ -1494,6 +1517,32 @@
     "createError": "Error creating VAT type",
     "updateError": "Error updating VAT type",
     "deleteError": "Error deleting VAT type"
+  },
+  "specialties": {
+    "name": "Name",
+    "namePlaceholder": "E.g.: Oral and Maxillofacial Surgery",
+    "new": "New Specialty",
+    "edit": "Edit Specialty",
+    "delete": "Delete Specialty",
+    "showInactive": "Show inactive",
+    "viewHint": "Groups catalog treatments by specialty. Use \"Assign treatments\" to link them.",
+    "assignItems": "Assign treatments",
+    "assignTitle": "Assign treatments to {name}",
+    "selectedCount": "{count} selected",
+    "noTreatments": "No treatments assigned to this specialty yet.",
+    "unassigned": "No specialty",
+    "noItems": "No specialties defined",
+    "deleteConfirm": "Are you sure you want to delete the specialty \"{name}\"?",
+    "deleteNote": "It will be marked inactive and no longer available to assign to treatments and dentists.",
+    "created": "Specialty created",
+    "updated": "Specialty updated",
+    "deleted": "Specialty deleted",
+    "itemsAssigned": "Treatments assigned",
+    "loadError": "Error loading specialties",
+    "createError": "Error creating specialty",
+    "updateError": "Error updating specialty",
+    "deleteError": "Error deleting specialty",
+    "assignError": "Error assigning treatments"
   },
   "treatmentPlans": {
     "title": "Treatment Plans",
@@ -2787,5 +2836,25 @@
     "drawerTitle": "Help for this page",
     "unavailable": "No contextual help available for this page yet.",
     "openFullManual": "Open full manual"
+  },
+  "treatments": {
+    "title": "Treatments",
+    "description": "Browse the catalog by category, specialty and phase",
+    "manage": "Manage catalog",
+    "specialty": "Specialty",
+    "phase": "Phase",
+    "filterCategory": "Category",
+    "filterSpecialty": "Specialty",
+    "filterPhase": "Phase",
+    "onlyMyTeam": "Only what my team performs",
+    "noStaffSpecialties": "No professional has a specialty assigned",
+    "count": "{shown} of {total}",
+    "clearFilters": "Clear filters",
+    "noMatches": "No treatment matches the filters",
+    "noneVisible": "No treatment is marked visible. Mark them under Settings → Treatment catalog.",
+    "nav": {
+      "plans": "Plans",
+      "catalog": "Catalog"
+    }
   }
 }

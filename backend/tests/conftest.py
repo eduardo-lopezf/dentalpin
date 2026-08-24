@@ -1,5 +1,6 @@
 """Pytest configuration and fixtures."""
 
+import asyncio
 import os
 from collections.abc import AsyncGenerator
 
@@ -8,8 +9,12 @@ os.environ["TESTING"] = "true"
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
+from app import database as app_database
 from app.config import settings
 
 # Import all models so SQLAlchemy can configure relationships
@@ -91,9 +96,122 @@ from app.modules.verifactu.models import (  # noqa: F401
 # Load modules manually for tests (normally done in lifespan)
 load_modules(app)
 
-# Use the DATABASE_URL directly - CI already provides the test database URL
-# For local development, ensure DATABASE_URL points to test database
-TEST_DATABASE_URL = settings.DATABASE_URL
+
+def _resolve_test_database_url() -> str:
+    """Pick the database the suite is allowed to destroy.
+
+    Every test recreates and drops the whole schema, so this must never be
+    the database a running app is using. Resolution order:
+
+    1. An explicit ``TEST_DATABASE_URL`` environment variable.
+    2. ``DATABASE_URL`` as-is when it already names a ``*_test`` database
+       (this is what CI provides).
+    3. Otherwise ``DATABASE_URL`` with ``_test`` appended to the database
+       name — so a local ``docker-compose exec backend pytest`` lands on
+       ``dental_clinic_test`` instead of the dev database.
+
+    The name must end in ``_test``; anything else aborts the run rather
+    than risk wiping real data.
+    """
+    raw = os.environ.get("TEST_DATABASE_URL") or settings.DATABASE_URL
+    url = make_url(raw)
+
+    if url.database and not url.database.endswith("_test"):
+        url = url.set(database=f"{url.database}_test")
+
+    if not url.database or not url.database.endswith("_test"):
+        raise RuntimeError(
+            f"Refusing to run the suite against database {url.database!r}: the "
+            "test database name must end in '_test'. Every test drops all "
+            "tables, so pointing this at a live database destroys its data. "
+            "Set TEST_DATABASE_URL to a dedicated '*_test' database."
+        )
+
+    return url.render_as_string(hide_password=False)
+
+
+TEST_DATABASE_URL = _resolve_test_database_url()
+
+# Guard against the historical footgun: the suite used to inherit
+# DATABASE_URL verbatim, so a local run wiped the dev database (and with it
+# the demo login). Keep this assertion even though _resolve_test_database_url
+# already enforces the suffix — it is the last line of defence.
+if TEST_DATABASE_URL == settings.DATABASE_URL and not settings.DATABASE_URL.endswith("_test"):
+    raise RuntimeError("Test database must not be the application database.")
+
+# Redirect the application's global engine at the test database.
+#
+# The `client` fixture only overrides `get_db`, which covers request-scoped
+# sessions. Nine modules (patient_timeline, payments, recalls, copilot,
+# treatment_plan, migration_import, ...) open their own session with
+# `async_session_maker` from event handlers and background tasks — those
+# bypass the override entirely and follow whatever the module-level import
+# is bound to. While the suite shared the app's database that was invisible;
+# once it does not, those writes land in the wrong database.
+#
+# `configure()` mutates the existing sessionmaker in place, so modules that
+# already did `from app.database import async_session_maker` pick it up.
+# NullPool keeps no idle connections around to block the per-test drop_all.
+_global_test_engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool)
+app_database.engine = _global_test_engine
+app_database.async_session_maker.configure(bind=_global_test_engine)
+
+
+async def _ensure_test_database() -> None:
+    """Create the test database if it does not exist yet.
+
+    Keeps ``docker-compose exec backend pytest`` a one-liner: no manual
+    ``createdb`` step, and no reason for anyone to point the suite back at
+    the dev database to make it run.
+    """
+    url = make_url(TEST_DATABASE_URL)
+    admin_url = url.set(database="postgres")
+
+    engine = create_async_engine(admin_url, isolation_level="AUTOCOMMIT")
+    try:
+        async with engine.connect() as conn:
+            exists = await conn.scalar(
+                text("SELECT 1 FROM pg_database WHERE datname = :name"),
+                {"name": url.database},
+            )
+            if not exists:
+                # Identifiers cannot be bound as parameters; the name comes
+                # from our own URL and is suffix-checked above.
+                await conn.execute(text(f'CREATE DATABASE "{url.database}"'))
+    finally:
+        await engine.dispose()
+
+
+async def _reset_test_schema() -> None:
+    """Start every session from an empty schema.
+
+    ``create_all`` skips tables that already exist, so a run killed before
+    its teardown leaves last session's tables in place — and the next run
+    fails with "column X does not exist" against a model that clearly has
+    it. Dropping the schema once per session costs one statement and makes
+    an interrupted run stop being contagious.
+    """
+    engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool)
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("DROP SCHEMA public CASCADE"))
+            await conn.execute(text("CREATE SCHEMA public"))
+    finally:
+        await engine.dispose()
+
+
+def pytest_sessionstart(session) -> None:  # noqa: ARG001
+    """Provision the dedicated test database before any fixture runs."""
+    asyncio.run(_ensure_test_database())
+    asyncio.run(_reset_test_schema())
+    # Announce the target: the suite drops every table it touches, so which
+    # database that is should never be something you have to go and check.
+    print(f"\ntest database: {make_url(TEST_DATABASE_URL).render_as_string()}")
+
+
+def pytest_sessionfinish(session, exitstatus) -> None:  # noqa: ARG001
+    """Release the redirected global engine's connections."""
+    asyncio.run(_global_test_engine.dispose())
 
 
 @pytest_asyncio.fixture

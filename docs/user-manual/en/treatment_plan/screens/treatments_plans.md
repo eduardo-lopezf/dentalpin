@@ -1,29 +1,29 @@
 ---
 module: treatment_plan
-screen: list
-route: /treatment-plans
+screen: treatments_plans
+route: /treatments/plans
 related_endpoints:
-  - DELETE /api/v1/treatment_plan/treatment-plans/{plan_id}
-  - DELETE /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}
-  - GET /api/v1/treatment_plan/treatment-plans
-  - GET /api/v1/treatment_plan/treatment-plans/patient/{patient_id}
-  - GET /api/v1/treatment_plan/treatment-plans/pipeline
-  - GET /api/v1/treatment_plan/treatment-plans/{plan_id}
-  - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/reorder
-  - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/complete
-  - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/status
-  - POST /api/v1/treatment_plan/treatment-plans
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/close
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/confirm
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/contact-log
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/generate-budget
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/items
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/link-budget
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/reactivate
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/reopen
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/sync-budget
-  - PUT /api/v1/treatment_plan/treatment-plans/{plan_id}
-  - PUT /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}
+  - DELETE /api/v1/treatment_plan/treatments/plans/{plan_id}
+  - DELETE /api/v1/treatment_plan/treatments/plans/{plan_id}/items/{item_id}
+  - GET /api/v1/treatment_plan/treatments/plans
+  - GET /api/v1/treatment_plan/treatments/plans/patient/{patient_id}
+  - GET /api/v1/treatment_plan/treatments/plans/pipeline
+  - GET /api/v1/treatment_plan/treatments/plans/{plan_id}
+  - PATCH /api/v1/treatment_plan/treatments/plans/{plan_id}/items/reorder
+  - PATCH /api/v1/treatment_plan/treatments/plans/{plan_id}/items/{item_id}/complete
+  - PATCH /api/v1/treatment_plan/treatments/plans/{plan_id}/status
+  - POST /api/v1/treatment_plan/treatments/plans
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/close
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/confirm
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/contact-log
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/generate-budget
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/items
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/link-budget
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/reactivate
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/reopen
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/sync-budget
+  - PUT /api/v1/treatment_plan/treatments/plans/{plan_id}
+  - PUT /api/v1/treatment_plan/treatments/plans/{plan_id}/items/{item_id}
 related_permissions:
   - treatment_plan.plans.read
   - treatment_plan.plans.write
@@ -31,7 +31,7 @@ related_permissions:
   - treatment_plan.plans.close
   - treatment_plan.plans.reactivate
 related_paths:
-  - backend/app/modules/treatment_plan/frontend/pages/treatment-plans/index.vue
+  - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/index.vue
   - backend/app/modules/treatment_plan/router.py
 last_verified_commit: b1b82f5
 ---
@@ -64,13 +64,13 @@ surfaces the follow-up queue.
 
 1. Switch tabs or enter the pipeline.
 2. Filter by professional, date, or closure reason as needed.
-3. Click a row to open the [detail](./treatment-plans_id.md).
+3. Click a row to open the [detail](./treatments/plans_id.md).
 
 ## Create a plan
 
 > Requires `treatment_plan.plans.write`.
 
-1. Click **New plan** (top right) → goes to `/treatment-plans/new`.
+1. Click **New plan** (top right) → goes to `/treatments/plans/new`.
 2. Pick patient, professional, and add treatments.
 
 ## Log a contact

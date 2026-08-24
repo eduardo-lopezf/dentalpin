@@ -18,7 +18,7 @@ class ProfessionalsModule(BaseModule):
         "author": "DentalPin Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": ["media"],
+        "depends": ["media", "catalog"],  # catalog owns `specialties` (FK target)
         "installable": True,
         "auto_install": True,
         "removable": True,

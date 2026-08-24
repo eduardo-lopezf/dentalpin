@@ -169,7 +169,7 @@ function canEditEntry(entry: RecentNoteEntry): boolean {
 function openLinked(linked: ClinicalNoteLinked) {
   if (!linked.id) return
   if (linked.kind === 'plan') {
-    router.push(`/treatment-plans/${linked.id}`)
+    router.push(`/treatments/plans/${linked.id}`)
     return
   }
   if (linked.kind === 'treatment' || linked.kind === 'patient') {

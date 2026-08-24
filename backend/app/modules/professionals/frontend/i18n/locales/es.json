@@ -1,6 +1,6 @@
 {
   "professionals": {
-    "nav": "Dentistas y Colaboradores",
+    "nav": "Profesionales",
     "title": "Dentistas y Colaboradores",
     "description": "Gestiona los perfiles profesionales de tu clínica.",
     "create": "Añadir profesional",
@@ -30,7 +30,8 @@
     },
     "status": {
       "active": "Activo",
-      "inactive": "Inactivo"
+      "inactive": "Inactivo",
+      "hasSystemAccess": "Usuario con acceso"
     },
     "filters": {
       "allTypes": "Todos los perfiles",
@@ -40,6 +41,7 @@
       "load": "No se pudo cargar el directorio de profesionales.",
       "save": "No se pudo guardar el perfil. Inténtalo de nuevo.",
       "photoUpload": "No se pudo subir la foto. Inténtalo de nuevo."
-    }
+    },
+    "specialtyPlaceholder": "Selecciona una o varias"
   }
 }

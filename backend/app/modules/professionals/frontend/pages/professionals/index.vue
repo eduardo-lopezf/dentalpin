@@ -11,20 +11,21 @@ interface Professional {
   last_name: string
   full_name: string
   professional_type: ProfessionalType
-  specialty: string | null
+  specialties: { id: string, names: Record<string, string> }[]
   license_number: string | null
   email: string | null
   phone: string | null
   photo_url: string | null
   notes: string | null
   is_active: boolean
+  has_system_access: boolean
 }
 
 interface ProfessionalForm {
   first_name: string
   last_name: string
   professional_type: ProfessionalType
-  specialty: string
+  specialty_ids: string[]
   license_number: string
   email: string
   phone: string
@@ -35,7 +36,7 @@ interface ProfessionalForm {
 
 definePageMeta({ middleware: ['auth'] })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const api = useApi()
 const toast = useToast()
 const { can } = usePermissions()
@@ -69,6 +70,7 @@ const isModalOpen = ref(false)
 const isSaving = ref(false)
 const isUploadingPhoto = ref(false)
 const editingId = ref<string | null>(null)
+const editingHasSystemAccess = ref(false)
 const photoFileInputRef = ref<HTMLInputElement | null>(null)
 // The /photo endpoint requires Bearer auth and returns a relative path —
 // a plain <img src> can't load it (no auth header, wrong origin). We
@@ -79,7 +81,7 @@ const form = reactive<ProfessionalForm>({
   first_name: '',
   last_name: '',
   professional_type: 'dentist',
-  specialty: '',
+  specialty_ids: [],
   license_number: '',
   email: '',
   phone: '',
@@ -93,38 +95,37 @@ const typeOptions = computed(() => [
   { label: t('professionals.types.collaborator'), value: 'collaborator' }
 ])
 
-// Curated specialty lists. `specialty` stays a free-text column in the
-// backend (no enum/CHECK there) — these are just the options offered in
-// the UI, picked by `professional_type`, not a hard validation rule.
-const DENTIST_SPECIALTIES = [
-  'Odontología General',
-  'Ortodoncia',
-  'Endodoncia',
-  'Periodoncia',
-  'Cirugía Oral y Maxilofacial',
-  'Odontopediatría',
-  'Prostodoncia',
-  'Patología Oral',
-  'Radiología Oral y Maxilofacial',
-  'Odontología Estética'
-]
-
-const COLLABORATOR_SPECIALTIES = [
-  'Laboratorio',
-  'Proveedor',
-  'Higienista Dental',
-  'Asistente Dental'
-]
+// Specialties come from the clinic's own catalog (`catalog` module) rather
+// than a list hardcoded here: the same discipline names classify treatments,
+// and two hand-typed copies drift apart on the first stray accent.
+const specialtiesApi = useSpecialties()
 
 const specialtyOptions = computed(() =>
-  form.professional_type === 'dentist' ? DENTIST_SPECIALTIES : COLLABORATOR_SPECIALTIES
+  specialtiesApi.activeSpecialties.value.map(s => ({
+    value: s.id,
+    label: specialtiesApi.getSpecialtyName(s)
+  }))
 )
 
-// Only fires on genuine user interaction with the type select (not on
-// openEdit()'s Object.assign) — clears specialty since a value valid for
-// one type (e.g. "Ortodoncia") isn't valid for the other.
+// A professional may practise several disciplines; the list view has room
+// for one line, so join them.
+function specialtyLabel(professional: Professional): string {
+  return (professional.specialties ?? [])
+    .map(s => s.names[locale.value] || s.names.es || s.names.en || '')
+    .filter(Boolean)
+    .join(', ')
+}
+
+// Only clinical staff practise a discipline. Collaborators (labs, suppliers,
+// assistants) are roles, not specialties — offering them the catalog would
+// put entries with zero treatments into the treatment classification.
+const CLINICAL_TYPES = ['dentist', 'hygienist']
+const hasSpecialty = computed(() => CLINICAL_TYPES.includes(form.professional_type))
+
+// Fires only on genuine interaction with the type select (not on openEdit's
+// Object.assign), so an existing link survives being reopened.
 function handleTypeChange() {
-  form.specialty = ''
+  if (!hasSpecialty.value) form.specialty_ids = []
 }
 
 const filterOptions = computed(() => [
@@ -140,7 +141,7 @@ function resetForm() {
     first_name: '',
     last_name: '',
     professional_type: 'dentist',
-    specialty: '',
+    specialty_ids: [],
     license_number: '',
     email: '',
     phone: '',
@@ -149,6 +150,7 @@ function resetForm() {
     is_active: true
   })
   editingId.value = null
+  editingHasSystemAccess.value = false
   if (modalPhotoSrc.value) {
     URL.revokeObjectURL(modalPhotoSrc.value)
     modalPhotoSrc.value = undefined
@@ -164,7 +166,7 @@ function formPayload() {
     first_name: form.first_name.trim(),
     last_name: form.last_name.trim(),
     professional_type: form.professional_type,
-    specialty: nullable(form.specialty),
+    specialty_ids: form.specialty_ids,
     license_number: nullable(form.license_number),
     email: nullable(form.email),
     phone: nullable(form.phone),
@@ -204,11 +206,12 @@ function openCreate() {
 
 function openEdit(professional: Professional) {
   editingId.value = professional.id
+  editingHasSystemAccess.value = professional.has_system_access
   Object.assign(form, {
     first_name: professional.first_name,
     last_name: professional.last_name,
     professional_type: professional.professional_type,
-    specialty: professional.specialty ?? '',
+    specialty_ids: (professional.specialties ?? []).map(s => s.id),
     license_number: professional.license_number ?? '',
     email: professional.email ?? '',
     phone: professional.phone ?? '',
@@ -327,7 +330,9 @@ watch([typeFilter, showInactive], () => {
 })
 
 watch(page, load)
-onMounted(load)
+onMounted(async () => {
+  await Promise.all([load(), specialtiesApi.fetchSpecialties()])
+})
 </script>
 
 <template>
@@ -407,7 +412,7 @@ onMounted(load)
           <div class="flex-1 min-w-0">
             <p class="text-ui text-default truncate">{{ professional.full_name }}</p>
             <p class="text-caption text-subtle truncate">
-              {{ professional.specialty || labelForType(professional.professional_type) }}
+              {{ specialtyLabel(professional) || labelForType(professional.professional_type) }}
               <span v-if="professional.license_number"> · {{ t('professionals.licenseShort') }} {{ professional.license_number }}</span>
             </p>
           </div>
@@ -434,7 +439,7 @@ onMounted(load)
             <div class="flex-1 min-w-0">
               <p class="font-medium text-default truncate">{{ professional.full_name }}</p>
               <p class="text-caption text-subtle truncate">
-                {{ professional.specialty || labelForType(professional.professional_type) }}
+                {{ specialtyLabel(professional) || labelForType(professional.professional_type) }}
               </p>
             </div>
             <UBadge :color="professional.is_active ? 'success' : 'neutral'" variant="subtle">
@@ -518,11 +523,17 @@ onMounted(load)
               @update:model-value="handleTypeChange"
             />
           </UFormField>
-          <UFormField :label="t('professionals.specialty')">
-            <USelect
-              v-model="form.specialty"
+          <UFormField
+            v-if="hasSpecialty"
+            :label="t('professionals.specialty')"
+          >
+            <USelectMenu
+              v-model="form.specialty_ids"
               :items="specialtyOptions"
-              placeholder="—"
+              value-key="value"
+              label-key="label"
+              multiple
+              :placeholder="t('professionals.specialtyPlaceholder')"
               class="w-full"
             />
           </UFormField>
@@ -541,7 +552,16 @@ onMounted(load)
           <UFormField :label="t('professionals.notes')">
             <UTextarea v-model="form.notes" :rows="3" />
           </UFormField>
-          <UCheckbox v-model="form.is_active" :label="t('professionals.status.active')" />
+          <div class="flex items-center gap-4">
+            <UCheckbox v-model="form.is_active" :label="t('professionals.status.active')" />
+            <span
+              v-if="editingHasSystemAccess"
+              class="flex items-center gap-1 text-caption text-success-accent"
+            >
+              <UIcon name="i-lucide-check-circle-2" class="size-4" />
+              {{ t('professionals.status.hasSystemAccess') }}
+            </span>
+          </div>
         </form>
 
         <template #footer>

@@ -9,10 +9,12 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from .models import (
     CatalogItemSession,
+    Specialty,
     TreatmentCatalogItem,
     TreatmentCategory,
     TreatmentOdontogramMapping,
     VatType,
+    catalog_item_specialties,
 )
 
 # Rounding tolerance when comparing session sum vs. item total.
@@ -21,6 +23,10 @@ SESSION_SUM_TOLERANCE = Decimal("0.01")
 
 class SessionTemplateError(ValueError):
     """Raised when a session template fails validation (sum mismatch, etc.)."""
+
+
+class UnknownCatalogItemError(ValueError):
+    """Raised when a referenced catalog item is missing from this clinic."""
 
 
 def validate_session_template(
@@ -202,6 +208,134 @@ class VatTypeService:
             current_default.is_default = False
 
 
+class SpecialtyService:
+    """Service for specialty operations."""
+
+    @staticmethod
+    async def list_specialties(
+        db: AsyncSession,
+        clinic_id: UUID,
+        include_inactive: bool = False,
+    ) -> list[Specialty]:
+        """List all specialties for a clinic."""
+        query = select(Specialty).where(Specialty.clinic_id == clinic_id)
+
+        if not include_inactive:
+            query = query.where(Specialty.is_active.is_(True))
+
+        query = query.order_by(Specialty.created_at)
+        result = await db.execute(query)
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def get_specialty(
+        db: AsyncSession,
+        clinic_id: UUID,
+        specialty_id: UUID,
+    ) -> Specialty | None:
+        """Get a specialty by ID."""
+        result = await db.execute(
+            select(Specialty).where(
+                Specialty.id == specialty_id,
+                Specialty.clinic_id == clinic_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def create_specialty(
+        db: AsyncSession,
+        clinic_id: UUID,
+        data: dict,
+    ) -> Specialty:
+        """Create a new specialty."""
+        specialty = Specialty(clinic_id=clinic_id, **data)
+        db.add(specialty)
+        await db.flush()
+        return specialty
+
+    @staticmethod
+    async def update_specialty(
+        db: AsyncSession,
+        specialty: Specialty,
+        data: dict,
+    ) -> Specialty:
+        """Update a specialty."""
+        for key, value in data.items():
+            if value is not None:
+                setattr(specialty, key, value)
+
+        await db.flush()
+        return specialty
+
+    @staticmethod
+    async def delete_specialty(
+        db: AsyncSession,
+        specialty: Specialty,
+    ) -> None:
+        """Soft-delete a specialty (set inactive)."""
+        specialty.is_active = False
+        await db.flush()
+
+    @staticmethod
+    async def list_items(
+        db: AsyncSession,
+        clinic_id: UUID,
+        specialty_id: UUID,
+    ) -> list[TreatmentCatalogItem]:
+        """List the live catalog items assigned to a specialty."""
+        result = await db.execute(
+            select(TreatmentCatalogItem)
+            .join(
+                catalog_item_specialties,
+                catalog_item_specialties.c.catalog_item_id == TreatmentCatalogItem.id,
+            )
+            .where(
+                catalog_item_specialties.c.specialty_id == specialty_id,
+                TreatmentCatalogItem.clinic_id == clinic_id,
+                TreatmentCatalogItem.deleted_at.is_(None),
+            )
+            .order_by(TreatmentCatalogItem.internal_code)
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def set_items(
+        db: AsyncSession,
+        clinic_id: UUID,
+        specialty: Specialty,
+        item_ids: list[UUID],
+    ) -> list[TreatmentCatalogItem]:
+        """Replace the set of catalog items assigned to a specialty.
+
+        ``item_ids`` is authoritative — items missing from it lose the
+        assignment. Ids that do not resolve to a live item of this clinic
+        are rejected so a stale client cannot link another tenant's rows.
+        """
+        items: list[TreatmentCatalogItem] = []
+        unique_ids = list(dict.fromkeys(item_ids))
+
+        if unique_ids:
+            result = await db.execute(
+                select(TreatmentCatalogItem).where(
+                    TreatmentCatalogItem.id.in_(unique_ids),
+                    TreatmentCatalogItem.clinic_id == clinic_id,
+                    TreatmentCatalogItem.deleted_at.is_(None),
+                )
+            )
+            items = list(result.scalars().all())
+
+            if len(items) != len(unique_ids):
+                raise UnknownCatalogItemError("One or more catalog items were not found")
+
+        await db.refresh(specialty, ["catalog_items"])
+        specialty.catalog_items = items
+        await db.flush()
+
+        items.sort(key=lambda item: item.internal_code)
+        return items
+
+
 class CategoryService:
     """Service for treatment category operations."""
 
@@ -378,6 +512,7 @@ class CatalogService:
                 joinedload(TreatmentCatalogItem.odontogram_mapping),
                 joinedload(TreatmentCatalogItem.vat_type_rel),
                 selectinload(TreatmentCatalogItem.sessions),
+                selectinload(TreatmentCatalogItem.specialties),
             )
             .order_by(
                 TreatmentCatalogItem.category_id,
@@ -411,6 +546,7 @@ class CatalogService:
                 joinedload(TreatmentCatalogItem.odontogram_mapping),
                 joinedload(TreatmentCatalogItem.vat_type_rel),
                 selectinload(TreatmentCatalogItem.sessions),
+                selectinload(TreatmentCatalogItem.specialties),
             )
         )
         return result.unique().scalar_one_or_none()
@@ -434,6 +570,7 @@ class CatalogService:
                 joinedload(TreatmentCatalogItem.odontogram_mapping),
                 joinedload(TreatmentCatalogItem.vat_type_rel),
                 selectinload(TreatmentCatalogItem.sessions),
+                selectinload(TreatmentCatalogItem.specialties),
             )
         )
         return result.unique().scalar_one_or_none()

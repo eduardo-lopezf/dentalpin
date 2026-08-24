@@ -12,9 +12,9 @@ Returned by `CatalogModule.get_permissions()`
 
 | Permission | Allows | Required by |
 |------------|--------|-------------|
-| `catalog.read` | _Describe what this allows._ | _List the endpoints._ |
+| `catalog.read` | _Describe what this allows._ | `GET /specialties`, `GET /specialties/{id}`, `GET /specialties/{id}/items`, _and other endpoints._ |
 | `catalog.write` | _Describe what this allows._ | _List the endpoints._ |
-| `catalog.admin` | _Describe what this allows._ | _List the endpoints._ |
+| `catalog.admin` | _Describe what this allows._ | `POST /specialties`, `PUT /specialties/{id}`, `PUT /specialties/{id}/items`, `DELETE /specialties/{id}`, _and other endpoints._ |
 
 ## Role assignment
 

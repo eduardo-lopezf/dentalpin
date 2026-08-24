@@ -1,19 +1,19 @@
 ---
 module: treatment_plan
-screen: create
-route: /treatment-plans/new
+screen: treatments_plans_new
+route: /treatments/plans/new
 related_endpoints:
-  - GET /api/v1/treatment_plan/treatment-plans
-  - GET /api/v1/treatment_plan/treatment-plans/patient/{patient_id}
-  - POST /api/v1/treatment_plan/treatment-plans
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/items
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/generate-budget
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/link-budget
+  - GET /api/v1/treatment_plan/treatments/plans
+  - GET /api/v1/treatment_plan/treatments/plans/patient/{patient_id}
+  - POST /api/v1/treatment_plan/treatments/plans
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/items
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/generate-budget
+  - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/link-budget
 related_permissions:
   - treatment_plan.plans.read
   - treatment_plan.plans.write
 related_paths:
-  - backend/app/modules/treatment_plan/frontend/pages/treatment-plans/new.vue
+  - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/new.vue
   - backend/app/modules/treatment_plan/router.py
 last_verified_commit: b1b82f5
 ---
@@ -22,7 +22,7 @@ last_verified_commit: b1b82f5
 
 Formulario para crear un plan de tratamiento para un paciente. Al
 guardar, el plan nace en estado `draft` y se abre el
-[detalle](./treatment-plans_id.md) para añadir ítems, confirmar y
+[detalle](./treatments/plans_id.md) para añadir ítems, confirmar y
 generar presupuesto.
 
 ## De un vistazo

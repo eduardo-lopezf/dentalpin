@@ -221,6 +221,41 @@ export function useCatalog() {
     }
   }
 
+  /**
+   * Fetch the whole catalog as a snapshot sorted by internal code, without
+   * touching the shared `items` state (which the list view keeps filtered by
+   * search and category). For views that must reason over every treatment at
+   * once, e.g. grouping by specialty.
+   *
+   * `page_size` is capped at 100 server-side, so page until each pass is
+   * exhausted. `/items` filters by `is_active` (default true) and has no
+   * "either" value, hence the second pass when inactive items are wanted.
+   */
+  async function fetchAllItems(includeInactive = false): Promise<TreatmentCatalogItem[]> {
+    const collected: TreatmentCatalogItem[] = []
+
+    try {
+      for (const isActive of includeInactive ? [true, false] : [true]) {
+        let page = 1
+        let fetched = 0
+
+        for (;;) {
+          const response = await api.get<PaginatedResponse<TreatmentCatalogItem>>(
+            `/api/v1/catalog/items?page=${page}&page_size=100&is_active=${isActive}`
+          )
+          collected.push(...response.data)
+          fetched += response.data.length
+          if (response.data.length === 0 || fetched >= response.total) break
+          page++
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching all items:', e)
+    }
+
+    return collected.sort((a, b) => a.internal_code.localeCompare(b.internal_code))
+  }
+
   async function getItem(itemId: string): Promise<TreatmentCatalogItem | null> {
     try {
       const response = await api.get<ApiResponse<TreatmentCatalogItem>>(
@@ -425,6 +460,7 @@ export function useCatalog() {
 
     // Item operations
     fetchItems,
+    fetchAllItems,
     getItem,
     createItem,
     updateItem,

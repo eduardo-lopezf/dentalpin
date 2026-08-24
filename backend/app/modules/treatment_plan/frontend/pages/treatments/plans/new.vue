@@ -84,12 +84,12 @@ async function handleSubmit() {
   })
 
   if (plan) {
-    router.push(`/treatment-plans/${plan.id}`)
+    router.push(`/treatments/plans/${plan.id}`)
   }
 }
 
 function goBack() {
-  router.push('/treatment-plans')
+  router.push('/treatments/plans')
 }
 </script>
 

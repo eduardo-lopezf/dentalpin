@@ -12,11 +12,24 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 ProfessionalType = Literal["dentist", "hygienist", "collaborator"]
 
 
+class SpecialtyBrief(BaseModel):
+    """The clinic specialty a professional practises, for display.
+
+    Mirrors the catalog's own brief shape; kept local so the schema module
+    does not have to import catalog schemas.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    names: dict[str, str]
+
+
 class ProfessionalCreate(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     professional_type: ProfessionalType = "dentist"
-    specialty: str | None = Field(default=None, max_length=150)
+    specialty_ids: list[UUID] = Field(default_factory=list)
     license_number: str | None = Field(default=None, max_length=80)
     email: EmailStr | None = None
     phone: str | None = Field(default=None, max_length=30)
@@ -29,7 +42,8 @@ class ProfessionalUpdate(BaseModel):
     first_name: str | None = Field(default=None, min_length=1, max_length=100)
     last_name: str | None = Field(default=None, min_length=1, max_length=100)
     professional_type: ProfessionalType | None = None
-    specialty: str | None = Field(default=None, max_length=150)
+    # Authoritative when present: omitted disciplines are unlinked.
+    specialty_ids: list[UUID] | None = None
     license_number: str | None = Field(default=None, max_length=80)
     email: EmailStr | None = None
     phone: str | None = Field(default=None, max_length=30)
@@ -47,12 +61,15 @@ class ProfessionalResponse(BaseModel):
     last_name: str
     full_name: str
     professional_type: ProfessionalType
-    specialty: str | None
+    specialties: list[SpecialtyBrief] = Field(default_factory=list)  # eager loaded
     license_number: str | None
     email: EmailStr | None
     phone: str | None
     photo_url: str | None
     notes: str | None
     is_active: bool
+    # True when `email` matches a user account with a membership in this
+    # clinic — computed at response time, not a column on the model.
+    has_system_access: bool = False
     created_at: datetime
     updated_at: datetime

@@ -16,10 +16,37 @@ from app.database import get_db
 from app.modules.media.storage import get_storage_backend
 from app.modules.media.validation import validate_file_size, validate_mime_type
 
+from .models import Professional
 from .schemas import ProfessionalCreate, ProfessionalResponse, ProfessionalUpdate
-from .service import ProfessionalService
+from .service import ProfessionalService, UnknownSpecialtyError
 
 router = APIRouter()
+
+
+async def _to_response(
+    db: AsyncSession, clinic_id: UUID, professional: Professional
+) -> ProfessionalResponse:
+    accessible = await ProfessionalService.emails_with_system_access(
+        db, clinic_id, [professional.email]
+    )
+    has_access = bool(professional.email) and professional.email.lower() in accessible
+    return ProfessionalResponse.model_validate(professional).model_copy(
+        update={"has_system_access": has_access}
+    )
+
+
+async def _to_response_list(
+    db: AsyncSession, clinic_id: UUID, professionals: list[Professional]
+) -> list[ProfessionalResponse]:
+    accessible = await ProfessionalService.emails_with_system_access(
+        db, clinic_id, [p.email for p in professionals]
+    )
+    return [
+        ProfessionalResponse.model_validate(p).model_copy(
+            update={"has_system_access": bool(p.email) and p.email.lower() in accessible}
+        )
+        for p in professionals
+    ]
 
 
 @router.get("", response_model=PaginatedApiResponse[ProfessionalResponse])
@@ -45,7 +72,7 @@ async def list_professionals(
         page_size=page_size,
     )
     return PaginatedApiResponse(
-        data=[ProfessionalResponse.model_validate(item) for item in professionals],
+        data=await _to_response_list(db, ctx.clinic_id, professionals),
         total=total,
         page=page,
         page_size=page_size,
@@ -62,7 +89,7 @@ async def get_professional(
     professional = await ProfessionalService.get(db, ctx.clinic_id, professional_id)
     if professional is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Professional not found")
-    return ApiResponse(data=ProfessionalResponse.model_validate(professional))
+    return ApiResponse(data=await _to_response(db, ctx.clinic_id, professional))
 
 
 @router.post(
@@ -74,8 +101,11 @@ async def create_professional(
     _: Annotated[None, Depends(require_permission("professionals.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[ProfessionalResponse]:
-    professional = await ProfessionalService.create(db, ctx.clinic_id, data.model_dump())
-    return ApiResponse(data=ProfessionalResponse.model_validate(professional))
+    try:
+        professional = await ProfessionalService.create(db, ctx.clinic_id, data.model_dump())
+    except UnknownSpecialtyError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return ApiResponse(data=await _to_response(db, ctx.clinic_id, professional))
 
 
 @router.put("/{professional_id}", response_model=ApiResponse[ProfessionalResponse])
@@ -89,10 +119,13 @@ async def update_professional(
     professional = await ProfessionalService.get(db, ctx.clinic_id, professional_id)
     if professional is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Professional not found")
-    updated = await ProfessionalService.update(
-        db, professional, data.model_dump(exclude_unset=True)
-    )
-    return ApiResponse(data=ProfessionalResponse.model_validate(updated))
+    try:
+        updated = await ProfessionalService.update(
+            db, professional, data.model_dump(exclude_unset=True)
+        )
+    except UnknownSpecialtyError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return ApiResponse(data=await _to_response(db, ctx.clinic_id, updated))
 
 
 _PHOTO_EXTENSION_BY_MIME = {
@@ -134,7 +167,7 @@ async def upload_professional_photo(
 
     photo_url = f"/api/v1/professionals/{professional_id}/photo"
     updated = await ProfessionalService.update(db, professional, {"photo_url": photo_url})
-    return ApiResponse(data=ProfessionalResponse.model_validate(updated))
+    return ApiResponse(data=await _to_response(db, ctx.clinic_id, updated))
 
 
 @router.get("/{professional_id}/photo")

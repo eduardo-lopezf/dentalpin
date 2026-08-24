@@ -4,7 +4,12 @@ from fastapi import APIRouter
 
 from app.core.plugins import BaseModule
 
-from .models import TreatmentCatalogItem, TreatmentCategory, TreatmentOdontogramMapping
+from .models import (
+    Specialty,
+    TreatmentCatalogItem,
+    TreatmentCategory,
+    TreatmentOdontogramMapping,
+)
 from .router import router
 
 
@@ -43,11 +48,26 @@ class CatalogModule(BaseModule):
         },
         "frontend": {
             "layer_path": "frontend",
+            "navigation": [
+                {
+                    "label": "nav.treatments",
+                    "icon": "i-lucide-clipboard-list",
+                    "to": "/treatments",
+                    # `catalog.read` is the widest permission in the section:
+                    # every role has it, and the landing page routes each one
+                    # to a surface they can actually open.
+                    "permission": "catalog.read",
+                    # Keeps the slot the plan pipeline used to hold — the
+                    # section leads with it, so the menu order should not move
+                    # under people who use it daily.
+                    "order": 30,
+                },
+            ],
         },
     }
 
     def get_models(self) -> list:
-        return [TreatmentCategory, TreatmentCatalogItem, TreatmentOdontogramMapping]
+        return [TreatmentCategory, TreatmentCatalogItem, TreatmentOdontogramMapping, Specialty]
 
     def get_router(self) -> APIRouter:
         return router

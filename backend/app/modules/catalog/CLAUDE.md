@@ -49,6 +49,13 @@ None.
   template atomically via ORM ``item.sessions.clear()`` + re-append;
   omitting the key preserves the existing template. Consumers
   (treatment_plan) snapshot this template at plan-add time.
+- **Specialty assignment is many-to-many** — ``catalog_item_specialties``
+  links treatments to ``Specialty``. ``PUT /specialties/{id}/items`` is a
+  full replace, not a merge: the payload is the complete set. Item
+  responses embed the specialties, so any new query returning a
+  ``TreatmentCatalogItem`` must ``selectinload`` the relationship or the
+  async session raises on lazy load. Specialties are soft-deleted
+  (``is_active``), which leaves existing assignments intact on purpose.
 - **VAT types are versioned** — when changing a VAT rate, create a new
   version rather than mutating in place. Historical invoices must
   reproduce their original VAT.

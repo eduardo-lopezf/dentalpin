@@ -1,6 +1,6 @@
 """Core authentication and authorization models."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 from uuid import uuid4
 
 from sqlalchemy import ForeignKey, String
@@ -12,6 +12,22 @@ from app.database import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.modules.agenda.models import Appointment, Cabinet
     from app.modules.patients.models import Patient
+
+
+# Reserved account/business tiers a Clinic row can operate under. Only
+# "clinic" has real functionality today (the current staffed-clinic
+# product); the others are reserved names for tiers agreed on but not
+# yet built (see docs/adr for the tenant-tier roadmap). Root is
+# deliberately not a value here — it is a platform-level actor, not a
+# kind of clinic, and does not belong to this taxonomy.
+TENANT_TYPES: Final[list[str]] = [
+    "basic",
+    "medium",
+    "advanced",
+    "clinic",
+    "clinic_pro",
+    "hospital",
+]
 
 
 class Clinic(Base, TimestampMixin):
@@ -35,6 +51,10 @@ class Clinic(Base, TimestampMixin):
     # ISO 4217 currency code. Single source of truth for any module
     # that renders money — budgets, invoices, catalog, reports.
     currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default="MXN")
+    # Account/business tier — see TENANT_TYPES. No behavior is gated on
+    # this yet; it only reserves the taxonomy ahead of building the
+    # tiers beyond the current "clinic" product.
+    tenant_type: Mapped[str] = mapped_column(String(20), nullable=False, server_default="clinic")
     settings: Mapped[dict] = mapped_column(JSONB, default=dict)
 
     # Relationships
