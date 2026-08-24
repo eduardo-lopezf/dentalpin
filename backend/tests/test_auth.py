@@ -121,3 +121,30 @@ async def test_me_without_auth(client: AsyncClient) -> None:
     """Test /me endpoint requires authentication."""
     response = await client.get("/api/v1/auth/me")
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_setup_seeds_the_clinic_catalog(client: AsyncClient) -> None:
+    """A clinic created through onboarding starts with a usable catalog.
+
+    Regression: `/auth/setup` used to create the clinic and nothing else,
+    so the first admin landed on empty treatment and specialty lists with
+    no code path anywhere that would ever fill them. Core stays free of
+    module imports — `catalog` seeds itself off `clinic.created` — and the
+    bus awaits handlers, so the data is there by the time setup returns.
+    """
+    response = await client.post("/api/v1/auth/setup", json=_SETUP_PAYLOAD)
+    assert response.status_code == 201
+    headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+    specialties = await client.get("/api/v1/catalog/specialties", headers=headers)
+    assert specialties.status_code == 200
+    assert len(specialties.json()["data"]) == 10
+
+    categories = await client.get("/api/v1/catalog/categories", headers=headers)
+    assert categories.status_code == 200
+    assert len(categories.json()["data"]) > 0
+
+    items = await client.get("/api/v1/catalog/items", headers=headers)
+    assert items.status_code == 200
+    assert items.json()["total"] > 0

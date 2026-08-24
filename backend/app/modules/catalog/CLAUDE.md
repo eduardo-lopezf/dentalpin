@@ -33,7 +33,20 @@ None.
 
 ## Events consumed
 
-None.
+| Event | Handler | Effect |
+|---|---|---|
+| `clinic.created` | `events.py:on_clinic_created` | Seed the new clinic's baseline catalog: VAT types, categories, items, specialties. |
+
+Payload consumed: `clinic_id` (required), `created_by`, `name`. Published by
+core's `/api/v1/auth/setup` after it commits the clinic — core must not
+import a module (ADR 0003), so the module installs its own baseline data.
+
+The bus awaits handlers inline, so the catalog is queryable before setup
+returns. It also swallows handler exceptions: a failure logs at `ERROR`
+and leaves the account intact — recover with
+`backend/scripts/backfill_catalog_specialties.py`.
+
+See `docs/technical/catalog/events.md`.
 
 ## Lifecycle
 
@@ -41,6 +54,11 @@ None.
   depend on this.
 
 ## Gotchas
+
+- **`seed_catalog` is the only code that creates baseline data**, and it is
+  idempotent by design (matches on `key` / `internal_code`, backfills missing
+  specialty links and `default_phase`, never overwrites clinic-edited prices
+  or names). Call it freely; do not add a second seeding path.
 
 - **Session template** (``CatalogItemSession``) is optional per item;
   when present, the sum of ``default_price`` across sessions must

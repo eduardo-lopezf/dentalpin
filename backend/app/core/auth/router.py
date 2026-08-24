@@ -13,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.core.events import event_bus
+from app.core.events.types import EventType
 from app.core.plugins import module_registry
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import get_db
@@ -133,6 +135,18 @@ async def setup(
 
     db.add(ClinicMembership(user_id=user.id, clinic_id=clinic.id, role="admin"))
     await db.commit()
+
+    # Published after the commit so subscribers opening their own session
+    # can see the clinic. Modules install their own baseline data here —
+    # `catalog` seeds VAT types, categories, items and specialties — which
+    # keeps core from importing a module (ADR 0003). The bus awaits its
+    # handlers, so the catalog is ready before these tokens are returned;
+    # it also swallows handler errors, so a seeding failure logs loudly
+    # but never costs the admin their account.
+    await event_bus.publish(
+        EventType.CLINIC_CREATED,
+        {"clinic_id": str(clinic.id), "created_by": str(user.id), "name": clinic.name},
+    )
 
     access_token = create_access_token(
         user.id, clinic_id=clinic.id, token_version=user.token_version

@@ -72,6 +72,11 @@ class CatalogModule(BaseModule):
     def get_router(self) -> APIRouter:
         return router
 
+    def get_event_handlers(self) -> dict:
+        from .events import on_clinic_created
+
+        return {"clinic.created": on_clinic_created}
+
     def get_permissions(self) -> list[str]:
         return [
             "read",  # View catalog items

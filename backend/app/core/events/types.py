@@ -11,6 +11,15 @@ class EventType:
     # arrives in Fase 2a when the resolver is wired into `get_db`).
     TENANT_RESOLVED = "tenant.resolved"
 
+    # A clinic was created and is ready to receive its baseline data.
+    # Published by `/api/v1/auth/setup` after the clinic, its admin and
+    # the membership are committed, so subscribers can open their own
+    # session and see the row. Payload: (clinic_id, created_by, name).
+    # Consumed by `catalog`, which seeds VAT types, categories, items and
+    # specialties — core must not import a module, so the baseline data a
+    # module owns is its own responsibility to install.
+    CLINIC_CREATED = "clinic.created"
+
     # Patient events
     PATIENT_CREATED = "patient.created"
     PATIENT_UPDATED = "patient.updated"

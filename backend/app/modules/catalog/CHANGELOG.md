@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- feat(seed): a clinic created through `/api/v1/auth/setup` now gets its
+  baseline catalog — VAT types, categories, items and specialties. Core
+  publishes the new `clinic.created` event and this module seeds itself off
+  it, so core keeps its hands off module imports (ADR 0003). The bus awaits
+  handlers, so the catalog is queryable before setup returns its tokens.
+  Previously onboarding created the clinic and nothing else, and no code path
+  anywhere would ever fill it.
+
+- fix(seed): add `scripts/backfill_catalog_specialties.py`. `cat_0004`/`cat_0006`
+  create `specialties` empty and the only code that fills it is `seed_catalog`,
+  reachable solely through `seed_demo.py` — which returns early when the demo
+  clinic already exists. A deployment created before the specialty axis landed
+  upgraded cleanly and then showed an empty specialty list forever. The script
+  runs `seed_all_clinics` (previously dead code, no callers) and commits.
+
 - feat(nav)!: "Tratamientos" is now a section with two surfaces instead of a
   single page. `/treatments` resolves per role and lands on the plan
   pipeline (`/treatments/plans`, owned by `treatment_plan`) because that is
