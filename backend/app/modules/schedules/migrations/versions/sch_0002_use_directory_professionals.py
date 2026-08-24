@@ -160,6 +160,18 @@ def upgrade() -> None:
         "ix_professional_weekly_schedules_user_id",
         table_name="professional_weekly_schedules",
     )
+    # Both FKs to `users` must go before the data migration, not just this
+    # table's: `_migrate_profiles` repoints `user_id` on *both* tables to a
+    # synthetic professional id that by definition has no row in `users`.
+    # Dropping `professional_overrides`' FK later (with the rest of its
+    # index churn) let the UPDATE below run against a live constraint and
+    # fail with ForeignKeyViolationError — invisible on a fresh database,
+    # where the table is empty and the UPDATE touches no rows, and fatal on
+    # any deployment that already had overrides.
+    op.drop_constraint(
+        "professional_overrides_user_id_fkey", "professional_overrides", type_="foreignkey"
+    )
+
     # Migrate legacy user-based schedules/overrides into directory professionals
     # before renaming the columns. Running the migration step after the
     # rename causes SELECTs against `user_id` to fail because the column
@@ -185,10 +197,6 @@ def upgrade() -> None:
         "uq_professional_weekly_schedule_professional",
         "professional_weekly_schedules",
         ["clinic_id", "professional_id"],
-    )
-
-    op.drop_constraint(
-        "professional_overrides_user_id_fkey", "professional_overrides", type_="foreignkey"
     )
 
     op.drop_index("ix_professional_overrides_user_id", table_name="professional_overrides")

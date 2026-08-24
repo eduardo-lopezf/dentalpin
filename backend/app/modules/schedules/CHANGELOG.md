@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- fix(migrations): `sch_0002` dropped `professional_overrides`' FK to
+  `users` *after* `_migrate_profiles` had already repointed the column at
+  a synthetic professional id, so the UPDATE hit a live constraint and
+  died with `ForeignKeyViolationError`. Both FKs now go before the data
+  migration. Green on a fresh database (empty table, UPDATE touches no
+  rows), fatal on any deployment that already had overrides — it took a
+  production deploy down.
+
 - feat(professionals): weekly schedules and overrides now reference active
   dentist/hygienist directory profiles, matching Agenda.
 
