@@ -1,4 +1,17 @@
+import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { describe, expect, it, vi } from 'vitest'
+
+// `logout()` calls `router.push('/login')`, which runs the real global
+// auth middleware in this environment — the middleware calls
+// `auth.init()` again, which can re-enter `logout()` and never settles
+// (no mounted `<NuxtPage>` for the navigation to resolve against). This
+// suite is about `useAuth`'s own state transitions, not full-app routing
+// integration, so stub the router rather than let a real navigation run.
+mockNuxtImport('useRouter', () => {
+  return () => ({
+    push: vi.fn().mockResolvedValue(undefined)
+  })
+})
 
 describe('useAuth composable', () => {
   describe('initialization', () => {

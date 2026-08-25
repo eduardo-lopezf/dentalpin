@@ -309,6 +309,29 @@ jobs:
       - name: Seed demo data
         run: ./scripts/seed-demo.sh --lang es
 
+      - name: Install periodontogram module for e2e coverage
+        # periodontogram ships installable=True, auto_install=False (an
+        # operator activates it from the admin UI) — periodontogram.spec.ts
+        # assumes that precondition but nothing installed it here, so the
+        # suite silently ran against an uninstalled module. Install now
+        # (admin exists once seed-demo has run) and restart so
+        # PendingProcessor actually mounts its router — install only flips
+        # a pending-state DB row; it needs the next boot to take effect.
+        run: |
+          TOKEN=$(curl -sf -X POST http://localhost:8000/api/v1/auth/login \
+            -d "username=admin@demo.clinic&password=demo1234" \
+            -H "content-type: application/x-www-form-urlencoded" \
+            | python3 -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
+          curl -sf -X POST http://localhost:8000/api/v1/modules/periodontogram/install \
+            -H "Authorization: Bearer $TOKEN"
+          docker compose restart backend
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/health > /dev/null; then
+              echo "backend ready"; break
+            fi
+            sleep 2
+          done
+
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
