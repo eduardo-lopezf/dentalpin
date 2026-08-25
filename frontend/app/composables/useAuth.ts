@@ -8,6 +8,19 @@ import type { User, LoginCredentials, AuthResponse, MeResponse, ApiResponse } fr
 // never touch it during SSR.
 let clientRefreshInFlight: Promise<boolean> | null = null
 
+// Did the backend actually reject this session, or could we just not ask?
+//
+// A 401 is an answer: the token was presented and refused, so the session is
+// genuinely over. Anything else — DNS failure, connection refused, a 502 from
+// the proxy, any 5xx — means the question never got through, and the session
+// is most likely still valid. Treating the second case like the first is what
+// logged users out at random in production: SSR resolves a different API host
+// than the browser does, and when that host was unreachable every full page
+// load wiped a perfectly good session.
+function isAuthFailure(error: unknown): boolean {
+  return (error as { statusCode?: number } | null)?.statusCode === 401
+}
+
 export function useAuth() {
   const config = useRuntimeConfig()
   const router = useRouter()
@@ -112,7 +125,14 @@ export function useAuth() {
         user.value = me.data.user
         permissions.value = me.data.permissions
         return true
-      } catch {
+      } catch (error) {
+        // Only end the session when the refresh token itself was refused.
+        // Rethrow transport failures so the caller keeps the cookies and can
+        // retry — this `try` also wraps the follow-up `/auth/me` call, so a
+        // blanket catch here ended sessions whose refresh had just succeeded.
+        if (!isAuthFailure(error)) {
+          throw error
+        }
         await logout()
         return false
       }
@@ -173,7 +193,14 @@ export function useAuth() {
         // Access cookie gone but refresh still valid — recover session.
         await refresh()
       }
-    } catch {
+    } catch (error) {
+      // `fetchUser` deliberately rethrows non-401 errors ("don't logout on
+      // non-401 errors") — and this catch used to clear the cookies anyway,
+      // undoing that intent two frames up. Keep the session unless the
+      // backend actually rejected it.
+      if (!isAuthFailure(error)) {
+        return
+      }
       accessToken.value = null
       refreshToken.value = null
       user.value = null

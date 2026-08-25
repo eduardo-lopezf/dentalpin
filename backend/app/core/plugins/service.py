@@ -30,6 +30,22 @@ from .topology import MissingDependencyError, topological_sort
 logger = logging.getLogger(__name__)
 
 
+async def installed_module_names(db: AsyncSession) -> set[str]:
+    """Names of the modules ``core_module`` says are live.
+
+    The single question the boot sequence asks the database before it
+    mounts anything (audit S1). Only ``installed`` qualifies: a record
+    still in a transient state (``to_install`` / ``to_remove``) either
+    has not been processed yet or failed half-way, and a module with
+    partially created or partially dropped tables must not serve
+    traffic.
+    """
+    result = await db.execute(
+        select(ModuleRecord.name).where(ModuleRecord.state == ModuleState.INSTALLED.value)
+    )
+    return set(result.scalars())
+
+
 class ModuleOperationError(RuntimeError):
     """Raised by :class:`ModuleService` install/uninstall/upgrade when a
     transition is not allowed (blocked dep, legacy module, etc.)."""
@@ -117,8 +133,14 @@ class ModuleService:
     # --- Discovery + reconciliation -------------------------------------
 
     def discovered(self) -> list[BaseModule]:
-        """Return modules currently loaded in the in-memory registry."""
-        return module_registry.list_modules()
+        """Every module found on disk, whatever its install state.
+
+        The service operates on the full inventory: it has to be able to
+        install a module that is not running yet, and to uninstall one
+        that is. ``list_modules()`` (installed only) is for consumers
+        that must behave as if uninstalled modules do not exist.
+        """
+        return module_registry.list_discovered()
 
     async def reconcile_with_db(self) -> None:
         """Ensure ``core_module`` contains one row per discovered module.
@@ -604,5 +626,5 @@ async def rediscover_and_reconcile(db: AsyncSession) -> None:
     svc = ModuleService(db)
     await svc.reconcile_with_db()
     # Also discover here in case `discover_modules()` was not called yet.
-    if not module_registry.list_modules():
+    if not module_registry.list_discovered():
         discover_modules()

@@ -23,14 +23,36 @@ from app.core.log_context import (
     set_request_context,
     setup_logging,
 )
-from app.core.plugins.loader import load_modules
+from app.core.plugins.loader import discover_and_register, mount_active
 from app.core.plugins.processor import PendingProcessor
-from app.core.plugins.service import ModuleService
+from app.core.plugins.registry import module_registry
+from app.core.plugins.service import ModuleService, installed_module_names
 from app.core.scheduler import init_scheduler, shutdown_scheduler
 from app.core.schemas import ErrorResponse
 from app.database import async_session_maker, engine, get_db
 
 logger = logging.getLogger(__name__)
+
+
+async def _mount_installed_modules(app: FastAPI) -> None:
+    """Give a runtime surface to the modules ``core_module`` says are live.
+
+    If the state cannot be read at all, mount every discovered module
+    and say so loudly. This is a clinic's working day: serving a module
+    that should have been uninstalled beats refusing to serve anything.
+    The ``exception`` log is the signal — the one thing this must never
+    do is fail quietly (audit S5).
+    """
+    try:
+        async with async_session_maker() as session:
+            installed = await installed_module_names(session)
+    except Exception:
+        logger.exception(
+            "Could not read module install state; falling back to mounting every discovered module"
+        )
+        installed = {module.name for module in module_registry.list_discovered()}
+
+    mount_active(app, installed)
 
 
 @asynccontextmanager
@@ -41,8 +63,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # (defaults to ``-`` outside a request).
     setup_logging()
 
-    # Startup
-    load_modules(app)
+    # Startup.
+    #
+    # The order is load-bearing (audit S1). Discovery only fills the
+    # registry — it mounts nothing — so the database gets to decide what
+    # runs. Mounting first, as this used to, meant an uninstalled module
+    # kept its routes, its event handlers, its copilot tools and its
+    # permission grants no matter what ``core_module`` said.
+    discover_and_register()
 
     # Sync in-memory registry into core_module (best-effort).
     try:
@@ -51,7 +79,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception:
         logger.exception("Module registry reconciliation failed at startup")
 
-    # Process pending install/uninstall/upgrade operations.
+    # Process pending install/uninstall/upgrade operations. Running this
+    # before mounting is what lets an install go live on the same boot
+    # that schedules it, instead of needing a second restart.
     try:
         processor = PendingProcessor(async_session_maker)
         processed = await processor.run()
@@ -60,7 +90,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception:
         logger.exception("Pending module processor raised")
 
-    # Initialize scheduler for background jobs
+    await _mount_installed_modules(app)
+
+    # Initialize scheduler for background jobs (installed modules only —
+    # ``module_registry.list_modules()`` is the active set).
     init_scheduler()
 
     yield

@@ -80,8 +80,16 @@ export function useApi() {
 
       // Handle specific error codes
       if (fetchError.statusCode === 401) {
-        // Try to refresh token
-        const refreshed = await auth.refresh()
+        // Try to refresh token. `refresh()` throws instead of returning when
+        // it could not reach the backend at all — surface the original 401
+        // without ending the session, since we still don't know whether the
+        // session is actually over.
+        let refreshed: boolean
+        try {
+          refreshed = await auth.refresh()
+        } catch {
+          throw error
+        }
         if (refreshed) {
           // Retry the request with new token
           headers.Authorization = `Bearer ${auth.accessToken.value}`

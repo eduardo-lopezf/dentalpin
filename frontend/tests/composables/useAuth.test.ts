@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 describe('useAuth composable', () => {
   describe('initialization', () => {
@@ -61,6 +61,48 @@ describe('useAuth composable', () => {
       const auth = useAuth()
 
       expect(auth.user.value).toBe(null)
+    })
+  })
+  // Regression: production logged users out at random. The cause was that
+  // `init()` and `refresh()` caught every error alike and wiped both cookies,
+  // so any failure to *reach* the backend — not to authenticate against it —
+  // ended a valid session. SSR made it constant, since it resolves a
+  // different API host than the browser and that host was unreachable.
+  describe('transport failures vs auth failures', () => {
+    // Assertions read `auth.accessToken`, the composable's own ref. A separate
+    // `useCookie()` handle caches its value and would not observe `logout()`
+    // clearing the cookie, making the test pass for the wrong reason.
+    it('init() keeps the session when the backend is unreachable', async () => {
+      const { useAuth } = await import('~/composables/useAuth')
+      document.cookie = 'access_token=access-token'
+      document.cookie = 'refresh_token=refresh-token'
+
+      // A DNS or connection failure carries no statusCode — exactly what SSR
+      // saw when it could not resolve the API host.
+      vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(new Error('fetch failed')))
+
+      const auth = useAuth()
+      await auth.init()
+
+      expect(auth.accessToken.value).toBe('access-token')
+
+      vi.unstubAllGlobals()
+    })
+
+    it('init() ends the session when the backend rejects it with 401', async () => {
+      const { useAuth } = await import('~/composables/useAuth')
+      document.cookie = 'access_token=access-token'
+      document.cookie = 'refresh_token=refresh-token'
+
+      const unauthorized = Object.assign(new Error('Unauthorized'), { statusCode: 401 })
+      vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(unauthorized))
+
+      const auth = useAuth()
+      await auth.init()
+
+      expect(auth.accessToken.value).toBeFalsy()
+
+      vi.unstubAllGlobals()
     })
   })
 })

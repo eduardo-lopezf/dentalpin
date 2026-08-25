@@ -14,9 +14,11 @@ Discovery happens in two stages:
    that an entry point already provided, so entry points win when both
    are present.
 
-The public entry point for the rest of the app is :func:`load_modules`,
-which discovers, resolves dependencies, and mounts everything in one
-call.
+Loading is two separate steps, and keeping them separate is the
+fix for audit finding S1: :func:`discover_and_register` records what
+exists on disk, and :func:`mount_active` gives a runtime surface only
+to the modules the database says are installed. :func:`load_modules`
+still does both unconditionally for tests and tooling.
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ from __future__ import annotations
 import importlib
 import logging
 import pkgutil
+from collections.abc import Iterable
 from importlib import metadata
 from pathlib import Path
 
@@ -139,34 +142,42 @@ def discover_modules() -> list[BaseModule]:
     return modules
 
 
-def _mount_modules(app: FastAPI, modules: list[BaseModule]) -> None:
-    """Mount routers + subscribe event handlers + register tools."""
+def _mount_one(app: FastAPI, module: BaseModule) -> None:
+    """Give one module its runtime surface: routes, handlers, tools."""
     from app.core.agents.tools.registry import tool_registry
     from app.core.events import event_bus
 
-    for module in modules:
-        module_registry.register(module)
-        app.include_router(
-            module.get_router(),
-            prefix=f"/api/v1/{module.name}",
-            tags=[module.name],
-        )
-        logger.info("Mounted router for module: %s", module.name)
+    app.include_router(
+        module.get_router(),
+        prefix=f"/api/v1/{module.name}",
+        tags=[module.name],
+    )
+    logger.info("Mounted router for module: %s", module.name)
 
-        handlers = module.get_event_handlers()
-        for event_type, handler in handlers.items():
-            event_bus.subscribe(event_type, handler)
-            logger.info("Subscribed %s to event: %s", module.name, event_type)
+    for event_type, handler in module.get_event_handlers().items():
+        event_bus.subscribe(event_type, handler)
+        logger.info("Subscribed %s to event: %s", module.name, event_type)
 
-        tool_registry.register_from(module)
+    tool_registry.register_from(module)
+    module_registry.activate(module.name)
 
 
-def load_modules(app: FastAPI) -> None:
-    """Discover, resolve dependencies, and load all modules."""
+def discover_and_register() -> list[BaseModule]:
+    """Discover modules and put them in the registry — nothing more.
+
+    Deliberately side-effect free beyond the registry: no routes, no
+    event subscriptions, no tools, no permission grants. The lifecycle
+    processor needs every module *discovered* (it may have to install or
+    uninstall any of them), while only the installed ones may run. See
+    :func:`mount_active`.
+
+    Returns the modules in dependency order. Re-registration is a no-op
+    so a second call (tests, CLI) is harmless.
+    """
     modules = discover_modules()
     if not modules:
         logger.warning("No modules discovered")
-        return
+        return []
 
     try:
         ordered = _resolve_load_order(modules)
@@ -174,5 +185,55 @@ def load_modules(app: FastAPI) -> None:
         logger.error("Failed to resolve module dependencies: %s", exc)
         raise
 
-    _mount_modules(app, ordered)
-    logger.info("Loaded %d modules: %s", len(ordered), [m.name for m in ordered])
+    for module in ordered:
+        if module_registry.is_discovered(module.name):
+            continue
+        module_registry.register(module)
+
+    return [module_registry.get(m.name) or m for m in ordered]
+
+
+def mount_active(app: FastAPI, installed: Iterable[str]) -> list[str]:
+    """Mount exactly the modules named in ``installed``.
+
+    ``installed`` comes from ``core_module.state`` — the database is the
+    authority on what runs, never the filesystem (audit S1). Names that
+    are not discovered are skipped with a warning: the row outlives the
+    code when a module is deleted from disk, and the admin recovers with
+    ``modules orphan``.
+
+    Dependency consistency is not enforced here — ``ModuleService``
+    refuses to uninstall a module others depend on. The loader mounts
+    what it is told, in dependency order.
+    """
+    wanted = set(installed)
+    mounted: list[str] = []
+
+    for module in _resolve_load_order(module_registry.list_discovered()):
+        if module.name not in wanted:
+            continue
+        _mount_one(app, module)
+        mounted.append(module.name)
+
+    missing = wanted - set(mounted)
+    if missing:
+        logger.warning(
+            "Install state names modules that are not on disk: %s",
+            sorted(missing),
+        )
+
+    logger.info("Mounted %d modules: %s", len(mounted), mounted)
+    return mounted
+
+
+def load_modules(app: FastAPI) -> None:
+    """Discover and mount every module, ignoring install state.
+
+    The unconditional path, kept for the test suite and any caller that
+    wants the whole inventory live. Production boots through
+    :func:`discover_and_register` + :func:`mount_active` so that
+    ``core_module.state`` decides — see :func:`app.main.lifespan`.
+    """
+    modules = discover_and_register()
+    if modules:
+        mount_active(app, [m.name for m in modules])

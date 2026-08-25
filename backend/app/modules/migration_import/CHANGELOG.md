@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- fix(verifactu-gate): the fiscal-compliance gate now asks
+  ``module_registry.is_installed("verifactu")`` instead of
+  ``is_loaded()``. Both spellings used to mean "the code is on
+  disk", so an import ran the compliance path against a verifactu
+  that was never installed (audit S1).
+
 - fix(entity_mappings): widen ``source_canonical_uuid`` from
   ``VARCHAR(36)`` to ``VARCHAR(64)`` (alembic ``mig_0004``). The
   ``appointment_note`` sidecar registers a derived canonical of shape
