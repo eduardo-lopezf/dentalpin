@@ -340,6 +340,34 @@
     },
     "administrative": {
       "title": "Administrative"
+    },
+    "editLegalGuardian": "Edit legal guardian",
+    "legalGuardian": {
+      "address": "Address",
+      "addressPlaceholder": "Guardian's address",
+      "dni": "ID number",
+      "dniPlaceholder": "Identity document",
+      "email": "Email",
+      "emailPlaceholder": "Guardian's email",
+      "hasGuardian": "Legal guardian on file",
+      "name": "Full name",
+      "namePlaceholder": "Guardian's name",
+      "noGuardian": "No legal guardian on file",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional notes...",
+      "phone": "Phone",
+      "phonePlaceholder": "Guardian's phone",
+      "relationship": "Relationship",
+      "relationshipPlaceholder": "Select relationship",
+      "relationships": {
+        "grandparent": "Grandparent",
+        "legal_tutor": "Appointed legal guardian",
+        "other": "Other",
+        "parent": "Parent"
+      },
+      "remove": "Remove guardian",
+      "required": "Required for patients under 18",
+      "title": "Legal guardian"
     }
   },
   "patientDetail": {
@@ -467,7 +495,9 @@
         "general_condition": "General condition",
         "surface_update": "Surface update",
         "note": "Note"
-      }
+      },
+      "loadMore": "Show earlier changes",
+      "showing": "Showing {shown} of {total}"
     },
     "messages": {
       "updated": "Dental chart updated",
@@ -648,6 +678,9 @@
         "sameArchRequired": "Teeth must be in the same dental arch"
       },
       "sectionLabel": "Multi-tooth treatments"
+    },
+    "confirms": {
+      "deleteTreatment": "Delete this treatment? If it has already been invoiced, the invoice will not correct itself."
     }
   },
   "clinical": {
@@ -732,6 +765,9 @@
         "title": "Plan locked",
         "subtitle": "Quote {number} has been issued. To edit treatments, use Reopen (if pending) or Renegotiate the quote.",
         "viewBudget": "View quote"
+      },
+      "confirms": {
+        "removeItem": "Remove this treatment from the plan? It also disappears from the odontogram and from its budget line."
       }
     },
     "tooth": "Tooth"
@@ -882,6 +918,9 @@
       "clinicClosed": "Clinic closed",
       "professionalOff": "Off-duty",
       "onBreak": "On break"
+    },
+    "confirms": {
+      "cancel": "Cancel this appointment? The patient is notified according to your notification settings."
     }
   },
   "dashboard": {
@@ -1271,7 +1310,9 @@
     "yesterday": "Yesterday",
     "copied": "Copied to clipboard",
     "copy": "Copy",
-    "copyFailed": "Could not copy"
+    "copyFailed": "Could not copy",
+    "default": "Default",
+    "treatment": "Treatment"
   },
   "cabinet": {
     "toast": {
@@ -2120,7 +2161,8 @@
         "signatureClear": "Clear",
         "consent": "I accept this quote and authorise the described treatment.",
         "submit": "Confirm acceptance",
-        "success": "Done! The clinic will contact you to schedule your first appointment."
+        "success": "Done! The clinic will contact you to schedule your first appointment.",
+        "error": "We could not record your acceptance. Check your connection and try again — your signature is still here."
       },
       "reject": {
         "title": "Not interested",
@@ -2134,7 +2176,8 @@
           "time": "Lack of time",
           "second_opinion": "Second opinion",
           "other": "Other reason"
-        }
+        },
+        "error": "We could not record your answer. Check your connection and try again."
       }
     },
     "settings": {
@@ -2432,7 +2475,12 @@
         "direct_debit": "Direct debit",
         "insurance": "Insurance",
         "other": "Other"
-      }
+      },
+      "add": "Record payment",
+      "notesPlaceholder": "Notes about this payment...",
+      "referencePlaceholder": "Transaction no., receipt...",
+      "voidedAt": "Voided on",
+      "voidedBy": "Voided by"
     },
     "creditNote": {
       "title": "Credit note",
@@ -2443,7 +2491,9 @@
       "fullCreditNote": "Full credit note (all items)",
       "partialCreditNote": "Partial credit note (selected items)",
       "originalInvoice": "Original invoice",
-      "created": "Credit note created"
+      "created": "Credit note created",
+      "complete": "Full credit note",
+      "partial": "Partial credit note"
     },
     "history": {
       "title": "History",
@@ -2476,7 +2526,11 @@
       "default": "Default",
       "active": "Active",
       "invoice": "Invoice",
-      "credit_note": "Credit note"
+      "credit_note": "Credit note",
+      "types": {
+        "credit_note": "Credit note",
+        "invoice": "Invoice"
+      }
     },
     "filters": {
       "allStatuses": "Status",
@@ -2539,7 +2593,9 @@
       "void": "Void invoice?",
       "voidDescription": "This action cannot be undone.",
       "delete": "Delete invoice?",
-      "deleteDescription": "This action cannot be undone."
+      "deleteDescription": "This action cannot be undone.",
+      "voidPayment": "Void this payment?",
+      "voidPaymentDescription": "The outstanding balance updates automatically."
     },
     "messages": {
       "created": "Invoice created",
@@ -2550,7 +2606,10 @@
       "itemAdded": "Item added",
       "itemUpdated": "Item updated",
       "sentByEmail": "Invoice sent by email",
-      "sentManually": "Invoice marked as sent"
+      "sentManually": "Invoice marked as sent",
+      "creditNoteCreated": "Credit note created",
+      "paymentRecorded": "Payment recorded",
+      "paymentVoided": "Payment voided"
     },
     "send": {
       "title": "Send invoice",
@@ -2586,7 +2645,16 @@
       "cannotEdit": "Only draft invoices can be edited",
       "billingIncomplete": "The invoice cannot be issued because billing data is incomplete. Please fill in the patient's billing information to continue."
     },
-    "newItemsPending": "New items pending save"
+    "newItemsPending": "New items pending save",
+    "settings": {
+      "bankAccount": "Bank details",
+      "bankAccountPlaceholder": "IBAN, account holder...",
+      "description": "Configure the clinic's billing details",
+      "footerText": "Legal footer text",
+      "footerTextPlaceholder": "Payment terms, legal text...",
+      "paymentTermDays": "Default payment term (days)",
+      "title": "Billing settings"
+    }
   },
   "reports": {
     "title": "Reports",
@@ -2856,5 +2924,37 @@
       "plans": "Plans",
       "catalog": "Catalog"
     }
+  },
+  "invoiceSeries": {
+    "title": "Invoice series",
+    "description": "Configure invoice prefixes and numbering",
+    "regularInvoices": "Invoices",
+    "creditNotes": "Credit notes",
+    "new": "New series",
+    "newTitle": "New {type} series",
+    "editTitle": "Edit series",
+    "prefix": "Prefix",
+    "prefixHint": "E.g. INV, CN. The year is appended automatically.",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Optional description for this series...",
+    "nextNumber": "Next number",
+    "preview": "Preview",
+    "resetYearly": "Yearly reset",
+    "resetYearlyLabel": "Restart numbering every year",
+    "setAsDefault": "Set as default",
+    "activeLabel": "Active series",
+    "showInactive": "Show inactive",
+    "noItems": "No series configured",
+    "resetCounter": "Reset counter",
+    "currentNumber": "Current number",
+    "seriesPrefix": "Series prefix",
+    "newNumber": "New number",
+    "newNumberHint": "The number must be higher than the highest one already used in this series.",
+    "resetWarningTitle": "Careful",
+    "resetWarning": "This is recorded in the audit history and cannot be undone.",
+    "confirmReset": "Reset counter",
+    "created": "Series created",
+    "saved": "Series updated",
+    "resetSuccess": "Counter reset"
   }
 }

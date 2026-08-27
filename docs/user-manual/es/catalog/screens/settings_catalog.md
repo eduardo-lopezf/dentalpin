@@ -36,7 +36,7 @@ related_permissions:
   - catalog.admin
 related_paths:
   - backend/app/modules/catalog/frontend/pages/settings/catalog/index.vue
-last_verified_commit: e2b7328257c69af310ee8f0ff2ae624dfe2d7545
+last_verified_commit: 3568519
 ---
 
 # /settings/catalog
@@ -103,6 +103,13 @@ Higiene Dental.
 
 Volver a sembrar solo rellena huecos: nunca borra las asignaciones que hayas
 hecho a mano.
+
+## Paginación
+
+El listado pagina. Hasta ahora el paginador ignoraba los clics —
+usaba la API antigua del componente— y solo se veía la primera
+página; los tratamientos siguientes existían pero no había forma de
+llegar a ellos.
 
 ## Editar tratamientos
 

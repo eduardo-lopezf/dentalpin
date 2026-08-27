@@ -694,7 +694,8 @@ async def send_invoice_email(
     # Publish event for notifications module
     from app.core.events import EventType, event_bus
 
-    await event_bus.publish(
+    event_bus.publish_after_commit(
+        db,
         EventType.INVOICE_SENT,
         {
             "clinic_id": str(ctx.clinic_id),
@@ -831,7 +832,7 @@ async def list_invoice_payments(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     rows = await InvoicePaymentService.list_for_invoice(db, ctx.clinic_id, invoice_id)
-    return ApiResponse(data=[InvoicePaymentResponse.model_validate(r) for r in rows])
+    return ApiResponse(data=[InvoicePaymentResponse.from_link(r) for r in rows])
 
 
 @router.post(

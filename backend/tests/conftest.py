@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator
 # Set TESTING before importing settings
 os.environ["TESTING"] = "true"
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
@@ -19,8 +20,9 @@ from app.config import settings
 
 # Import all models so SQLAlchemy can configure relationships
 from app.core.auth.models import Clinic, ClinicMembership, User  # noqa: F401
+from app.core.events.models import EventHandlerFailure  # noqa: F401
 from app.core.plugins.loader import load_modules
-from app.database import Base, get_db
+from app.database import Base, UnitOfWorkSession, get_db
 from app.main import app
 from app.modules.agenda.models import (  # noqa: F401
     Appointment,
@@ -97,6 +99,53 @@ from app.modules.verifactu.models import (  # noqa: F401
 load_modules(app)
 
 
+@pytest.fixture
+def isolated_runtime(tmp_path):
+    """Hand a test an empty runtime to mount into, then restore.
+
+    Module mounting writes into three process-wide singletons that
+    ``load_modules(app)`` above already filled for the whole session.
+    Tests that mount a different subset — or unmount something — must
+    put them back, or every later test sees a half-dismantled app.
+
+    The module-layer sync is redirected at ``tmp_path`` for the same
+    reason: ``DENTALPIN_FRONTEND_ROOT`` points at the developer's own
+    checkout, so a test that drives the lifespan would rewrite the
+    repository's ``frontend/modules.json`` from the *test* database's
+    install state — dropping layers the dev app is actually serving.
+    """
+    from app.core.agents.tools.registry import tool_registry
+    from app.core.auth.permissions import invalidate_role_permissions_cache
+    from app.core.events import event_bus
+    from app.core.plugins import frontend_layers
+    from app.core.plugins.gate import module_gate
+    from app.core.plugins.registry import module_registry
+
+    saved_frontend_root = frontend_layers.DEFAULT_FRONTEND_ROOT
+    frontend_layers.DEFAULT_FRONTEND_ROOT = tmp_path
+
+    saved_active = set(module_registry._active)
+    saved_handlers = {k: list(v) for k, v in event_bus._handlers.items()}
+    saved_tools = dict(tool_registry._tools)
+    saved_owners = dict(tool_registry._owners)
+
+    module_registry._active = set()
+    event_bus._handlers = {}
+    tool_registry.clear()
+    module_gate.clear()
+    invalidate_role_permissions_cache()
+
+    yield
+
+    frontend_layers.DEFAULT_FRONTEND_ROOT = saved_frontend_root
+    module_registry._active = saved_active
+    event_bus._handlers = saved_handlers
+    tool_registry._tools = saved_tools
+    tool_registry._owners = saved_owners
+    module_gate.clear()
+    invalidate_role_permissions_cache()
+
+
 def _resolve_test_database_url() -> str:
     """Pick the database the suite is allowed to destroy.
 
@@ -138,6 +187,28 @@ TEST_DATABASE_URL = _resolve_test_database_url()
 # already enforces the suffix — it is the last line of defence.
 if TEST_DATABASE_URL == settings.DATABASE_URL and not settings.DATABASE_URL.endswith("_test"):
     raise RuntimeError("Test database must not be the application database.")
+
+# Redirect *every* reader of DATABASE_URL at the test database.
+#
+# Overriding `get_db` and the global engine covers code that goes through
+# SQLAlchemy. It does not cover the two other ways a test reaches a
+# database: `settings.DATABASE_URL` read directly (the roundtrip suites
+# build an asyncpg DSN from it), and subprocesses — `alembic upgrade` /
+# `downgrade` / `stamp` spawned by `tests/test_alembic_roundtrip.py`,
+# `tests/**/test_uninstall_roundtrip.py` and `PendingProcessor`, which
+# re-import settings from the environment.
+#
+# Both used to resolve to the *development* database, so
+# `pytest -m alembic_roundtrip` — whose whole job is `downgrade base` —
+# dropped every table in `dental_clinic` and took the demo login with
+# it. The `*_test` suffix check above is what makes this assignment
+# safe.
+APP_DATABASE_URL = settings.DATABASE_URL
+"""What ``DATABASE_URL`` said before the redirect — the database a running
+app uses. Kept so ``test_db_isolation`` can assert we moved off it."""
+
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+settings.DATABASE_URL = TEST_DATABASE_URL
 
 # Redirect the application's global engine at the test database.
 #
@@ -220,7 +291,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     # Create a new engine for each test to avoid connection conflicts
     test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
     test_session_maker = async_sessionmaker(
-        test_engine, class_=AsyncSession, expire_on_commit=False
+        test_engine, class_=UnitOfWorkSession, expire_on_commit=False
     )
 
     async with test_engine.begin() as conn:
@@ -240,7 +311,13 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Create an HTTP client for testing."""
 
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
+        # Commit on the way out, like the real ``get_db`` does. Without
+        # it a request's writes stay invisible to the event handlers,
+        # which read through their own sessions — the very thing S2 is
+        # about. Failures propagate untouched (the session is dropped
+        # with the test).
         yield db_session
+        await db_session.commit()
 
     app.dependency_overrides[get_db] = override_get_db
 

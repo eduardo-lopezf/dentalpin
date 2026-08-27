@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PatientBillingSummary, InvoiceListItem, PaginatedResponse, Payment } from '~~/app/types'
+import type { PatientBillingSummary, InvoiceListItem, InvoicePayment, PaginatedResponse } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
 const props = defineProps<{
@@ -20,7 +20,9 @@ const pageSize = 20
 const totalPages = computed(() => Math.ceil(invoicesTotal.value / pageSize))
 const isLoading = ref(true)
 const expandedInvoices = ref<Set<string>>(new Set())
-const invoicePayments = ref<Map<string, Payment[]>>(new Map())
+// `GET /invoices/{id}/payments` returns link rows, not payments — the
+// `Payment[]` here was the type lie behind the "-" / "undefined" columns.
+const invoicePayments = ref<Map<string, InvoicePayment[]>>(new Map())
 const loadingPayments = ref<Set<string>>(new Set())
 
 async function loadInvoices() {
@@ -80,7 +82,7 @@ async function toggleInvoice(invoiceId: string) {
 const { format: formatCurrency } = useCurrency()
 
 // Format date
-function formatDate(dateStr: string | undefined): string {
+function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleDateString(locale.value, {
     day: '2-digit',
@@ -187,7 +189,7 @@ watch(() => props.patientId, () => {
         <div
           :class="[
             'rounded-token-lg p-4',
-            summary.balance_pending > 0
+            Number(summary.balance_pending) > 0
               ? 'alert-surface-warning'
               : 'bg-surface-muted/50 border border-default'
           ]"
@@ -195,7 +197,7 @@ watch(() => props.patientId, () => {
           <p
             :class="[
               'text-caption uppercase tracking-wide',
-              summary.balance_pending > 0 ? '' : 'text-muted'
+              Number(summary.balance_pending) > 0 ? '' : 'text-muted'
             ]"
           >
             {{ t('patientBilling.balancePending') }}
@@ -203,7 +205,7 @@ watch(() => props.patientId, () => {
           <p
             :class="[
               'text-display tnum mt-1',
-              summary.balance_pending > 0 ? '' : 'text-default'
+              Number(summary.balance_pending) > 0 ? '' : 'text-default'
             ]"
           >
             {{ formatCurrency(summary.balance_pending) }}
@@ -316,7 +318,7 @@ watch(() => props.patientId, () => {
                   </td>
                   <td class="px-3 py-3 text-right">
                     <span
-                      :class="invoice.balance_due > 0 ? 'text-warning font-medium' : 'text-muted'"
+                      :class="Number(invoice.balance_due) > 0 ? 'text-warning font-medium' : 'text-muted'"
                     >
                       {{ formatCurrency(invoice.balance_due) }}
                     </span>
@@ -370,28 +372,21 @@ watch(() => props.patientId, () => {
                         v-for="payment in invoicePayments.get(invoice.id)"
                         :key="payment.id"
                         class="flex items-center gap-4 text-sm"
-                        :class="{ 'opacity-50': payment.is_voided }"
                       >
+                        <!-- No "voided" state here: payments have no such
+                             flag by design (`payments/models.py`) — a
+                             payment is undone with a refund. The styling
+                             that used to key off `payment.is_voided` read
+                             an undefined field, so it never rendered. -->
                         <span class="text-muted w-20">
                           {{ formatDate(payment.payment_date) }}
                         </span>
                         <span class="text-muted w-28">
                           {{ getPaymentMethodLabel(payment.payment_method) }}
                         </span>
-                        <span
-                          class="font-medium"
-                          :class="payment.is_voided ? 'line-through text-subtle' : 'text-default'"
-                        >
+                        <span class="font-medium text-default">
                           {{ formatCurrency(payment.amount) }}
                         </span>
-                        <UBadge
-                          v-if="payment.is_voided"
-                          color="error"
-                          variant="subtle"
-                          size="xs"
-                        >
-                          {{ t('invoice.payments.voided') }}
-                        </UBadge>
                       </div>
                     </div>
                   </td>

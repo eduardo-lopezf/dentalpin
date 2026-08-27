@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Surface, ToothTreatmentView, TreatmentStatus } from '~~/app/types'
+import type { Surface, ToothTreatmentView, Treatment, TreatmentStatus } from '~~/app/types'
 import {
   getOcclusalPath,
   getLateralPath,
@@ -504,7 +504,7 @@ const hasPlannedLateralTreatments = computed(() => {
             <path
               :d="TREATMENT_OVERLAYS.rootCanal.indicator"
               :fill="TREATMENT_COLORS.root_canal"
-              :opacity="STATUS_STYLES[getTreatmentOfType('root_canal')!.status].opacity"
+              :opacity="STATUS_STYLES[getTreatmentOfType('root_canal')!.status]?.opacity"
               stroke="none"
             />
           </g>
@@ -517,7 +517,7 @@ const hasPlannedLateralTreatments = computed(() => {
             <path
               :d="TREATMENT_OVERLAYS.post.shaft"
               :fill="TREATMENT_COLORS.post"
-              :opacity="STATUS_STYLES[getTreatmentOfType('post')!.status].opacity"
+              :opacity="STATUS_STYLES[getTreatmentOfType('post')!.status]?.opacity"
               stroke="#6B7280"
               stroke-width="0.5"
             />

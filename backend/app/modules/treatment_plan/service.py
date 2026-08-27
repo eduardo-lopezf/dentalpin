@@ -334,7 +334,8 @@ class TreatmentPlanService:
         await db.refresh(plan, ["patient"])
 
         # Publish event
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             "treatment_plan.created",
             {
                 "plan_id": str(plan.id),
@@ -429,7 +430,8 @@ class TreatmentPlanService:
             )
 
         # Publish event
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             "treatment_plan.status_changed",
             {
                 "plan_id": str(plan.id),
@@ -615,7 +617,8 @@ class TreatmentPlanService:
         treatment = item.treatment
         primary_tooth = treatment.teeth[0].tooth_number if treatment and treatment.teeth else None
         primary_surfaces = treatment.teeth[0].surfaces if treatment and treatment.teeth else None
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             "treatment_plan.treatment_added",
             {
                 "plan_id": str(plan_id),
@@ -751,7 +754,8 @@ class TreatmentPlanService:
 
         await db.flush()
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_ITEMS_REORDERED,
             {
                 "clinic_id": str(clinic_id),
@@ -815,7 +819,8 @@ class TreatmentPlanService:
 
         # Snapshot payload — budget needs ``budget_id`` to find the
         # matching line without importing treatment_plan models.
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             "treatment_plan.treatment_removed",
             {
                 "plan_id": str(plan_id),
@@ -884,7 +889,8 @@ class TreatmentPlanService:
         if item.treatment:
             patient_id_str = str(item.treatment.patient_id)
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_ITEM_SESSION_COMPLETED,
             {
                 "clinic_id": str(clinic_id),
@@ -965,7 +971,8 @@ class TreatmentPlanService:
                 if item.treatment.catalog_item.category:
                     treatment_category_key = item.treatment.catalog_item.category.key
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             "treatment_plan.treatment_completed",
             {
                 "plan_id": str(plan_id),
@@ -980,7 +987,8 @@ class TreatmentPlanService:
             },
         )
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_ITEM_COMPLETED_WITHOUT_NOTE,
             {
                 "clinic_id": str(clinic_id),
@@ -1179,7 +1187,8 @@ class TreatmentPlanService:
         old_status = plan.status
         plan.status = "completed"
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             "treatment_plan.status_changed",
             {
                 "plan_id": str(plan.id),
@@ -1270,7 +1279,8 @@ class TreatmentPlanService:
                 }
             )
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             "treatment_plan.budget_sync_requested",
             {
                 "plan_id": str(plan_id),
@@ -1608,8 +1618,9 @@ class TreatmentPlanService:
 
         await db.flush()
 
-        await event_bus.publish(EventType.TREATMENT_PLAN_CONFIRMED, snapshot)
-        await event_bus.publish(
+        event_bus.publish_after_commit(db, EventType.TREATMENT_PLAN_CONFIRMED, snapshot)
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_STATUS_CHANGED,
             {
                 "plan_id": str(plan.id),
@@ -1656,7 +1667,8 @@ class TreatmentPlanService:
         plan.confirmed_at = None
         await db.flush()
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_STATUS_CHANGED,
             {
                 "plan_id": str(plan.id),
@@ -1701,7 +1713,8 @@ class TreatmentPlanService:
         await TreatmentPlanService._cleanup_orphan_planned_treatments(db, clinic_id, plan, user_id)
         await db.flush()
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_CLOSED,
             {
                 "plan_id": str(plan.id),
@@ -1714,7 +1727,8 @@ class TreatmentPlanService:
                 "previous_status": previous_status,
             },
         )
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_STATUS_CHANGED,
             {
                 "plan_id": str(plan.id),
@@ -1747,7 +1761,8 @@ class TreatmentPlanService:
         plan.confirmed_at = None
         await db.flush()
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_REACTIVATED,
             {
                 "plan_id": str(plan.id),
@@ -1758,7 +1773,8 @@ class TreatmentPlanService:
                 "reactivated_by_user_id": str(user_id),
             },
         )
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_STATUS_CHANGED,
             {
                 "plan_id": str(plan.id),
@@ -1796,7 +1812,8 @@ class TreatmentPlanService:
         plan.status = "active"
         await db.flush()
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_STATUS_CHANGED,
             {
                 "plan_id": str(plan.id),
@@ -1839,7 +1856,8 @@ class TreatmentPlanService:
         plan.closed_at = datetime.now(UTC)
         await db.flush()
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_CLOSED,
             {
                 "plan_id": str(plan.id),
@@ -1852,7 +1870,8 @@ class TreatmentPlanService:
                 "previous_status": previous_status,
             },
         )
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.TREATMENT_PLAN_STATUS_CHANGED,
             {
                 "plan_id": str(plan.id),

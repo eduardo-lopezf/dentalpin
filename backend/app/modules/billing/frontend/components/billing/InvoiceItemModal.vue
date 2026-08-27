@@ -100,20 +100,26 @@ function toggleSurface(surface: string) {
 
 // Calculate preview total
 const previewTotal = computed(() => {
-  const subtotal = form.unit_price * (form.quantity || 1)
+  // Money arrives from the API as a Decimal string. Coerce once, here:
+  // `*` and `-` would have converted silently, but `+` concatenates — and
+  // the last line of this very function is an addition.
+  const unitPrice = Number(form.unit_price) || 0
+  const quantity = Number(form.quantity) || 1
+  const discountValue = Number(form.discount_value) || 0
+  const subtotal = unitPrice * quantity
 
   let discountedSubtotal = subtotal
-  if (form.discount_type && form.discount_value) {
+  if (form.discount_type && discountValue) {
     if (form.discount_type === 'percentage') {
-      discountedSubtotal = subtotal * (1 - form.discount_value / 100)
+      discountedSubtotal = subtotal * (1 - discountValue / 100)
     } else {
-      discountedSubtotal = subtotal - form.discount_value
+      discountedSubtotal = subtotal - discountValue
     }
   }
 
   // Add VAT
   const vatType = vatTypes.value.find(v => v.id === form.vat_type_id)
-  const vatRate = vatType?.rate || 0
+  const vatRate = Number(vatType?.rate ?? 0) || 0
   const tax = discountedSubtotal * (vatRate / 100)
 
   return discountedSubtotal + tax
@@ -121,7 +127,7 @@ const previewTotal = computed(() => {
 
 // Submit
 async function handleSubmit() {
-  if (!form.description || form.unit_price <= 0) {
+  if (!form.description || Number(form.unit_price) <= 0) {
     toast.add({
       title: t('common.error'),
       description: t('invoice.errors.itemRequired'),
@@ -369,7 +375,7 @@ watch(open, async (isOpen) => {
 
             <!-- Preview total -->
             <div
-              v-if="form.unit_price > 0"
+              v-if="Number(form.unit_price) > 0"
               class="flex justify-between items-center p-3 bg-surface-muted rounded-lg"
             >
               <span class="text-muted">{{ t('budget.items.lineTotal') }}</span>
@@ -392,7 +398,7 @@ watch(open, async (isOpen) => {
             <UButton
               color="primary"
               :icon="isEditing ? 'i-lucide-check' : 'i-lucide-plus'"
-              :disabled="!form.description || form.unit_price <= 0"
+              :disabled="!form.description || Number(form.unit_price) <= 0"
               :loading="isSubmitting"
               @click="handleSubmit"
             >

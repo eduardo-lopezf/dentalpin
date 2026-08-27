@@ -20,7 +20,7 @@ related_paths:
   - backend/app/modules/periodontogram/frontend/components/PeriodontogramView.vue
   - backend/app/modules/periodontogram/frontend/components/PeriodontogramChart.vue
   - backend/app/modules/periodontogram/router.py
-last_verified_commit: 411343e
+last_verified_commit: 3568519
 ---
 
 # Periodontogram view
@@ -110,6 +110,13 @@ modal with an optional clinical note field. On confirm:
 2. The SEPA indices are computed and frozen on the snapshot.
 3. The snapshot status flips to `closed`, the slider gains a new
    node, and every input becomes read-only.
+
+**If any measurement fails to save, the session does not close.** You
+get a warning and the exam stays open with the pending edits queued
+for a retry. This is deliberate: a closed session is immutable, so
+anything that had not been saved could never be written again. A
+failed save does not discard the measurement either — it stays queued
+and is retried on the next flush.
 
 ## Discard draft
 

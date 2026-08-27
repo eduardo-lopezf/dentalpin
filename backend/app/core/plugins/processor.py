@@ -24,9 +24,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import settings
 
+from .alembic_paths import resolve_module_branch_head
 from .context import ModuleContext
 from .db_models import ModuleRecord
 from .external_id import ExternalIdHelper
+from .gate import module_gate
+from .loader import unmount_module
 from .operation_log import OperationLog
 from .registry import module_registry
 from .state import ModuleState
@@ -51,6 +54,11 @@ class PendingProcessor:
     ) -> None:
         self._session_factory = session_factory
         self._op_log = OperationLog(session_factory)
+        self.failed_migrations: set[str] = set()
+        """Installed modules whose branch could not reach head this boot.
+
+        The caller must not mount them: their code is the new version
+        and their schema is not."""
 
     async def run(self) -> list[str]:
         """Process every pending module. Returns the processed names."""
@@ -75,6 +83,12 @@ class PendingProcessor:
                         record.state,
                     )
                     await self._mark_error(record.name, str(exc))
+
+        # Bring already-installed modules up to their branch head. Boot
+        # only migrates the core chain (see ``resolve_core_head``), so
+        # this is the only thing that applies a revision a new image
+        # added to a module that was already installed.
+        self.failed_migrations = await self._migrate_installed()
 
         # Regenerate frontend modules.json so the Nuxt host picks up any
         # newly installed/uninstalled community layers on next build.
@@ -112,6 +126,74 @@ class PendingProcessor:
 
         entries = collect_layers(installed)
         write_modules_json(entries, DEFAULT_FRONTEND_ROOT)
+
+    # --- Catch-up migrations --------------------------------------------
+
+    async def _migrate_installed(self) -> set[str]:
+        """Upgrade every installed module's branch to its head.
+
+        Boot used to run ``alembic upgrade heads``, which walks every
+        branch on disk and so re-created the tables of a module that had
+        been uninstalled (audit S1). The entrypoint now applies the core
+        chain only, and module branches are applied here — where
+        ``core_module.state`` is known.
+
+        Only modules whose recorded ``applied_revision`` is behind the
+        head do any work, so the usual boot runs no Alembic at all.
+
+        Returns the names that failed. A module whose schema did not
+        reach head must not serve traffic: its code moved and its tables
+        did not. The failure is recorded on the record and the module is
+        left out of this boot's mount set — it is not marked uninstalled,
+        because nothing was removed and the admin needs it visible to
+        retry.
+        """
+        failed: set[str] = set()
+
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(ModuleRecord).where(ModuleRecord.state == ModuleState.INSTALLED.value)
+            )
+            records = list(result.scalars())
+
+        for record in self._order_pending(records):
+            module = module_registry.get(record.name)
+            if module is None or not _has_branch(module):
+                continue
+
+            head = resolve_module_branch_head(module)
+            if head is None or head == record.applied_revision:
+                continue
+
+            log_id = await self._op_log.started(
+                module_name=record.name, operation="migrate", step="migrate"
+            )
+            try:
+                applied = await self._run_migrate(module)
+            except Exception as exc:
+                failed.add(record.name)
+                await self._op_log.failed(log_id, str(exc))
+                await self._mark_error(record.name, f"Branch migration to {head} failed: {exc}")
+                logger.exception(
+                    "Module %s could not be migrated to %s; leaving it unmounted",
+                    record.name,
+                    head,
+                )
+                continue
+
+            async with self._session_factory() as session:
+                db_record = await session.get(ModuleRecord, record.name)
+                if db_record is not None:
+                    db_record.applied_revision = applied or head
+                    if db_record.base_revision is None:
+                        db_record.base_revision = applied or head
+                    db_record.error_message = None
+                    db_record.error_at = None
+                    await session.commit()
+            await self._op_log.completed(log_id, {"applied_revision": applied})
+            logger.info("Migrated installed module %s to %s", record.name, applied or head)
+
+        return failed
 
     # --- Loading --------------------------------------------------------
 
@@ -278,6 +360,17 @@ class PendingProcessor:
                 await session.commit()
         await self._op_log.completed(lifecycle_log)
 
+        # Stop the module before its data goes: handlers and tools live
+        # in process-wide singletons, and one left subscribed keeps
+        # firing against tables the next step drops.
+        unmount_log = await self._op_log.started(
+            module_name=record.name, operation="uninstall", step="unmount"
+        )
+        if module is not None:
+            unmount_module(module)
+        module_gate.unblock(record.name)
+        await self._op_log.completed(unmount_log)
+
         delete_log = await self._op_log.started(
             module_name=record.name, operation="uninstall", step="delete_data"
         )
@@ -320,7 +413,16 @@ class PendingProcessor:
         """
         if not _has_branch(module):
             return None
-        return _alembic_cmd(["upgrade", f"{module.name}@head"])
+
+        # Target the branch head's revision id, not ``<name>@head``:
+        # only half the modules declare ``branch_labels`` on their first
+        # revision, and Alembic cannot resolve ``<label>@head`` without
+        # one ("Can't locate revision identified by 'patients'"). The
+        # revision id always resolves.
+        head = resolve_module_branch_head(module)
+        if head is None:
+            return _alembic_cmd(["upgrade", f"{module.name}@head"])
+        return _alembic_cmd(["upgrade", head])
 
     async def _run_downgrade(self, revision: str) -> None:
         _alembic_cmd(["downgrade", revision])

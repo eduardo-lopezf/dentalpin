@@ -262,7 +262,7 @@ onMounted(refresh)
                 v-if="settings?.environment === 'test' && canPromoteToProd"
                 :loading="switchingEnv"
                 variant="ghost"
-                color="red"
+                color="error"
                 size="xs"
                 trailing-icon="i-lucide-arrow-right"
                 @click="switchEnvironment('prod')"
@@ -283,7 +283,7 @@ onMounted(refresh)
 
           <UAlert
             v-if="errorMessage"
-            color="red"
+            color="error"
             variant="soft"
             :title="errorMessage"
             class="mt-4"
@@ -477,7 +477,7 @@ onMounted(refresh)
               <UButton variant="ghost" @click="showProdConfirm = false">
                 {{ t('common.cancel') }}
               </UButton>
-              <UButton color="red" :loading="switchingEnv" @click="confirmProd">
+              <UButton color="error" :loading="switchingEnv" @click="confirmProd">
                 {{ t('verifactu.modal.confirmProdAction') }}
               </UButton>
             </div>

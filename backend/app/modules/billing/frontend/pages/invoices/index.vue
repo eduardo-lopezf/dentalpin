@@ -329,7 +329,7 @@ async function handleDelete(inv: InvoiceListItem, ev: Event) {
                 strong
               />
               <div
-                v-if="invoice.balance_due > 0 && invoice.status !== 'draft'"
+                v-if="Number(invoice.balance_due) > 0 && invoice.status !== 'draft'"
                 class="text-caption text-warning tnum"
               >
                 {{ t('invoice.balance') }}: {{ formatCurrency(invoice.balance_due) }}
@@ -381,7 +381,7 @@ async function handleDelete(inv: InvoiceListItem, ev: Event) {
                 strong
               />
               <div
-                v-if="invoice.balance_due > 0 && invoice.status !== 'draft'"
+                v-if="Number(invoice.balance_due) > 0 && invoice.status !== 'draft'"
                 class="text-caption text-warning tnum"
               >
                 {{ t('invoice.balance') }}: {{ formatCurrency(invoice.balance_due) }}

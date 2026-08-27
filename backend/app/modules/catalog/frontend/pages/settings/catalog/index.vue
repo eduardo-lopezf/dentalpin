@@ -447,7 +447,7 @@ function getVatTypeBadgeColor(vatType: VatTypeBrief | undefined): string {
   if (!vatType) return 'neutral'
   // Color based on rate: 0% = green, < 10% = yellow, >= 10% = red
   if (vatType.rate === 0) return 'green'
-  if (vatType.rate < 10) return 'yellow'
+  if (Number(vatType.rate) < 10) return 'yellow'
   return 'red'
 }
 
@@ -1313,10 +1313,10 @@ const categoryOptions = computed(() => [
         class="flex justify-center pt-4 border-t border-default mt-4"
       >
         <UPagination
-          :model-value="catalog.currentPage.value"
+          :page="catalog.currentPage.value"
           :total="catalog.totalItems.value"
-          :page-count="catalog.pageSize.value"
-          @update:model-value="handlePageChange"
+          :items-per-page="catalog.pageSize.value"
+          @update:page="handlePageChange"
         />
       </div>
     </UCard>

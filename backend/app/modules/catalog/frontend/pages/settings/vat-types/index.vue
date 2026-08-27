@@ -85,7 +85,8 @@ function openEditModal(vatType: VatType) {
   editingVatType.value = vatType
   editData.value = {
     name: getVatTypeName(vatType),
-    rate: vatType.rate,
+    // The form edits a number; the API sends the rate as a string.
+    rate: Number(vatType.rate) || 0,
     is_default: vatType.is_default,
     is_active: vatType.is_active
   }

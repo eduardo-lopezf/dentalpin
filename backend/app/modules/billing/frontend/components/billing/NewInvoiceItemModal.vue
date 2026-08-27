@@ -95,20 +95,26 @@ function toggleSurface(surface: string) {
 
 // Calculate preview total
 const previewTotal = computed(() => {
-  const subtotal = form.unit_price * (form.quantity || 1)
+  // Money arrives from the API as a Decimal string. Coerce once, here:
+  // `*` and `-` would have converted silently, but `+` concatenates — and
+  // the last line of this very function is an addition.
+  const unitPrice = Number(form.unit_price) || 0
+  const quantity = Number(form.quantity) || 1
+  const discountValue = Number(form.discount_value) || 0
+  const subtotal = unitPrice * quantity
 
   let discountedSubtotal = subtotal
-  if (form.discount_type && form.discount_value) {
+  if (form.discount_type && discountValue) {
     if (form.discount_type === 'percentage') {
-      discountedSubtotal = subtotal * (1 - form.discount_value / 100)
+      discountedSubtotal = subtotal * (1 - discountValue / 100)
     } else {
-      discountedSubtotal = subtotal - form.discount_value
+      discountedSubtotal = subtotal - discountValue
     }
   }
 
   // Add VAT
   const vatType = vatTypes.value.find(v => v.id === form.vat_type_id)
-  const vatRate = vatType?.rate || 0
+  const vatRate = Number(vatType?.rate ?? 0) || 0
   const tax = discountedSubtotal * (vatRate / 100)
 
   return discountedSubtotal + tax
@@ -293,7 +299,7 @@ watch(() => props.open, async (isOpen) => {
 
             <!-- Preview total -->
             <div
-              v-if="form.unit_price > 0"
+              v-if="Number(form.unit_price) > 0"
               class="flex justify-between items-center p-3 bg-surface-muted rounded-lg"
             >
               <span class="text-muted">{{ t('budget.items.lineTotal') }}</span>
@@ -316,7 +322,7 @@ watch(() => props.open, async (isOpen) => {
             <UButton
               color="primary"
               icon="i-lucide-plus"
-              :disabled="!form.catalog_item_id || form.unit_price <= 0"
+              :disabled="!form.catalog_item_id || Number(form.unit_price) <= 0"
               @click="handleSubmit"
             >
               {{ t('invoice.addItem') }}

@@ -78,7 +78,11 @@ async function snooze() {
 }
 
 async function cancelRecall() {
+  // Cancelling drops the patient off the call list for good; there is no
+  // un-cancel. `markDone` stays one click on purpose — it is the primary
+  // action of this screen and it is recoverable by creating a new recall.
   if (isBusy.value) return
+  if (!window.confirm(t('recalls.confirms.cancel'))) return
   isBusy.value = true
   try {
     const res = await recallsApi.cancel(props.recall.id)

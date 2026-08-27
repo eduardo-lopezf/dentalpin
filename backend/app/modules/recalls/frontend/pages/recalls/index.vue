@@ -116,6 +116,11 @@ watch([month, reason, status, priority, overdue, patientId], () => {
   load()
 })
 
+function onPageChange(next: number) {
+  page.value = next
+  load()
+}
+
 function onChanged(updated: Recall) {
   const idx = items.value.findIndex(r => r.id === updated.id)
   if (idx >= 0) items.value[idx] = { ...items.value[idx], ...updated }
@@ -256,5 +261,21 @@ async function downloadCsv() {
       :is-loading="isLoading"
       @changed="onChanged"
     />
+
+    <!-- The page tracked `page`/`total` and sent them to the API, but
+         nothing ever changed the page and no control was rendered: a
+         clinic with more than 50 recalls in the month saw the first 50
+         and nothing said there were more. -->
+    <div
+      v-if="total > pageSize"
+      class="flex justify-center pt-2"
+    >
+      <UPagination
+        :page="page"
+        :total="total"
+        :items-per-page="pageSize"
+        @update:page="onPageChange"
+      />
+    </div>
   </div>
 </template>

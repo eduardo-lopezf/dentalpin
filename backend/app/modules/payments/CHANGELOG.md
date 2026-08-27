@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- fix(money): the refund modal's seeded amount is typed `Money` — it comes
+  straight from the payment's net amount, a Decimal string.
+
+- fix(ui): removed the patient-panel row menu's "detail" entry, which
+  linked to `/payments/{id}` — a page that exists in no layer, so it
+  always 404'd. The menu now renders only when it has something to
+  offer (audit S5, dead affordance).
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - fix(security): lock the payment row `FOR UPDATE` before the refund
   cap check (audit S3/C1, #97). Two concurrent refunds could both read
   `already_refunded` before either inserted, letting Σrefund exceed

@@ -13,7 +13,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/budget/frontend/pages/p/budget/[token].vue
   - backend/app/modules/budget/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Aceptación pública del paciente
@@ -57,6 +57,10 @@ paciente cuando le pasan el enlace.
 2. Tras verificar: cabecera con clínica + paciente, listado de
    ítems con totales, validez y profesional asignado.
 3. Botones **Aceptar** y **Rechazar** (este último pide motivo).
+   Si el envío falla, el modal **no se cierra**: se queda con la firma
+   puesta y muestra el error, para que el paciente pueda reintentar.
+   Un modal que se cerrase igualmente le haría creer que ha aceptado
+   mientras la clínica no recibe nada.
 4. **Descargar PDF** del presupuesto.
 
 ## Cómo ayudar a un paciente con problemas

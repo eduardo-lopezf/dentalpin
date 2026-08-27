@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- fix(ui): infinite scroll actually scrolls. The `IntersectionObserver`
+  was created in `onMounted` from a ref that lives in the `v-else`
+  branch — absent on first paint, since the loading branch renders
+  instead — so it observed nothing and the timeline stopped at the
+  first page of 20 with no hint there was more. Now attached by
+  watching the ref, which also survives a filter change (audit S5).
+
 - feat(agents): expose `tools.py` — `get_patient_timeline` (READ)
   wrapping `TimelineService.get_timeline`. Returns structured event
   metadata only (type/category/title/timestamp); free-text description +

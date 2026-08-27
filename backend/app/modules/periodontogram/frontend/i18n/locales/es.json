@@ -23,7 +23,11 @@
     },
     "loading": "Cargando periodontograma…",
     "errors": {
-      "loadFailed": "No se pudo cargar el periodontograma."
+      "loadFailed": "No se pudo cargar el periodontograma.",
+      "saveFailedTitle": "No se pudo guardar el cambio",
+      "saveFailedDescription": "La medición sigue pendiente: comprueba tu conexión y vuelve a intentarlo.",
+      "closeBlockedTitle": "No se puede cerrar la exploración",
+      "closeBlockedDescription": "Quedan mediciones sin guardar. Una sesión cerrada no se puede modificar, así que se mantiene abierta hasta que se guarden."
     }
   }
 }

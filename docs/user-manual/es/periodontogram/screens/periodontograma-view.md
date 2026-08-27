@@ -20,7 +20,7 @@ related_paths:
   - backend/app/modules/periodontogram/frontend/components/PeriodontogramView.vue
   - backend/app/modules/periodontogram/frontend/components/PeriodontogramChart.vue
   - backend/app/modules/periodontogram/router.py
-last_verified_commit: 411343e
+last_verified_commit: 3568519
 ---
 
 # Vista del periodontograma
@@ -113,6 +113,13 @@ confirmar:
 2. Se calculan los índices SEPA y se persisten en el snapshot.
 3. El snapshot pasa a `closed`, aparece en el slider y los inputs
    quedan deshabilitados.
+
+**Si alguna medición no llega a guardarse, la sesión no se cierra.**
+Verás un aviso y la exploración sigue abierta con lo pendiente en
+cola para reintentarlo. Es deliberado: una sesión cerrada es
+inmutable, así que lo que no se hubiera guardado no podría escribirse
+nunca. Un guardado fallido tampoco descarta la medición: se queda
+encolada y se reintenta al siguiente volcado.
 
 ## Descartar borrador
 

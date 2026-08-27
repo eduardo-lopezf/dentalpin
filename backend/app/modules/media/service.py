@@ -164,7 +164,8 @@ class DocumentService:
                 other.paired_document_id = document.id
                 await db.flush()
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.DOCUMENT_UPLOADED,
             {
                 "document_id": str(document.id),
@@ -178,7 +179,8 @@ class DocumentService:
             },
         )
         if is_image_kind:
-            await event_bus.publish(
+            event_bus.publish_after_commit(
+                db,
                 EventType.PHOTO_UPLOADED,
                 {
                     "document_id": str(document.id),
@@ -215,7 +217,8 @@ class DocumentService:
     ) -> None:
         document.status = "archived"
         await db.flush()
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.DOCUMENT_DELETED,
             {
                 "document_id": str(document.id),
@@ -379,7 +382,8 @@ class PhotoService:
         a.paired_document_id = b.id
         b.paired_document_id = a.id
         await db.flush()
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.PAIR_CREATED,
             {
                 "clinic_id": str(clinic_id),
@@ -403,7 +407,8 @@ class PhotoService:
                 partner.paired_document_id = None
         await db.flush()
         if partner_id:
-            await event_bus.publish(
+            event_bus.publish_after_commit(
+                db,
                 EventType.PAIR_REMOVED,
                 {
                     "clinic_id": str(clinic_id),
@@ -507,7 +512,8 @@ class AttachmentService:
         await db.flush()
         await db.refresh(attachment, ["document"])
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.ATTACHMENT_LINKED,
             {
                 "attachment_id": str(attachment.id),
@@ -543,7 +549,8 @@ class AttachmentService:
         document_id = attachment.document_id
         await db.delete(attachment)
         await db.flush()
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.ATTACHMENT_UNLINKED,
             {
                 "attachment_id": str(attachment_id),

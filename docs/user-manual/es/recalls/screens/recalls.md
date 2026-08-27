@@ -27,7 +27,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/recalls/frontend/pages/recalls/index.vue
   - backend/app/modules/recalls/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Lista de llamadas
@@ -56,6 +56,8 @@ registrar el intento, mover el recall al siguiente estado.
   pasan a la cola **Necesita revisión**.
 - **Exportar a CSV** — botón en la cabecera. Aplica los filtros
   activos.
+- **Paginación** — la cola trae 50 recalls por página. Si el mes tiene
+  más, aparece un paginador bajo la lista.
 
 ## Trabajar un recall
 
@@ -79,8 +81,10 @@ registrar el intento, mover el recall al siguiente estado.
    - **Snooze N meses** — empuja `due_month` y deja el recall en
      pendiente. Se publica `recall.snoozed`.
    - **Hecho** — marca como completado. Publica `recall.completed`.
-   - **Cancelar** — saca el recall de la cola activa. Publica
-     `recall.cancelled`.
+   - **Cancelar** — pide confirmación (saca al paciente de la cola
+     para siempre y no hay deshacer) y luego publica
+     `recall.cancelled`. **Hecho** no la pide: es la acción principal
+     de la pantalla y se recupera creando otro recall.
 
 ## Permisos
 

@@ -12,7 +12,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/billing/frontend/pages/settings/invoice-series/index.vue
   - backend/app/modules/billing/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Invoice series
@@ -71,3 +71,6 @@ active per fiscal year.
   the type (invoice or credit note) and current year. Activate or
   create one.
 - **No edit options.** Your role is not `billing.admin`.
+- **The screen used to be in Spanish.** All 30 of its strings were
+  Spanish-only, so an English UI rendered raw key paths. They are
+  translated now.

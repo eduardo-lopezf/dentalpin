@@ -495,7 +495,9 @@
         "general_condition": "Condición general",
         "surface_update": "Actualización de superficie",
         "note": "Nota"
-      }
+      },
+      "loadMore": "Ver cambios anteriores",
+      "showing": "Mostrando {shown} de {total}"
     },
     "messages": {
       "updated": "Odontograma actualizado",
@@ -522,7 +524,14 @@
         "restauradora": "Restauradora",
         "cirugia": "Cirugía",
         "endodoncia": "Endodoncia",
-        "ortodoncia": "Ortodoncia"
+        "ortodoncia": "Ortodoncia",
+        "common": "Comunes",
+        "diagnostic": "Diagnóstico",
+        "orthodontic": "Ortodoncia",
+        "other": "Otros",
+        "periodontic": "Periodoncia",
+        "position": "Posición",
+        "restorative": "Restauradora"
       },
       "types": {
         "pulpitis": "Pulpitis",
@@ -669,6 +678,9 @@
         "sameArchRequired": "Los dientes deben estar en la misma arcada"
       },
       "sectionLabel": "Tratamientos multi-diente"
+    },
+    "confirms": {
+      "deleteTreatment": "¿Eliminar este tratamiento? Si ya está facturado, la factura no se corrige sola."
     }
   },
   "clinical": {
@@ -753,6 +765,9 @@
         "title": "Plan bloqueado",
         "subtitle": "Presupuesto {number} emitido. Para editar tratamientos, usa Reabrir (si está pendiente) o Renegociar el presupuesto.",
         "viewBudget": "Ver presupuesto"
+      },
+      "confirms": {
+        "removeItem": "¿Quitar este tratamiento del plan? También desaparece del odontograma y de la línea de presupuesto asociada."
       }
     },
     "tooth": "Diente"
@@ -903,6 +918,9 @@
       "clinicClosed": "Clínica cerrada",
       "professionalOff": "No disponible",
       "onBreak": "Pausa"
+    },
+    "confirms": {
+      "cancel": "¿Cancelar esta cita? Se avisará al paciente según la configuración de notificaciones."
     }
   },
   "dashboard": {
@@ -1293,7 +1311,8 @@
     "yesterday": "Ayer",
     "copied": "Copiado al portapapeles",
     "copy": "Copiar",
-    "copyFailed": "No se pudo copiar"
+    "copyFailed": "No se pudo copiar",
+    "treatment": "Tratamiento"
   },
   "cabinet": {
     "toast": {
@@ -2142,7 +2161,8 @@
         "signatureClear": "Borrar",
         "consent": "Confirmo que acepto este presupuesto y autorizo el tratamiento descrito.",
         "submit": "Confirmar aceptación",
-        "success": "¡Listo! La clínica te contactará para agendar tu primera cita."
+        "success": "¡Listo! La clínica te contactará para agendar tu primera cita.",
+        "error": "No hemos podido registrar tu aceptación. Revisa tu conexión e inténtalo de nuevo; tu firma sigue aquí."
       },
       "reject": {
         "title": "No me interesa",
@@ -2156,7 +2176,8 @@
           "time": "Falta de tiempo",
           "second_opinion": "Segunda opinión",
           "other": "Otro motivo"
-        }
+        },
+        "error": "No hemos podido registrar tu respuesta. Revisa tu conexión e inténtalo de nuevo."
       }
     },
     "settings": {
@@ -2361,7 +2382,9 @@
         "direct_debit": "Domiciliación",
         "insurance": "Aseguradora",
         "other": "Otro"
-      }
+      },
+      "record": "Registrar pago",
+      "recorded": "Pago registrado"
     },
     "creditNote": {
       "title": "Nota de crédito",
@@ -2371,7 +2394,10 @@
       "partial": "Rectificativa parcial",
       "complete": "Rectificativa completa",
       "selectItems": "Seleccionar líneas a rectificar",
-      "originalInvoice": "Factura original"
+      "originalInvoice": "Factura original",
+      "created": "Rectificativa creada",
+      "fullCreditNote": "Rectificativa completa (todas las líneas)",
+      "partialCreditNote": "Rectificativa parcial (líneas seleccionadas)"
     },
     "history": {
       "title": "Historial de cambios",
@@ -2444,7 +2470,8 @@
       "itemRequired": "Descripción y precio son obligatorios",
       "selectCatalogItem": "Debe seleccionar un tratamiento del catálogo",
       "cannotEdit": "Solo se pueden editar facturas en borrador",
-      "billingIncomplete": "La factura no puede emitirse porque los datos de facturación están incompletos. Rellena los datos del paciente para continuar."
+      "billingIncomplete": "La factura no puede emitirse porque los datos de facturación están incompletos. Rellena los datos del paciente para continuar.",
+      "onlyDraft": "Solo se pueden editar facturas en borrador"
     },
     "newItemsPending": "Nuevas líneas pendientes de guardar",
     "filters": {
@@ -2483,7 +2510,10 @@
       "types": {
         "invoice": "Factura",
         "credit_note": "Rectificativa"
-      }
+      },
+      "active": "Activa",
+      "credit_note": "Rectificativa",
+      "invoice": "Factura"
     },
     "reports": {
       "title": "Informes de facturación",
@@ -2522,7 +2552,10 @@
       "lastMonth": "Mes anterior",
       "lastQuarter": "Trimestre anterior",
       "lastYear": "Año anterior"
-    }
+    },
+    "currency": "Moneda",
+    "totalDiscount": "Descuento total",
+    "totalPaid": "Total cobrado"
   },
   "reports": {
     "title": "Informes",

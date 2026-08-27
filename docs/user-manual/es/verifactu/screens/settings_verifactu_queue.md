@@ -32,7 +32,7 @@ related_permissions:
   - verifactu.environment.promote
 related_paths:
   - backend/app/modules/verifactu/frontend/pages/settings/verifactu/queue.vue
-last_verified_commit: 0000000
+last_verified_commit: 3568519
 ---
 
 # /settings/verifactu/queue

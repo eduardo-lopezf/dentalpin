@@ -17,7 +17,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/reports/frontend/pages/reports/scheduling.vue
   - backend/app/modules/reports/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Agenda and occupancy reports

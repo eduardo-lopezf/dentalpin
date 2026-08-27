@@ -23,7 +23,11 @@
     },
     "loading": "Loading periodontogram…",
     "errors": {
-      "loadFailed": "Could not load the periodontogram."
+      "loadFailed": "Could not load the periodontogram.",
+      "saveFailedTitle": "Could not save the change",
+      "saveFailedDescription": "The measurement is still pending: check your connection and try again.",
+      "closeBlockedTitle": "Cannot close this exam",
+      "closeBlockedDescription": "Some measurements are still unsaved. A closed session cannot be edited, so it stays open until they are saved."
     }
   }
 }

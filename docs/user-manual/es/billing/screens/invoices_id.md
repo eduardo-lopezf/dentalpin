@@ -36,7 +36,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/billing/frontend/pages/invoices/[id]/index.vue
   - backend/app/modules/billing/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Detalle de factura
@@ -52,9 +52,11 @@ se emite un abono.
 - **Datos legales** — receptor (paciente o tercero pagador), NIF,
   dirección fiscal y serie + número (en `issued`). Si el pagador no
   es el paciente se ve un chip *Pagador distinto*.
-- **Cobros enlazados.** Listado de `invoice_payments` con importe y
-  método. La factura no tiene un *Cobrar* propio: para cobrar, usa
-  el módulo `payments` y enlaza el cobro a la factura.
+- **Cobros enlazados.** Listado de `invoice_payments` con importe,
+  **fecha y método del cobro** (vienen del pago enlazado, no de la
+  fila de imputación: la fecha en que se imputó no es la fecha en que
+  el paciente pagó). No hay estado *anulado* en esta lista: un cobro
+  no se anula, se reembolsa desde el módulo `payments`.
 - **PDF.** Dos formatos: borrador (vista previa con marca de agua)
   y definitivo (solo desde `issued`). El PDF se genera con
   WeasyPrint.
@@ -92,6 +94,8 @@ se emite un abono.
   histórico para auditoría. Solo admin.
 - **Crear nota de crédito** — emite un abono asociado con los
   importes de la factura origen. Pasa por el mismo flujo de emisión.
+  **La factura original conserva su estado**: una rectificativa
+  compensa, no anula. La nota nace en borrador y hay que emitirla.
 
 ## Permisos
 

@@ -472,9 +472,33 @@ alembic revision --autogenerate \
 
 `backend/alembic.ini`'s `version_locations` lists every module's
 `migrations/versions` directory so `alembic history | heads | upgrade`
-find them before `env.py` runs. Because each branch adds a head, the
-backend entrypoint and the round-trip tests use the plural form:
-`alembic upgrade heads`.
+find them before `env.py` runs — the graph is always complete, which is
+what makes `downgrade` and `history` work.
+
+The *target* is a different question. `alembic upgrade heads` walks
+every branch in that graph, so it re-creates the tables of a module the
+admin uninstalled. Boot therefore upgrades the **core linear chain
+only** (`resolve_core_head()`), and each module branch is brought to its
+head by `PendingProcessor` — on install, or as a catch-up for modules
+already `installed` whose branch grew a revision. The plural form
+survives in two places: a manual full-schema upgrade, and the bootstrap
+of a database that has no `core_module` table yet (nothing can have been
+uninstalled there).
+
+#### What happens between the click and the restart
+
+`POST /api/v1/modules/<name>/uninstall` returns `202` with
+`requires_restart: true` — the lifespan processor does the work at the
+next boot. Until then the module is still mounted, so the core closes
+`module_gate` for it: every `/api/v1/<name>/…` request answers `409`
+instead of writing into tables that are about to be dropped. Installing
+the module again before the restart cancels the removal and re-opens the
+gate.
+
+When the processor finally runs, its `unmount` step takes the module's
+event handlers off the bus and its tools out of the copilot registry
+*before* the data is deleted — a handler left subscribed keeps firing
+against dropped tables, with its exception swallowed by the bus.
 
 #### Why branches matter for removability
 

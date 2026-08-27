@@ -42,6 +42,9 @@ async def test_archive_patient_payload_includes_clinic_id(
     event_bus.subscribe(EventType.PATIENT_ARCHIVED, _spy)
     try:
         await PatientService.archive_patient(db_session, test_patient)
+        # The event is queued on the session and fires when the archive
+        # is real, not when it is merely flushed (ADR 0019).
+        await db_session.commit()
     finally:
         event_bus.unsubscribe(EventType.PATIENT_ARCHIVED, _spy)
 

@@ -1,6 +1,6 @@
 ---
 module: migration_import
-last_verified_commit: HEAD
+last_verified_commit: 3568519
 locale: en
 screen: data-migration
 route: /settings/workspace/data-migration

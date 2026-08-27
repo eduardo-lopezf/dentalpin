@@ -17,7 +17,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/billing/frontend/pages/invoices/[id]/edit.vue
   - backend/app/modules/billing/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Edit invoice draft

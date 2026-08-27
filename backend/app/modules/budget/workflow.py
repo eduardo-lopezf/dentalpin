@@ -157,7 +157,8 @@ class BudgetWorkflowService:
         await db.flush()
 
         # Publish event for notifications + timeline modules
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.BUDGET_SENT,
             {
                 "clinic_id": str(budget.clinic_id),
@@ -295,7 +296,8 @@ class BudgetWorkflowService:
             )
 
         plan_id = await BudgetWorkflowService._lookup_plan_id(db, budget.id)
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.BUDGET_ACCEPTED,
             {
                 "clinic_id": str(budget.clinic_id),
@@ -372,7 +374,8 @@ class BudgetWorkflowService:
         await db.flush()
 
         plan_id = await BudgetWorkflowService._lookup_plan_id(db, budget.id)
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.BUDGET_REJECTED,
             {
                 "clinic_id": str(budget.clinic_id),
@@ -469,7 +472,8 @@ class BudgetWorkflowService:
         for budget in expired_budgets:
             plan_id = await BudgetWorkflowService._lookup_plan_id(db, budget.id)
             days_overdue = (today - budget.valid_until).days if budget.valid_until else None
-            await event_bus.publish(
+            event_bus.publish_after_commit(
+                db,
                 EventType.BUDGET_EXPIRED,
                 {
                     "clinic_id": str(budget.clinic_id),
@@ -540,7 +544,8 @@ class BudgetWorkflowService:
         await db.flush()
 
         plan_id = await BudgetWorkflowService._lookup_plan_id(db, budget.id)
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.BUDGET_RENEGOTIATED,
             {
                 "clinic_id": str(budget.clinic_id),
@@ -568,7 +573,8 @@ class BudgetWorkflowService:
         budget.viewed_at = datetime.now(UTC)
         await db.flush()
         plan_id = await BudgetWorkflowService._lookup_plan_id(db, budget.id)
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.BUDGET_VIEWED,
             {
                 "clinic_id": str(budget.clinic_id),
@@ -595,7 +601,8 @@ class BudgetWorkflowService:
         budget.last_reminder_sent_at = datetime.now(UTC)
         await db.flush()
         plan_id = await BudgetWorkflowService._lookup_plan_id(db, budget.id)
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.BUDGET_REMINDER_SENT,
             {
                 "clinic_id": str(budget.clinic_id),

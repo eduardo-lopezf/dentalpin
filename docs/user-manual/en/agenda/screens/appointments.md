@@ -26,7 +26,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/agenda/frontend/pages/appointments/index.vue
   - backend/app/modules/agenda/router.py
-last_verified_commit: 7406862
+last_verified_commit: 3568519
 ---
 
 # Appointments
@@ -85,7 +85,9 @@ professionals and rooms, and walk them through their workflow
 
 1. Open the appointment by clicking on it.
 2. In the **Quick actions** panel pick the next available transition:
-   *Confirm*, *In-room*, *Complete*, *Cancel*.
+   *Confirm*, *In-room*, *Complete*, *Cancel*. **Cancel** asks for
+   confirmation: it sits next to *Save* in the modal footer, and the
+   patient is notified according to your notification settings.
 3. When transitioning to **completed** a follow-up modal appears with
    actions contributed by sibling modules (e.g. *Schedule recall*).
    The modal stays hidden when no module contributes to it.

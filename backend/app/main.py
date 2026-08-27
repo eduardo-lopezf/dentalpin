@@ -23,6 +23,7 @@ from app.core.log_context import (
     set_request_context,
     setup_logging,
 )
+from app.core.plugins.gate import module_gate
 from app.core.plugins.loader import discover_and_register, mount_active
 from app.core.plugins.processor import PendingProcessor
 from app.core.plugins.registry import module_registry
@@ -34,7 +35,7 @@ from app.database import async_session_maker, engine, get_db
 logger = logging.getLogger(__name__)
 
 
-async def _mount_installed_modules(app: FastAPI) -> None:
+async def _mount_installed_modules(app: FastAPI, skip: set[str] | None = None) -> None:
     """Give a runtime surface to the modules ``core_module`` says are live.
 
     If the state cannot be read at all, mount every discovered module
@@ -51,6 +52,17 @@ async def _mount_installed_modules(app: FastAPI) -> None:
             "Could not read module install state; falling back to mounting every discovered module"
         )
         installed = {module.name for module in module_registry.list_discovered()}
+
+    if skip:
+        blocked = installed & skip
+        if blocked:
+            logger.error(
+                "Not mounting %s: their schema did not reach head this boot. "
+                "The code is the new version and the tables are not — fix the "
+                "migration and restart.",
+                sorted(blocked),
+            )
+            installed -= blocked
 
     mount_active(app, installed)
 
@@ -70,6 +82,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # runs. Mounting first, as this used to, meant an uninstalled module
     # kept its routes, its event handlers, its copilot tools and its
     # permission grants no matter what ``core_module`` said.
+    module_gate.clear()
     discover_and_register()
 
     # Sync in-memory registry into core_module (best-effort).
@@ -82,15 +95,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Process pending install/uninstall/upgrade operations. Running this
     # before mounting is what lets an install go live on the same boot
     # that schedules it, instead of needing a second restart.
+    failed_migrations: set[str] = set()
     try:
         processor = PendingProcessor(async_session_maker)
         processed = await processor.run()
+        failed_migrations = processor.failed_migrations
         if processed:
             logger.info("Processed pending module operations: %s", processed)
     except Exception:
         logger.exception("Pending module processor raised")
 
-    await _mount_installed_modules(app)
+    await _mount_installed_modules(app, skip=failed_migrations)
 
     # Initialize scheduler for background jobs (installed modules only —
     # ``module_registry.list_modules()`` is the active set).
@@ -179,6 +194,36 @@ def _cors_headers(request: Request) -> dict[str, str]:
     return {}
 
 
+@app.middleware("http")
+async def module_gate_middleware(request: Request, call_next):
+    """Refuse traffic for a module whose removal is already scheduled.
+
+    Lifecycle transitions take effect at the next restart, so between
+    the admin's uninstall and that restart the module is still mounted.
+    Anything written in that window lands in tables the processor is
+    about to drop — backed up to a ``pg_dump`` file nobody will read.
+    A ``409`` says so instead of pretending the write survived.
+
+    Preflight requests pass through: answering ``OPTIONS`` with 409
+    makes the browser report a CORS failure and hides the real status
+    from the caller.
+    """
+    if request.method != "OPTIONS":
+        blocked = module_gate.match(request.url.path)
+        if blocked is not None:
+            error = ErrorResponse(
+                message=f"Module '{blocked}' is being uninstalled and no longer accepts requests.",
+                errors=[f"module '{blocked}' pending removal"],
+            )
+            return JSONResponse(
+                status_code=409,
+                content=error.model_dump(),
+                headers=_cors_headers(request),
+            )
+
+    return await call_next(request)
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Handler for HTTP exceptions using standard ErrorResponse format."""
@@ -225,6 +270,10 @@ from app.core.plugins.router import router as modules_router  # noqa: E402
 app.include_router(modules_router, prefix="/api/v1")
 
 # Mount AI agents infrastructure router (approval queue, audit, agent CRUD).
+from app.core.events.router import router as events_router  # noqa: E402
+
+app.include_router(events_router, prefix="/api/v1")
+
 from app.core.agents.router import router as agents_router  # noqa: E402
 
 app.include_router(agents_router, prefix="/api/v1")

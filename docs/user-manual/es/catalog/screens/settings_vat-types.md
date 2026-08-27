@@ -29,7 +29,7 @@ related_permissions:
   - catalog.admin
 related_paths:
   - backend/app/modules/catalog/frontend/pages/settings/vat-types/index.vue
-last_verified_commit: 0000000
+last_verified_commit: 3568519
 ---
 
 # /settings/vat-types

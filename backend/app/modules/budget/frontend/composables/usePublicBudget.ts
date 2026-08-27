@@ -1,3 +1,4 @@
+import type { Money } from '~~/app/types'
 /**
  * Patient-facing budget flow.
  *
@@ -35,9 +36,9 @@ export interface PublicMeta {
 
 export interface PublicBudgetItem {
   id: string
-  unit_price: number
+  unit_price: Money
   quantity: number
-  line_total: number
+  line_total: Money
   tooth_number: number | null
   notes: string | null
   // Backend exposes ``names`` as an i18n map (es/en/...). Pick the
@@ -54,10 +55,10 @@ export interface PublicBudget {
   status: string
   valid_from: string
   valid_until: string | null
-  subtotal: number
-  total_discount: number
-  total_tax: number
-  total: number
+  subtotal: Money
+  total_discount: Money
+  total_tax: Money
+  total: Money
   patient_notes: string | null
   items: PublicBudgetItem[]
 }

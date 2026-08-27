@@ -28,6 +28,7 @@ DentalPin is built as independent modules under `backend/app/modules/<name>/` wi
 - Cross-module FKs are allowed **only** when the target is in `depends`. CI rejects migrations otherwise.
 - Each module owns its Alembic branch (`branch_labels = ("<name>",)`). Never thread one module's revisions through another's chain — uninstall safety depends on it (issue #56).
 - Permissions are namespaced: a module returns `resource.action` from `get_permissions()`; the registry prefixes with the module name.
+- **`core_module.state` decides what runs** ([ADR 0018](./docs/adr/0018-install-state-is-the-mount-authority.md)). Never derive routes, handlers, tools, permissions, jobs or migration targets from what is on disk. `module_registry.list_discovered()` is the inventory; `list_modules()` / `is_installed()` is the active set.
 
 **Before adding a feature, read `docs/technical/creating-modules.md`** — it is the source of truth for module structure, lifecycle, manifest, slots, events, tools/agents, and migrations.
 
@@ -45,7 +46,7 @@ DentalPin is built as independent modules under `backend/app/modules/<name>/` wi
 | New module | Create `backend/app/modules/<name>/CLAUDE.md` + `CHANGELOG.md`. Create `docs/technical/<name>/{overview,events,permissions}.md`. If the module has Nuxt pages, also `docs/user-manual/{en,es}/<name>/{index.md, screens/<slug>.md}` per page. Run `python backend/scripts/generate_catalogs.py`. Follow `docs/checklists/new-module.md`. |
 | New screen (page under `<module>/frontend/pages/**`) | Create both `docs/user-manual/en/<module>/screens/<slug>.md` and `docs/user-manual/es/<module>/screens/<slug>.md` with the [frontmatter contract](./docs/technical/documentation-portal.md#2-frontmatter-contract-the-part-claude-relies-on). Screenshots into `docs/screenshots/<module>/`. |
 | New endpoint | Document under the gating permission's row in `docs/technical/<module>/permissions.md`. Bump `last_verified_commit` on every screen MD whose `related_endpoints` covers it. |
-| New event published or consumed | Add to `EventType` in `backend/app/core/events/types.py`. Add row to `docs/technical/<module>/events.md`. Re-run `generate_catalogs.py`. Document publisher payload in module CLAUDE.md. |
+| New event published or consumed | Publish with `event_bus.publish_after_commit(db, ...)` (ADR 0019). Add to `EventType` in `backend/app/core/events/types.py`. Add row to `docs/technical/<module>/events.md`. Re-run `generate_catalogs.py`. Document publisher payload in module CLAUDE.md. |
 | New permission | Return from `get_permissions()` (no module prefix). List in `manifest.role_permissions`. Add row to `docs/technical/<module>/permissions.md`. Add to `frontend/app/config/permissions.ts` if user-facing. |
 | New agent-exposed capability | Declare a `Tool` in `backend/app/modules/<name>/tools.py` and return it from the module's `get_tools()`. **Wrap an existing service method — never duplicate business logic.** Filter by `ctx.clinic_id`. Set `permissions=[...]` to the gating RBAC string the HTTP route uses, and `category` conservatively (`WRITE` for mutations, `DESTRUCTIVE` for deletes/irreversible side-effects). Set `exposes_free_text=True` if the result is free prose (it is then excluded from the cloud LLM path under redaction). **Return native values (UUID/Decimal/datetime/Pydantic) — `jsonify` at the registry chokepoint coerces them; don't hand-`str()`/`.isoformat()`/`float()`.** Name PII fields with redactor-known keys (`full_name`, `phone`, `email`, `dni`, `*_id`) so they tokenize. Document it under "Tools exposed" in the module CLAUDE.md. See [`docs/technical/copilot-agentic-architecture.md`](./docs/technical/copilot-agentic-architecture.md) §3. |
 | Touched a screen's behaviour or visuals | Update the matching screen MD in **both** `docs/user-manual/{en,es}/<module>/screens/`. Refresh screenshots if visuals changed. Bump `last_verified_commit` in each locale. |
@@ -283,6 +284,12 @@ Migrations live in `backend/app/modules/<name>/migrations/versions/` on a per-mo
 docker-compose exec backend alembic upgrade heads     # plural — multiple branches
 ```
 
+`heads` is the manual, "give me the whole schema" command. **Boot does not
+use it**: `docker-entrypoint.sh` upgrades the core linear chain only, and
+per-module branches are applied by the lifespan processor for the modules
+`core_module.state` marks `installed`. Running `heads` by hand on a database
+where a module was uninstalled re-creates that module's tables.
+
 ---
 
 ## API conventions
@@ -325,11 +332,28 @@ class MyModule(BaseModule):
     def get_tools(self) -> list[Tool]: return []   # mandatory, even if empty
 ```
 
-Event bus:
+Event bus — **publish after the commit, never from inside the transaction**
+([ADR 0019](./docs/adr/0019-events-publish-after-commit.md)). Handlers run in
+their own sessions, so anything announced after a mere `flush()` is invisible
+to them:
+
 ```python
 from app.core.events import event_bus
-event_bus.publish("patient.created", {"patient_id": str(patient.id)})
+
+# Queues on the session; UnitOfWorkSession dispatches it once the
+# transaction commits (and drops it on rollback). Not a coroutine.
+event_bus.publish_after_commit(db, "patient.created", {"patient_id": str(patient.id)})
 ```
+
+`await event_bus.publish(...)` is only for callers that have already committed
+(background workers owning their session). `tests/test_event_transaction_boundary.py`
+holds the allowlist and fails on any new direct publish.
+
+A handler that raises does not abort the dispatch, but it is no longer
+invisible: the bus records it in `core_event_failure` (event, handler, payload,
+error) and admins read it at `GET /api/v1/events/failures`
+([ADR 0020](./docs/adr/0020-handler-failures-are-recorded.md)). There is no
+automatic retry — handlers are not uniformly idempotent.
 
 ---
 

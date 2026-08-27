@@ -170,20 +170,37 @@ const canSubmitAccept = computed(
   () => signerName.value.trim().length > 0 && consentChecked.value
 )
 
+// `accept` / `reject` return false instead of throwing. Closing the modal
+// regardless is how a patient came to believe they had signed while the
+// clinic never received anything — so the modal only closes on success,
+// and a failure says so with the signature still on screen.
+const decisionError = ref<string | null>(null)
+
 async function onAcceptSubmit() {
-  if (!canSubmitAccept.value) return
-  await accept({
+  if (submitting.value || !canSubmitAccept.value) return
+  decisionError.value = null
+  const ok = await accept({
     signer_name: signerName.value.trim(),
     signature_data: signaturePng.value ? { png: signaturePng.value } : undefined,
   })
+  if (!ok) {
+    decisionError.value = t('budget.public.accept.error')
+    return
+  }
   showAccept.value = false
 }
 
 async function onRejectSubmit() {
-  await reject({
+  if (submitting.value) return
+  decisionError.value = null
+  const ok = await reject({
     reason: rejectReason.value,
     note: rejectNote.value.trim() || undefined,
   })
+  if (!ok) {
+    decisionError.value = t('budget.public.reject.error')
+    return
+  }
   showReject.value = false
 }
 
@@ -566,6 +583,10 @@ const greeting = computed(() => {
             </div>
 
             <UCheckbox v-model="consentChecked" :label="t('budget.public.accept.consent')" />
+
+            <p v-if="decisionError" class="text-sm text-red-600">
+              {{ decisionError }}
+            </p>
           </div>
 
           <template #footer>
@@ -576,7 +597,7 @@ const greeting = computed(() => {
               <UButton
                 color="primary"
                 :loading="submitting"
-                :disabled="!canSubmitAccept"
+                :disabled="submitting || !canSubmitAccept"
                 @click="onAcceptSubmit"
               >
                 {{ t('budget.public.accept.submit') }}
@@ -605,6 +626,10 @@ const greeting = computed(() => {
             <UFormField :label="t('budget.public.reject.noteLabel')">
               <UTextarea v-model="rejectNote" :rows="3" :maxlength="2000" />
             </UFormField>
+
+            <p v-if="decisionError" class="text-sm text-red-600">
+              {{ decisionError }}
+            </p>
           </div>
 
           <template #footer>
@@ -612,7 +637,7 @@ const greeting = computed(() => {
               <UButton color="neutral" variant="ghost" @click="showReject = false">
                 {{ t('common.cancel') }}
               </UButton>
-              <UButton color="error" :loading="submitting" @click="onRejectSubmit">
+              <UButton color="error" :loading="submitting" :disabled="submitting" @click="onRejectSubmit">
                 {{ t('budget.public.reject.submit') }}
               </UButton>
             </div>

@@ -1,12 +1,4 @@
-import type {
-  ApiResponse,
-  BillingSummary,
-  OverdueInvoice,
-  PaymentMethodSummary,
-  ProfessionalBillingSummary,
-  VatSummaryItem,
-  NumberingGap
-} from '~~/app/types'
+import type { ApiResponse, BillingSummary, Money, NumberingGap, OverdueInvoice, PaymentMethodSummary, ProfessionalBillingSummary, VatSummaryItem } from '~~/app/types'
 import { paymentMethodLabel } from '~~/app/utils/paymentMethod'
 
 // Budget report types
@@ -104,7 +96,7 @@ export interface DurationVarianceStats {
 export interface AppointmentFunnel {
   period_start: string
   period_end: string
-  total: number
+  total: Money
   counts_by_status: Record<string, number>
   completion_rate: number | null
   no_show_rate: number | null

@@ -245,24 +245,33 @@ function getAuthorName(createdBy: string | undefined): string | null {
 // ---- Intersection observer for infinite scroll ------------------------
 
 const loadMoreTrigger = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
 
-onMounted(() => {
-  if (!loadMoreTrigger.value) return
+// Watch the ref rather than reading it once in `onMounted`: the trigger
+// lives in the `v-else` branch, which does not exist on first paint (the
+// loading branch does), so the old code always found `null`, returned,
+// and never observed anything — the timeline stopped at the first page
+// of 20 and nothing said there was more. Re-running on every change also
+// covers the element being torn down and rebuilt when a filter changes.
+watch(loadMoreTrigger, (element) => {
+  observer?.disconnect()
+  observer = null
+  if (!element) return
 
-  const observer = new IntersectionObserver(
+  observer = new IntersectionObserver(
     (entries) => {
-      if (entries[0].isIntersecting && hasMore.value && !isLoadingMore.value) {
+      if (entries[0]?.isIntersecting && hasMore.value && !isLoadingMore.value) {
         loadMore()
       }
     },
     { threshold: 0.1 }
   )
+  observer.observe(element)
+}, { immediate: true })
 
-  observer.observe(loadMoreTrigger.value)
-
-  onUnmounted(() => {
-    observer.disconnect()
-  })
+onUnmounted(() => {
+  observer?.disconnect()
+  observer = null
 })
 </script>
 

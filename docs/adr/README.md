@@ -51,3 +51,18 @@ Triggers (any one):
 | 0004 | [BSL 1.1 license, Apache 2.0 after 4 years](0004-bsl-license.md) | accepted | 2026-04-27 |
 | 0005 | [Relative permissions, registry-prefixed namespacing](0005-relative-permissions.md) | accepted | 2026-04-27 |
 | 0006 | [Budget public link two-factor authentication](0006-budget-public-link-2-factor-auth.md) | accepted | 2026-04-28 |
+| 0007 | [Polymorphic attachment owner registry in `media`](0007-polymorphic-attachment-registry.md) | accepted | 2026-05-02 |
+| 0008 | [Photo storage retention is documented but not enforced (yet)](0008-photo-storage-retention-stub.md) | accepted | 2026-05-02 |
+| 0009 | [Documentation portal: VitePress, filesystem-as-contract, in-app help](0009-documentation-portal.md) | accepted | 2026-05-02 |
+| 0010 | [Payments as a primitive module; billing depends on payments](0010-payments-as-primitive-module.md) | accepted | 2026-05-13 |
+| 0011 | [Detail-page shared components](0011-detail-page-shared-components.md) | accepted | 2026-05-13 |
+| 0012 | [Multi-tenancy en DentalPin core — brief](0012-multi-tenancy-brief.md) | proposed | 2026-05-17 |
+| 0013 | [Periodontogram snapshots are immutable dated rows, not an event stream](0013-periodontogram-snapshot-model.md) | accepted | 2026-05-26 |
+| 0014 | [Copilot proactivity v1: deterministic morning digest email](0014-copilot-proactivity.md) | accepted | 2026-06-11 |
+| 0015 | [Aggregate the copilot "Pendientes" feed through the tool registry](0015-copilot-pending-aggregation.md) | accepted | 2026-06-15 |
+| 0016 | [Channel-adapter architecture for the notifications gateway](0016-channel-adapter-architecture.md) | accepted | 2026-06-26 |
+| 0017 | [Inbound replies + conversation thread in communication_messages](0017-inbound-conversation.md) | accepted | 2026-06-26 |
+| 0018 | [Install state is the authority on what runs](0018-install-state-is-the-mount-authority.md) | accepted | 2026-08-26 |
+| 0019 | [Events are published after the transaction commits](0019-events-publish-after-commit.md) | accepted | 2026-08-26 |
+| 0020 | [Handler failures are recorded, not just logged](0020-handler-failures-are-recorded.md) | accepted | 2026-08-26 |
+| 0021 | [Module layers are typechecked, behind a shrinking baseline](0021-module-layers-are-typechecked.md) | accepted | 2026-08-26 |

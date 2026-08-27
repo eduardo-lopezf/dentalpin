@@ -29,7 +29,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/payments/frontend/pages/payments/index.vue
   - backend/app/modules/payments/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Listado de cobros
@@ -94,6 +94,10 @@ registra un cobro nuevo, se reasigna o se emite un reembolso.
    resta del *neto* en la cabecera.
 3. **Confirmar**. Se publica `payment.refunded` y la fila muestra
    `− 50,00 €` bajo el importe bruto.
+
+En el panel de cobros de la ficha del paciente, el menú **⋮** de cada
+fila ofrece solo *Reembolsar*: no hay página de detalle de un cobro,
+y la entrada que enlazaba a una se ha retirado — llevaba a un 404.
 
 ## Permisos
 

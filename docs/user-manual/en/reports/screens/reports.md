@@ -19,7 +19,7 @@ related_paths:
   - backend/app/modules/reports/frontend/pages/reports/index.vue
   - backend/app/modules/reports/frontend/composables/useDashboardSnapshot.ts
   - backend/app/modules/reports/frontend/components/dashboard/
-last_verified_commit: bdfaa83
+last_verified_commit: 3568519
 ---
 
 # Clinic dashboard

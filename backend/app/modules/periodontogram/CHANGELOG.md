@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- fix(ui): a failed measurement is no longer thrown away. The session
+  deleted the queued payload *before* awaiting the request, so a save
+  that failed left nothing to retry — the probing depth just typed was
+  gone. Failed payloads are now restored (newer edits win) and retried.
+- fix(ui): closing an exam refuses to proceed on a partial flush.
+  `flushPending` swallowed failures and reported success, so the
+  snapshot got sealed — and closed snapshots are immutable, which made
+  the loss permanent. It now returns whether everything landed, and the
+  session stays open with the pending edits queued (audit S5).
+- fix(i18n): the save-error toast was hardcoded Spanish; it goes through
+  `t()` now, with keys in both locales.
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - fix(frontend): call `api.del` instead of the non-existent `api.delete`
   when discarding a draft (audit frontend #1, #95). `useApi` exposes
   `del`, so `discardDraft` threw a TypeError before any request fired —

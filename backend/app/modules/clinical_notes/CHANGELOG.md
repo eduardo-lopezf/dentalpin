@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- fix(ui): a failed save no longer wipes the note. All five composer
+  surfaces now check what `createNote`/`updateNote` returned instead of
+  clearing regardless, and the three delete surfaces that lacked one
+  (diagnosis sidebar, plan timeline, treatment row) ask for confirmation
+  like the other two already did (audit S5).
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - feat(appointment-owner): add ``owner_type='appointment'`` with two
   new ``note_type`` values (``appointment_clinical`` +
   ``appointment_administrative``) so notes can attach to a

@@ -33,7 +33,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/index.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Plans inbox
@@ -51,6 +51,9 @@ surfaces the follow-up queue.
 - **Pipeline.** Aggregate inbox view (`GET /pipeline`) with totals
   per column and plans that need front-desk action (pending with no
   recent contact, unsent budget, etc.).
+- **Pipeline pagination.** The columns paginate for real: the pager
+   ignored clicks because it used the component's old API, so only the
+   first page was ever reachable.
 - **Search and filters.** Search by patient or plan number; filter
   by assigned professional, creation date, and closure reason.
 - **Budget sync.** Each plan has a linked budget (or creates one on

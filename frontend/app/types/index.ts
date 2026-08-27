@@ -167,6 +167,21 @@ export interface Patient {
   updated_at: string
 }
 
+/**
+ * A monetary value as it crosses the wire.
+ *
+ * The API serialises `Decimal` as a JSON **string** (`"410.00"`) — as it
+ * should, since binary floats cannot hold money exactly and this is a
+ * fiscal product. Declaring these fields `number` was a lie the consumers
+ * survived only by calling `Number()` at each use, and it made
+ * `a.total + b.total` compile into `"410.00410.00"`.
+ *
+ * The union keeps display code (`${amount}`) and locally computed numbers
+ * working while making arithmetic on two of them a type error: convert
+ * explicitly with `Number()` first.
+ */
+export type Money = string | number
+
 export interface PatientCreate {
   first_name: string
   last_name: string
@@ -182,9 +197,26 @@ export interface PatientCreate {
   billing_email?: string
 }
 
-export interface PatientUpdate extends Partial<PatientCreate> {
+/**
+ * Update payload. `null` is meaningful here in a way it is not on create:
+ * the backend's `str | None` fields read it as "clear this value", while
+ * omitting the key leaves the value untouched. Deriving this from
+ * `Partial<PatientCreate>` lost that distinction, so every clear-a-field
+ * call in the UI was a type error the build never reported.
+ */
+export interface PatientUpdate {
+  first_name?: string
+  last_name?: string
+  phone?: string | null
+  email?: string | null
+  date_of_birth?: string | null
+  notes?: string | null
   status?: 'active' | 'archived'
   do_not_contact?: boolean
+  billing_name?: string | null
+  billing_tax_id?: string | null
+  billing_address?: PatientBillingAddress | null
+  billing_email?: string | null
 }
 
 // Appointment treatment brief (from planned treatment item)
@@ -195,7 +227,7 @@ export interface AppointmentTreatmentBrief {
   catalog_item_id?: string
   internal_code: string
   names: Record<string, string>
-  default_price?: number
+  default_price?: Money
   default_duration_minutes?: number
   // Dental context
   tooth_number?: number
@@ -563,7 +595,7 @@ export interface VatType {
   id: string
   clinic_id: string
   names: Record<string, string>
-  rate: number
+  rate: Money
   is_default: boolean
   is_active: boolean
   is_system: boolean
@@ -573,13 +605,13 @@ export interface VatType {
 
 export interface VatTypeCreate {
   names: Record<string, string>
-  rate: number
+  rate: Money
   is_default?: boolean
 }
 
 export interface VatTypeUpdate {
   names?: Record<string, string>
-  rate?: number
+  rate?: Money
   is_default?: boolean
   is_active?: boolean
 }
@@ -587,7 +619,7 @@ export interface VatTypeUpdate {
 export interface VatTypeBrief {
   id: string
   names: Record<string, string>
-  rate: number
+  rate: Money
   is_default: boolean
   is_active: boolean
   is_system: boolean
@@ -692,13 +724,13 @@ export interface CatalogItemSession {
   id: string
   sequence: number
   labels: Record<string, string>
-  default_price: number
+  default_price: Money
 }
 
 export interface CatalogItemSessionInput {
   sequence?: number
   labels: Record<string, string>
-  default_price: number
+  default_price: Money
 }
 
 export interface TreatmentCatalogItem {
@@ -709,8 +741,8 @@ export interface TreatmentCatalogItem {
   names: Record<string, string>
   descriptions?: Record<string, string>
   // Pricing
-  default_price?: number
-  cost_price?: number
+  default_price?: Money
+  cost_price?: Money
   pricing_strategy?: PricingStrategy
   pricing_config?: Record<string, number> | null
   surface_prices?: Record<string, number> | null
@@ -750,8 +782,8 @@ export interface TreatmentCatalogItemCreate {
   names: Record<string, string>
   descriptions?: Record<string, string>
   // Pricing
-  default_price?: number
-  cost_price?: number
+  default_price?: Money
+  cost_price?: Money
   pricing_strategy?: PricingStrategy
   pricing_config?: Record<string, number> | null
   surface_prices?: Record<string, number> | null
@@ -779,8 +811,8 @@ export interface TreatmentCatalogItemUpdate {
   category_id?: string
   names?: Record<string, string>
   descriptions?: Record<string, string>
-  default_price?: number
-  cost_price?: number
+  default_price?: Money
+  cost_price?: Money
   pricing_strategy?: PricingStrategy
   pricing_config?: Record<string, number> | null
   surface_prices?: Record<string, number> | null
@@ -870,7 +902,7 @@ export interface CatalogItemBrief {
   id: string
   internal_code: string
   names: Record<string, string>
-  default_price?: number
+  default_price?: Money
   default_duration_minutes?: number
   is_active?: boolean
 }
@@ -881,19 +913,19 @@ export interface BudgetItem {
   budget_id: string
   catalog_item_id: string
   // Pricing
-  unit_price: number
+  unit_price: Money
   quantity: number
   // Line discount
   discount_type?: DiscountType
-  discount_value?: number
+  discount_value?: Money
   // VAT
   vat_type_id?: string
   vat_rate: number
   // Calculated totals
-  line_subtotal: number
-  line_discount: number
-  line_tax: number
-  line_total: number
+  line_subtotal: Money
+  line_discount: Money
+  line_tax: Money
+  line_total: Money
   // Dental specifics
   tooth_number?: number
   surfaces?: string[]
@@ -915,9 +947,9 @@ export interface BudgetItem {
 export interface BudgetItemCreate {
   catalog_item_id: string
   quantity?: number
-  unit_price?: number
+  unit_price?: Money
   discount_type?: DiscountType
-  discount_value?: number
+  discount_value?: Money
   tooth_number?: number
   surfaces?: string[]
   treatment_id?: string
@@ -927,9 +959,9 @@ export interface BudgetItemCreate {
 
 export interface BudgetItemUpdate {
   quantity?: number
-  unit_price?: number
+  unit_price?: Money
   discount_type?: DiscountType
-  discount_value?: number
+  discount_value?: Money
   tooth_number?: number
   surfaces?: string[]
   display_order?: number
@@ -994,17 +1026,17 @@ export interface Budget {
   assigned_professional_id?: string
   // Global discount
   global_discount_type?: DiscountType
-  global_discount_value?: number
+  global_discount_value?: Money
   // Totals
-  subtotal: number
-  total_discount: number
-  total_tax: number
-  total: number
+  subtotal: Money
+  total_discount: Money
+  total_tax: Money
+  total: Money
   // Notes
   internal_notes?: string
   patient_notes?: string
   // Insurance
-  insurance_estimate?: number
+  insurance_estimate?: Money
   // Public link token (ADR 0006). Present on every budget; reception
   // shares ``${origin}/p/budget/${public_token}`` with the patient.
   public_token?: string
@@ -1031,7 +1063,7 @@ export interface BudgetListItem {
   status: BudgetStatus
   valid_from: string
   valid_until?: string
-  total: number
+  total: Money
   created_at: string
   patient?: PatientBrief
   creator?: UserBrief
@@ -1043,7 +1075,7 @@ export interface BudgetCreate {
   valid_until?: string
   assigned_professional_id?: string
   global_discount_type?: DiscountType
-  global_discount_value?: number
+  global_discount_value?: Money
   internal_notes?: string
   patient_notes?: string
   items?: BudgetItemCreate[]
@@ -1054,7 +1086,7 @@ export interface BudgetUpdate {
   valid_until?: string
   assigned_professional_id?: string
   global_discount_type?: DiscountType
-  global_discount_value?: number
+  global_discount_value?: Money
   internal_notes?: string
   patient_notes?: string
 }
@@ -1088,7 +1120,7 @@ export interface BudgetVersion {
   id: string
   version: number
   status: BudgetStatus
-  total: number
+  total: Money
   created_at: string
   is_current: boolean
 }
@@ -1282,7 +1314,7 @@ export interface PaymentAllocation {
   id: string
   target_type: AllocationTarget
   target_id?: string
-  amount: number
+  amount: Money
   created_at: string
   created_by: string
   method?: PaymentMethod
@@ -1291,13 +1323,13 @@ export interface PaymentAllocation {
 export interface PaymentAllocationCreate {
   target_type: AllocationTarget
   target_id?: string
-  amount: number
+  amount: Money
 }
 
 export interface PaymentRefund {
   id: string
   payment_id: string
-  amount: number
+  amount: Money
   method: PaymentMethod
   reason_code: RefundReason
   reason_note?: string
@@ -1307,7 +1339,7 @@ export interface PaymentRefund {
 }
 
 export interface PaymentRefundCreate {
-  amount: number
+  amount: Money
   method: PaymentMethod
   reason_code: RefundReason
   reason_note?: string
@@ -1317,7 +1349,7 @@ export interface PaymentRecord {
   id: string
   clinic_id: string
   patient_id: string
-  amount: number
+  amount: Money
   currency: string
   method: PaymentMethod
   payment_date: string
@@ -1327,15 +1359,15 @@ export interface PaymentRecord {
   created_at: string
   updated_at: string
   allocations: PaymentAllocation[]
-  refunded_total: number
-  net_amount: number
+  refunded_total: Money
+  net_amount: Money
   recorder?: UserBrief
   patient?: { id: string, first_name: string, last_name: string }
 }
 
 export interface PaymentRecordCreate {
   patient_id: string
-  amount: number
+  amount: Money
   method: PaymentMethod
   payment_date?: string
   reference?: string
@@ -1350,7 +1382,7 @@ export interface PaymentReallocate {
 export interface PatientLedgerEntry {
   entry_type: 'payment' | 'refund' | 'earned'
   occurred_at: string
-  amount: number
+  amount: Money
   reference_id: string
   description?: string
   // Earned-only enrichment populated by the timeline builder when
@@ -1365,11 +1397,11 @@ export interface PatientLedgerEntry {
 export interface PatientLedger {
   patient_id: string
   currency: string
-  total_paid: number
-  total_earned: number
-  patient_credit: number
-  clinic_receivable: number
-  on_account_balance: number
+  total_paid: Money
+  total_earned: Money
+  patient_credit: Money
+  clinic_receivable: Money
+  on_account_balance: Money
   timeline: PatientLedgerEntry[]
 }
 
@@ -1377,11 +1409,11 @@ export interface PaymentsSummary {
   period_start: string
   period_end: string
   currency: string
-  total_collected: number
-  total_refunded: number
-  net_collected: number
-  patient_credit_total: number
-  clinic_receivable_total: number
+  total_collected: Money
+  total_refunded: Money
+  net_collected: Money
+  patient_credit_total: Money
+  clinic_receivable_total: Money
   refund_ratio: number
   payment_count: number
   refund_count: number
@@ -1389,20 +1421,20 @@ export interface PaymentsSummary {
 
 export interface MethodBreakdown {
   method: string
-  total: number
+  total: Money
   count: number
 }
 
 export interface ProfessionalBreakdown {
   professional_id?: string
   professional_name?: string
-  total_earned: number
+  total_earned: Money
   count: number
 }
 
 export interface AgingBucket {
   label: string
-  total: number
+  total: Money
   patient_count: number
 }
 
@@ -1415,7 +1447,7 @@ export interface RefundsReport {
   period_start: string
   period_end: string
   currency: string
-  total_refunded: number
+  total_refunded: Money
   refund_ratio: number
   by_reason: { reason_code: string, total: number, count: number }[]
   by_method: MethodBreakdown[]
@@ -1423,9 +1455,9 @@ export interface RefundsReport {
 
 export interface PaymentsTrendPoint {
   bucket_start: string
-  collected: number
-  refunded: number
-  net: number
+  collected: Money
+  refunded: Money
+  net: Money
 }
 
 export interface PaymentsTrends {
@@ -1439,13 +1471,18 @@ export interface InvoicePayment {
   id: string
   invoice_id: string
   payment_id: string
-  amount: number
+  /** Decimal on the wire: the API serialises money as a string. */
+  amount: number | string
   created_by: string
+  /** When the imputation was recorded — not when the patient paid. */
   created_at: string
+  /** From the linked payment; absent only if the relation was not loaded. */
+  payment_date?: string | null
+  payment_method?: PaymentMethod | null
 }
 
 export interface InvoicePaymentApply {
-  amount: number
+  amount: Money
   method: PaymentMethod
   payment_date?: string
   reference?: string
@@ -1500,20 +1537,20 @@ export interface InvoiceItem {
   description: string
   internal_code?: string
   // Pricing
-  unit_price: number
+  unit_price: Money
   quantity: number
   // Discounts
   discount_type?: DiscountType
-  discount_value?: number
+  discount_value?: Money
   // VAT
   vat_type_id?: string
   vat_rate: number
   vat_exempt_reason?: string
   // Calculated totals
-  line_subtotal: number
-  line_discount: number
-  line_tax: number
-  line_total: number
+  line_subtotal: Money
+  line_discount: Money
+  line_tax: Money
+  line_total: Money
   // Dental context
   tooth_number?: number
   surfaces?: string[]
@@ -1531,10 +1568,10 @@ export interface InvoiceItemCreate {
   description: string
   internal_code?: string
   catalog_item_id?: string
-  unit_price: number
+  unit_price: Money
   quantity?: number
   discount_type?: DiscountType
-  discount_value?: number
+  discount_value?: Money
   vat_type_id?: string
   vat_exempt_reason?: string
   tooth_number?: number
@@ -1549,10 +1586,10 @@ export interface InvoiceItemFromBudget {
 
 export interface InvoiceItemUpdate {
   description?: string
-  unit_price?: number
+  unit_price?: Money
   quantity?: number
   discount_type?: DiscountType
-  discount_value?: number
+  discount_value?: Money
   vat_type_id?: string
   vat_exempt_reason?: string
   display_order?: number
@@ -1562,7 +1599,7 @@ export interface InvoiceItemUpdate {
 export interface Payment {
   id: string
   invoice_id: string
-  amount: number
+  amount: Money
   payment_method: PaymentMethod
   payment_date: string
   reference?: string
@@ -1580,7 +1617,7 @@ export interface Payment {
 }
 
 export interface PaymentCreate {
-  amount: number
+  amount: Money
   payment_method: PaymentMethod
   payment_date?: string
   reference?: string
@@ -1609,7 +1646,7 @@ export interface InvoiceBrief {
   id: string
   invoice_number: string
   status: InvoiceStatus
-  total: number
+  total: Money
   issue_date?: string
 }
 
@@ -1646,12 +1683,12 @@ export interface Invoice {
   billing_address?: BillingAddress
   billing_email?: string
   // Totals
-  subtotal: number
-  total_discount: number
-  total_tax: number
-  total: number
-  total_paid: number
-  balance_due: number
+  subtotal: Money
+  total_discount: Money
+  total_tax: Money
+  total: Money
+  total_paid: Money
+  balance_due: Money
   // Notes
   internal_notes?: string
   public_notes?: string
@@ -1684,9 +1721,9 @@ export interface InvoiceListItem {
   status: InvoiceStatus
   issue_date?: string
   due_date?: string
-  total: number
-  total_paid: number
-  balance_due: number
+  total: Money
+  total_paid: Money
+  balance_due: Money
   created_at: string
   // Generic compliance summary keyed by ISO country (e.g.
   // {"ES": {state, severity, error_message, ...}}). Owned by the
@@ -1700,7 +1737,7 @@ export interface BudgetBrief {
   id: string
   budget_number: string
   status: BudgetStatus
-  total: number
+  total: Money
 }
 
 export interface InvoiceCreate {
@@ -1772,17 +1809,17 @@ export interface VatSummaryItem {
   vat_type_id?: string
   vat_rate: number
   vat_name: string
-  base_amount: number
-  tax_amount: number
-  total_amount: number
+  base_amount: Money
+  tax_amount: Money
+  total_amount: Money
 }
 
 export interface BillingSummary {
   period_start: string
   period_end: string
-  total_invoiced: number
-  total_paid: number
-  total_pending: number
+  total_invoiced: Money
+  total_paid: Money
+  total_pending: Money
   invoice_count: number
   paid_count: number
   overdue_count: number
@@ -1796,19 +1833,19 @@ export interface OverdueInvoice {
   issue_date: string
   due_date: string
   days_overdue: number
-  balance_due: number
+  balance_due: Money
 }
 
 export interface PaymentMethodSummary {
   payment_method: string
-  total_amount: number
+  total_amount: Money
   payment_count: number
 }
 
 export interface ProfessionalBillingSummary {
   professional_id: string
   professional_name: string
-  total_invoiced: number
+  total_invoiced: Money
   invoice_count: number
 }
 
@@ -1821,13 +1858,13 @@ export interface NumberingGap {
 export interface PatientBillingSummary {
   patient_id: string
   // Budget metrics
-  total_budgeted: number
-  work_in_progress: number
-  work_completed: number
+  total_budgeted: Money
+  work_in_progress: Money
+  work_completed: Money
   // Invoice metrics
-  total_invoiced: number
-  total_paid: number
-  balance_pending: number
+  total_invoiced: Money
+  total_paid: Money
+  balance_pending: Money
 }
 
 // ============================================================================
@@ -1964,15 +2001,15 @@ export interface PatientExtended extends Patient {
 }
 
 export interface PatientExtendedUpdate extends PatientUpdate {
-  // Extended demographics
-  gender?: string
-  national_id?: string
-  national_id_type?: string
-  profession?: string
-  workplace?: string
-  preferred_language?: string
-  address?: PatientAddress
-  photo_url?: string
+  // Extended demographics. `null` clears, as above.
+  gender?: string | null
+  national_id?: string | null
+  national_id_type?: string | null
+  profession?: string | null
+  workplace?: string | null
+  preferred_language?: string | null
+  address?: PatientAddress | null
+  photo_url?: string | null
 
   // Emergency contact
   emergency_contact?: EmergencyContact
@@ -2362,7 +2399,7 @@ export interface TreatmentPlan {
   updated_at: string
   item_count: number
   completed_count: number
-  total: number
+  total: Money
   patient?: PatientBrief
   budget?: BudgetBrief
 }

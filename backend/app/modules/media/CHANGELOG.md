@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- fix(ui): document pagination works. `UPagination` was passed the Nuxt
+  UI v2 props (`v-model` + `page-count`) on a v4 component, which
+  ignores both — the control rendered at defaults and clicking a page
+  did nothing, leaving documents past the first page unreachable
+  (audit S5).
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - fix(events): repair the `patient.archived` cascade, which had never
   run (audit event-bus #1, #95). The handler signature took
   `(self, db, data)` but the bus calls `handler(data)`, raising

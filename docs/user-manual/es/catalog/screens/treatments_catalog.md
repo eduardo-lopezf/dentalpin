@@ -11,7 +11,7 @@ related_permissions:
   - catalog.read
 related_paths:
   - backend/app/modules/catalog/frontend/pages/treatments/catalog.vue
-last_verified_commit: e2b7328257c69af310ee8f0ff2ae624dfe2d7545
+last_verified_commit: 3568519
 ---
 
 # /treatments/catalog

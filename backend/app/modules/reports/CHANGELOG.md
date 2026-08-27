@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- fix(money): the week-glance delta takes `Money` and coerces inside;
+  it was declared to take numbers while receiving Decimal strings.
+
 - feat(agents): expose `tools.py` — `billing_report`,
   `top_clients_by_billing`, `scheduling_report` (all READ). Off-books:
   the billing tools are **invoice-axis only** (gross invoiced; never

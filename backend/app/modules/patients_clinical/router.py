@@ -91,7 +91,8 @@ async def update_medical_context(
     )
     await db.commit()
     await db.refresh(ctx_row)
-    await event_bus.publish(
+    event_bus.publish_after_commit(
+        db,
         EventType.PATIENT_MEDICAL_UPDATED,
         {
             "patient_id": str(patient_id),
@@ -590,7 +591,8 @@ async def replace_medical_history(
         ctx.user_id,
     )
     await db.commit()
-    await event_bus.publish(
+    event_bus.publish_after_commit(
+        db,
         EventType.PATIENT_MEDICAL_UPDATED,
         {
             "patient_id": str(patient_id),

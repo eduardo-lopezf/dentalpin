@@ -367,6 +367,9 @@ async function handleCompleteItem(
 }
 
 async function handleRemoveItem(itemId: string) {
+  // Removal cascades into the odontogram and the budget line, and the
+  // control is a bare trash icon in a list row.
+  if (!window.confirm(t('clinical.plans.confirms.removeItem'))) return
   await removeItem(props.plan.id, itemId)
   await odontogramRef.value?.refetchTreatments()
   emit('updated')

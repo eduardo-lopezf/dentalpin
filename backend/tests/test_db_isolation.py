@@ -6,12 +6,14 @@ database — schema, demo clinic, user accounts and all. These tests pin the
 invariant so it cannot regress silently.
 """
 
+import os
+
 from sqlalchemy.engine import make_url
 
 from app import database as app_database
 from app.config import settings
 
-from .conftest import TEST_DATABASE_URL
+from .conftest import APP_DATABASE_URL, TEST_DATABASE_URL
 
 
 def test_test_database_is_suffixed() -> None:
@@ -21,7 +23,7 @@ def test_test_database_is_suffixed() -> None:
 
 def test_test_database_is_not_the_app_database() -> None:
     """A dev DATABASE_URL is redirected, never used as-is."""
-    app_db_name = make_url(settings.DATABASE_URL).database
+    app_db_name = make_url(APP_DATABASE_URL).database
 
     if app_db_name and app_db_name.endswith("_test"):
         # CI already points DATABASE_URL at a dedicated test database.
@@ -43,3 +45,17 @@ def test_global_engine_points_at_test_database() -> None:
 
     assert app_database.engine.url.database == expected
     assert app_database.async_session_maker().bind.url.database == expected
+
+
+def test_subprocesses_and_direct_settings_readers_land_on_the_test_database() -> None:
+    """The third half of the isolation, and the one that bit hardest.
+
+    ``alembic`` runs in a subprocess (roundtrip suites, ``PendingProcessor``)
+    and re-reads ``DATABASE_URL`` from the environment; other tests build an
+    asyncpg DSN straight from ``settings.DATABASE_URL``. Both used to resolve
+    to the development database, so ``pytest -m alembic_roundtrip`` — which
+    runs ``alembic downgrade base`` — dropped every table in it and destroyed
+    the demo login.
+    """
+    assert make_url(os.environ["DATABASE_URL"]).database.endswith("_test")
+    assert make_url(settings.DATABASE_URL).database.endswith("_test")

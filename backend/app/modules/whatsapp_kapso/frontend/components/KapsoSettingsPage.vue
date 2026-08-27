@@ -79,14 +79,21 @@ async function onMap() {
   }
 }
 
+// Kapso bills per message and the recipient reads every one of them, so
+// this button must not be clickable twice while a send is in flight.
+const testing = ref(false)
+
 async function onTest() {
-  if (!test.to_number || !test.template_name) return
+  if (testing.value || !test.to_number || !test.template_name) return
+  testing.value = true
   try {
     const res = await testConnection(test.to_number, test.template_name, test.language)
     if (res.success) toast.add({ title: t('whatsapp_kapso.testOk'), color: 'success' })
     else toast.add({ title: t('whatsapp_kapso.testFail'), description: res.error ?? '', color: 'error' })
   } catch {
     toast.add({ title: t('whatsapp_kapso.testFail'), color: 'error' })
+  } finally {
+    testing.value = false
   }
 }
 
@@ -176,7 +183,12 @@ function copyWebhook() {
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <UInput v-model="test.to_number" placeholder="+34600112233" />
           <USelect v-model="test.template_name" :items="approvedTemplates.map(tpl => ({ label: tpl.name, value: tpl.name }))" :placeholder="t('whatsapp_kapso.template')" />
-          <UButton icon="i-lucide-send" :disabled="!test.to_number || !test.template_name" @click="onTest">
+          <UButton
+            icon="i-lucide-send"
+            :loading="testing"
+            :disabled="testing || !test.to_number || !test.template_name"
+            @click="onTest"
+          >
             {{ t('whatsapp_kapso.sendTest') }}
           </UButton>
         </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PipelineRow, PipelineTab } from '~/composables/usePipeline'
+import type { PipelineRow, PipelineTab } from '../../composables/usePipeline'
 
 const props = defineProps<{
   tab: PipelineTab
@@ -249,10 +249,10 @@ function whatsappPatient(row: PipelineRow) {
       class="flex justify-center"
     >
       <UPagination
-        :model-value="page"
+        :page="page"
         :total="total"
-        :page-count="pageSize"
-        @update:model-value="changePage"
+        :items-per-page="pageSize"
+        @update:page="changePage"
       />
     </div>
   </div>

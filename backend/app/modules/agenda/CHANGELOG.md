@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- fix(ui): cancelling an appointment from the modal footer asks first. It
+  sat next to Save, cancelled on one click and notified the patient
+  (audit S5).
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - feat(professionals): appointments now reference active dentist/hygienist
   directory profiles instead of product accounts. Includes a conservative
   migration of existing appointment identities.

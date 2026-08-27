@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .alembic_paths import resolve_module_branch_head
 from .base import BaseModule
 from .db_models import ModuleOperationLog, ModuleRecord
+from .gate import module_gate
 from .loader import discover_modules
 from .manifest import Manifest, ManifestError
 from .operation_log import LogEntry, log_entry_from_row
@@ -419,6 +420,7 @@ class ModuleService:
         record.error_message = None
         record.error_at = None
         await self.db.commit()
+        module_gate.unblock(name)
         return True
 
     # --- State transitions (no execution; processor handles that) -------
@@ -469,6 +471,9 @@ class ModuleService:
             }:
                 continue
 
+            # Installing a module that was scheduled for removal cancels
+            # the removal, so it must serve again.
+            module_gate.unblock(dep_name)
             record.state = ModuleState.TO_INSTALL.value
             record.version = dep_manifest.version
             record.manifest_snapshot = dep_manifest.to_snapshot()
@@ -537,6 +542,10 @@ class ModuleService:
         record.error_message = None
         record.error_at = None
         await self.db.commit()
+
+        # The processor only runs at the next boot, so without this the
+        # module keeps accepting writes into tables it is about to drop.
+        module_gate.block(name)
 
     async def upgrade(self, name: str) -> bool:
         """Mark ``name`` as ``to_upgrade`` when the on-disk manifest

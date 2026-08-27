@@ -27,6 +27,39 @@ engine = create_async_engine(
     echo=settings.ENVIRONMENT == "development",
 )
 
+
+class UnitOfWorkSession(AsyncSession):
+    """Session that announces its events only once they are true.
+
+    Handlers subscribe to facts, not intentions, and they read them
+    through their own sessions. Publishing from inside an open
+    transaction therefore announces something no other connection can
+    see — audit finding S2. Publishers queue with
+    ``event_bus.publish_after_commit(db, ...)``; this session drains the
+    queue after the commit lands and drops it on rollback.
+
+    In-process and non-durable: a crash between the commit and the
+    dispatch loses the events. A durable outbox is the next step up, and
+    it is a separate decision — this closes the correctness hole without
+    a new table.
+    """
+
+    async def commit(self) -> None:
+        await super().commit()
+
+        # Import here: ``app.core.events`` is imported by every module,
+        # and half of them import ``app.database``.
+        from app.core.events import event_bus
+
+        await event_bus.dispatch_pending(self)
+
+    async def rollback(self) -> None:
+        from app.core.events import event_bus
+
+        event_bus.discard_pending(self)
+        await super().rollback()
+
+
 # ``expire_on_commit=False`` keeps ORM objects hydrated after a commit
 # so the router can serialise the response without an extra refresh
 # round-trip. Anything streaming or kept across awaits (long-lived
@@ -34,7 +67,7 @@ engine = create_async_engine(
 # pattern that dominates the codebase relies on this.
 async_session_maker = async_sessionmaker(
     engine,
-    class_=AsyncSession,
+    class_=UnitOfWorkSession,
     expire_on_commit=False,
 )
 

@@ -9,7 +9,7 @@ import type {
   PunctualityStats,
   SchedulingSummary,
   WaitingTimeStats
-} from '~/composables/useReports'
+} from '../../composables/useReports'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -701,7 +701,7 @@ function goBack() {
           </template>
 
           <div
-            v-if="funnel.total > 0"
+            v-if="Number(funnel.total) > 0"
             class="space-y-2"
           >
             <div

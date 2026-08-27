@@ -100,17 +100,19 @@ async function handleSubmit(payload: {
 }) {
   saving.value = true
   try {
-    if (editingId.value) {
-      await updateNote(editingId.value, payload.body)
-    } else {
-      await createNote({
-        note_type: 'treatment',
-        owner_type: 'treatment',
-        owner_id: props.ctx.treatmentId,
-        body: payload.body,
-        attachment_document_ids: payload.attachmentDocumentIds
-      })
-    }
+    const saved = editingId.value
+      ? await updateNote(editingId.value, payload.body)
+      : await createNote({
+          note_type: 'treatment',
+          owner_type: 'treatment',
+          owner_id: props.ctx.treatmentId,
+          body: payload.body,
+          attachment_document_ids: payload.attachmentDocumentIds
+        })
+    // A failed save returns null — the composable has already toasted.
+    // Keep the composer open with the text still in it: a clinical note
+    // the user typed is not ours to throw away.
+    if (!saved) return
     composerOpen.value = false
     editingId.value = null
     composerBody.value = ''
@@ -121,6 +123,9 @@ async function handleSubmit(payload: {
 }
 
 async function handleDelete(entry: RecentNoteEntry) {
+  // A clinical note is a legal record and the endpoint has no undo:
+  // ask, the way the appointment and recent-notes surfaces already do.
+  if (!window.confirm(t('clinicalNotes.confirms.delete'))) return
   const ok = await deleteNote(entry.id)
   if (ok) await refreshFull()
 }

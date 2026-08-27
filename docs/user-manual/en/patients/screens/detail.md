@@ -14,7 +14,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/patients/router.py
   - backend/app/modules/patients/frontend/pages/patients/[id].vue
-last_verified_commit: 7ead18e
+last_verified_commit: 3568519
 ---
 
 # Patient detail
@@ -54,6 +54,26 @@ one click reaches the detail.
 - **Mobile** — header condenses, cards stack to a single column and
   a sticky bottom bar surfaces the three core actions
   (Appointment · Collect · Note).
+
+## What happens when something fails
+
+This screen gathers surfaces from several modules, and they share the
+same safety rules:
+
+- **A clinical note is never lost.** If the save fails, the composer
+  stays open with your text and an error notice. It used to clear the
+  field even though nothing had been saved.
+- **Deleting a note asks for confirmation** on all five surfaces that
+  offer it (appointment, diagnosis, plan, treatment, recent notes).
+  The endpoint has no undo.
+- **Editing an odontogram treatment** keeps your changes on screen
+  when the save fails, and deleting one asks first: it may already be
+  invoiced.
+- **Replying over WhatsApp** ignores a second Enter while a message is
+  in flight. Every send is billed and read by the patient.
+- **No list hides data silently.** The odontogram change history says
+  *Showing N of M* and offers to load earlier ones; the document
+  gallery and the activity feed paginate for real.
 
 ## Editing identity
 

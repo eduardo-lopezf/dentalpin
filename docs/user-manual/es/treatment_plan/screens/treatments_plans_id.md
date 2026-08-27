@@ -33,7 +33,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/[id].vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Detalle del plan de tratamiento
@@ -96,6 +96,10 @@ ejecutados y se cierra o reactiva.
    sugerir un próximo recall basado en `treatment_category_key`.
 3. Para anotar una nota clínica en ese momento, usa el botón de
    *Añadir nota* (lo aporta `clinical_notes`).
+
+**Quitar un ítem del plan** (icono de papelera en la fila) pide
+confirmación: la baja arrastra el tratamiento del odontograma y la
+línea de presupuesto asociada.
 
 ## Tratamientos en varias sesiones
 

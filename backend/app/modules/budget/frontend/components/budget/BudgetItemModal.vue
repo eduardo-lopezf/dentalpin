@@ -54,18 +54,20 @@ function toggleSurface(surface: string) {
 const previewTotal = computed(() => {
   if (!selectedItem.value) return 0
 
-  const price = selectedItem.value.default_price || 0
-  const subtotal = price * (form.quantity || 1)
+  // Catalog prices and discounts arrive as Decimal strings.
+  const price = Number(selectedItem.value.default_price) || 0
+  const discountValue = Number(form.discount_value) || 0
+  const subtotal = price * (Number(form.quantity) || 1)
 
-  if (!form.discount_type || !form.discount_value) {
+  if (!form.discount_type || !discountValue) {
     return subtotal
   }
 
   if (form.discount_type === 'percentage') {
-    return subtotal * (1 - form.discount_value / 100)
+    return subtotal * (1 - discountValue / 100)
   }
 
-  return subtotal - form.discount_value
+  return subtotal - discountValue
 })
 
 // Submit

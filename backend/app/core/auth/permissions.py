@@ -31,6 +31,8 @@ CORE_PERMISSIONS: Final[list[str]] = [
     "admin.users.write",
     "admin.clinic.read",
     "admin.clinic.write",
+    # Event-handler failures (core_event_failure) — read-only diagnostics.
+    "admin.events.read",
     # AI agent infrastructure
     "agents.view",
     "agents.supervise",

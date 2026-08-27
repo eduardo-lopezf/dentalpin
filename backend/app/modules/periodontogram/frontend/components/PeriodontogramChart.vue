@@ -36,6 +36,7 @@ const emit = defineEmits<{
 }>()
 
 const toast = useToast()
+const { t } = useI18n()
 
 const {
   saving,
@@ -51,8 +52,8 @@ const {
 watch(lastError, (err) => {
   if (err) {
     toast.add({
-      title: 'No se pudo guardar el cambio',
-      description: 'Comprueba tu conexión e intenta de nuevo.',
+      title: t('periodontogram.errors.saveFailedTitle'),
+      description: t('periodontogram.errors.saveFailedDescription'),
       color: 'error',
       icon: 'i-lucide-alert-triangle'
     })
@@ -104,7 +105,20 @@ function handleEditTooth(toothNumber: number, patch: Record<string, unknown>) {
 }
 
 async function handleClose(notes: string | null) {
-  await flushPending(props.snapshot.id)
+  // Closing seals the snapshot — closed ones are immutable — so a
+  // measurement that failed to save here could never be written again.
+  // Refuse to close on a partial flush and leave the session open with
+  // the pending edits still queued for retry (audit S5).
+  const allSaved = await flushPending(props.snapshot.id)
+  if (!allSaved) {
+    toast.add({
+      title: t('periodontogram.errors.closeBlockedTitle'),
+      description: t('periodontogram.errors.closeBlockedDescription'),
+      color: 'error',
+      icon: 'i-lucide-alert-triangle'
+    })
+    return
+  }
   const closed = await closeSession(props.snapshot.id, notes ?? undefined)
   emit('closed', closed)
 }

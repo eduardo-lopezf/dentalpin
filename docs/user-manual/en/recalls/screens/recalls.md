@@ -27,7 +27,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/recalls/frontend/pages/recalls/index.vue
   - backend/app/modules/recalls/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Call list
@@ -53,6 +53,8 @@ move the recall to its next state.
   `do_not_contact = true` are kept out of the active queue; their
   recalls land in the **Needs review** bucket.
 - **CSV export** — header button. Honors the active filters.
+- **Pagination** — the queue loads 50 recalls per page. A pager appears
+  below the list when the month has more.
 
 ## Work a recall
 
@@ -77,8 +79,10 @@ move the recall to its next state.
      pending. Publishes `recall.snoozed`.
    - **Done** — marks the recall as completed. Publishes
      `recall.completed`.
-   - **Cancel** — drops the recall from the active queue. Publishes
-     `recall.cancelled`.
+   - **Cancel** — asks for confirmation (it drops the patient off the
+     call list for good, with no undo) and then publishes
+     `recall.cancelled`. **Done** does not ask: it is the screen's
+     primary action and is recoverable by creating a new recall.
 
 ## Permissions
 

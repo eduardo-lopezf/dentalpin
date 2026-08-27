@@ -8,7 +8,7 @@ related_endpoints:
   - POST /api/v1/whatsapp_kapso/templates/sync
   - POST /api/v1/whatsapp_kapso/templates/map
   - POST /api/v1/whatsapp_kapso/test
-last_verified_commit: 0000000
+last_verified_commit: 3568519
 ---
 
 # Conectar WhatsApp (Kapso)
@@ -27,6 +27,8 @@ Página en **Ajustes → Integraciones → WhatsApp (Kapso)** (solo administrado
    Meta. Luego asocia cada tipo de notificación (p. ej. "recordatorio de cita")
    a una plantilla aprobada.
 4. **Prueba.** Envía un mensaje de prueba a un número para verificar la conexión.
+   El botón se bloquea mientras el envío está en curso: Kapso factura
+   por mensaje y el destinatario lee cada uno.
 
 ## Responder a un paciente
 

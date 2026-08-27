@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- fix(ui): the change-history panel offers the rest instead of hiding
+  it. The endpoint pages at 50 and reports the true count; the panel
+  took `data` and dropped `total`, so the older half of a long clinical
+  history was simply invisible. Now shows "showing N of M" with a
+  load-more (audit S5).
+
+- fix(ui): the treatment-edit modal keeps the user's edits when the save
+  fails instead of closing over them, and deleting a treatment asks first
+  — it may already be invoiced and there is no undo endpoint (audit S5).
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - fix(frontend): render an error state with retry when the odontogram
   fetch fails, instead of falling through to a fabricated all-healthy
   32-tooth chart (audit S5, #95). Adds `odontogram.messages.loadError`.

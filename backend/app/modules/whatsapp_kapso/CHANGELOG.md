@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- fix(ui): "send test" is now single-shot (in-flight flag + `:loading`).
+  Kapso bills per message, and the button had no guard at all (audit S5).
+
 - feat: initial release. WhatsApp delivery for the notifications gateway via
   Kapso (Meta Cloud API). Community, installable/removable (issue #63).
 - `KapsoAdapter` (template + free-form session sends) registered into the

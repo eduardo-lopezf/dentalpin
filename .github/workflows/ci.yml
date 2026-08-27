@@ -226,9 +226,13 @@ jobs:
         run: npm run lint
 
   frontend-typecheck:
-    # Guards against broken Vue/TS imports across module Nuxt layers
-    # (Fase B.6). `modules.json` is written by the backend at runtime;
-    # we stub an empty one here so Nuxt picks up only the host sources.
+    # Typechecks the host **and every module layer**.
+    #
+    # This job used to stub an empty `modules.json` and then only run
+    # `nuxi prepare` — so no layer was ever typechecked, and no typecheck
+    # ever ran. 194 type errors accumulated behind a green build. The gate
+    # now generates a manifest with repo-relative layer paths and fails on
+    # any error the baseline does not already know about (ADR 0021).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -236,20 +240,15 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install dependencies
         working-directory: frontend
         run: npm install
 
-      - name: Ensure empty modules.json
+      - name: Typecheck host + module layers (no new errors)
         working-directory: frontend
-        run: |
-          echo '{"layers":[],"modules":[],"version":1}' > modules.json
-
-      - name: Nuxt prepare (generates .nuxt type stubs)
-        working-directory: frontend
-        run: npx nuxi prepare
+        run: node scripts/typecheck-gate.mjs
 
   frontend-test:
     runs-on: ubuntu-latest

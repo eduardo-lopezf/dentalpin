@@ -72,6 +72,49 @@ def _load_script_directory():
         return None
 
 
+def _head_in_dir(versions_dir: Path) -> str | None:
+    """Newest revision whose file lives in ``versions_dir``.
+
+    ``walk_revisions`` descends from every head towards base, so the
+    first revision found inside the directory is that chain's tip.
+    """
+    script = _load_script_directory()
+    if script is None:
+        return None
+
+    for rev in script.walk_revisions():
+        rev_path_str = getattr(rev, "path", None)
+        if not rev_path_str:
+            continue
+        try:
+            rev_dir = Path(rev_path_str).resolve().parent
+        except (OSError, ValueError):
+            continue
+        if rev_dir == versions_dir:
+            return rev.revision
+    return None
+
+
+def core_versions_dir() -> Path:
+    """Directory holding the core linear chain's revisions."""
+    return (Path(__file__).resolve().parents[3] / "alembic" / "versions").resolve()
+
+
+def resolve_core_head() -> str | None:
+    """Tip of the core linear chain — the revisions the app cannot boot without.
+
+    Boot upgrades *this* revision, never ``heads``: ``heads`` includes
+    every module branch found on disk and so re-creates the tables of a
+    module that was uninstalled (audit S1). Module branches are brought
+    to head by :class:`~app.core.plugins.processor.PendingProcessor`,
+    which knows which modules are installed.
+    """
+    versions_dir = core_versions_dir()
+    if not versions_dir.is_dir():
+        return None
+    return _head_in_dir(versions_dir)
+
+
 def resolve_module_branch_head(module: BaseModule) -> str | None:
     """Return the tip revision of ``module``'s own Alembic branch, if any.
 
@@ -88,22 +131,7 @@ def resolve_module_branch_head(module: BaseModule) -> str | None:
     versions_dir = _module_versions_dir(module)
     if versions_dir is None:
         return None
-
-    script = _load_script_directory()
-    if script is None:
-        return None
-
-    for rev in script.walk_revisions():
-        rev_path_str = getattr(rev, "path", None)
-        if not rev_path_str:
-            continue
-        try:
-            rev_dir = Path(rev_path_str).resolve().parent
-        except (OSError, ValueError):
-            continue
-        if rev_dir == versions_dir:
-            return rev.revision
-    return None
+    return _head_in_dir(versions_dir)
 
 
 def module_branch_is_isolated(module: BaseModule) -> bool:

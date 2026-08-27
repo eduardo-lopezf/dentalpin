@@ -5,7 +5,7 @@
 // admin pin its AEAT ``CalificacionOperacion`` / ``OperacionExenta``
 // override. When no override is set, the verifactu hook falls back to
 // the rate-based heuristic.
-import type { VatClassificationItem } from '~/composables/useVerifactu'
+import type { VatClassificationItem } from '../../../composables/useVerifactu'
 import { PERMISSIONS } from '~~/app/config/permissions'
 import { errorMessage } from '~~/app/utils/error'
 
@@ -99,9 +99,9 @@ async function save(row: Row) {
       row.data = updated
     }
     row.dirty = false
-    toast?.add({ title: t('verifactu.vatMapping.saved'), color: 'green' })
+    toast?.add({ title: t('verifactu.vatMapping.saved'), color: 'success' })
   } catch (e: unknown) {
-    toast?.add({ title: errorMessage(e, t('verifactu.vatMapping.saveFailed')), color: 'red' })
+    toast?.add({ title: errorMessage(e, t('verifactu.vatMapping.saveFailed')), color: 'error' })
   } finally {
     saving.value = null
   }
@@ -123,7 +123,7 @@ onMounted(refresh)
     </header>
 
     <UAlert
-      color="blue"
+      color="info"
       variant="soft"
       icon="i-lucide-info"
       :title="t('verifactu.vatMapping.legalIntroTitle')"

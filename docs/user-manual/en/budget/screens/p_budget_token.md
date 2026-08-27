@@ -13,7 +13,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/budget/frontend/pages/p/budget/[token].vue
   - backend/app/modules/budget/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Public patient acceptance
@@ -54,7 +54,11 @@ the link is forwarded to them.
 1. A welcome screen with the clinic name and a code field.
 2. After verifying: header with clinic + patient, line items with
    totals, validity, and assigned professional.
-3. **Accept** and **Reject** buttons (Reject asks for a reason).
+3. **Accept** and **Reject** buttons (Reject asks for a reason). If
+   the request fails the modal **stays open**, keeping the signature
+   on screen and showing the error so the patient can retry. A modal
+   that closed anyway would let them believe they had accepted while
+   the clinic received nothing.
 4. **Download PDF** of the budget.
 
 ## How to help a patient who is stuck

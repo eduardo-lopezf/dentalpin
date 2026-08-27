@@ -36,7 +36,7 @@ related_permissions:
   - catalog.admin
 related_paths:
   - backend/app/modules/catalog/frontend/pages/settings/catalog/index.vue
-last_verified_commit: e2b7328257c69af310ee8f0ff2ae624dfe2d7545
+last_verified_commit: 3568519
 ---
 
 # /settings/catalog
@@ -103,6 +103,12 @@ Restorative but also Cosmetic. Periodontal maintenance also counts as Dental
 Hygiene.
 
 Re-seeding only fills gaps; it never removes assignments you made by hand.
+
+## Pagination
+
+The list paginates. Until now the pager ignored clicks — it used the
+component's old API — and only the first page was reachable; the
+treatments beyond it existed with no way to get to them.
 
 ## Editing treatments
 

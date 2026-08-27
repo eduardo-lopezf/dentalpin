@@ -14,7 +14,10 @@ onMounted(() => {
 })
 
 async function onSend() {
-  if (!conv || !draft.value.trim()) return
+  // Enter fires this directly, so the button's :loading is no guard at
+  // all: two quick presses used to send two WhatsApp messages (billed
+  // per message, and the patient reads both).
+  if (!conv || conv.sending.value || !draft.value.trim()) return
   try {
     await conv.reply(draft.value.trim())
     draft.value = ''
@@ -68,7 +71,7 @@ function label(m: { body_text: string | null, subject: string | null, template_k
           v-model="draft"
           class="flex-1"
           :placeholder="t('notifications.conversation.placeholder')"
-          @keydown.enter="onSend"
+          @keydown.enter.prevent="onSend"
         />
         <UButton
           icon="i-lucide-send"

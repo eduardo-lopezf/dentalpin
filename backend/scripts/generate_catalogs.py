@@ -85,7 +85,12 @@ from app.core.plugins.loader import discover_modules  # noqa: E402
 #   OdontogramEventType.TOOTH_...  -> dotted constant on a module-local enum
 #   "patient.created"             -> string literal
 #   specific / event_name         -> a bare identifier (dynamic dispatch)
-PUBLISH_ARG_RE = re.compile(r"event_bus\.publish\(\s*(?P<arg>[A-Za-z_][\w.]*|[\"'][\w.]+[\"'])")
+# ``publish_after_commit(db, EventType.X, ...)`` puts the session first, so
+# the event type is the *second* argument there (ADR 0019).
+PUBLISH_ARG_RE = re.compile(
+    r"event_bus\.publish(?:_after_commit\s*\(\s*[\w.]+\s*,|\s*\()"
+    r"\s*(?P<arg>[A-Za-z_][\w.]*|[\"'][\w.]+[\"'])"
+)
 # Any ``<Enum>.<CONST>`` reference, and any local ``CONST = "dotted.value"``
 # assignment (module-local event enums like ``OdontogramEventType``).
 ENUM_REF_RE = re.compile(r"\b([A-Za-z_]\w*)\.([A-Z][A-Z0-9_]*)\b")

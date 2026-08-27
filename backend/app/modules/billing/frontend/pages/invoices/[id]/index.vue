@@ -416,7 +416,7 @@ const totalsLines = computed<TotalLine[]>(() => {
   const lines: TotalLine[] = [
     { key: 'subtotal', label: t('invoice.subtotal'), value: inv.subtotal }
   ]
-  if (inv.total_discount > 0) {
+  if (Number(inv.total_discount) > 0) {
     lines.push({
       key: 'discount',
       label: t('invoice.discount'),
@@ -425,7 +425,7 @@ const totalsLines = computed<TotalLine[]>(() => {
       role: 'success'
     })
   }
-  if (inv.total_tax > 0) {
+  if (Number(inv.total_tax) > 0) {
     lines.push({
       key: 'tax',
       label: t('invoice.tax'),
@@ -446,7 +446,7 @@ const totalsLines = computed<TotalLine[]>(() => {
       value: inv.total_paid,
       role: 'success'
     })
-    if (inv.balance_due > 0) {
+    if (Number(inv.balance_due) > 0) {
       lines.push({
         key: 'pending',
         label: t('invoice.balanceDue'),
@@ -754,7 +754,7 @@ function goToCreditNoteFor() {
                       {{ item.quantity }} x {{ formatCurrency(item.unit_price) }}
                     </p>
                     <p
-                      v-if="item.line_discount > 0"
+                      v-if="Number(item.line_discount) > 0"
                       class="text-sm text-success-accent"
                     >
                       -{{ formatCurrency(item.line_discount) }}

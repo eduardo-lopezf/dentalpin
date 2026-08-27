@@ -289,7 +289,15 @@ class InvoicePaymentApply(BaseModel):
 
 
 class InvoicePaymentResponse(BaseModel):
-    """Link row between an invoice and a payment."""
+    """Link row between an invoice and a payment.
+
+    ``payment_date`` / ``payment_method`` come from the linked
+    :class:`~app.modules.payments.models.Payment`. They are here because
+    the UI needs them and had been reading them off this shape all along,
+    rendering "-" and "undefined" in the invoice's payment breakdown. The
+    link row's own ``created_at`` is when the imputation was recorded,
+    which is not the same fact as when the patient paid.
+    """
 
     id: UUID
     invoice_id: UUID
@@ -297,8 +305,30 @@ class InvoicePaymentResponse(BaseModel):
     amount: Decimal
     created_by: UUID
     created_at: datetime
+    payment_date: date | None = None
+    payment_method: PaymentMethodLiteral | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @classmethod
+    def from_link(cls, link) -> "InvoicePaymentResponse":
+        """Build from an ``InvoicePayment`` with ``payment`` loaded.
+
+        ``list_for_invoice`` already eager-loads it, so this costs no
+        extra query. Falls back to ``None`` when the relation was not
+        loaded rather than emitting a lazy load inside a response.
+        """
+        payment = link.__dict__.get("payment")
+        return cls(
+            id=link.id,
+            invoice_id=link.invoice_id,
+            payment_id=link.payment_id,
+            amount=link.amount,
+            created_by=link.created_by,
+            created_at=link.created_at,
+            payment_date=payment.payment_date if payment else None,
+            payment_method=payment.method if payment else None,
+        )
 
 
 # ============================================================================

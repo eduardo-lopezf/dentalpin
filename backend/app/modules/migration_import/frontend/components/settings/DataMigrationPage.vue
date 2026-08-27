@@ -277,7 +277,7 @@ onUnmounted(() => {
         <UFormField :label="t('migrationImport.upload.passphrase')" :help="t('migrationImport.upload.passphraseHelp')">
           <UInput v-model="passphrase" type="password" />
         </UFormField>
-        <UAlert v-if="uploadError" color="red" :title="t('migrationImport.upload.error')" :description="uploadError" />
+        <UAlert v-if="uploadError" color="error" :title="t('migrationImport.upload.error')" :description="uploadError" />
         <UButton :loading="uploading" :disabled="!file" @click="startUpload">
           {{ t('migrationImport.upload.submit') }}
         </UButton>
@@ -299,7 +299,7 @@ onUnmounted(() => {
             {{ t(`migrationImport.status.${job.status}`) }}
           </UBadge>
         </div>
-        <UAlert v-if="job.error" color="red" :description="job.error" />
+        <UAlert v-if="job.error" color="error" :description="job.error" />
       </div>
 
       <!-- Preview -->
@@ -354,7 +354,7 @@ onUnmounted(() => {
               {{ t('migrationImport.proposals.bulkAccept') }}
             </UButton>
           </div>
-          <UAlert v-if="proposalsError" color="red" :description="proposalsError" class="mt-2" />
+          <UAlert v-if="proposalsError" color="error" :description="proposalsError" class="mt-2" />
           <p v-if="proposalSummary" class="mt-2 text-xs text-gray-600">
             {{
               t('migrationImport.proposals.summary', {
@@ -427,7 +427,7 @@ onUnmounted(() => {
                       </UButton>
                       <UButton
                         size="xs"
-                        color="red"
+                        color="error"
                         variant="ghost"
                         :disabled="!canExecute || p.operator_action === 'ignored'"
                         @click="patchProposal(p, 'ignored')"
@@ -489,7 +489,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <UAlert color="amber" :description="t('migrationImport.preview.warning')" />
+        <UAlert color="warning" :description="t('migrationImport.preview.warning')" />
 
         <UButton
           color="primary"

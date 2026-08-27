@@ -97,12 +97,39 @@ async function handleDateChange(date: string | null) {
   }
 }
 
+// The endpoint pages at 50 and reports the true count; taking `data` and
+// dropping `total` is how the older half of a clinical history became
+// invisible (audit S5).
+const historyTotal = ref(0)
+const historyPage = ref(1)
+const historyLoadingMore = ref(false)
+
 async function onHistoryExpanded(expanded: boolean) {
   if (expanded && !historyData.value.length) {
     historyLoading.value = true
-    const response = await fetchPatientHistory(props.patientId)
-    if (response) historyData.value = response.data
+    historyPage.value = 1
+    const response = await fetchPatientHistory(props.patientId, historyPage.value)
+    if (response) {
+      historyData.value = response.data
+      historyTotal.value = response.total
+    }
     historyLoading.value = false
+  }
+}
+
+async function onHistoryLoadMore() {
+  if (historyLoadingMore.value) return
+  historyLoadingMore.value = true
+  try {
+    const next = historyPage.value + 1
+    const response = await fetchPatientHistory(props.patientId, next)
+    if (response) {
+      historyData.value = [...historyData.value, ...response.data]
+      historyTotal.value = response.total
+      historyPage.value = next
+    }
+  } finally {
+    historyLoadingMore.value = false
   }
 }
 </script>
@@ -206,7 +233,10 @@ async function onHistoryExpanded(expanded: boolean) {
           :history="historyData"
           :treatments="treatments"
           :loading="historyLoading"
+          :total="historyTotal"
+          :loading-more="historyLoadingMore"
           @update:expanded="onHistoryExpanded"
+          @load-more="onHistoryLoadMore"
         />
       </template>
     </template>

@@ -32,10 +32,7 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.agents.tools.registry import tool_registry
-from app.core.auth.permissions import (
-    get_role_permissions,
-    invalidate_role_permissions_cache,
-)
+from app.core.auth.permissions import get_role_permissions
 from app.core.events import event_bus
 from app.core.plugins.db_models import ModuleRecord
 from app.core.plugins.loader import mount_active
@@ -48,32 +45,9 @@ SPECIMEN = "recalls"
 KEEPER = "patients"
 
 
-@pytest.fixture(autouse=True)
-def isolated_runtime():
-    """Give each test an empty runtime to mount into.
-
-    ``conftest`` mounts every discovered module into the process-wide
-    singletons at import time. These tests mount a different subset, so
-    snapshot the three globals, hand the test a blank slate, and put the
-    originals back — the rest of the suite depends on them.
-    """
-    saved_active = set(module_registry._active)
-    saved_handlers = {k: list(v) for k, v in event_bus._handlers.items()}
-    saved_tools = dict(tool_registry._tools)
-    saved_owners = dict(tool_registry._owners)
-
-    module_registry._active = set()
-    event_bus._handlers = {}
-    tool_registry.clear()
-    invalidate_role_permissions_cache()
-
-    yield
-
-    module_registry._active = saved_active
-    event_bus._handlers = saved_handlers
-    tool_registry._tools = saved_tools
-    tool_registry._owners = saved_owners
-    invalidate_role_permissions_cache()
+pytestmark = pytest.mark.usefixtures("isolated_runtime")
+"""Every test here mounts its own subset; the fixture restores the
+process-wide registries afterwards (see ``conftest.isolated_runtime``)."""
 
 
 def _mount(*names: str) -> FastAPI:

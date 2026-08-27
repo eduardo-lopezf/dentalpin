@@ -33,7 +33,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/index.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Bandeja de planes
@@ -51,6 +51,9 @@ más una vista de pipeline con la cola de seguimiento.
 - **Pipeline.** Vista de bandeja agregada (`GET /pipeline`) con
   totales por columna y los planes que necesitan acción de recepción
   (pendientes sin contacto reciente, presupuesto sin enviar, etc.).
+- **Paginación del pipeline.** Las columnas paginan de verdad: el
+   paginador ignoraba los clics porque usaba la API antigua del
+   componente, así que solo se veía la primera página.
 - **Búsqueda y filtros.** Buscar por paciente o número de plan;
   filtros por profesional asignado, fecha de creación y motivo de
   cierre.

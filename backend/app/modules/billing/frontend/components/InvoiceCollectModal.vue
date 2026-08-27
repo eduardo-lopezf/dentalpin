@@ -7,15 +7,16 @@
  * server-side (creates on-account balance for the patient).
  */
 
-import type { InvoicePayment, PaymentMethod } from '~~/app/types'
+import type { InvoicePayment, Money, PaymentMethod } from '~~/app/types'
 
 const props = withDefaults(defineProps<{
   open: boolean
   invoiceId: string
   invoiceNumber?: string | null
   patientName?: string
-  balanceDue: number
-  total: number
+  // Straight from the invoice: Decimal strings on the wire.
+  balanceDue: Money
+  total: Money
 }>(), {
   invoiceNumber: undefined,
   patientName: undefined
@@ -82,7 +83,7 @@ async function handleSubmit(payload: {
     :open="open"
     :title="title"
     :subtitle="patientName"
-    :pending-amount="balanceDue"
+    :pending-amount="Number(balanceDue) || 0"
     :submitting="isSubmitting"
     :error="errorMsg"
     :submit-label="t('invoice.collect.submit')"

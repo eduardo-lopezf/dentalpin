@@ -10,7 +10,13 @@ import { resolve } from 'node:path'
  * checkout, no community modules yet), returns an empty array.
  */
 function loadModuleLayers(): string[] {
-  const path = resolve(__dirname, 'modules.json')
+  // `DENTALPIN_MODULES_JSON` lets CI (and anyone without a running
+  // backend) point at a manifest with repo-relative paths, so the module
+  // layers are actually typechecked instead of being stubbed away — the
+  // blind spot that let type errors pile up unseen. A developer's real
+  // `modules.json`, written by their backend with container paths, is
+  // left alone.
+  const path = resolve(__dirname, process.env.DENTALPIN_MODULES_JSON ?? 'modules.json')
   try {
     const raw = readFileSync(path, 'utf-8')
     const payload = JSON.parse(raw) as { layers?: string[] }
@@ -25,9 +31,15 @@ function loadModuleLayers(): string[] {
 }
 
 const moduleLayers = loadModuleLayers()
-const modulesJsonPath = resolve(__dirname, 'modules.json')
+const modulesJsonPath = resolve(__dirname, process.env.DENTALPIN_MODULES_JSON ?? 'modules.json')
 
 export default defineNuxtConfig({
+
+  // The dev server runs in a container against this same mounted
+  // directory, so a host-side `nuxt typecheck` writing `.nuxt` corrupts
+  // the running app's build ("Package import specifier
+  // #nuxt-icon-server-options is not defined"). The typecheck gate sets
+  // this to a scratch directory so the two never share one.
 
   extends: moduleLayers,
 
@@ -79,6 +91,7 @@ export default defineNuxtConfig({
     }
   },
   srcDir: 'app',
+  buildDir: process.env.NUXT_BUILD_DIR ?? '.nuxt',
 
   // Restart dev server when the backend rewrites `modules.json` on
   // module install/uninstall. `extends` is evaluated once at config

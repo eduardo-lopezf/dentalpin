@@ -577,6 +577,9 @@ async function handleSave() {
 
 async function handleCancel() {
   if (!props.appointment) return
+  // Sits in the modal footer next to Save, cancels the patient's
+  // appointment on one click and notifies them. Ask first.
+  if (!window.confirm(t('appointments.confirms.cancel'))) return
 
   isSubmitting.value = true
 

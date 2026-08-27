@@ -111,17 +111,32 @@ function getVatType(vatTypeId?: string): VatType | undefined {
   return vatTypes.value.find(v => v.id === vatTypeId)
 }
 
+// The catalog brief carries localised `names`, not `name`: reading the
+// latter meant every line in this screen rendered the fallback literal.
+function catalogItemName(item: BudgetItem): string {
+  const names = item.catalog_item?.names
+  if (!names) return t('common.treatment')
+  return names[locale.value] || names.es || item.catalog_item?.internal_code || t('common.treatment')
+}
+
 // Calculate item line total (for preview)
 function calculateItemTotal(item: BudgetItem, quantity: number): number {
-  const subtotal = item.unit_price * quantity
+  // Money crosses the wire as a Decimal string. Every path here happened
+  // to pass through a `*` or `-`, which coerce — so this worked by luck.
+  // Coerce at the boundary instead, and let the types say so.
+  const unitPrice = Number(item.unit_price) || 0
+  const discountValue = Number(item.discount_value) || 0
+  const vatRate = Number(item.vat_rate) || 0
+
+  const subtotal = unitPrice * quantity
   let discount = 0
-  if (item.discount_value) {
+  if (discountValue) {
     discount = item.discount_type === 'percentage'
-      ? subtotal * (item.discount_value / 100)
-      : item.discount_value
+      ? subtotal * (discountValue / 100)
+      : discountValue
   }
   const taxableAmount = subtotal - discount
-  const tax = taxableAmount * (item.vat_rate / 100)
+  const tax = taxableAmount * (vatRate / 100)
   return taxableAmount + tax
 }
 
@@ -135,15 +150,19 @@ const totals = computed(() => {
     const item = budget.value?.items.find(i => i.id === itemId)
     if (!item) return
 
-    const lineSubtotal = item.unit_price * quantity
+    const unitPrice = Number(item.unit_price) || 0
+    const discountValue = Number(item.discount_value) || 0
+    const vatRate = Number(item.vat_rate) || 0
+
+    const lineSubtotal = unitPrice * quantity
     let lineDiscount = 0
-    if (item.discount_value) {
+    if (discountValue) {
       lineDiscount = item.discount_type === 'percentage'
-        ? lineSubtotal * (item.discount_value / 100)
-        : item.discount_value * (quantity / item.quantity) // Prorate absolute discount
+        ? lineSubtotal * (discountValue / 100)
+        : discountValue * (quantity / item.quantity) // Prorate absolute discount
     }
     const lineTaxable = lineSubtotal - lineDiscount
-    const lineTax = lineTaxable * (item.vat_rate / 100)
+    const lineTax = lineTaxable * (vatRate / 100)
 
     subtotal += lineSubtotal
     totalDiscount += lineDiscount
@@ -303,7 +322,7 @@ function goBack() {
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
                     <span class="font-medium text-default">
-                      {{ item.catalog_item?.name || 'Tratamiento' }}
+                      {{ catalogItemName(item) }}
                     </span>
                     <UBadge
                       v-if="item.tooth_number"

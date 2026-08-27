@@ -1,8 +1,8 @@
-import type { ApiResponse, Document, DocumentType, PaginatedResponse } from '~~/app/types'
+import type { ApiResponse, Document, DocumentType, Money, PaginatedResponse } from '~~/app/types'
 
 interface UploadProgress {
   loaded: number
-  total: number
+  total: Money
   percentage: number
 }
 

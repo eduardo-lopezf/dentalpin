@@ -123,6 +123,9 @@
       "body": "After this treatment we suggest a recall in {month} ({reason}).",
       "create": "Create recall",
       "dismiss": "Dismiss"
+    },
+    "confirms": {
+      "cancel": "Cancel this recall? The patient will drop off the call list."
     }
   }
 }

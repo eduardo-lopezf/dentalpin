@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SchedulingSummary } from '../../composables/useReports'
-import type { BillingSummary } from '~~/app/types'
+import type { BillingSummary, Money } from '~~/app/types'
 
 defineProps<{ ctx?: unknown }>()
 
@@ -48,7 +48,13 @@ onActivated(load)
 
 const { format: formatMoney } = useCurrency()
 
-function delta(cur: number, prev: number): { pct: number | null, dir: 'up' | 'down' | 'flat' } {
+function delta(
+  curRaw: Money,
+  prevRaw: Money
+): { pct: number | null, dir: 'up' | 'down' | 'flat' } {
+  // Report figures are Decimal strings on the wire.
+  const cur = Number(curRaw) || 0
+  const prev = Number(prevRaw) || 0
   if (!prev) return { pct: null, dir: 'flat' }
   const pct = ((cur - prev) / prev) * 100
   if (Math.abs(pct) < 0.5) return { pct: 0, dir: 'flat' }

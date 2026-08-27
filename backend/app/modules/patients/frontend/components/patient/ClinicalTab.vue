@@ -9,7 +9,12 @@
  * - appointments: View and manage patient appointments
  */
 
-import type { ClinicalMode } from '../clinical/ClinicalModeToggle.vue'
+// `ClinicalModeToggle` is auto-imported from the odontogram layer, which
+// `patients` does not depend on. The component resolves at runtime; the
+// path in a type-only import did not resolve anywhere (it pointed inside
+// this layer), so the mode union is declared here instead of reaching
+// across a module boundary for it.
+type ClinicalMode = 'history' | 'diagnosis' | 'plans' | 'appointments'
 import type { TreatmentPlan } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 

@@ -9,12 +9,13 @@
  * renders when the caller already passed `payments.record.refund`.
  */
 
-import type { PaymentMethod, PaymentRefund, RefundReason } from '~~/app/types'
+import type { Money, PaymentMethod, PaymentRefund, RefundReason } from '~~/app/types'
 
 const props = withDefaults(defineProps<{
   open: boolean
   paymentId: string
-  defaultAmount?: number
+  /** Seeded from the payment's net amount, which is a Decimal string. */
+  defaultAmount?: Money
   defaultMethod?: PaymentMethod
 }>(), {
   defaultAmount: 0,

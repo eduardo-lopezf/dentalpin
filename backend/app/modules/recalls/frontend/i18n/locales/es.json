@@ -123,6 +123,9 @@
       "body": "Tras este tratamiento sugerimos un recordatorio en {month} ({reason}).",
       "create": "Crear recordatorio",
       "dismiss": "Descartar"
+    },
+    "confirms": {
+      "cancel": "¿Cancelar este aviso? El paciente dejará de aparecer en la lista de llamadas."
     }
   }
 }

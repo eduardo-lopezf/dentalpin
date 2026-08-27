@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- fix(ui): removed the "linked to plan" badge from the administration
+  tab — `treatment_plan_id` exists nowhere in the budget module, so the
+  badge could never render.
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - fix(events): include `clinic_id` in the `patient.archived` and
   `patient.updated` payloads (audit event-bus #11, #95). Every event
   must carry the tenant per the multi-tenancy convention; the omission

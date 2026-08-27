@@ -261,7 +261,8 @@ class NoteService:
         await db.flush()
 
         event_name = _NOTE_TYPE_TO_EVENT[note_type]
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             event_name,
             {
                 "clinic_id": str(clinic_id),

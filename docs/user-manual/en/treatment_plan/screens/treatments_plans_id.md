@@ -33,7 +33,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/[id].vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Treatment plan detail
@@ -96,6 +96,10 @@ and close or reactivate.
    suggest a follow-up recall based on `treatment_category_key`.
 3. To record a clinical note at that moment, use the *Add note*
    button (contributed by `clinical_notes`).
+
+**Removing an item from the plan** (the trash icon on the row) asks
+for confirmation: it cascades into the odontogram treatment and the
+associated budget line.
 
 ## Multi-session treatments
 

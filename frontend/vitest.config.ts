@@ -1,5 +1,11 @@
 import { defineVitestConfig } from '@nuxt/test-utils/config'
 
+// Tests build Nuxt too. The dev server runs in a container against this
+// same mounted directory, so sharing `.nuxt` corrupts its build mid-run
+// ("Package import specifier #nuxt-icon-server-options is not defined").
+// `nuxt.config.ts` reads this variable; give the test build its own.
+process.env.NUXT_BUILD_DIR ??= '.nuxt-test'
+
 export default defineVitestConfig({
   test: {
     environment: 'nuxt',

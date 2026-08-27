@@ -343,7 +343,12 @@ export function useInvoices() {
       data
     )
     invoices.value = [toListItem(response.data), ...invoices.value]
-    updateInvoiceStatus(id, 'cancelled')
+    // The original keeps its status: a rectificativa nets against it, it
+    // does not annul it (`InvoiceWorkflowService.create_credit_note` says
+    // so explicitly). Marking it `cancelled` here showed the clinic an
+    // annulled invoice the server still considers live — drift on a legal
+    // document. The credit note itself arrives as a draft and has to be
+    // issued.
     return response.data
   }
 
@@ -483,7 +488,10 @@ export function useInvoices() {
   // Helpers
   // ============================================================================
 
-  function getPaymentMethodLabel(method: string): string {
+  function getPaymentMethodLabel(method: string | null | undefined): string {
+    // The link row carries the method only when the payment relation was
+    // loaded; render a dash rather than the string "undefined".
+    if (!method) return '-'
     return paymentMethodLabel(t, method)
   }
 

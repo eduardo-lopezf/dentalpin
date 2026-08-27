@@ -371,7 +371,8 @@ class PeriodontogramService:
             snap.notes = notes
         await db.flush()
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.PERIODONTOGRAM_SNAPSHOT_CLOSED,
             {
                 "snapshot_id": str(snap.id),

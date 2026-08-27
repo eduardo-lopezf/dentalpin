@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- fix(ui): the call list has a pager. It tracked `page`/`total` and sent
+  them to the API, but nothing changed the page and no control was
+  rendered — a clinic with more than 50 recalls in the month saw the
+  first 50 and nothing said otherwise (audit S5).
+
+- fix(ui): cancelling a recall asks for confirmation; it drops the patient
+  off the call list for good. `markDone` stays one click on purpose — it is
+  the primary action of the screen and is recoverable (audit S5).
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - fix(professionals): `assigned_professional_id` on `recalls` now points
   at `professionals.id` (directory) instead of `users.id`, matching the
   `agenda`/`schedules`/`treatment_plan`/`budget` directory-professional

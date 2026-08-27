@@ -13,7 +13,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/billing/frontend/pages/invoices/from-budget/[budgetId].vue
   - backend/app/modules/billing/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Factura desde presupuesto
@@ -29,6 +29,10 @@ y qué cantidades incluir.
   en estado `accepted` (o tiene una factura activa sin cancelar),
   el botón *Crear factura* en el detalle del presupuesto no
   aparece.
+- **Nombre del tratamiento.** Cada línea muestra el nombre del ítem
+  de catálogo en el idioma activo. (Hasta ahora todas mostraban el
+  literal "Tratamiento", porque la pantalla leía un campo que la
+  ficha resumida del catálogo no trae.)
 - **Marcado por ítem.** Cada línea del presupuesto muestra `cantidad
   facturada / cantidad total`. Solo puedes añadir la diferencia o
   parte de ella; el backend rechaza superar la cantidad

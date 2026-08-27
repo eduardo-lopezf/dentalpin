@@ -13,7 +13,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/billing/frontend/pages/invoices/from-budget/[budgetId].vue
   - backend/app/modules/billing/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Invoice from budget
@@ -28,6 +28,10 @@ include.
 - **Only from accepted budgets.** If the budget is not in
   `accepted` (or already has a non-cancelled active invoice), the
   *Create invoice* button on the budget detail does not appear.
+- **Treatment name.** Each line shows the catalog item's name in the
+  active language. (Until now every line showed the literal
+  "Tratamiento", because the screen read a field the catalog brief
+  does not carry.)
 - **Per-item check.** Each budget line shows `invoiced / total`.
   You can only add the remainder or part of it; the backend
   rejects exceeding the pending quantity.

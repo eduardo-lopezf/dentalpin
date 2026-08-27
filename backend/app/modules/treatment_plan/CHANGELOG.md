@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- fix(ui): pipeline pagination works — same Nuxt UI v2-props-on-v4
+  problem as media and catalog.
+
+- fix(ui): removing a plan item asks for confirmation — the removal
+  cascades into the odontogram and the associated budget line, and the
+  control is a bare trash icon in a list row (audit S5).
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - feat(nav)!: the module no longer owns a menu entry. The pipeline moved
   from `/treatment-plans` to `/treatments/plans` (detail and new-plan pages
   follow), reached through the "Tratamientos" section owned by `catalog`.

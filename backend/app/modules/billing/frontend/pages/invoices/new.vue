@@ -94,9 +94,11 @@ function removeItem(index: number) {
 
 // Calculate item total
 function getItemTotal(item: InvoiceItemCreate): number {
-  const subtotal = item.unit_price * (item.quantity || 1)
+  // Prices and VAT rates arrive as Decimal strings; coerce before the
+  // final `+`, which would concatenate rather than add.
+  const subtotal = (Number(item.unit_price) || 0) * (Number(item.quantity) || 1)
   const vatType = vatTypes.value.find(v => v.id === item.vat_type_id)
-  const vatRate = vatType?.rate || 0
+  const vatRate = Number(vatType?.rate ?? 0) || 0
   const tax = subtotal * (vatRate / 100)
   return subtotal + tax
 }
@@ -107,9 +109,9 @@ const totals = computed(() => {
   let totalTax = 0
 
   items.value.forEach((item) => {
-    const itemSubtotal = item.unit_price * (item.quantity || 1)
+    const itemSubtotal = (Number(item.unit_price) || 0) * (Number(item.quantity) || 1)
     const vatType = vatTypes.value.find(v => v.id === item.vat_type_id)
-    const vatRate = vatType?.rate || 0
+    const vatRate = Number(vatType?.rate ?? 0) || 0
     const tax = itemSubtotal * (vatRate / 100)
 
     subtotal += itemSubtotal

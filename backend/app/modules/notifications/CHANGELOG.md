@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- fix(ui): the conversation reply guards on `sending`. Enter bypassed the
+  button's `:loading`, so two quick presses sent two WhatsApp messages —
+  billed twice and read twice by the patient (audit S5).
+
 - feat(conversation): inbound replies + bidirectional WhatsApp (Phase 2A,
   ADR 0017). ``communication_messages`` gains ``direction`` (outbound/inbound)
   and ``body_text``; it is now the full per-patient thread (Alembic

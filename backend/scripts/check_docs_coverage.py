@@ -168,7 +168,9 @@ ROUTER_DECORATOR_RE = re.compile(
 # (audit S4, #94 — the old regex only had a group for the literal case,
 # so EventType.X publishers were invisible and the rule never triggered).
 PUBLISH_RE = re.compile(
-    r"event_bus\.publish\(\s*(?:"
+    # ``publish_after_commit(db, EventType.X, ...)`` puts the session first,
+    # so the event type is the second argument there (ADR 0019).
+    r"event_bus\.publish(?:_after_commit\s*\(\s*[\w.]+\s*,|\s*\()\s*(?:"
     r"EventType\.(?P<const>[A-Z_]+)"
     r"|(?P<enum>[A-Z]\w*\.[A-Z_]+)"
     r"|[\"'](?P<lit>[\w.]+)[\"']"

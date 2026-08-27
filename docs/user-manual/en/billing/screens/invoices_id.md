@@ -30,7 +30,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/billing/frontend/pages/invoices/[id]/index.vue
   - backend/app/modules/billing/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Invoice detail
@@ -46,9 +46,11 @@ or issue a credit note.
 - **Legal data** — receiver (patient or third-party payer), tax ID,
   fiscal address, series + number (on `issued`). If the payer is
   not the patient, a *Different payer* chip is shown.
-- **Linked payments.** A list of `invoice_payments` with amount and
-  method. The invoice has no *Charge* button of its own: to collect,
-  use the `payments` module and link the payment to the invoice.
+- **Linked payments.** A list of `invoice_payments` with the amount
+  plus **the payment's own date and method** (taken from the linked
+  payment, not from the link row — when it was imputed is not when the
+  patient paid). There is no *voided* state in this list: a payment is
+  not voided, it is refunded from the `payments` module.
 - **PDF.** Two formats: draft (watermarked preview) and final (only
   for `issued`). PDF generation uses WeasyPrint.
 - **History.** Status changes and key events in chronological order.
@@ -83,7 +85,10 @@ or issue a credit note.
 - **Void** — marks the invoice as `void`. Its number stays in the
   history for audit. Admin only.
 - **Create credit note** — issues a credit note tied to the source
-  invoice's amounts. Goes through the same issuing workflow.
+  invoice's amounts. Goes through the same issuing workflow. **The
+  original invoice keeps its status**: a credit note nets against it,
+  it does not annul it. The note starts as a draft and must be
+  issued.
 
 ## Permissions
 

@@ -26,7 +26,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/agenda/frontend/pages/appointments/index.vue
   - backend/app/modules/agenda/router.py
-last_verified_commit: 7406862
+last_verified_commit: 3568519
 ---
 
 # Citas
@@ -87,6 +87,9 @@ flujo (programada → confirmada → en sala → completada → cobrada).
 1. Abre la cita pulsando sobre ella.
 2. En el panel de **Acciones rápidas** elige la siguiente transición
    disponible: *Confirmar*, *En sala*, *Completar*, *Cancelar*.
+   **Cancelar** pide confirmación: está junto a *Guardar* en el pie del
+   modal y al paciente se le avisa según la configuración de
+   notificaciones.
 3. Al transicionar a **completada** aparece un modal de seguimiento
    con acciones de módulos hermanos (p. ej. *Programar recall*). El
    modal solo se muestra si hay módulos que lo aporten.

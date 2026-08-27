@@ -47,6 +47,13 @@ export function usePeriodontogramSession() {
   const pendingTimers = new Map<string, ReturnType<typeof setTimeout>>()
   const pendingPayloads = new Map<string, Record<string, unknown>>()
 
+  /** Put a failed payload back so it is retried, without losing newer edits. */
+  function _restore(key: string, payload: Record<string, unknown>) {
+    // Anything scheduled while the request was in flight is newer and wins.
+    pendingPayloads.set(key, { ...payload, ...(pendingPayloads.get(key) ?? {}) })
+    dirty.value = true
+  }
+
   function _flushKey(key: string, exec: (payload: Record<string, unknown>) => Promise<void>) {
     return async () => {
       const payload = pendingPayloads.get(key)
@@ -57,8 +64,14 @@ export function usePeriodontogramSession() {
       try {
         await exec(payload)
         lastError.value = null
-        dirty.value = false
+        // Other keys may still be queued — `dirty` means "something is
+        // unsaved", not "this one saved".
+        dirty.value = pendingPayloads.size > 0
       } catch (e) {
+        // Deleting the payload before the request meant a failed save threw
+        // the measurement away: nothing left to retry, and the probing depth
+        // the hygienist had just typed was gone (audit S5).
+        _restore(key, payload)
         lastError.value = e instanceof Error ? e.message : 'save_failed'
       } finally {
         saving.value = false
@@ -106,10 +119,23 @@ export function usePeriodontogramSession() {
     )
   }
 
-  async function flushPending(snapshotId: string): Promise<void> {
-    const timers = Array.from(pendingTimers.entries())
-    for (const [key, timer] of timers) {
-      clearTimeout(timer)
+  /**
+   * Write everything still queued.
+   *
+   * Returns whether all of it landed. The caller has to care: closing the
+   * session on a partial flush seals the snapshot — closed ones are
+   * immutable — so whatever failed here could never be written again.
+   */
+  async function flushPending(snapshotId: string): Promise<boolean> {
+    // Iterate the payloads, not the timers: a payload restored after a
+    // failed save has no timer any more, and keying off timers meant the
+    // retry sent nothing while reporting success.
+    const keys = Array.from(pendingPayloads.keys())
+    let allSaved = true
+
+    for (const key of keys) {
+      const timer = pendingTimers.get(key)
+      if (timer) clearTimeout(timer)
       pendingTimers.delete(key)
       const payload = pendingPayloads.get(key)
       if (!payload) continue
@@ -130,12 +156,16 @@ export function usePeriodontogramSession() {
           )
         }
       } catch (e) {
+        allSaved = false
+        _restore(key, payload)
         lastError.value = e instanceof Error ? e.message : 'save_failed'
       } finally {
         saving.value = false
       }
     }
-    dirty.value = false
+
+    dirty.value = pendingPayloads.size > 0
+    return allSaved
   }
 
   async function closeSession(snapshotId: string, notes?: string): Promise<PerioSnapshotDetail> {

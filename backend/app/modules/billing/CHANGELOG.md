@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+- fix(money): invoice/budget line maths coerce before adding. Money is a
+  Decimal **string** on the wire; `*` and `-` converted silently, so the
+  totals worked by luck — one future `+` would have concatenated. The
+  types now say `Money`, which makes that a compile error.
+- fix(ui): the payment breakdown dropped its dead "voided" styling —
+  payments have no such flag by design (`payments/models.py`), so it
+  read an undefined field and never rendered.
+- fix(ui): "create invoice from budget" showed every line as the literal
+  "Tratamiento": it read `catalog_item.name`, which does not exist (the
+  brief carries localised `names`).
+
+- fix(fiscal): a credit note no longer marks the original invoice
+  `cancelled` on screen. `create_credit_note` says explicitly that the
+  original keeps its status — a rectificativa nets against it, it does
+  not annul it — so the UI was showing an annulled invoice the server
+  still considered live (audit S5, fiscal display drift).
+- feat(api): `GET /invoices/{id}/payments` now carries `payment_date`
+  and `payment_method` from the linked payment. The UI read both off
+  this shape all along and rendered "-" and "undefined"; the service
+  already eager-loads the payment, so this costs no extra query.
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - fix(security): lock the invoice row `FOR UPDATE` on the payment and
   issue endpoints (audit S3/C2 + C4, #97). Two concurrent payments could
   both read the full `balance_due` and over-collect past the total; two

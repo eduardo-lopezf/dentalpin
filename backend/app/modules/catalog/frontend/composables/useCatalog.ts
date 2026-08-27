@@ -5,16 +5,7 @@
  * including search and filtering capabilities.
  */
 
-import type {
-  ApiResponse,
-  PaginatedResponse,
-  TreatmentCatalogCategory,
-  TreatmentCatalogCategoryCreate,
-  TreatmentCatalogCategoryUpdate,
-  TreatmentCatalogItem,
-  TreatmentCatalogItemCreate,
-  TreatmentCatalogItemUpdate
-} from '~~/app/types'
+import type { ApiResponse, Money, PaginatedResponse, TreatmentCatalogCategory, TreatmentCatalogCategoryCreate, TreatmentCatalogCategoryUpdate, TreatmentCatalogItem, TreatmentCatalogItemCreate, TreatmentCatalogItemUpdate } from '~~/app/types'
 
 export function useCatalog() {
   const api = useApi()
@@ -386,7 +377,7 @@ export function useCatalog() {
     id: string
     internal_code: string
     names: Record<string, string>
-    default_price?: number
+    default_price?: Money
     is_active: boolean
   }
 
@@ -436,7 +427,9 @@ export function useCatalog() {
   // (currency override) is ignored — kept in the signature so existing
   // callers compile without churn.
   const { format } = useCurrency()
-  function formatPrice(price: number | undefined | null, _currency?: string): string {
+  // Takes `Money`: prices arrive from the API as Decimal strings, and a
+  // formatter is exactly where the wire format stops mattering.
+  function formatPrice(price: Money | undefined | null, _currency?: string): string {
     if (price === undefined || price === null) return '-'
     return format(price)
   }

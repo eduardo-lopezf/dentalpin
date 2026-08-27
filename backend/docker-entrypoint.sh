@@ -36,8 +36,32 @@ END
 $$;
 SQL
 
-  echo "[entrypoint] Running alembic upgrade heads..."
-  alembic upgrade heads
+  # What to migrate depends on whether this database has a module
+  # registry yet (audit S1).
+  #
+  #   * No ``core_module`` table  → bootstrap. Nothing has ever been
+  #     uninstalled here, so ``upgrade heads`` is safe and creates the
+  #     whole schema in one pass.
+  #   * Registry present → migrate the core linear chain only. Module
+  #     branches are applied by the lifespan processor, which knows
+  #     which modules are installed. ``upgrade heads`` here would walk
+  #     every branch on disk and re-create the tables of a module the
+  #     admin uninstalled — issue #56's "cosmetic uninstall" one layer
+  #     up.
+  HAS_REGISTRY="$(psql "$PG_URL" -tAc "SELECT to_regclass('public.core_module') IS NOT NULL" 2>/dev/null | tr -d '[:space:]')"
+
+  if [ "$HAS_REGISTRY" = "t" ]; then
+    CORE_HEAD="$(python -c 'from app.core.plugins.alembic_paths import resolve_core_head; print(resolve_core_head() or "")')"
+    if [ -z "$CORE_HEAD" ]; then
+      echo "[entrypoint] Could not resolve the core Alembic head; refusing to guess." >&2
+      exit 1
+    fi
+    echo "[entrypoint] Running alembic upgrade $CORE_HEAD (core chain; module branches follow at startup)..."
+    alembic upgrade "$CORE_HEAD"
+  else
+    echo "[entrypoint] No module registry yet — bootstrapping with alembic upgrade heads..."
+    alembic upgrade heads
+  fi
 fi
 
 if [ "${SEED_ON_STARTUP:-0}" = "1" ]; then

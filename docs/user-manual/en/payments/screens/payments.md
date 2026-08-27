@@ -29,7 +29,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/payments/frontend/pages/payments/index.vue
   - backend/app/modules/payments/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 3568519
 ---
 
 # Payment list
@@ -95,6 +95,10 @@ reallocate it, or issue a refund from the same screen.
    and is subtracted from the *net* total.
 3. **Confirm**. `payment.refunded` is published and the row shows
    `− 50.00 €` under the gross amount.
+
+In the patient's payments panel, each row's **⋮** menu offers only
+*Refund*: there is no payment detail page, and the entry that linked
+to one has been removed — it led to a 404.
 
 ## Permissions
 

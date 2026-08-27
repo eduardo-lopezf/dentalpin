@@ -8,7 +8,7 @@ related_endpoints:
   - POST /api/v1/whatsapp_kapso/templates/sync
   - POST /api/v1/whatsapp_kapso/templates/map
   - POST /api/v1/whatsapp_kapso/test
-last_verified_commit: 0000000
+last_verified_commit: 3568519
 ---
 
 # Connect WhatsApp (Kapso)
@@ -26,6 +26,8 @@ Page at **Settings → Integrations → WhatsApp (Kapso)** (admins only).
 3. **Templates.** Click *Sync* to fetch your Meta-approved templates, then map
    each notification type (e.g. "appointment reminder") to an approved template.
 4. **Test.** Send a test message to a number to verify the connection.
+   The button locks while a send is in flight: Kapso bills per message
+   and the recipient reads every one of them.
 
 ## Replying to a patient
 

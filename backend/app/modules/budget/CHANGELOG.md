@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- fix(money): the item preview total coerces prices and discounts before
+  arithmetic (audit S5, Decimal-as-string).
+
+- fix(ui): the public accept/reject page no longer fakes success. Both
+  calls return `false` on failure; the page used to close the modal
+  regardless, so a patient could sign, see the modal close, and have the
+  clinic receive nothing. Now the modal stays open with the signature and
+  an inline error, and the buttons cannot be double-submitted (audit S5).
+
+- fix(events): publish through ``event_bus.publish_after_commit(db, ...)``
+  instead of announcing from inside the caller's open transaction.
+  Handlers read through their own sessions, so a flushed-but-uncommitted
+  row was invisible to them (audit S2). See
+  [ADR 0019](../../../../docs/adr/0019-events-publish-after-commit.md).
+
 - fix(professionals): `assigned_professional_id` on `budgets` now points
   at `professionals.id` (directory) instead of `users.id`, matching the
   `agenda`/`schedules`/`treatment_plan` directory-professional rewire

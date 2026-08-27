@@ -14,7 +14,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/patients/router.py
   - backend/app/modules/patients/frontend/pages/patients/[id].vue
-last_verified_commit: 7ead18e
+last_verified_commit: 3568519
 ---
 
 # Ficha del paciente
@@ -52,6 +52,27 @@ también deep-links — un click llega al detalle.
   Citas · Histórico / Presupuestos · Facturación · Cobros · Documentos).
 - **Mobile** — la cabecera se condensa, las cards se apilan a una
   columna y aparece una barra inferior fija (Cita · Cobrar · Nota).
+
+## Qué pasa cuando algo falla
+
+Esta ficha reúne superficies de varios módulos, y todas comparten las
+mismas reglas de seguridad:
+
+- **Una nota clínica no se pierde.** Si el guardado falla, el composer
+  se queda abierto con el texto escrito y el aviso de error. Antes se
+  limpiaba el campo aunque no se hubiera guardado nada.
+- **Borrar una nota pide confirmación** en las cinco superficies que
+  la ofrecen (cita, diagnóstico, plan, tratamiento, notas recientes).
+  El endpoint no tiene deshacer.
+- **Editar un tratamiento del odontograma** mantiene tus cambios en
+  pantalla si el guardado falla, y borrarlo pide confirmación: puede
+  estar ya facturado.
+- **Responder por WhatsApp** ignora un segundo Enter mientras el
+  mensaje está en vuelo. Cada envío se factura y lo lee el paciente.
+- **Ningún listado esconde datos en silencio.** El historial de
+  cambios del odontograma indica *Mostrando N de M* y ofrece cargar
+  los anteriores; la galería de documentos y la actividad paginan de
+  verdad.
 
 ## Editar identidad
 

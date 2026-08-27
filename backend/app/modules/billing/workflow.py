@@ -274,7 +274,8 @@ class InvoiceWorkflowService:
 
         await db.flush()
 
-        await event_bus.publish(
+        event_bus.publish_after_commit(
+            db,
             EventType.INVOICE_ISSUED,
             {
                 "clinic_id": str(invoice.clinic_id),
@@ -458,7 +459,8 @@ class InvoiceWorkflowService:
             await db.flush()
 
             if invoice.status == "paid":
-                await event_bus.publish(
+                event_bus.publish_after_commit(
+                    db,
                     EventType.INVOICE_PAID,
                     {
                         "clinic_id": str(invoice.clinic_id),

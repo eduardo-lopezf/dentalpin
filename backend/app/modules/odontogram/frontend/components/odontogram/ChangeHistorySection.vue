@@ -7,11 +7,21 @@ const props = defineProps<{
   history: OdontogramHistoryEntry[]
   treatments: Treatment[]
   loading?: boolean
+  /** Rows the server has, so the panel can say what it is not showing. */
+  total?: number
+  loadingMore?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:expanded': [value: boolean]
+  'load-more': []
 }>()
+
+// The API pages this at 50. Showing 50 of 300 with nothing to say so is
+// how a clinical history quietly loses its older half (audit S5).
+const hiddenCount = computed(() =>
+  Math.max((props.total ?? props.history.length) - props.history.length, 0)
+)
 
 const { t } = useI18n()
 
@@ -354,6 +364,24 @@ function formatDateTime(dateStr: string | Date): string {
             </div>
           </div>
         </div>
+      </div>
+
+      <div
+        v-if="hiddenCount > 0"
+        class="flex flex-col items-center gap-1 pt-3"
+      >
+        <UButton
+          variant="ghost"
+          size="xs"
+          icon="i-lucide-chevron-down"
+          :loading="loadingMore"
+          @click="emit('load-more')"
+        >
+          {{ t('odontogram.history.loadMore') }}
+        </UButton>
+        <span class="text-caption text-subtle">
+          {{ t('odontogram.history.showing', { shown: history.length, total: total ?? history.length }) }}
+        </span>
       </div>
     </div>
   </div>

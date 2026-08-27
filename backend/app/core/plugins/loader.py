@@ -162,6 +162,29 @@ def _mount_one(app: FastAPI, module: BaseModule) -> None:
     module_registry.activate(module.name)
 
 
+def unmount_module(module: BaseModule) -> None:
+    """Undo :func:`_mount_one` — the symmetry uninstall never had.
+
+    Routes cannot be un-included from a running FastAPI app, and they
+    do not need to be: the module stops answering because
+    :data:`~app.core.plugins.gate.module_gate` blocks it now and the
+    next boot does not mount it. Everything else can and must be undone
+    in-process — a handler left on the bus keeps firing against dropped
+    tables (its exception swallowed by the bus), and a copilot tool
+    stays callable long after its data is gone.
+    """
+    from app.core.agents.tools.registry import tool_registry
+    from app.core.events import event_bus
+
+    for event_type, handler in module.get_event_handlers().items():
+        event_bus.unsubscribe(event_type, handler)
+        logger.info("Unsubscribed %s from event: %s", module.name, event_type)
+
+    tool_registry.unregister_module(module.name)
+    module_registry.deactivate(module.name)
+    logger.info("Unmounted module: %s", module.name)
+
+
 def discover_and_register() -> list[BaseModule]:
     """Discover modules and put them in the registry — nothing more.
 
@@ -208,6 +231,14 @@ def mount_active(app: FastAPI, installed: Iterable[str]) -> list[str]:
     """
     wanted = set(installed)
     mounted: list[str] = []
+
+    # Mounting is authoritative, not additive: whatever is live now gets
+    # taken down first, so afterwards the runtime surface is exactly
+    # ``wanted``. In a fresh process this is a no-op — it matters when a
+    # boot sequence runs twice in one process, where re-registering a
+    # module's tools would otherwise raise ``ToolRegistryError``.
+    for live in module_registry.list_modules():
+        unmount_module(live)
 
     for module in _resolve_load_order(module_registry.list_discovered()):
         if module.name not in wanted:

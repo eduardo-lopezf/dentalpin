@@ -226,13 +226,11 @@ function openRefund(entry: PatientLedgerEntry) {
 
 function rowMenuItems(entry: PatientLedgerEntry) {
   if (entry.entry_type !== 'payment') return []
-  const items: Array<{ label: string, icon: string, to?: string, onSelect?: () => void, color?: string }> = [
-    {
-      label: t('payments.patientPanel.timeline.rowMenu.detail'),
-      icon: 'i-lucide-eye',
-      to: `/payments/${entry.reference_id}`
-    }
-  ]
+  // There is no `/payments/[id]` page — the payments layer ships only the
+  // list — so the "detail" entry that used to sit here always 404'd. An
+  // absent affordance beats a broken promise; a real detail view (refunds
+  // + allocations for one payment) is a feature, not a fix.
+  const items: Array<{ label: string, icon: string, to?: string, onSelect?: () => void, color?: string }> = []
   if (canRefund.value) {
     items.push({
       label: t('payments.patientPanel.timeline.rowMenu.refund'),
@@ -447,7 +445,7 @@ function handleRefunded() {
                 {{ entryAmountSign(entry) }}
               </span>
               <UDropdownMenu
-                v-if="entry.entry_type === 'payment'"
+                v-if="entry.entry_type === 'payment' && rowMenuItems(entry).length"
                 :items="rowMenuItems(entry)"
               >
                 <UButton
@@ -455,7 +453,7 @@ function handleRefunded() {
                   color="neutral"
                   icon="i-lucide-more-vertical"
                   size="xs"
-                  :aria-label="t('payments.patientPanel.timeline.rowMenu.detail')"
+                  :aria-label="t('payments.patientPanel.timeline.rowMenu.refund')"
                 />
               </UDropdownMenu>
             </div>

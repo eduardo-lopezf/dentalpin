@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- fix(money): `formatPrice` takes `Money`; the VAT edit form converts the
+  rate at the boundary instead of assuming a number.
+
+- fix(ui): catalog pagination works — same Nuxt UI v2-props-on-v4
+  problem as media (`@update:model-value` never fires; the component
+  emits `update:page`).
+
 - feat(seed): a clinic created through `/api/v1/auth/setup` now gets its
   baseline catalog — VAT types, categories, items and specialties. Core
   publishes the new `clinic.created` event and this module seeds itself off

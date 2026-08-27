@@ -7,12 +7,7 @@
  * - Switching between live and historical view
  */
 
-import type {
-  ApiResponse,
-  OdontogramData,
-  ToothRecord,
-  Treatment
-} from '~~/app/types'
+import type { ApiResponse, Money, OdontogramData, ToothRecord, Treatment } from '~~/app/types'
 
 export function useOdontogramTimeline() {
   const api = useApi()
@@ -55,7 +50,7 @@ export function useOdontogramTimeline() {
     try {
       const response = await api.get<ApiResponse<{
         dates: Array<{ date: string, change_count: number }>
-        total: number
+        total: Money
       }>>(
         `/api/v1/odontogram/patients/${patientId}/odontogram/timeline`
       )
