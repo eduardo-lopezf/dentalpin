@@ -49,12 +49,16 @@ flujo (programada → confirmada → en sala → completada → cobrada).
   hora o profesional para moverla; arrastra su borde inferior para
   cambiarle la duración. Si solapa con otra del mismo profesional o
   gabinete, sale un aviso pero la operación se guarda.
-- **En tablet, el arrastre todavía no funciona** — crear arrastrando,
-  mover y redimensionar están implementados solo con eventos de ratón,
-  que Chrome en Android no emite mientras el dedo se desplaza. En
-  tablet usa **Nueva cita** y el modal para crear, y edita la cita para
-  cambiarle la hora o la duración. Lo mismo en kanban: las tarjetas no
-  se pueden arrastrar entre columnas con el dedo.
+- **En tablet, con el dedo** — toca una cita para abrirla; mantén
+  pulsado unos instantes para **seleccionarla** (se resalta y le crece
+  el asa inferior) y entonces arrástrala para moverla o tira del asa
+  para cambiarle la duración. Toca un hueco libre para crear ahí: la
+  duración se elige en el modal, no arrastrando. En kanban, mantén
+  pulsada una tarjeta y arrástrala a otra columna.
+- **En tablet, la orientación cambia la disposición, no los gestos** —
+  en vertical el kanban reparte sus columnas en dos filas en lugar de
+  desplazarse en horizontal. Girar la tablet nunca cambia cómo
+  funciona un gesto.
 - **Conflictos del backend** — si el servidor rechaza una cita por
   solape (HTTP 409) el calendario refresca la vista y muestra un
   *toast* de error; nada queda inconsistente.

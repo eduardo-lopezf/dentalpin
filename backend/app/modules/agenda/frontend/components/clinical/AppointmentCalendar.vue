@@ -85,42 +85,112 @@ watch(() => props.currentWeekStart, () => {
   void refreshBounds()
 }, { immediate: true })
 
-const { density: _calendarDensity } = useDensity()
+// `effective`, not `density`: the preference can still say "compact"
+// while a coarse pointer forces the touch scale, and the CSS variable
+// follows `effective`. Reading the preference here would put the drag
+// maths 10 px per slot out of step with what is drawn.
+const { effective: _calendarDensity } = useDensity()
 function getSlotHeight() {
   return _calendarDensity.value === 'compact' ? 18 : 28
 }
 
-// Drag state
-const dragState = ref<{
-  type: 'move' | 'resize' | null
-  appointmentId: string | null
-  startY: number
-  startX: number
-  originalTop: number
-  originalHeight: number
-  originalDayIndex: number
-  currentDayIndex: number
-  currentTop: number
-  currentHeight: number
-} | null>(null)
-
-// Create drag state (drag on empty slot to define duration)
-const createDragState = ref<{
-  date: Date
-  dayIndex: number
-  startSlot: number
-  currentSlot: number
-  startY: number
-} | null>(null)
-
 const calendarRef = ref<HTMLElement | null>(null)
-const wasDragging = ref(false)
-const hasMoved = ref(false)
 
-onUnmounted(() => {
-  document.removeEventListener('mousemove', handleDragMove)
-  document.removeEventListener('mouseup', handleDragEnd)
+const {
+  dragState,
+  createDragState,
+  selectedId,
+  wasDragging,
+  isTouch,
+  onCellPointerDown,
+  onAppointmentPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
+  clearSelection
+} = useSlotGridDrag({
+  slotHeight: getSlotHeight,
+  maxSlotIndex: () => (endHour.value - startHour.value) * SLOTS_PER_HOUR - 1,
+  columnCount: () => weekDays.value.length,
+  gutterColumns: 1,
+  containerRef: calendarRef,
+
+  onCreateRange: (dayIndex, startSlot, endSlot) => {
+    const day = weekDays.value[dayIndex]
+    if (day) emit('slot-drag-create', day, slotIndexToTime(startSlot), slotIndexToTime(endSlot))
+  },
+
+  onCreatePoint: (dayIndex, slot) => {
+    const day = weekDays.value[dayIndex]
+    if (day) emit('slot-click', day, slotIndexToTime(slot))
+  },
+
+  onMove: (appointmentId, dayIndex, startSlot, endSlot) => {
+    const appointment = props.appointments.find(a => a.id === appointmentId)
+    const day = weekDays.value[dayIndex]
+    if (!appointment || !day) return
+
+    const newDate = formatLocalDate(day)
+    const newStartTime = slotIndexToTime(startSlot)
+    const oldDate = appointment.start_time.split('T')[0]
+    const oldStartTime = appointment.start_time.split('T')[1]?.substring(0, 5) ?? ''
+
+    if (newDate === oldDate && newStartTime === oldStartTime) return
+    emit('appointment-move', appointmentId, newDate, newStartTime, slotIndexToTime(endSlot))
+  },
+
+  onResize: (appointmentId, endSlot) => {
+    const appointment = props.appointments.find(a => a.id === appointmentId)
+    if (!appointment) return
+
+    const newEndTime = slotIndexToTime(endSlot)
+    const oldEndTime = appointment.end_time.split('T')[1]?.substring(0, 5) ?? ''
+    if (newEndTime === oldEndTime) return
+    emit('appointment-resize', appointmentId, newEndTime)
+  }
 })
+
+// A selection is about one specific block; carrying it across a week
+// change would leave an off-screen block holding `touch-action: none`.
+watch(() => props.currentWeekStart, () => clearSelection())
+
+/** Slot bounds of an appointment, for handing to the drag composable. */
+function appointmentSlots(appointment: Appointment): { start: number, end: number } {
+  const startTime = appointment.start_time.split('T')[1]?.substring(0, 5) ?? '08:00'
+  const endTime = appointment.end_time.split('T')[1]?.substring(0, 5) ?? '08:15'
+  return { start: getSlotIndex(startTime), end: getSlotIndex(endTime) }
+}
+
+function startAppointmentDrag(
+  type: 'move' | 'resize',
+  appointment: Appointment,
+  event: PointerEvent
+) {
+  const { start, end } = appointmentSlots(appointment)
+  const aptDate = appointment.start_time.split('T')[0]
+  const dayIndex = weekDays.value.findIndex(d => formatLocalDate(d) === aptDate)
+  onAppointmentPointerDown(type, appointment.id, dayIndex, start, end, event)
+}
+
+/**
+ * Tap-to-create. A finger gets no drag on empty space (see
+ * useSlotGridDrag), so the click is what opens the modal; a mouse
+ * already emitted from the drag's own release and must not fire twice.
+ */
+function onCellClick(dayIndex: number, slotIndex: number) {
+  if (!isTouch.value) return
+  const day = weekDays.value[dayIndex]
+  if (day) emit('slot-click', day, slotIndexToTime(slotIndex))
+}
+
+/**
+ * `touch-action: none` is what stops the browser scrolling instead of
+ * dragging — but only on the selected block, so the grid stays
+ * scrollable everywhere the user has not pointed at yet.
+ */
+function getTouchActionStyle(appointment: Appointment): Record<string, string> {
+  return selectedId.value === appointment.id ? { touchAction: 'none' } : {}
+}
 
 // Generate time slots
 const timeSlots = computed(() => {
@@ -228,7 +298,7 @@ function getAppointmentStyle(appointment: Appointment): Record<string, string> {
 // Get the day index for drag preview
 function getAppointmentDayIndex(appointment: Appointment): number {
   if (dragState.value?.appointmentId === appointment.id && dragState.value.type === 'move') {
-    return dragState.value.currentDayIndex
+    return dragState.value.currentColumnIndex
   }
   const aptDate = appointment.start_time.split('T')[0]
   return weekDays.value.findIndex(d => formatLocalDate(d) === aptDate)
@@ -326,178 +396,14 @@ function getStatusIcon(status: Appointment['status']): string {
   }
 }
 
-// Handle drag-to-create on empty slot
-function startCreateDrag(date: Date, timeSlot: string, dayIndex: number, event: MouseEvent) {
-  if (dragState.value) return
-  event.preventDefault()
-
-  const startSlot = getSlotIndex(timeSlot)
-  createDragState.value = {
-    date,
-    dayIndex,
-    startSlot,
-    currentSlot: startSlot,
-    startY: event.clientY
-  }
-
-  document.addEventListener('mousemove', handleDragMove)
-  document.addEventListener('mouseup', handleDragEnd)
-}
-
-// Handle appointment click
+// Tap or click an appointment. Suppressed right after a drag so
+// releasing a moved appointment does not also open it.
 function handleAppointmentClick(appointment: Appointment, event: Event) {
-  if (dragState.value || wasDragging.value) return // Don't trigger click during/after drag
+  if (dragState.value || wasDragging.value) return
   event.stopPropagation()
   emit('appointment-click', appointment)
 }
 
-// Drag handlers
-function startDrag(appointment: Appointment, event: MouseEvent, type: 'move' | 'resize') {
-  event.preventDefault()
-  event.stopPropagation()
-
-  const startTime = appointment.start_time.split('T')[1]?.substring(0, 5) ?? '08:00'
-  const endTime = appointment.end_time.split('T')[1]?.substring(0, 5) ?? '08:15'
-  const startSlot = getSlotIndex(startTime)
-  const endSlot = getSlotIndex(endTime)
-  const aptDate = appointment.start_time.split('T')[0]
-  const dayIndex = weekDays.value.findIndex(d => formatLocalDate(d) === aptDate)
-
-  dragState.value = {
-    type,
-    appointmentId: appointment.id,
-    startY: event.clientY,
-    startX: event.clientX,
-    originalTop: startSlot * getSlotHeight(),
-    originalHeight: Math.max(1, endSlot - startSlot) * getSlotHeight(),
-    originalDayIndex: dayIndex,
-    currentDayIndex: dayIndex,
-    currentTop: startSlot * getSlotHeight(),
-    currentHeight: Math.max(1, endSlot - startSlot) * getSlotHeight()
-  }
-
-  document.addEventListener('mousemove', handleDragMove)
-  document.addEventListener('mouseup', handleDragEnd)
-}
-
-function handleDragMove(event: MouseEvent) {
-  if (createDragState.value) {
-    const deltaY = event.clientY - createDragState.value.startY
-    const slotDelta = Math.floor(deltaY / getSlotHeight())
-    const maxSlot = (endHour.value - startHour.value) * SLOTS_PER_HOUR - 1
-    createDragState.value.currentSlot = Math.max(
-      createDragState.value.startSlot,
-      Math.min(maxSlot, createDragState.value.startSlot + slotDelta)
-    )
-    return
-  }
-
-  if (!dragState.value) return
-
-  const deltaY = event.clientY - dragState.value.startY
-  const deltaX = event.clientX - dragState.value.startX
-
-  // Detect if there was significant movement (more than 5 pixels)
-  if (Math.abs(deltaY) > 5 || Math.abs(deltaX) > 5) {
-    hasMoved.value = true
-  }
-
-  if (dragState.value.type === 'resize') {
-    // Resize: change height
-    const newHeight = Math.max(getSlotHeight(), dragState.value.originalHeight + deltaY)
-    // Snap to slot boundaries
-    const slots = Math.round(newHeight / getSlotHeight())
-    dragState.value.currentHeight = slots * getSlotHeight()
-  } else if (dragState.value.type === 'move') {
-    // Move: change position and potentially day
-    const newTop = Math.max(0, dragState.value.originalTop + deltaY)
-    // Snap to slot boundaries
-    const slots = Math.round(newTop / getSlotHeight())
-    const maxSlots = (endHour.value - startHour.value) * SLOTS_PER_HOUR - Math.round(dragState.value.currentHeight / getSlotHeight())
-    dragState.value.currentTop = Math.min(slots, maxSlots) * getSlotHeight()
-
-    // Calculate day change based on horizontal movement
-    // Estimate column width (calendar width / 8 columns, first is time)
-    if (calendarRef.value) {
-      const calendarWidth = calendarRef.value.offsetWidth
-      const columnWidth = calendarWidth / 8
-      const dayDelta = Math.round(deltaX / columnWidth)
-      const newDayIndex = Math.max(0, Math.min(6, dragState.value.originalDayIndex + dayDelta))
-      dragState.value.currentDayIndex = newDayIndex
-    }
-  }
-}
-
-function handleDragEnd() {
-  document.removeEventListener('mousemove', handleDragMove)
-  document.removeEventListener('mouseup', handleDragEnd)
-
-  if (createDragState.value) {
-    const { date, startSlot, currentSlot } = createDragState.value
-    createDragState.value = null
-    const startTime = slotIndexToTime(startSlot)
-    if (currentSlot > startSlot) {
-      emit('slot-drag-create', date, startTime, slotIndexToTime(currentSlot + 1))
-    } else {
-      emit('slot-click', date, startTime)
-    }
-    return
-  }
-
-  // Only set flag if there was actual movement
-  if (hasMoved.value) {
-    wasDragging.value = true
-    setTimeout(() => {
-      wasDragging.value = false
-    }, 100)
-  }
-  hasMoved.value = false
-
-  if (!dragState.value || !dragState.value.appointmentId) {
-    dragState.value = null
-    return
-  }
-
-  const appointment = props.appointments.find(a => a.id === dragState.value?.appointmentId)
-  if (!appointment) {
-    dragState.value = null
-    return
-  }
-
-  if (dragState.value.type === 'resize') {
-    // Calculate new end time
-    const startTime = appointment.start_time.split('T')[1]?.substring(0, 5) ?? '08:00'
-    const startSlot = getSlotIndex(startTime)
-    const newEndSlot = startSlot + Math.round(dragState.value.currentHeight / getSlotHeight())
-    const newEndTime = slotIndexToTime(newEndSlot)
-
-    // Only emit if changed
-    const oldEndTime = appointment.end_time.split('T')[1]?.substring(0, 5) ?? ''
-    if (newEndTime !== oldEndTime) {
-      emit('appointment-resize', dragState.value.appointmentId, newEndTime)
-    }
-  } else if (dragState.value.type === 'move') {
-    // Calculate new date and times
-    const newStartSlot = Math.round(dragState.value.currentTop / getSlotHeight())
-    const durationSlots = Math.round(dragState.value.currentHeight / getSlotHeight())
-    const newEndSlot = newStartSlot + durationSlots
-
-    const newStartTime = slotIndexToTime(newStartSlot)
-    const newEndTime = slotIndexToTime(newEndSlot)
-    const dayAtIndex = weekDays.value[dragState.value.currentDayIndex]
-    const newDate = dayAtIndex ? formatLocalDate(dayAtIndex) : ''
-
-    // Only emit if changed
-    const oldDate = appointment.start_time.split('T')[0]
-    const oldStartTime = appointment.start_time.split('T')[1]?.substring(0, 5) ?? ''
-
-    if (newDate !== oldDate || newStartTime !== oldStartTime) {
-      emit('appointment-move', dragState.value.appointmentId, newDate, newStartTime, newEndTime)
-    }
-  }
-
-  dragState.value = null
-}
 
 // Format week range for header
 const weekRangeText = computed(() => {
@@ -690,6 +596,9 @@ const allAppointmentsWithDayIndex = computed(() => {
       v-else
       ref="calendarRef"
       class="flex-1 overflow-auto ring-1 ring-[var(--color-border)] rounded-token-lg"
+      @pointermove="onPointerMove"
+      @pointerup="onPointerUp"
+      @pointercancel="onPointerCancel"
     >
       <!-- data-dense: the grid is a time canvas, not a toolbar. It opts
            out of the global touch minimum sizes so a 15-minute slot
@@ -742,7 +651,8 @@ const allAppointmentsWithDayIndex = computed(() => {
                 'bg-[var(--color-primary-soft)]/40': isToday(day),
                 'border-[var(--color-border)]': slotIndex % SLOTS_PER_HOUR === 0
               }"
-              @mousedown="startCreateDrag(day, slot, dayIdx, $event)"
+              @pointerdown="onCellPointerDown(dayIdx, slotIndex, $event)"
+              @click="onCellClick(dayIdx, slotIndex)"
             />
           </div>
 
@@ -775,7 +685,7 @@ const allAppointmentsWithDayIndex = computed(() => {
 
                 <!-- Ghost block during drag-to-create -->
                 <div
-                  v-if="createDragState && createDragState.dayIndex === dayIndex"
+                  v-if="createDragState && createDragState.columnIndex === dayIndex"
                   class="absolute left-1 right-1 rounded border-2 border-dashed border-[var(--color-primary)] bg-[var(--color-primary-soft)] pointer-events-none z-40 flex items-start p-1"
                   :style="{
                     top: `${createDragState.startSlot * getSlotHeight()}px`,
@@ -798,11 +708,17 @@ const allAppointmentsWithDayIndex = computed(() => {
                   :class="[
                     getStatusClass(appointment.status),
                     dragState?.appointmentId === appointment.id ? 'cursor-grabbing ring-2 ring-primary-500' : 'cursor-grab hover:ring-2 hover:ring-primary-500',
+                    selectedId === appointment.id ? 'ring-2 ring-primary-500 shadow-token-md z-40' : '',
                     highlightedAppointmentId === appointment.id ? 'ring-4 ring-warning-500 animate-pulse z-50' : ''
                   ]"
-                  :style="{ ...getAppointmentStyle(appointment), ...getAppointmentColorStyle(appointment), ...getOverlapStyle(appointment) }"
+                  :style="{
+                    ...getAppointmentStyle(appointment),
+                    ...getAppointmentColorStyle(appointment),
+                    ...getOverlapStyle(appointment),
+                    ...getTouchActionStyle(appointment)
+                  }"
                   @click="handleAppointmentClick(appointment, $event)"
-                  @mousedown="startDrag(appointment, $event, 'move')"
+                  @pointerdown="startAppointmentDrag('move', appointment, $event)"
                 >
                   <!-- Content -->
                   <div class="px-1.5 h-full flex flex-col py-0.5 relative">
@@ -819,7 +735,7 @@ const allAppointmentsWithDayIndex = computed(() => {
                     <div
                       class="absolute top-0.5 left-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-20"
                       @click.stop
-                      @mousedown.stop
+                      @pointerdown.stop
                     >
                       <AppointmentQuickActions :appointment="appointment" dense />
                     </div>
@@ -847,12 +763,24 @@ const allAppointmentsWithDayIndex = computed(() => {
                     </div>
                   </div>
 
-                  <!-- Resize handle -->
+                  <!-- Resize handle. 8 px is fine for a mouse and hopeless
+                       for a finger, so a selected block grows it to 20 px
+                       and paints it — by then the block has been
+                       deliberately picked, and the grab bar is the only
+                       affordance that needs to be reachable. -->
                   <div
-                    class="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                    @mousedown.stop="startDrag(appointment, $event, 'resize')"
+                    class="absolute bottom-0 left-0 right-0 cursor-ns-resize transition-colors"
+                    :class="selectedId === appointment.id
+                      ? 'h-5 bg-primary-500/20'
+                      : 'h-2 hover:bg-black/10 dark:hover:bg-white/10'"
+                    @pointerdown.stop="startAppointmentDrag('resize', appointment, $event)"
                   >
-                    <div class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-current opacity-30 rounded" />
+                    <div
+                      class="absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded bg-current"
+                      :class="selectedId === appointment.id
+                        ? 'w-10 h-1 opacity-70'
+                        : 'w-8 h-0.5 opacity-30'"
+                    />
                   </div>
                 </div>
               </div>

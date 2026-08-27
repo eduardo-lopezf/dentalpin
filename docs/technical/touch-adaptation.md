@@ -111,23 +111,55 @@ client at mount, and the dev server hydrates well past the default 5 s
 expect timeout on a cold module graph. Wait for `html[data-ua]` — written
 by `useDevice`'s mount hook — before asserting.
 
+## Dragging by touch
+
+The agenda's grids and kanban run on Pointer Events, which cover mouse,
+finger and stylus in one code path. The gestures differ by pointer kind
+because the constraints do:
+
+| Gesture | Mouse | Finger |
+|---|---|---|
+| Open an appointment | click | tap |
+| Move / resize | press and drag | long-press to select, then drag |
+| Create | drag over empty slots to size it | tap a slot, set duration in the modal |
+| Kanban: move a card | press and drag | long-press, then drag |
+
+Two constraints shape all of it, and they are worth knowing before
+changing anything here:
+
+**A press is ambiguous with a scroll.** That is why a finger needs a
+long press (300 ms, cancelled by 10 px of movement) before anything is
+picked up. A mouse has no such ambiguity and drags immediately.
+
+**`touch-action: none` is the only thing that stops the browser
+scrolling instead of dragging**, and it has to be in place *before* the
+gesture starts. The grids solve this with selection: the style lands on
+the block a long press selected, so the grid stays scrollable everywhere
+else. The kanban has no selection concept, so it attaches a non-passive
+`touchmove` blocker when the long press fires — which works precisely
+because the long press guarantees the finger was still, so no scroll has
+been claimed yet.
+
+Drag-to-size on an empty slot is deliberately not offered by touch: it
+would need `touch-action: none` across the whole canvas, trading
+scrolling everywhere for one field that the modal already has.
+
+`useSlotGridDrag` holds the shared implementation for the week and day
+grids, which are the same grid with a different column axis.
+
 ## Known gaps
 
 These are not covered yet and are tracked as follow-up work:
 
-- **Agenda drag and drop is mouse-only.** `AppointmentCalendar` and
-  `AppointmentDailyView` drive create/move/resize from `mousedown` plus
-  document `mousemove`; Chrome on Android emits those only as
-  compatibility events after the finger lifts, so the drag never tracks.
-  `AppointmentKanbanView` uses HTML5 drag and drop, which Chrome on
-  Android does not implement for touch at all. The fix is Pointer Events
-  with `setPointerCapture`, plus long-press to disambiguate drag from tap.
-- **Appointment quick actions are unreachable on touch.** They are
-  hover-revealed inside a `data-dense` block, where the global
-  hover-reveal override does not apply — an always-visible button would
-  land on top of the patient's name in a 28 px block. Needs the block
-  redesigned.
+- **Appointment quick actions are still hover-revealed.** They sit
+  inside a `data-dense` block, where the global hover-reveal override
+  does not apply, because an always-visible button lands on the
+  patient's name in a 28 px block. Reaching them by touch needs the
+  block redesigned — tapping the appointment and using the modal is the
+  route today.
 - **Periodontal charting is 14 px cells.** Needs a dedicated touch entry
   mode with an on-screen numeric keypad and auto-advance.
-- **Kanban columns do not respond to orientation.** Five columns scroll
-  horizontally in both, wasting the height a portrait tablet has.
+- **The agenda spends ~48 px on a date-navigator row** that each of the
+  three view components renders for itself. Merging it into the page
+  header would return about 7% of the visible day on an 800 px-tall
+  screen, and would drop triplicated markup.

@@ -198,52 +198,165 @@ function nextForCabinet(cabinetName: string): Appointment | null {
 }
 
 // ---------------------------------------------------------------------
-// Drag-and-drop (HTML5). Re-uses the "snap-to-column" pattern from the
-// daily view but applies it to status columns (and cabinet sub-buckets
-// inside the "in chair" column).
+// Drag-and-drop (Pointer Events).
+//
+// This used to be HTML5 drag-and-drop (`draggable`, `dataTransfer`),
+// which Chrome on Android does not implement for touch at all — moving
+// a card between columns was impossible on a tablet, not merely
+// awkward. Pointer Events cover mouse, finger and stylus in one path.
+//
+// The drop target is found by hit-testing under the pointer rather than
+// by `dragover` on each column, because a captured pointer delivers
+// every move to the card, not to whatever is underneath it.
 // ---------------------------------------------------------------------
 interface DragState {
   appointmentId: string
   targetColumnId: string | null
   targetCabinetName: string | null
+  /** Card label, drawn under the pointer while dragging. */
+  label: string
+  x: number
+  y: number
 }
 const drag = ref<DragState | null>(null)
 
-function onDragStart(apt: Appointment, e: DragEvent) {
+const { isTouch, isPortrait } = useDevice()
+
+/** How long a finger must rest on a card before it starts dragging. */
+const LONG_PRESS_MS = 300
+/** Movement that cancels a pending long press — the user is scrolling. */
+const LONG_PRESS_SLOP_PX = 10
+
+let longPressTimer: ReturnType<typeof setTimeout> | null = null
+let pressOrigin: { x: number, y: number } | null = null
+let capturedEl: HTMLElement | null = null
+let capturedPointerId: number | null = null
+
+/**
+ * Once a touch drag is under way the browser must not also scroll. A
+ * non-passive `touchmove` blocker is the only thing that stops it: the
+ * long press guarantees the finger was still, so no scroll has been
+ * claimed yet and preventDefault still bites.
+ */
+function blockTouchScroll(e: TouchEvent) {
+  e.preventDefault()
+}
+
+function armTouchScrollBlock() {
+  document.addEventListener('touchmove', blockTouchScroll, { passive: false })
+}
+
+function releaseTouchScrollBlock() {
+  document.removeEventListener('touchmove', blockTouchScroll)
+}
+
+function cancelLongPress() {
+  if (longPressTimer !== null) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
+  }
+  pressOrigin = null
+}
+
+function beginDrag(apt: Appointment, event: PointerEvent) {
   drag.value = {
     appointmentId: apt.id,
     targetColumnId: null,
-    targetCabinetName: null
-  }
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', apt.id)
+    targetCabinetName: null,
+    label: apt.patient ? `${apt.patient.first_name} ${apt.patient.last_name}` : t('appointments.noPatient', 'Sin paciente'),
+    x: event.clientX,
+    y: event.clientY
   }
 }
 
-function onDragEnd() {
+function onCardPointerDown(apt: Appointment, event: PointerEvent) {
+  const el = event.currentTarget as HTMLElement | null
+  if (el) {
+    capturedEl = el
+    capturedPointerId = event.pointerId
+    el.setPointerCapture(event.pointerId)
+  }
+
+  if (!isTouch.value) {
+    beginDrag(apt, event)
+    return
+  }
+
+  // A press by finger might still be a scroll, so wait it out.
+  pressOrigin = { x: event.clientX, y: event.clientY }
+  longPressTimer = setTimeout(() => {
+    longPressTimer = null
+    armTouchScrollBlock()
+    beginDrag(apt, event)
+  }, LONG_PRESS_MS)
+}
+
+/** Resolve what sits under the pointer into a column and cabinet. */
+function hitTest(x: number, y: number): { col: ColumnDef | null, cabinetName: string | null } {
+  const el = document.elementFromPoint(x, y)
+  const columnEl = el?.closest<HTMLElement>('[data-kanban-column]')
+  const cabinetEl = el?.closest<HTMLElement>('[data-kanban-cabinet]')
+  const col = COLUMNS.find(c => c.id === columnEl?.dataset.kanbanColumn) ?? null
+  return { col, cabinetName: cabinetEl?.dataset.kanbanCabinet ?? null }
+}
+
+function onDragPointerMove(event: PointerEvent) {
+  if (pressOrigin) {
+    const moved = Math.hypot(event.clientX - pressOrigin.x, event.clientY - pressOrigin.y)
+    if (moved > LONG_PRESS_SLOP_PX) cancelLongPress()
+  }
+
+  const state = drag.value
+  if (!state) return
+
+  const apt = props.appointments.find(a => a.id === state.appointmentId)
+  if (!apt) return
+
+  const { col, cabinetName } = hitTest(event.clientX, event.clientY)
+  const droppable = col && canDropOn(apt, col)
+
+  drag.value = {
+    ...state,
+    x: event.clientX,
+    y: event.clientY,
+    targetColumnId: droppable ? col.id : null,
+    targetCabinetName: droppable ? cabinetName : null
+  }
+}
+
+function endPointerGesture() {
+  cancelLongPress()
+  releaseTouchScrollBlock()
+  if (capturedEl && capturedPointerId !== null && capturedEl.hasPointerCapture(capturedPointerId)) {
+    capturedEl.releasePointerCapture(capturedPointerId)
+  }
+  capturedEl = null
+  capturedPointerId = null
+}
+
+async function onDragPointerUp() {
+  const state = drag.value
+  endPointerGesture()
+  if (!state) return
+
+  const col = COLUMNS.find(c => c.id === state.targetColumnId)
+  if (!col) {
+    // Released outside any valid column — treat as a cancelled drag.
+    drag.value = null
+    return
+  }
+  await commitDrop(col, state.targetCabinetName ?? undefined)
+}
+
+function onDragPointerCancel() {
+  endPointerGesture()
   drag.value = null
 }
 
-function onDragOverColumn(col: ColumnDef, e: DragEvent, cabinetName?: string) {
-  if (!drag.value) return
-  const apt = props.appointments.find(a => a.id === drag.value!.appointmentId)
-  if (!apt) return
-  if (!canDropOn(apt, col)) return
-  e.preventDefault()
-  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
-  drag.value = {
-    ...drag.value,
-    targetColumnId: col.id,
-    targetCabinetName: cabinetName ?? null
-  }
-}
-
-function onDragLeaveColumn(col: ColumnDef) {
-  if (drag.value?.targetColumnId === col.id) {
-    drag.value = { ...drag.value, targetColumnId: null, targetCabinetName: null }
-  }
-}
+onUnmounted(() => {
+  cancelLongPress()
+  releaseTouchScrollBlock()
+})
 
 function canDropOn(apt: Appointment, col: ColumnDef): boolean {
   if (col.statuses.includes(apt.status)) {
@@ -259,8 +372,7 @@ function cabinetIdByName(name: string): string | null {
   return props.cabinets.find(c => c.name === name)?.id ?? null
 }
 
-async function onDrop(col: ColumnDef, e: DragEvent, cabinetName?: string) {
-  e.preventDefault()
+async function commitDrop(col: ColumnDef, cabinetName?: string) {
   if (!drag.value) return
   const aptId = drag.value.appointmentId
   const apt = props.appointments.find(a => a.id === aptId)
@@ -440,7 +552,23 @@ function isInvalidHint(col: ColumnDef): boolean {
 </script>
 
 <template>
-  <div class="flex flex-col h-full w-full min-w-0">
+  <div
+    class="flex flex-col h-full w-full min-w-0"
+    @pointermove="onDragPointerMove"
+    @pointerup="onDragPointerUp"
+    @pointercancel="onDragPointerCancel"
+  >
+    <!-- Drag ghost. Without something following the pointer a touch drag
+         reads as "nothing happened" until the finger is lifted. -->
+    <Teleport to="body">
+      <div
+        v-if="drag"
+        class="pointer-events-none fixed z-[100] -translate-x-1/2 -translate-y-1/2 rounded-md bg-surface px-3 py-2 text-ui text-default shadow-token-lg ring-1 ring-[var(--color-primary)]"
+        :style="{ left: `${drag.x}px`, top: `${drag.y}px` }"
+      >
+        {{ drag.label }}
+      </div>
+    </Teleport>
     <!-- Date nav -->
     <div class="flex items-center justify-between mb-4 flex-shrink-0 min-w-0">
       <div class="flex items-center gap-2">
@@ -468,18 +596,25 @@ function isInvalidHint(col: ColumnDef): boolean {
       <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin" :style="{ color: 'var(--color-primary)' }" />
     </div>
 
-    <!-- Kanban scroll container: horizontal scroll lives HERE so the
-         header + filters above stay within the viewport. -->
+    <!-- Kanban scroll container: the scroll lives HERE so the header +
+         filters above stay within the viewport.
+
+         Landscape keeps the five columns side by side and scrolls
+         sideways. Portrait wraps them into two and scrolls vertically:
+         5 x 260 px needs 1320 px, which a portrait tablet has not got,
+         and it was spending its 1280 px of height on empty column
+         bodies to buy a sideways scroll nobody wants. -->
     <div
       v-else
-      class="flex-1 min-h-0 min-w-0 overflow-x-auto overflow-y-hidden"
+      class="flex-1 min-h-0 min-w-0"
+      :class="isPortrait ? 'overflow-y-auto overflow-x-hidden' : 'overflow-x-auto overflow-y-hidden'"
     >
       <div
-        class="h-full grid gap-3 pb-2"
-        :style="{
-          gridTemplateColumns: 'repeat(5, minmax(260px, 1fr))',
-          minWidth: '1320px'
-        }"
+        class="grid gap-3 pb-2"
+        :class="isPortrait ? 'auto-rows-[minmax(220px,auto)]' : 'h-full'"
+        :style="isPortrait
+          ? { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+          : { gridTemplateColumns: 'repeat(5, minmax(260px, 1fr))', minWidth: '1320px' }"
       >
       <div
         v-for="col in COLUMNS"
@@ -489,9 +624,7 @@ function isInvalidHint(col: ColumnDef): boolean {
           'ring-2 ring-[var(--color-primary)]': drag && isDropHint(col),
           'opacity-60 ring-dashed ring-red-300': drag && isInvalidHint(col)
         }"
-        @dragover="onDragOverColumn(col, $event)"
-        @dragleave="onDragLeaveColumn(col)"
-        @drop="onDrop(col, $event)"
+        :data-kanban-column="col.id"
       >
         <!-- Header -->
         <div
@@ -521,8 +654,7 @@ function isInvalidHint(col: ColumnDef): boolean {
               class="rounded-md ring-1 ring-[var(--color-border)] bg-surface p-2 border-l-4 transition-shadow"
               :style="{ borderLeftColor: CABINET_STATE_ACCENT[entry.state] }"
               :class="{ 'ring-2 ring-[var(--color-primary)]': drag && isDropHint(col, entry.cabinet.name) }"
-              @dragover.stop="onDragOverColumn(col, $event, entry.cabinet.name)"
-              @drop.stop="onDrop(col, $event, entry.cabinet.name)"
+              :data-kanban-cabinet="entry.cabinet.name"
             >
               <div class="flex items-center gap-2 mb-1.5">
                 <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: entry.cabinet.color }" />
@@ -537,10 +669,9 @@ function isInvalidHint(col: ColumnDef): boolean {
                 :appointment="entry.appointment"
                 :cabinets="cabinets"
                 :professionals="professionals"
-                draggable="true"
+                :class="drag?.appointmentId === entry.appointment.id ? 'opacity-40' : ''"
                 @click="emit('appointment-click', entry.appointment as Appointment)"
-                @dragstart="onDragStart(entry.appointment as Appointment, $event)"
-                @dragend="onDragEnd"
+                @pointerdown="onCardPointerDown(entry.appointment as Appointment, $event)"
               />
               <div
                 v-else-if="nextForCabinet(entry.cabinet.name)"
@@ -562,10 +693,9 @@ function isInvalidHint(col: ColumnDef): boolean {
               :appointment="apt"
               :cabinets="cabinets"
               :professionals="professionals"
-              draggable="true"
+              :class="drag?.appointmentId === apt.id ? 'opacity-40' : ''"
               @click="emit('appointment-click', apt)"
-              @dragstart="onDragStart(apt, $event)"
-              @dragend="onDragEnd"
+              @pointerdown="onCardPointerDown(apt, $event)"
             />
             <div
               v-if="appointmentsForColumn(col).length === 0"

@@ -49,12 +49,15 @@ professionals and rooms, and walk them through their workflow
   duration. If it overlaps with another appointment for the same
   professional or room a warning toast appears, but the operation is
   still saved.
-- **Dragging does not work on a tablet yet** — drag-to-create, move and
-  resize are implemented with mouse events only, which Chrome on
-  Android does not emit while a finger is moving. On a tablet use
-  **New appointment** and the modal to create, and edit the appointment
-  to change its time or duration. Same in kanban: cards cannot be
-  dragged between columns by touch.
+- **On a tablet, by finger** — tap an appointment to open it; press and
+  hold to **select** it (it lifts and its bottom handle grows), then
+  drag to move it or pull the handle to change its duration. Tap a free
+  slot to create there: the duration is set in the modal rather than by
+  dragging. In kanban, long-press a card and drag it to another column.
+- **On a tablet, orientation changes the layout, not the gestures** —
+  held upright the kanban wraps its columns into two rows instead of
+  scrolling sideways. Rotating the tablet never changes how a gesture
+  behaves.
 - **Backend conflicts** — if the server rejects a placement (HTTP 409)
   the calendar refreshes and shows an error toast; the appointment
   snaps back to its previous slot.

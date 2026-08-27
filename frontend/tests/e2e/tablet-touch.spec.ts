@@ -92,7 +92,7 @@ test.describe('touch adaptation', () => {
 
   test('every control outside a dense surface meets the 44 px minimum', async ({ loggedIn: page }) => {
     for (const route of ['/', '/appointments', '/patients']) {
-      await page.goto(route)
+      await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 120_000 })
       await awaitDetection(page)
       // Let the async view components and their data land.
       await expect(page.locator('main')).toBeVisible()

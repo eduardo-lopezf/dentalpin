@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+- feat(ui): the agenda works by touch. Create, move and resize in the
+  week and day grids ran on `mousedown` plus document `mousemove`, and
+  the kanban on HTML5 drag-and-drop; Chrome on Android delivers neither
+  while a finger is moving, so all four gestures were inoperable on a
+  tablet — not awkward, impossible. All of it now runs on Pointer
+  Events, one path for mouse, finger and stylus.
+
+  By finger: tap opens an appointment, a 300 ms long press selects it,
+  and a selected block drags to move or resize. Tapping an empty slot
+  creates there. Kanban cards long-press and drag between columns, with
+  a ghost following the pointer.
+
+  By mouse: unchanged — no selection step, press and drag as before.
+
+  The week and day grids now share `composables/useSlotGridDrag.ts`
+  instead of carrying two near-identical copies of the drag logic.
+
+- fix(ui): calendar geometry read `useDensity().density` (the user's
+  preference) rather than `effective`, so with a coarse pointer and a
+  saved "compact" preference the drag maths used 18 px slots while the
+  CSS drew 28 px ones.
+
+- feat(ui): the kanban lays its five columns out in two when the tablet
+  is held in portrait, instead of demanding 1320 px of width and
+  scrolling sideways while leaving most of a 1280 px-tall screen empty.
+
 - fix(ui): mark the week grid, the day grid and the dashboard timeline
   strip as `data-dense`, so the global touch minimum sizes leave them
   alone. Without it a 15-minute slot would grow to 44 px (costing ~2 h of

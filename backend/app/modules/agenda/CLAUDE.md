@@ -81,6 +81,17 @@ None.
   client-side and the schedules dependency stays optional.
 - **Professional identity.** `Appointment.professional_id` is a directory
   profile that is active and of type `dentist` or `hygienist`.
+- **The grids drag on Pointer Events, never mouse events.** The week and
+  day grids share `composables/useSlotGridDrag.ts`; the kanban has its
+  own pointer implementation because it hit-tests columns rather than
+  snapping to a slot. Do not reintroduce `mousedown`/`mousemove` or HTML5
+  `draggable` here — Chrome on Android delivers neither while a finger is
+  moving, which is how create, move and resize came to be silently
+  broken on tablets. See `docs/technical/touch-adaptation.md`.
+- **Calendar geometry reads `useDensity().effective`, not `density`.**
+  The preference can say "compact" while a coarse pointer forces the
+  touch scale; reading the preference puts the drag maths 10 px per slot
+  out of step with the CSS variable that is actually drawn.
 
 ## Related ADRs
 
