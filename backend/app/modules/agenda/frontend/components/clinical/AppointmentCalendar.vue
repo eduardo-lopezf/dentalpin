@@ -691,7 +691,13 @@ const allAppointmentsWithDayIndex = computed(() => {
       ref="calendarRef"
       class="flex-1 overflow-auto ring-1 ring-[var(--color-border)] rounded-token-lg"
     >
-      <div class="min-w-[800px]">
+      <!-- data-dense: the grid is a time canvas, not a toolbar. It opts
+           out of the global touch minimum sizes so a 15-minute slot
+           stays 15 minutes tall. See main.css "Touch adaptation". -->
+      <div
+        data-dense
+        class="min-w-[800px]"
+      >
         <!-- Day headers -->
         <div class="grid grid-cols-8 border-b border-default bg-surface-muted sticky top-0 z-10">
           <div class="p-2 text-center text-caption text-subtle border-r border-subtle">

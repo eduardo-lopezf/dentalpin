@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- fix(ui): mark the arch table as `data-dense` so the global touch
+  minimum sizes leave it alone — the cells are probing sites, six per
+  tooth, and growing them to 44 px would only widen an already 1100 px
+  chart. Touch charting needs a dedicated entry mode (on-screen keypad
+  with auto-advance), which this does not yet provide. See
+  [ADR 0022](../../../../docs/adr/0022-touch-adaptation-is-capability-driven.md).
+
 - fix(ui): a failed measurement is no longer thrown away. The session
   deleted the queued payload *before* awaiting the request, so a save
   that failed left nothing to retry — the probing depth just typed was

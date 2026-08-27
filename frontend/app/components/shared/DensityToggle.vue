@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
-const { density, toggle } = useDensity()
+const { density, isForced, toggle } = useDensity()
 
 const icon = computed(() =>
   density.value === 'compact' ? 'i-lucide-rows-2' : 'i-lucide-rows-4'
@@ -14,7 +14,10 @@ const label = computed(() =>
 </script>
 
 <template>
+  <!-- Hidden while a coarse pointer forces the touch scale: the toggle
+       would be a control that visibly does nothing. -->
   <UButton
+    v-if="!isForced"
     variant="ghost"
     color="neutral"
     size="sm"

@@ -26,7 +26,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/agenda/frontend/pages/appointments/index.vue
   - backend/app/modules/agenda/router.py
-last_verified_commit: 3568519
+last_verified_commit: 0dc5fa2
 ---
 
 # Appointments
@@ -49,6 +49,12 @@ professionals and rooms, and walk them through their workflow
   duration. If it overlaps with another appointment for the same
   professional or room a warning toast appears, but the operation is
   still saved.
+- **Dragging does not work on a tablet yet** — drag-to-create, move and
+  resize are implemented with mouse events only, which Chrome on
+  Android does not emit while a finger is moving. On a tablet use
+  **New appointment** and the modal to create, and edit the appointment
+  to change its time or duration. Same in kanban: cards cannot be
+  dragged between columns by touch.
 - **Backend conflicts** — if the server rejects a placement (HTTP 409)
   the calendar refreshes and shows an error toast; the appointment
   snaps back to its previous slot.

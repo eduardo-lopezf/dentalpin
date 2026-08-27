@@ -166,7 +166,14 @@ const isEmpty = computed(() => !pending.value && todayAppointments.value.length 
       v-else
       class="relative overflow-x-auto"
     >
-      <div class="min-w-[480px] md:min-w-[640px]">
+      <!-- data-dense: a chip's width encodes the appointment's duration
+           and its lane is 36 px tall, so the global touch minimums would
+           both distort the timeline and overflow the row. Same opt-out
+           as the calendar grids — see main.css "Touch adaptation". -->
+      <div
+        data-dense
+        class="min-w-[480px] md:min-w-[640px]"
+      >
         <div class="relative h-5 border-b border-[var(--color-border-subtle)] mb-3">
           <span
             v-for="h in hourMarkers"

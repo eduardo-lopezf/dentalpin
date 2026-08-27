@@ -4,8 +4,13 @@ const auth = useAuth()
 const clinic = useClinic()
 const { navigationItems, ensureLoaded } = useModules()
 const { init: initDensity } = useDensity()
-const { isTablet } = useBreakpoint()
+const { isTouch, init: initDevice } = useDevice()
 const route = useRoute()
+
+// Publishes the detected pointer kind and orientation on <html>, which
+// is what the touch CSS and the density mode key off. Must run during
+// setup so the attributes are part of the SSR payload.
+initDevice()
 
 // Pull the backend-driven nav on mount + on every route change, so
 // sidebar reflects module installs/upgrades without a full reload.
@@ -46,8 +51,12 @@ onMounted(() => {
   const savedState = localStorage.getItem('sidebar:collapsed')
   if (savedState !== null) {
     isSidebarCollapsed.value = savedState === 'true'
-  } else if (isTablet.value) {
-    // Tablet default: collapsed sidebar for more canvas space
+  } else if (isTouch.value) {
+    // Touch default: collapsed sidebar. This used to key off the 768–1023
+    // px tablet range, which skipped the case that needed it most — a
+    // 1280x800 tablet in landscape, where the expanded 240 px rail is the
+    // difference between the kanban's fourth column fitting or not.
+    // An explicit choice still wins, in either direction.
     isSidebarCollapsed.value = true
   }
   initDensity()
@@ -359,8 +368,10 @@ function isActive(to: string): boolean {
               <span class="hidden sm:inline">{{ t('auth.logout') }}</span>
             </UButton>
           </div>
+          <!-- Decorative on touch, where the action row above is 40 px
+               tall and this caption would push the header past 70 px. -->
           <span
-            v-if="tenantTypeLabel"
+            v-if="tenantTypeLabel && !isTouch"
             class="text-caption text-subtle pr-1"
           >
             {{ t('auth.profile', { type: tenantTypeLabel }) }}

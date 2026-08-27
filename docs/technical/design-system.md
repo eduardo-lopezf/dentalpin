@@ -208,14 +208,19 @@ Two global modes, persisted in `localStorage` as `ui:density = comfortable | com
 
 | Density | Card padding | Table row | Button padding | Body size |
 |---|---|---|---|---|
-| `comfortable` (default) | 16 / 20 px | 44 px | 8 / 14 px | 14 px |
+| `comfortable` (default) | 20 / 24 px | 56 px | 10 / 16 px | 14 px |
 | `compact` | 10 / 14 px | 32 px | 6 / 10 px | 13 px |
+| `touch` (automatic) | 20 / 24 px | 56 px | 12 / 18 px | 15 px |
 
 **Forced compact** (regardless of preference): `OdontogramChart`, `AppointmentDailyView`, `AppointmentCalendar`, `TreatmentListSection`. These views are inherently dense.
 
 **Forced comfortable**: `MedicalHistoryForm`, `PatientQuickInfo`, dashboard (`pages/index.vue`), `EmergencyContactForm`, `LegalGuardianForm`, `AppointmentModal`.
 
-**Mobile/tablet override**: tap targets must stay ≥ 44 px. On `< 1024 px` viewports, `comfortable` is forced regardless of user preference.
+**Touch override**: `touch` is applied automatically whenever a coarse pointer is driving — `(pointer: coarse)`, at any viewport width. This replaced a `< 1024 px` width rule that missed the case it most needed to catch: a 1280x800 tablet in landscape, wide enough to look like a desktop and still driven by a finger.
+
+The user's `comfortable`/`compact` preference is preserved underneath rather than overwritten, so docking a keyboard and trackpad restores it; the density toggle hides itself while touch is in force. `useDensity()` exposes `density` (preference), `effective` (what reaches `<html>`) and `isForced`.
+
+See [`touch-adaptation.md`](./touch-adaptation.md) and [ADR 0022](../adr/0022-touch-adaptation-is-capability-driven.md).
 
 ---
 
@@ -385,7 +390,7 @@ Non-negotiable:
 
 - **Contrast**: body text 4.5:1, large text 3:1, UI components 3:1, in both modes.
 - **Focus visible**: 2 px ring + 2 px offset on every interactive element. Never `outline: none` without a replacement.
-- **Hit targets**: ≥ 44 × 44 px on mobile/tablet (gabinete is often used on tablet).
+- **Hit targets**: ≥ 44 × 44 px whenever a coarse pointer is driving. Enforced centrally in `main.css` under `@media (pointer: coarse)`, not per component — see [`touch-adaptation.md`](./touch-adaptation.md). Surfaces whose cells are units of time or anatomy rather than buttons opt out with `data-dense` and owe a purpose-built touch interaction instead.
 - **Motion**: `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }`.
 - **Semantic HTML**: `<button>` for actions, `<a>` for navigation, `<nav>`, `<main>`, `<aside>`, `<section>`. One `<h1>` per page.
 - **Keyboard navigation**: every flow operable without a mouse. No focus traps outside modals.

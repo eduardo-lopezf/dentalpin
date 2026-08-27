@@ -167,6 +167,27 @@ html.density-compact {
   --density-slot-height: 18px;
 }
 
+/* Applied automatically whenever a coarse pointer is driving, whatever
+   the viewport width — the user's comfortable/compact preference is kept
+   underneath and returns when a trackpad is attached. See useDensity. */
+html.density-touch {
+  --density-card-padding-y: 20px;
+  --density-card-padding-x: 24px;
+  --density-row-height: 56px;
+  --density-btn-padding-y: 12px;
+  --density-btn-padding-x: 18px;
+  --density-body-size: 15px;
+  --density-gap: 16px;
+  --density-header-height: 64px;
+  --density-icon-size: 22px;
+  /* Deliberately NOT raised. The calendar slot is a unit of time, not a
+     button: growing it to 44 px would cost ~2 hours of visible agenda on
+     an 800 px-tall screen and still not make a 15-minute slot a
+     comfortable target. Creating an appointment by touch is solved with a
+     long-press and an explicit affordance instead. */
+  --density-slot-height: 28px;
+}
+
 body {
   font-size: var(--density-body-size, 14px);
 }
@@ -240,6 +261,97 @@ body {
   /* Alert "critical" modifier — 1 px outer border in accent (DESIGN §7.1) */
   .alert-critical-danger { outline: 1px solid var(--color-danger-accent); }
   .alert-critical-warning { outline: 1px solid var(--color-warning-accent); }
+}
+
+/* ============================================================================
+   Touch adaptation
+
+   Keyed on pointer capability, never on viewport width or user-agent: a
+   1280x800 tablet in landscape is as wide as a laptop and still driven by
+   a finger, and the same tablet with a trackpad docked should get the
+   mouse rules back. See docs/technical/touch-adaptation.md and ADR 0022.
+
+   These rules sit OUTSIDE @layer utilities on purpose, so they beat
+   Tailwind utility classes. Genuinely dense surfaces (a calendar grid, a
+   periodontal chart) opt out with `data-dense` on a container — a
+   Tailwind class cannot override an unlayered rule, so the attribute is
+   the only escape hatch.
+   ============================================================================ */
+
+@media (pointer: coarse) {
+  /* Kill the double-tap-to-zoom delay on anything tappable. */
+  button,
+  a,
+  summary,
+  label,
+  [role="button"],
+  [role="tab"],
+  [role="option"],
+  [role="menuitem"] {
+    touch-action: manipulation;
+  }
+
+  /* WCAG 2.5.8 asks for 24 px; the design system asks for 44 px on
+     touch (DESIGN §11), and 44 px is what this enforces — matching the
+     design system rather than inventing a weaker local standard.
+
+     `a` is in the list and is safe there: min-height does not apply to
+     non-replaced inline boxes, so a link inside a paragraph is
+     untouched while a nav item laid out as flex grows. */
+  button,
+  a,
+  summary,
+  select,
+  [role="button"],
+  [role="tab"],
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    min-height: 44px;
+  }
+
+  /* Icon-only controls need the width too, or they stay 24 px wide.
+     The `:has` test is "no non-empty label child" — a collapsed sidebar
+     item drops its <span> and correctly lands here, while the same item
+     expanded keeps its label and sizes to it. */
+  button:not(:has(> span:not(:empty))),
+  a:not(:has(> span:not(:empty))),
+  [role="button"]:not(:has(> span:not(:empty))) {
+    min-width: 44px;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  /* There is no hover, so anything revealed by it is unreachable. This
+     covers the `opacity-0 group-hover:opacity-100` idiom used by the
+     card and calendar-block quick actions. */
+  [class~="group-hover:opacity-100"] {
+    opacity: 1;
+  }
+
+  /* Dense surfaces keep their own scale. Higher specificity than the
+     rules above, which is what lets them win. */
+  [data-dense] button,
+  [data-dense] a,
+  [data-dense] summary,
+  [data-dense] select,
+  [data-dense] [role="button"],
+  [data-dense] [role="tab"],
+  [data-dense] input {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  /* ...and they keep hover-reveal too. Inside a calendar block a 15-min
+     appointment is ~28 px tall, so an always-visible action button lands
+     on top of the patient's name. Reaching those actions by touch needs
+     the block itself redesigned (tap to open, long-press to drag), which
+     is the next change — not a CSS override. */
+  [data-dense] [class~="group-hover:opacity-100"] {
+    opacity: 0;
+  }
 }
 
 /* ============================================================================

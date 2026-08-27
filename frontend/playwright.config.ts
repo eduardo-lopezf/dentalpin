@@ -29,10 +29,36 @@ export default defineConfig({
     navigationTimeout: 15_000
   },
 
+  // The tablet projects exist because a 1280x800 tablet in landscape is
+  // as wide as a laptop: every width-based check passes and the UI is
+  // still driven by a finger. `hasTouch` with `isMobile: false` is
+  // exactly that device, and it is the only configuration that catches
+  // touch regressions before a clinic does.
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: /tablet-.*\.spec\.ts/
+    },
+    {
+      name: 'tablet-landscape',
+      testMatch: /tablet-.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 800 },
+        hasTouch: true,
+        isMobile: false
+      }
+    },
+    {
+      name: 'tablet-portrait',
+      testMatch: /tablet-.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 800, height: 1280 },
+        hasTouch: true,
+        isMobile: false
+      }
     }
   ]
 })

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- fix(ui): mark the week grid, the day grid and the dashboard timeline
+  strip as `data-dense`, so the global touch minimum sizes leave them
+  alone. Without it a 15-minute slot would grow to 44 px (costing ~2 h of
+  visible agenda on an 800 px screen) and the timeline chips — whose
+  width encodes duration — would both distort and overflow their 36 px
+  lane. See [ADR 0022](../../../../docs/adr/0022-touch-adaptation-is-capability-driven.md).
+
+  Known gap this leaves open: appointment quick actions stay
+  hover-revealed and so are unreachable by touch, because an
+  always-visible button lands on the patient's name in a 28 px block.
+  Fixing it needs the block redesigned, together with the move to Pointer
+  Events for create/move/resize — none of which work by touch today.
+
 - fix(ui): cancelling an appointment from the modal footer asks first. It
   sat next to Save, cancelled on one click and notified the patient
   (audit S5).

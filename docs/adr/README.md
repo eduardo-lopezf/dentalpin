@@ -66,3 +66,4 @@ Triggers (any one):
 | 0019 | [Events are published after the transaction commits](0019-events-publish-after-commit.md) | accepted | 2026-08-26 |
 | 0020 | [Handler failures are recorded, not just logged](0020-handler-failures-are-recorded.md) | accepted | 2026-08-26 |
 | 0021 | [Module layers are typechecked, behind a shrinking baseline](0021-module-layers-are-typechecked.md) | accepted | 2026-08-26 |
+| 0022 | [Touch adaptation is capability-driven, not width- or UA-driven](0022-touch-adaptation-is-capability-driven.md) | accepted | 2026-08-27 |

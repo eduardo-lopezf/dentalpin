@@ -196,7 +196,11 @@ function selectOnFocus(e: FocusEvent) {
       </span>
     </header>
 
+    <!-- data-dense: 14 px probing cells are below every touch minimum
+         and knowingly stay that way here — growing them in place would
+         only widen the 1100 px chart. Touch entry is a separate mode. -->
     <table
+      data-dense
       class="perio-arch-table table-fixed border-collapse text-center font-mono text-[11px] leading-tight"
     >
       <colgroup>

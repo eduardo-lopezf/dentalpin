@@ -1,18 +1,31 @@
 /**
- * useDensity — global UI density toggle (comfortable | compact).
+ * useDensity — global UI density.
  *
- * Persists in a cookie so the server can pick the right value during SSR
- * and avoid a comfortable→compact flash for users on compact mode.
- * Applies as a class on <html>.
- * Forced to 'comfortable' on viewports < 1024 px to keep tap targets ≥ 44 px.
+ * `density` is the user's *preference* (comfortable | compact), persisted
+ * in a cookie so the server can pick the right value during SSR and avoid
+ * a comfortable→compact flash.
  *
- * docs/technical/design-system.md §5
+ * What actually reaches `<html>` is `effective`, which is `touch` whenever
+ * a coarse pointer is driving — a mode with tap targets at ≥ 44 px. The
+ * preference is preserved untouched underneath, so docking a keyboard and
+ * trackpad restores the user's compact layout without them re-choosing it.
+ *
+ * This guard used to key off viewport width (`< 1024 px`), which missed
+ * the case it most needed to catch: a 1280×800 tablet in landscape, wide
+ * enough to look like a desktop and still driven by a finger.
+ *
+ * docs/technical/design-system.md §5, docs/technical/touch-adaptation.md
  */
 import { STORAGE_KEYS } from '~/constants/storage'
 
 export type Density = 'comfortable' | 'compact'
+export type EffectiveDensity = Density | 'touch'
+
+const ALL_CLASSES = ['density-comfortable', 'density-compact', 'density-touch']
 
 export function useDensity() {
+  const { isTouch } = useDevice()
+
   const cookie = useCookie<Density>(STORAGE_KEYS.DENSITY, {
     default: () => 'comfortable',
     sameSite: 'lax',
@@ -21,42 +34,50 @@ export function useDensity() {
 
   const density = useState<Density>('ui:density', () => cookie.value ?? 'comfortable')
 
+  const effective = computed<EffectiveDensity>(() =>
+    isTouch.value ? 'touch' : density.value
+  )
+
+  /** True while the pointer forces `touch` and the preference is inert. */
+  const isForced = computed(() => isTouch.value)
+
   // Bind the class to <html> on both server and client so SSR ships the
-  // right density and there is no FOUC for compact-mode users.
+  // right density and there is no FOUC.
   useHead({
-    htmlAttrs: { class: () => `density-${density.value}` }
+    htmlAttrs: { class: () => `density-${effective.value}` }
   })
 
-  function applyToHtml(value: Density) {
+  function applyToHtml(value: EffectiveDensity) {
     if (!import.meta.client) return
     const html = document.documentElement
-    html.classList.remove('density-comfortable', 'density-compact')
+    html.classList.remove(...ALL_CLASSES)
     html.classList.add(`density-${value}`)
   }
 
   function setDensity(value: Density) {
     density.value = value
     cookie.value = value
-    if (import.meta.client) applyToHtml(value)
+    applyToHtml(effective.value)
   }
 
   function toggle() {
+    // A no-op while touch forces the mode; the toggle is hidden then.
+    if (isForced.value) return
     setDensity(density.value === 'comfortable' ? 'compact' : 'comfortable')
   }
 
-  // Narrow viewports get forced to comfortable so tap targets stay ≥ 44 px.
-  // SSR cannot know viewport width, so this only runs on the client; the
-  // cookie still seeds the initial render so no flash happens for desktop users.
   function init() {
     if (!import.meta.client) return
-    const narrow = window.matchMedia('(max-width: 1023px)').matches
-    const initial: Density = narrow ? 'comfortable' : density.value
-    if (initial !== density.value) density.value = initial
-    applyToHtml(initial)
+    applyToHtml(effective.value)
+    // The pointer kind is only known after mount on a first visit, so
+    // re-apply when `effective` settles.
+    watch(effective, applyToHtml)
   }
 
   return {
     density,
+    effective,
+    isForced,
     setDensity,
     toggle,
     init

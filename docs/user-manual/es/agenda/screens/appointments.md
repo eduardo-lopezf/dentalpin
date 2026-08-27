@@ -26,7 +26,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/agenda/frontend/pages/appointments/index.vue
   - backend/app/modules/agenda/router.py
-last_verified_commit: 3568519
+last_verified_commit: 0dc5fa2
 ---
 
 # Citas
@@ -49,6 +49,12 @@ flujo (programada → confirmada → en sala → completada → cobrada).
   hora o profesional para moverla; arrastra su borde inferior para
   cambiarle la duración. Si solapa con otra del mismo profesional o
   gabinete, sale un aviso pero la operación se guarda.
+- **En tablet, el arrastre todavía no funciona** — crear arrastrando,
+  mover y redimensionar están implementados solo con eventos de ratón,
+  que Chrome en Android no emite mientras el dedo se desplaza. En
+  tablet usa **Nueva cita** y el modal para crear, y edita la cita para
+  cambiarle la hora o la duración. Lo mismo en kanban: las tarjetas no
+  se pueden arrastrar entre columnas con el dedo.
 - **Conflictos del backend** — si el servidor rechaza una cita por
   solape (HTTP 409) el calendario refresca la vista y muestra un
   *toast* de error; nada queda inconsistente.

@@ -537,7 +537,10 @@ const appointmentsByProfIndex = computed(() => {
       ref="calendarRef"
       class="flex-1 overflow-auto ring-1 ring-[var(--color-border)] rounded-token-lg"
     >
+      <!-- data-dense: see AppointmentCalendar — the grid is a time canvas
+           and opts out of the global touch minimum sizes. -->
       <div
+        data-dense
         class="min-w-[600px]"
         :style="{ minWidth: `${200 * professionals.length + 80}px` }"
       >
