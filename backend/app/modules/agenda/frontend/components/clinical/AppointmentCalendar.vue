@@ -169,7 +169,10 @@ function startAppointmentDrag(
   const { start, end } = appointmentSlots(appointment)
   const aptDate = appointment.start_time.split('T')[0]
   const dayIndex = weekDays.value.findIndex(d => formatLocalDate(d) === aptDate)
-  onAppointmentPointerDown(type, appointment.id, dayIndex, start, end, event)
+  onAppointmentPointerDown(
+    { type, appointmentId: appointment.id, columnIndex: dayIndex, startSlot: start, endSlot: end },
+    event
+  )
 }
 
 /**

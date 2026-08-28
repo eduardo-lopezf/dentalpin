@@ -148,11 +148,13 @@ function startAppointmentDrag(
   const endTime = appointment.end_time.split('T')[1]?.substring(0, 5) ?? '08:15'
   const profIndex = props.professionals.findIndex(p => p.id === appointment.professional_id)
   onAppointmentPointerDown(
-    type,
-    appointment.id,
-    profIndex,
-    getSlotIndex(startTime),
-    getSlotIndex(endTime),
+    {
+      type,
+      appointmentId: appointment.id,
+      columnIndex: profIndex,
+      startSlot: getSlotIndex(startTime),
+      endSlot: getSlotIndex(endTime)
+    },
     event
   )
 }

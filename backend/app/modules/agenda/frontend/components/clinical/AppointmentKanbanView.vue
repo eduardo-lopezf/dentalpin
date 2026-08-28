@@ -269,6 +269,14 @@ function beginDrag(apt: Appointment, event: PointerEvent) {
   }
 }
 
+/**
+ * Press on a card. Dispatches on pointer capability into the pair
+ * below, named for what they serve rather than for a device — see
+ * `useSlotGridDrag` for the convention and ADR 0022 for the rule.
+ *
+ * Capturing the pointer is shared: it has to happen for both, and a
+ * second copy would only be a second thing to forget.
+ */
 function onCardPointerDown(apt: Appointment, event: PointerEvent) {
   const el = event.currentTarget as HTMLElement | null
   if (el) {
@@ -277,12 +285,29 @@ function onCardPointerDown(apt: Appointment, event: PointerEvent) {
     el.setPointerCapture(event.pointerId)
   }
 
-  if (!isTouch.value) {
-    beginDrag(apt, event)
-    return
+  if (isTouch.value) {
+    pressCardByTouch(apt, event)
+  } else {
+    pressCardWithMouse(apt, event)
   }
+}
 
-  // A press by finger might still be a scroll, so wait it out.
+/**
+ * Mouse and trackpad: the cursor was already over the card, so the
+ * press can only have meant "pick this up". Drag starts immediately,
+ * and no scroll is at stake.
+ */
+function pressCardWithMouse(apt: Appointment, event: PointerEvent) {
+  beginDrag(apt, event)
+}
+
+/**
+ * Finger and stylus: the press might still be the start of a scroll
+ * through a long column, so wait it out. Only once the long press has
+ * fired — which proves the finger was still, so the browser has not
+ * claimed a scroll — is it safe to block scrolling and start dragging.
+ */
+function pressCardByTouch(apt: Appointment, event: PointerEvent) {
   pressOrigin = { x: event.clientX, y: event.clientY }
   longPressTimer = setTimeout(() => {
     longPressTimer = null

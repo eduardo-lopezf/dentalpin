@@ -147,6 +147,49 @@ scrolling everywhere for one field that the modal already has.
 `useSlotGridDrag` holds the shared implementation for the week and day
 grids, which are the same grid with a different column axis.
 
+## Where the branches live
+
+Same files, one component. What varies by pointer is a pair of functions
+inside it, not a parallel file tree — and the pair is named for the
+**capability** it serves, never for a device:
+
+```ts
+// Dispatcher: the only one the template calls.
+function onAppointmentPointerDown(intent: DragIntent, event: PointerEvent) {
+  return isTouch.value
+    ? pressAppointmentByTouch(intent, event)
+    : pressAppointmentWithMouse(intent, event)
+}
+```
+
+`useSlotGridDrag` is the worked example. Three rules come with it:
+
+**Split where the paths differ, share where they do not.** In that
+composable the presses are split — they are different state machines,
+one of which must not call `preventDefault` — while
+`beginAppointmentDrag`, `onPointerMove` and `onPointerUp` stay shared,
+because once a drag is under way a finger and a mouse want the identical
+thing. Duplicating that arithmetic is exactly how one density bug came to
+live in both grids at once.
+
+**Push the branch as low as it will go.** CSS before composable,
+composable before a branch in a component, a branch before a new file.
+Every step up doubles surface that has to stay in sync.
+
+**Never name a function or a file after a device.** `...ByTouch`, not
+`...OnIpad`. iPad, Android tablet and a touchscreen PC are one case — a
+coarse pointer — so a device split turns a closed set of two into an open
+set that grows with the market. It would not even work: since iPadOS 13
+Safari on iPad reports a `Macintosh` user-agent, so an `isIpad` branch
+never fires. A device-specific function is justified only to quarantine a
+named engine bug, with the bug in the comment and a plan to delete it.
+
+A separate component is right when the screen answers a **different
+question**, not when it looks different: `AppointmentMobileDayView`
+shares no logic at all with the grids because it shows the day as a list
+of free slots. If a "mobile" component shares helpers with its sibling,
+that is the signal to merge them and extract a composable instead.
+
 ## Known gaps
 
 These are not covered yet and are tracked as follow-up work:

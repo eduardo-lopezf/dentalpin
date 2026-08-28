@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- refactor(ui): the pointer-capability branches are now a dispatcher over
+  a pair of named functions (`pressAppointmentWithMouse` /
+  `pressAppointmentByTouch`, `pressCardWithMouse` / `pressCardByTouch`)
+  rather than conditionals inside one mixed function, so which code runs
+  where is readable without tracing branches. The shared parts stay
+  shared on purpose — see `docs/technical/touch-adaptation.md`.
+
 - feat(ui): the agenda works by touch. Create, move and resize in the
   week and day grids ran on `mousedown` plus document `mousemove`, and
   the kanban on HTML5 drag-and-drop; Chrome on Android delivers neither

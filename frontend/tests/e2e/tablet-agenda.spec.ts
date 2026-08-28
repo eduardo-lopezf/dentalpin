@@ -26,14 +26,34 @@ async function awaitDetection(page: Page): Promise<void> {
   await page.waitForSelector('html[data-ua]', { state: 'attached', timeout: 60_000 })
 }
 
+/**
+ * Navigate, tolerating one `net::ERR_ABORTED`.
+ *
+ * Vite discovers a dependency on the first visit to a route and answers
+ * with a full page reload, which races Playwright's own navigation — the
+ * same behaviour `nuxt.config.ts` calls out around `optimizeDeps.include`.
+ * It can only happen once per dep, so a single retry settles it.
+ */
+async function gotoAgenda(page: Page): Promise<void> {
+  for (const attempt of [1, 2]) {
+    try {
+      await page.goto('/appointments', { waitUntil: 'domcontentloaded' })
+      return
+    } catch (error) {
+      if (attempt === 2 || !String(error).includes('ERR_ABORTED')) throw error
+    }
+  }
+}
+
 async function openAgenda(page: Page): Promise<void> {
-  // `load` plus the 15 s project default is not enough for the first
-  // route a cold Nuxt dev server compiles.
-  await page.goto('/appointments', { waitUntil: 'domcontentloaded', timeout: 120_000 })
+  await gotoAgenda(page)
   await awaitDetection(page)
   await expect(page.locator('html')).toHaveAttribute('data-pointer', 'coarse')
-  // The view components are async and the week's data arrives after.
-  await page.waitForTimeout(3000)
+  // Wait for the grid itself, not for a duration: the view components are
+  // async chunks and a cold dev server compiles them on first request,
+  // which a fixed sleep loses to.
+  await page.waitForSelector('[data-dense]', { timeout: 60_000 })
+  await page.waitForTimeout(1500)
 }
 
 /**
@@ -53,6 +73,9 @@ async function longPress(page: Page, target: Locator): Promise<void> {
 function firstBlock(page: Page): Locator {
   return page.locator('[data-dense] .group.absolute').first()
 }
+
+// A cold dev server compiles these routes on first request.
+test.describe.configure({ timeout: 120_000 })
 
 test.describe('agenda by touch', () => {
   test('a long press selects an appointment instead of opening it', async ({ loggedIn: page }) => {

@@ -36,6 +36,25 @@
  * it would need `touch-action: none` across the whole canvas, which
  * costs scrolling everywhere to save one modal field. A tap creates at
  * the default duration instead.
+ *
+ * ## How the two paths are organised
+ *
+ * Each entry point is a thin dispatcher over a pair of functions named
+ * for the capability they serve — `pressAppointmentWithMouse` and
+ * `pressAppointmentByTouch` — so which code runs where is readable
+ * without tracing conditionals.
+ *
+ * The split stops where the paths converge. `beginAppointmentDrag`,
+ * `onPointerMove` and `onPointerUp` are shared, because once a drag is
+ * under way a finger and a mouse want the identical thing; duplicating
+ * that arithmetic is precisely how one density bug came to live in both
+ * grids at once.
+ *
+ * The names say *capability*, never device. There is no `...OnIpad`
+ * here and there should not be: iPad, Android tablet and a touchscreen
+ * PC are one case — a coarse pointer — and Safari on iPad reports a
+ * macOS user-agent anyway, so a device branch would not even fire. See
+ * ADR 0022.
  */
 import type { Ref } from 'vue'
 
@@ -51,6 +70,18 @@ export interface AppointmentDragState {
   currentColumnIndex: number
   currentTop: number
   currentHeight: number
+}
+
+/**
+ * What a press on an appointment is asking for, bundled so the
+ * capability branches can pass it along in one piece.
+ */
+export interface DragIntent {
+  type: 'move' | 'resize'
+  appointmentId: string
+  columnIndex: number
+  startSlot: number
+  endSlot: number
 }
 
 /** A drag in progress on empty space, sizing a new appointment. */
@@ -157,16 +188,26 @@ export function useSlotGridDrag(options: SlotGridDragOptions) {
 
   // ---------------------------------------------------------------- create
 
+  /**
+   * Press on empty space. Dispatches on pointer capability; the two
+   * paths below are genuinely different gestures, not one gesture with
+   * a parameter.
+   */
   function onCellPointerDown(columnIndex: number, slot: number, event: PointerEvent) {
     if (dragState.value) return
-
-    // A finger creates by tapping, not by dragging: sizing here would
-    // need touch-action: none over the whole grid and cost scrolling.
     if (isTouch.value) {
-      selectedId.value = null
-      return
+      pressCellByTouch()
+    } else {
+      pressCellWithMouse(columnIndex, slot, event)
     }
+  }
 
+  /**
+   * Mouse and trackpad: the press opens a create-drag straight away, so
+   * dragging down over the slots sizes the new appointment. Releasing
+   * without moving falls through to `onCreatePoint` as a plain click.
+   */
+  function pressCellWithMouse(columnIndex: number, slot: number, event: PointerEvent) {
     event.preventDefault()
     capture(event)
     createDragState.value = {
@@ -177,65 +218,92 @@ export function useSlotGridDrag(options: SlotGridDragOptions) {
     }
   }
 
+  /**
+   * Finger and stylus: no drag at all. Sizing by dragging would need
+   * `touch-action: none` across the whole canvas, trading the grid's
+   * scrolling for one field the modal already has, so the press only
+   * clears the selection and the `click` that follows creates the
+   * appointment at the default duration.
+   */
+  function pressCellByTouch() {
+    selectedId.value = null
+  }
+
   // ------------------------------------------------------------ move/resize
 
-  function beginAppointmentDrag(
-    type: 'move' | 'resize',
-    appointmentId: string,
-    columnIndex: number,
-    startSlot: number,
-    endSlot: number,
-    event: PointerEvent
-  ) {
+  /**
+   * Shared by both capabilities on purpose. Once a drag has actually
+   * started, a finger and a mouse want exactly the same thing, and a
+   * second copy of this arithmetic is how the density bug came to be
+   * present in both grids at once. Split where the paths differ; share
+   * where they do not.
+   */
+  function beginAppointmentDrag(intent: DragIntent, event: PointerEvent) {
     const h = options.slotHeight()
-    const height = Math.max(1, endSlot - startSlot) * h
+    const height = Math.max(1, intent.endSlot - intent.startSlot) * h
     dragState.value = {
-      type,
-      appointmentId,
+      type: intent.type,
+      appointmentId: intent.appointmentId,
       startX: event.clientX,
       startY: event.clientY,
-      originalTop: startSlot * h,
+      originalTop: intent.startSlot * h,
       originalHeight: height,
-      originalColumnIndex: columnIndex,
-      currentColumnIndex: columnIndex,
-      currentTop: startSlot * h,
+      originalColumnIndex: intent.columnIndex,
+      currentColumnIndex: intent.columnIndex,
+      currentTop: intent.startSlot * h,
       currentHeight: height
     }
     capture(event)
   }
 
-  function onAppointmentPointerDown(
-    type: 'move' | 'resize',
-    appointmentId: string,
-    columnIndex: number,
-    startSlot: number,
-    endSlot: number,
-    event: PointerEvent
-  ) {
+  /**
+   * Press on an existing appointment, to move or resize it. Dispatches
+   * on pointer capability: the two paths are different state machines,
+   * and the difference is entirely about whether the press might still
+   * turn out to be a scroll.
+   */
+  function onAppointmentPointerDown(intent: DragIntent, event: PointerEvent) {
     event.stopPropagation()
+    if (isTouch.value) {
+      pressAppointmentByTouch(intent, event)
+    } else {
+      pressAppointmentWithMouse(intent, event)
+    }
+  }
 
-    if (!isTouch.value) {
+  /**
+   * Mouse and trackpad: a press is unambiguous — the cursor was already
+   * over the block, nothing else could have been meant by it — so the
+   * drag starts on the spot, with no selection step.
+   */
+  function pressAppointmentWithMouse(intent: DragIntent, event: PointerEvent) {
+    event.preventDefault()
+    beginAppointmentDrag(intent, event)
+  }
+
+  /**
+   * Finger and stylus: a press is ambiguous with a scroll, so the block
+   * has to be picked first.
+   *
+   * Already selected — the user has said which block they mean, and
+   * `touch-action: none` has been on it since, so the browser will not
+   * claim this gesture for a scroll. Drag immediately.
+   *
+   * Not selected — arm a long press and, crucially, do NOT preventDefault:
+   * this press may still be a scroll, and stealing it would freeze the
+   * grid under the finger.
+   */
+  function pressAppointmentByTouch(intent: DragIntent, event: PointerEvent) {
+    if (selectedId.value === intent.appointmentId) {
       event.preventDefault()
-      beginAppointmentDrag(type, appointmentId, columnIndex, startSlot, endSlot, event)
+      beginAppointmentDrag(intent, event)
       return
     }
 
-    // Already selected: the user has committed to this block, so a press
-    // is a drag. `touch-action: none` is in place by now, so the browser
-    // will not steal the gesture for a scroll.
-    if (selectedId.value === appointmentId) {
-      event.preventDefault()
-      beginAppointmentDrag(type, appointmentId, columnIndex, startSlot, endSlot, event)
-      return
-    }
-
-    // Not selected yet: arm a long press, but do not preventDefault —
-    // this press may still turn out to be a scroll, and stealing it
-    // would freeze the grid.
     longPressOrigin = { x: event.clientX, y: event.clientY }
     longPressTimer = setTimeout(() => {
       longPressTimer = null
-      selectedId.value = appointmentId
+      selectedId.value = intent.appointmentId
       // The release that follows still fires a click, which would open
       // the appointment the user was only trying to pick up.
       suppressNextClick()

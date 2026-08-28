@@ -14,12 +14,38 @@ import { expect, test } from './_fixtures'
  * between runs.
  */
 
+/**
+ * Navigate, tolerating one `net::ERR_ABORTED`.
+ *
+ * Vite discovers a dependency on the first visit to a route and answers
+ * with a full page reload, which races Playwright's own navigation — the
+ * same behaviour `nuxt.config.ts` calls out around `optimizeDeps.include`.
+ * It can only happen once per dep, so a single retry settles it.
+ */
+async function gotoAgenda(page: Page): Promise<void> {
+  for (const attempt of [1, 2]) {
+    try {
+      await page.goto('/appointments', { waitUntil: 'domcontentloaded' })
+      return
+    } catch (error) {
+      if (attempt === 2 || !String(error).includes('ERR_ABORTED')) throw error
+    }
+  }
+}
+
 async function openAgenda(page: Page): Promise<void> {
-  await page.goto('/appointments', { waitUntil: 'domcontentloaded', timeout: 120_000 })
+  await gotoAgenda(page)
   await page.waitForSelector('html[data-ua]', { state: 'attached', timeout: 60_000 })
   await expect(page.locator('html')).toHaveAttribute('data-pointer', 'fine')
-  await page.waitForTimeout(3000)
+  // Wait for the grid itself, not for a duration: the view components are
+  // async chunks and a cold dev server compiles them on first request,
+  // which a fixed sleep loses to.
+  await page.waitForSelector('[data-dense]', { timeout: 60_000 })
+  await page.waitForTimeout(1500)
 }
+
+// A cold dev server compiles these routes on first request.
+test.describe.configure({ timeout: 120_000 })
 
 test.describe('agenda by mouse', () => {
   test('dragging down empty slots opens the modal with the dragged duration', async ({ loggedIn: page }) => {

@@ -26,7 +26,12 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 8_000,
-    navigationTimeout: 15_000
+    // Generous because the suite drives the Nuxt **dev** server, which
+    // compiles each route on its first request: a cold /appointments or
+    // /patients can take well over 15 s, and the first test of a spec was
+    // failing on the compiler rather than on the code. This only changes
+    // how long a genuine hang waits before failing.
+    navigationTimeout: 120_000
   },
 
   // The tablet projects exist because a 1280x800 tablet in landscape is
