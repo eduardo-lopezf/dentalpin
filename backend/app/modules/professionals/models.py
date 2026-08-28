@@ -9,6 +9,7 @@ from sqlalchemy import Boolean, Column, ForeignKey, Index, String, Table, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.privacy import PiiKind, pii
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -49,14 +50,14 @@ class Professional(Base, TimestampMixin):
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), nullable=False, index=True)
-    first_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    last_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(100), nullable=False, info=pii(PiiKind.NAME))
+    last_name: Mapped[str] = mapped_column(String(100), nullable=False, info=pii(PiiKind.NAME))
     professional_type: Mapped[str] = mapped_column(String(20), nullable=False, default="dentist")
     # Disciplines drawn from the clinic's specialty catalog — see
     # `professional_specialties`. Replaces the former free-text column.
     license_number: Mapped[str | None] = mapped_column(String(80))
-    email: Mapped[str | None] = mapped_column(String(255))
-    phone: Mapped[str | None] = mapped_column(String(30))
+    email: Mapped[str | None] = mapped_column(String(255), info=pii(PiiKind.EMAIL))
+    phone: Mapped[str | None] = mapped_column(String(30), info=pii(PiiKind.PHONE))
     photo_url: Mapped[str | None] = mapped_column(String(500))
     notes: Mapped[str | None] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

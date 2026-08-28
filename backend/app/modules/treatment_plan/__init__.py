@@ -96,6 +96,11 @@ class TreatmentPlanModule(BaseModule):
     def get_router(self) -> APIRouter:
         return router
 
+    def get_subject_contributors(self) -> list:
+        from . import privacy
+
+        return privacy.get_subject_contributors()
+
     def get_scheduled_jobs(self) -> list[ScheduledJob]:
         from .tasks import auto_close_expired_plans
 

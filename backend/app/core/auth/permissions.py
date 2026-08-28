@@ -33,6 +33,13 @@ CORE_PERMISSIONS: Final[list[str]] = [
     "admin.clinic.write",
     # Event-handler failures (core_event_failure) — read-only diagnostics.
     "admin.events.read",
+    # Subject rights (ADR 0026). Separate from ``patients.read`` on
+    # purpose: an export hands out every module's data on one patient in
+    # a single response, and an erasure is irreversible, so neither
+    # should ride on the permission that opens a patient's chart.
+    "privacy.subject.read",
+    "privacy.subject.export",
+    "privacy.subject.erase",
     # AI agent infrastructure
     "agents.view",
     "agents.supervise",

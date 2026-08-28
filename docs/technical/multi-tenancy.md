@@ -57,6 +57,8 @@ class TenantContext:
     metadata: Mapping[str, Any]       # libre, para extensión SaaS
 ```
 
+**`privacy`** (añadido por [ADR 0023](../adr/0023-privacy-policy-and-custody-modes.md)): campo **obligatorio**, sin default. Declara la custodia del despliegue (`self` / `managed` / `byok`) y su régimen. No vive en `metadata` porque core lo aplica, y no tiene default porque asumir una custodia significaría asumir `self`, que es justo la que afirma que ningún operador puede alcanzar los datos. El despliegue lo declara vía `TENANT_CUSTODY_MODE` (default `managed`), `TENANT_JURISDICTIONS` y `TENANT_DATA_RESIDENCY`.
+
 **Invariantes:**
 - Inmutable (frozen). Cualquier "modificación" devuelve una copia (`with_metadata(**kwargs)`).
 - `clinic_id` **NO** vive aquí — sigue en `ClinicContext`.

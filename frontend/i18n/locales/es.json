@@ -47,7 +47,7 @@
     "serverError": "El servidor no está disponible. Inténtalo de nuevo en unos minutos",
     "unknownError": "Error inesperado. Inténtalo de nuevo",
     "profile": "Perfil: {type}",
-    "tenantTypes": {
+    "accountTiers": {
       "basic": "Principiante",
       "medium": "Medio",
       "advanced": "Avanzado",
@@ -128,7 +128,8 @@
     "returnToInvoice": "Volver a factura",
     "billingName": "Nombre/Razón social",
     "billingNamePlaceholder": "Nombre o razón social para facturas",
-    "billingTaxId": "NIF/CIF",
+    "billingTaxId": "RFC",
+    "billingTaxIdPlaceholder": "XAXX010101000",
     "billingEmail": "Email de facturación",
     "billingAddress": "Dirección de facturación",
     "billingComplete": "Datos completos",
@@ -139,6 +140,9 @@
     "curp": "CURP",
     "ine": "INE",
     "passport": "Pasaporte",
+    "dni": "DNI",
+    "nie": "NIE",
+    "nif": "NIF",
     "profession": "Profesión",
     "workplace": "Lugar de trabajo",
     "years": "años",
@@ -209,8 +213,8 @@
       "namePlaceholder": "Nombre del tutor",
       "relationship": "Relación",
       "relationshipPlaceholder": "Seleccionar relación",
-      "dni": "DNI/NIE",
-      "dniPlaceholder": "Documento de identidad",
+      "dni": "Identificación",
+      "dniPlaceholder": "CURP, INE o pasaporte",
       "phone": "Teléfono",
       "phonePlaceholder": "Teléfono del tutor",
       "email": "Email",
@@ -1053,7 +1057,7 @@
       "items": {
         "clinicInfo": {
           "label": "Completa los datos de la clínica",
-          "description": "Nombre, CIF/NIF y dirección aparecerán en presupuestos y facturas."
+          "description": "Nombre, RFC y dirección aparecerán en presupuestos y facturas."
         },
         "cabinets": {
           "label": "Crea al menos un gabinete",

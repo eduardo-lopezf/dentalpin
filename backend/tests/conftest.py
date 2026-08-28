@@ -22,6 +22,7 @@ from app.config import settings
 from app.core.auth.models import Clinic, ClinicMembership, User  # noqa: F401
 from app.core.events.models import EventHandlerFailure  # noqa: F401
 from app.core.plugins.loader import load_modules
+from app.core.privacy.models import SubjectRequest  # noqa: F401
 from app.database import Base, UnitOfWorkSession, get_db
 from app.main import app
 from app.modules.agenda.models import (  # noqa: F401

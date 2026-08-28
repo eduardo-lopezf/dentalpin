@@ -209,15 +209,69 @@ active view.
 create button on one line, and portrait falls to two. That is the rule
 again: orientation changes the layout, never the interaction.
 
+## Where it stands
+
+Audited across 19 screens (13 routes plus the six patient-detail views)
+in both orientations, with a coarse pointer: **no control outside a
+`data-dense` surface is under 44 px, and no page overflows horizontally**.
+The agenda went from 36 of 36 undersized controls to none. One exception
+is honest to record: a 1152x40 px full-width row in the periodontogram
+fails the height rule while being a perfectly large target.
+
+All of that evidence is Chromium with an emulated viewport and pointer.
+It catches regressions; it does **not** stand in for a real device. The
+on-screen keyboard, scroll momentum, actual finger size and WebKit are
+all unverified, and two things in particular can only be judged with the
+tablet in hand: whether the 300 ms long press is the right delay, and
+whether the drag's scroll blocking holds when the finger was already
+moving.
+
 ## Known gaps
 
-These are not covered yet and are tracked as follow-up work:
+These are not covered yet and are tracked as follow-up work, roughly in
+the order worth doing them.
 
-- **Appointment quick actions are still hover-revealed.** They sit
-  inside a `data-dense` block, where the global hover-reveal override
-  does not apply, because an always-visible button lands on the
-  patient's name in a 28 px block. Reaching them by touch needs the
-  block redesigned — tapping the appointment and using the modal is the
-  route today.
-- **Periodontal charting is 14 px cells.** Needs a dedicated touch entry
-  mode with an on-screen numeric keypad and auto-advance.
+- **Appointment status cannot be changed by touch from the grids.** The
+  quick actions sit hover-revealed inside a `data-dense` block, where the
+  global hover-reveal override does not apply, because an always-visible
+  button lands on the patient's name in a 28 px block. And tapping the
+  appointment is no escape: `AppointmentModal` exposes no transitions
+  either, so the kanban is currently the only touch route to check a
+  patient in. The cheap fix is a row of transition buttons in the modal,
+  reusing `nextTransitions(status)` (2-4 actions) and the existing
+  confirmation for the destructive ones; a floating action bar anchored
+  to the selected block is the ergonomic alternative, and costs
+  positioning logic inside a scrolling container. Either way, first
+  separate the transition logic from `AppointmentQuickActions`, which
+  today also owns the dropdown trigger and the confirm modal.
+
+- **Periodontal charting is 14 px cells.** 40 undersized controls in
+  landscape, 74 in portrait, all inside the `data-dense` table. Needs a
+  dedicated touch entry mode with an on-screen numeric keypad and
+  auto-advance, not bigger cells — growing them only widens an already
+  1100 px chart.
+
+- **Hover handlers written in JavaScript are still unreachable.** The CSS
+  rule in `main.css` un-hides what `group-hover` hides, but it cannot
+  help a `@mouseenter` / `@mouseleave` listener, which a finger never
+  fires. Eight uses across seven components: the odontogram's tooth
+  tooltips (`ToothQuadrant`, `GlobalTreatmentsStrip`, `TreatmentSummary`,
+  `ConditionsList`), `PlanTreatmentList`, and the two clinical-notes
+  sidebars. Each needs a tap-to-open popover instead.
+
+- **48 `type="number"` inputs, 5 `inputmode` declarations.** Android
+  picks the keyboard from `inputmode`, so phone, DNI and currency fields
+  currently open the wrong one. Mechanical change, immediate payoff.
+
+- **No PWA / kiosk mode.** Installed as `standalone` the app would
+  recover roughly 90 px of browser chrome — close to another hour of
+  visible agenda on an 800 px-tall screen.
+
+- **Wide tables scroll in two axes with no affordance.** The document
+  itself never overflows, but ten `<table>`s and several wide grids rely
+  on `overflow-x-auto` without a sticky first column or scroll shadows,
+  so on touch there is nothing to say more content exists sideways.
+
+- **No WebKit coverage.** All three Playwright projects are Chromium.
+  Capability detection means an iPad should need no new code, but nobody
+  has confirmed it. Worth a WebKit project if iPads ever enter the mix.

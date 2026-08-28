@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- feat(privacy): declara su egress en el manifest
+  ([ADR 0027](../../../../docs/adr/0027-egress-is-declared-in-the-manifest.md)):
+  `openai` — OpenAI, L.L.C., datos de identidad, clínicos y operativos.
+  Marcado `required: False`: el módulo funciona sin la ruta cloud.
+
+- feat(privacy): `drive_turn` / `resume_turn` take the tenant's
+  `PrivacyPolicy` and build the redactor with `Redactor.for_policy()`, so
+  which government documents count as PII follows the tenant's
+  jurisdictions rather than a constant in core (ADR 0023). The clinic
+  still decides *whether* redaction runs — that stays in
+  `copilot_settings.redaction_enabled`.
+
 - feat(pending): "Pendientes" feed (IA redesign Fase 2, ADR 0015). New
   read-only `GET /pending` aggregates overdue recalls + budgets awaiting
   response through the tool registry with the caller's role (RBAC parity;

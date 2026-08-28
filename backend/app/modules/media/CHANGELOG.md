@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Metadatos de documentos y adjuntos. Registro asistencial: se conservan. **Los ficheros en disco no se tocan** (ADR 0008).
+
 - fix(ui): document pagination works. `UPagination` was passed the Nuxt
   UI v2 props (`v-model` + `page-count`) on a v4 component, which
   ignores both — the control rendered at defaults and clicking a page

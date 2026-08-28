@@ -21,6 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.privacy import PiiKind, pii
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -277,8 +278,10 @@ class BudgetSignature(Base):
     signed_items: Mapped[list | None] = mapped_column(JSONB, default=None)  # List of item IDs
 
     # Signer information
-    signed_by_name: Mapped[str] = mapped_column(String(200))
-    signed_by_email: Mapped[str | None] = mapped_column(String(255), default=None)
+    signed_by_name: Mapped[str] = mapped_column(String(200), info=pii(PiiKind.NAME))
+    signed_by_email: Mapped[str | None] = mapped_column(
+        String(255), default=None, info=pii(PiiKind.EMAIL)
+    )
     relationship_to_patient: Mapped[str] = mapped_column(
         String(30)
     )  # patient, guardian, representative

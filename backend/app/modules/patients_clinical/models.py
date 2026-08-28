@@ -18,6 +18,7 @@ from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, Stri
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.privacy import PiiKind, pii
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -154,10 +155,10 @@ class EmergencyContact(Base, TimestampMixin):
     )
     clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
 
-    name: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(String(100), info=pii(PiiKind.NAME))
     relationship: Mapped[str | None] = mapped_column(String(50))
-    phone: Mapped[str] = mapped_column(String(20))
-    email: Mapped[str | None] = mapped_column(String(255))
+    phone: Mapped[str] = mapped_column(String(20), info=pii(PiiKind.PHONE))
+    email: Mapped[str | None] = mapped_column(String(255), info=pii(PiiKind.EMAIL))
     is_legal_guardian: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
@@ -173,10 +174,12 @@ class LegalGuardian(Base, TimestampMixin):
     )
     clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
 
-    name: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(String(100), info=pii(PiiKind.NAME))
     relationship: Mapped[str] = mapped_column(String(50))
-    dni: Mapped[str | None] = mapped_column(String(20))
-    phone: Mapped[str] = mapped_column(String(20))
-    email: Mapped[str | None] = mapped_column(String(255))
+    # Named after the Spanish document; holds whichever one the guardian
+    # carries, so it is classified by role rather than by that name.
+    dni: Mapped[str | None] = mapped_column(String(20), info=pii(PiiKind.NATIONAL_ID))
+    phone: Mapped[str] = mapped_column(String(20), info=pii(PiiKind.PHONE))
+    email: Mapped[str | None] = mapped_column(String(255), info=pii(PiiKind.EMAIL))
     address: Mapped[str | None] = mapped_column(String(200))
     notes: Mapped[str | None] = mapped_column(Text)

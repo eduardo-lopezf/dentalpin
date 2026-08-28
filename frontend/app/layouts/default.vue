@@ -73,13 +73,13 @@ async function handleLogout() {
   await auth.logout()
 }
 
-// tenant_type is a reserved taxonomy (see backend TENANT_TYPES) — only
+// account_tier is a reserved taxonomy (see backend ACCOUNT_TIERS) — only
 // "clinic" has real functionality today, the rest are future tiers.
 // Falls back to the raw value so an unmapped tier still renders something.
-const tenantTypeLabel = computed(() => {
-  const type = clinic.currentClinic.value?.tenant_type
-  if (!type) return null
-  return t(`auth.tenantTypes.${type}`, type)
+const accountTierLabel = computed(() => {
+  const tier = clinic.currentClinic.value?.account_tier
+  if (!tier) return null
+  return t(`auth.accountTiers.${tier}`, tier)
 })
 
 const settingsItem = computed(() => navigationItems.value.find(i => i.to === '/settings'))
@@ -371,10 +371,10 @@ function isActive(to: string): boolean {
           <!-- Decorative on touch, where the action row above is 40 px
                tall and this caption would push the header past 70 px. -->
           <span
-            v-if="tenantTypeLabel && !isTouch"
+            v-if="accountTierLabel && !isTouch"
             class="text-caption text-subtle pr-1"
           >
-            {{ t('auth.profile', { type: tenantTypeLabel }) }}
+            {{ t('auth.profile', { type: accountTierLabel }) }}
           </span>
         </div>
       </header>

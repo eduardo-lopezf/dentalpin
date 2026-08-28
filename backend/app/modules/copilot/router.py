@@ -32,6 +32,7 @@ from app.core.auth.dependencies import ClinicContext, get_clinic_context, requir
 from app.core.auth.permissions import get_role_permissions, has_permission
 from app.core.events import EventType, event_bus
 from app.core.schemas import ApiResponse, PaginatedApiResponse
+from app.core.tenancy import TenantContext, get_tenant
 from app.database import async_session_maker, get_db
 
 from .bridge import drive_turn, resume_turn
@@ -233,6 +234,7 @@ async def send_message(
     conversation_id: UUID,
     body: MessageCreate,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
     _: Annotated[None, Depends(require_permission("copilot.chat"))],
 ) -> StreamingResponse:
     clinic_id, user_id, role = ctx.clinic_id, ctx.user_id, ctx.role
@@ -247,6 +249,7 @@ async def send_message(
             db=db,
             conv=conv,
             settings_row=settings_row,
+            privacy=tenant.privacy,
             permissions=permissions,
             user_id=user_id,
             agent_id=agent_id,
@@ -264,6 +267,7 @@ async def confirm_tool(
     call_id: str,
     body: ConfirmRequest,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
     _: Annotated[None, Depends(require_permission("copilot.chat"))],
 ) -> StreamingResponse:
     clinic_id, user_id, role = ctx.clinic_id, ctx.user_id, ctx.role
@@ -279,6 +283,7 @@ async def confirm_tool(
             db=db,
             conv=conv,
             settings_row=settings_row,
+            privacy=tenant.privacy,
             permissions=permissions,
             user_id=user_id,
             agent_id=agent_id,

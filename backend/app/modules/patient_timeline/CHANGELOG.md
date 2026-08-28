@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Índice derivado de eventos. **Sí borra**, incluida la descripción ya renderizada.
+
 - fix(ui): infinite scroll actually scrolls. The `IntersectionObserver`
   was created in `onMounted` from a ref that lives in the `v-else`
   branch — absent on first paint, since the loading branch renders

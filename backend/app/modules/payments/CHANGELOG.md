@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Cobros, asignaciones, histórico y devoluciones. Conservación fiscal.
+
 - fix(money): the refund modal's seeded amount is typed `Money` — it comes
   straight from the payment's net amount, a Decimal string.
 

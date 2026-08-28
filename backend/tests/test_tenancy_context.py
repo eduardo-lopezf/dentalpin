@@ -7,6 +7,7 @@ from types import MappingProxyType
 
 import pytest
 
+from app.core.privacy import SELF_HOSTED_POLICY, OperatorAccess, PrivacyPolicy
 from app.core.tenancy import TenantContext
 
 
@@ -14,6 +15,7 @@ def _base_kwargs() -> dict[str, object]:
     return {
         "slug": "default",
         "db_url": "postgresql+asyncpg://user:pass@localhost/test",
+        "privacy": SELF_HOSTED_POLICY,
     }
 
 
@@ -21,13 +23,32 @@ class TestTenantContextConstruction:
     def test_minimum_fields_ok(self) -> None:
         ctx = TenantContext(**_base_kwargs())
         assert ctx.slug == "default"
+        assert ctx.privacy.operator_access is OperatorAccess.NONE
         assert ctx.storage_prefix == ""
         assert ctx.modules_enabled == frozenset()
         assert ctx.metadata == {}
 
+    def test_privacy_has_no_default(self) -> None:
+        # Assuming a custody mode would mean assuming the one that claims
+        # no operator access exists. The tenant has to say.
+        with pytest.raises(TypeError, match="privacy"):
+            TenantContext(  # type: ignore[call-arg]
+                slug="default",
+                db_url="postgresql+asyncpg://user:pass@localhost/test",
+            )
+
+    def test_privacy_is_carried_verbatim(self) -> None:
+        policy = PrivacyPolicy.managed(
+            jurisdictions=frozenset({"MX"}),
+            regulations=frozenset({"lfpdppp"}),
+            data_residency="mx-central",
+        )
+        ctx = TenantContext(**{**_base_kwargs(), "privacy": policy})
+        assert ctx.privacy == policy
+
     def test_empty_db_url_raises(self) -> None:
         with pytest.raises(ValueError, match="db_url cannot be empty"):
-            TenantContext(slug="default", db_url="")
+            TenantContext(slug="default", db_url="", privacy=SELF_HOSTED_POLICY)
 
     def test_metadata_wrapped_in_mappingproxy(self) -> None:
         ctx = TenantContext(**_base_kwargs(), metadata={"plan": "pro"})
@@ -61,6 +82,17 @@ class TestTenantContextValueSemantics:
         a = TenantContext(**_base_kwargs())
         b = TenantContext(**_base_kwargs())
         assert {a, b} == {a}
+
+    def test_policy_participates_in_identity(self) -> None:
+        managed = PrivacyPolicy.managed(
+            jurisdictions=frozenset({"MX"}),
+            regulations=frozenset({"lfpdppp"}),
+            data_residency="mx-central",
+        )
+        a = TenantContext(**_base_kwargs())
+        b = TenantContext(**{**_base_kwargs(), "privacy": managed})
+        assert a != b
+        assert {a, b} != {a}
 
 
 class TestWithMetadata:

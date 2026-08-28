@@ -14,6 +14,7 @@ from .manifest import Manifest
 if TYPE_CHECKING:
     from app.core.agents.base import BaseAgent
     from app.core.agents.tools.tool import Tool
+    from app.core.privacy import SubjectContributor
     from app.core.scheduling import ScheduledJob
 
     from .context import ModuleContext
@@ -99,6 +100,24 @@ class BaseModule(ABC):
 
         Default is an empty list. Override only if the module ships
         agents itself (as opposed to merely exposing tools).
+        """
+        return []
+
+    # --- Subject rights contract -----------------------------------------
+
+    def get_subject_contributors(self) -> list[SubjectContributor]:
+        """Return this module's answers about the data it holds on a patient.
+
+        Default is an empty list, which is only correct for a module that
+        stores nothing about a patient. Any module that does **must**
+        contribute: core cannot export or erase what it is forbidden to
+        import (ADR 0001), so a silent module is data that quietly
+        survives an erasure request.
+
+        Each contributor exports its rows and either anonymizes them or
+        states a ``retention_reason`` explaining why it legally cannot —
+        invoices outlive erasure requests. See
+        :mod:`app.core.privacy.subject` and ADR 0026.
         """
         return []
 

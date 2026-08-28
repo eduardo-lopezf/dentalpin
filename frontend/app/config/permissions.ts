@@ -88,6 +88,11 @@ export const PERMISSIONS = {
     read: 'clinical_notes.notes.read',
     write: 'clinical_notes.notes.write'
   },
+  privacy: {
+    subjectRead: 'privacy.subject.read',
+    subjectExport: 'privacy.subject.export',
+    subjectErase: 'privacy.subject.erase'
+  },
   agents: {
     view: 'agents.view',
     supervise: 'agents.supervise',

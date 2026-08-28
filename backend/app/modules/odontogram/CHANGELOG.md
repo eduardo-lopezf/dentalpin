@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Tres secciones — estado dental, tratamientos aplicados e histórico del odontograma. Registro asistencial: se conservan.
+
 - fix(ui): the change-history panel offers the rest instead of hiding
   it. The endpoint pages at 50 and reports the true count; the panel
   took `data` and dropped `total`, so the older half of a long clinical

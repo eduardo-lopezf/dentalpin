@@ -41,6 +41,20 @@ class VerifactuModule(BaseModule):
             "assistant": [],
             "receptionist": ["records.read"],
         },
+        "egress": [
+            {
+                "target": "aeat",
+                "subprocessor": "Agencia Estatal de Administración Tributaria (España)",
+                "residency": "es",
+                "data_classes": ["identifier", "financial"],
+                "purpose": (
+                    "Remitir los registros de facturación exigidos por el "
+                    "sistema Verifactu. Salen el nombre fiscal y el NIF del "
+                    "destinatario de cada factura."
+                ),
+                "required": True,
+            }
+        ],
         "frontend": {
             "layer_path": "frontend",
         },
@@ -72,6 +86,11 @@ class VerifactuModule(BaseModule):
 
     def get_router(self) -> APIRouter:
         return router
+
+    def get_subject_contributors(self) -> list:
+        from . import privacy
+
+        return privacy.get_subject_contributors()
 
     def get_permissions(self) -> list[str]:
         return [

@@ -28,8 +28,10 @@ from app.core.plugins.loader import discover_and_register, mount_active
 from app.core.plugins.processor import PendingProcessor
 from app.core.plugins.registry import module_registry
 from app.core.plugins.service import ModuleService, installed_module_names
+from app.core.privacy.egress import log_egress_audit
 from app.core.scheduler import init_scheduler, shutdown_scheduler
 from app.core.schemas import ErrorResponse
+from app.core.tenancy import SingleTenantResolver
 from app.database import async_session_maker, engine, get_db
 
 logger = logging.getLogger(__name__)
@@ -106,6 +108,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.exception("Pending module processor raised")
 
     await _mount_installed_modules(app, skip=failed_migrations)
+
+    # Tenant resolution. Built after mounting so ``modules_enabled``
+    # reflects the active set, not everything discovered on disk. A SaaS
+    # module replaces this with its own resolver (ADR 0012 §4); the
+    # self-hosted one carries the ``self`` custody policy (ADR 0023).
+    app.state.tenant_resolver = SingleTenantResolver()
+
+    # Say, once, which modules reach a destination the policy has not
+    # permitted. A warning rather than a refusal — see ADR 0027.
+    log_egress_audit((await app.state.tenant_resolver.resolve_by_slug("default")).privacy)
 
     # Initialize scheduler for background jobs (installed modules only —
     # ``module_registry.list_modules()`` is the active set).
@@ -277,6 +289,11 @@ app.include_router(events_router, prefix="/api/v1")
 from app.core.agents.router import router as agents_router  # noqa: E402
 
 app.include_router(agents_router, prefix="/api/v1")
+
+# Subject rights: export / erasure / the log of exercised rights.
+from app.core.privacy.router import router as privacy_router  # noqa: E402
+
+app.include_router(privacy_router, prefix="/api/v1")
 
 
 @app.get("/health")

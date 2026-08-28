@@ -68,7 +68,7 @@ export interface Clinic {
   email?: string
   timezone: string
   currency: string
-  tenant_type: string
+  account_tier: string
   settings: {
     slot_duration_min?: number
   }
@@ -1983,7 +1983,7 @@ export interface PatientExtended extends Patient {
   // Extended demographics
   gender?: 'male' | 'female'
   national_id?: string
-  national_id_type?: 'curp' | 'ine' | 'passport'
+  national_id_type?: 'curp' | 'ine' | 'passport' | 'dni' | 'nie' | 'nif'
   profession?: string
   workplace?: string
   preferred_language: string

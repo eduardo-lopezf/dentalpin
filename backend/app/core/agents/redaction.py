@@ -24,9 +24,13 @@ v1 scope (see ``docs/technical/copilot-agentic-architecture.md`` §2.3):
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from functools import lru_cache
+from types import MappingProxyType
+from typing import Any, Final
 
 from app.core.llm.base import (
     ContentBlock,
@@ -35,12 +39,94 @@ from app.core.llm.base import (
     ToolResultBlock,
     ToolUseBlock,
 )
+from app.core.privacy import PrivacyPolicy, pii_columns
 
-# key (lower-cased) -> token kind
-_NAME_KEYS = {"first_name", "last_name", "full_name", "name", "patient_name"}
-_PHONE_KEYS = {"phone", "mobile", "telephone", "phone_number"}
-_EMAIL_KEYS = {"email", "email_address"}
-_NATIONAL_ID_KEYS = {"dni", "nif", "tax_id", "national_id"}
+logger = logging.getLogger(__name__)
+
+# Keys a *tool payload* uses that no column carries: names composed by a
+# handler (``full_name`` from first + last), and the aliases a JSON
+# response may pick for a column (``mobile`` for ``phone``). Everything
+# else comes from the schema itself — see ``pii_columns()``.
+_SYNTHETIC_KEYS: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "full_name": "NAME",
+        "patient_name": "NAME",
+        "name": "NAME",
+        "mobile": "PHONE",
+        "telephone": "PHONE",
+        "phone_number": "PHONE",
+        "email_address": "EMAIL",
+        # ``accounting_export`` emits ``nif`` as a CSV row key and
+        # ``verifactu`` carries it as a schema field; neither is a column.
+        "nif": "NATID",
+    }
+)
+
+# The *document* names of a jurisdiction, for payloads that name a field
+# after the document itself rather than after the column that stores it.
+# Which ones apply is ``PrivacyPolicy.jurisdictions`` on the tenant
+# (ADR 0023), not a property of the code.
+_ID_KEYS_BY_JURISDICTION: Final[Mapping[str, frozenset[str]]] = MappingProxyType(
+    {
+        "ES": frozenset({"dni", "nif", "nie", "cif"}),
+        "MX": frozenset({"ine", "curp", "rfc"}),
+    }
+)
+
+ALL_JURISDICTIONS: Final = frozenset(_ID_KEYS_BY_JURISDICTION)
+"""Every jurisdiction this module knows document names for.
+
+The default when no policy is supplied. Redacting a key that never
+appears in a payload costs nothing, so the safe default is *all* of them
+— a caller that forgets to pass its jurisdictions over-redacts instead of
+leaking a document type it did not think to name.
+"""
+
+
+@lru_cache(maxsize=32)
+def _jurisdiction_keys(jurisdictions: frozenset[str]) -> Mapping[str, str]:
+    """Document-name keys that apply under ``jurisdictions``.
+
+    Cached because a tenant's set is stable. A consequence: the
+    unknown-jurisdiction warning is emitted once per distinct set, not
+    once per session.
+    """
+    keys: dict[str, str] = {}
+    for code in sorted(jurisdictions):
+        known = _ID_KEYS_BY_JURISDICTION.get(code)
+        if known is None:
+            # Not fatal: the schema's own classified columns still
+            # tokenize. But a field named after a local document (say a
+            # Brazilian ``cpf``) would pass through in cleartext.
+            logger.warning(
+                "No PII key set for jurisdiction %r; only classified columns are redacted",
+                code,
+            )
+            continue
+        for key in known:
+            keys[key] = "NATID"
+    return MappingProxyType(keys)
+
+
+def _kind_for_key(jurisdictions: frozenset[str]) -> Mapping[str, str]:
+    """Build the key -> token-kind map for one redactor.
+
+    Three sources, most authoritative last: the tenant's jurisdiction
+    document names, the payload-only aliases above, and the columns the
+    schema classifies with ``pii()``. The schema wins because it is the
+    only one that cannot drift from what is actually stored.
+
+    Not cached: ``pii_columns()`` reflects the modules mounted right now,
+    and freezing that would make an install invisible to redaction.
+    """
+    mapping: dict[str, str] = {}
+    mapping.update(_jurisdiction_keys(jurisdictions))
+    mapping.update(_SYNTHETIC_KEYS)
+    for column, kind in pii_columns().items():
+        mapping[column] = kind.value
+    return MappingProxyType(mapping)
+
+
 # UUID-valued reference keys -> kind
 _ID_KIND = {
     "id": "REF",
@@ -48,15 +134,6 @@ _ID_KIND = {
     "appointment_id": "APPT",
 }
 
-_KIND_FOR_KEY: dict[str, str] = {}
-for _k in _NAME_KEYS:
-    _KIND_FOR_KEY[_k] = "NAME"
-for _k in _PHONE_KEYS:
-    _KIND_FOR_KEY[_k] = "PHONE"
-for _k in _EMAIL_KEYS:
-    _KIND_FOR_KEY[_k] = "EMAIL"
-for _k in _NATIONAL_ID_KEYS:
-    _KIND_FOR_KEY[_k] = "NATID"
 
 _UUID_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE
@@ -108,11 +185,30 @@ class Redactor:
     When ``enabled`` is ``False`` every method is the identity — useful
     for tests and the (deferred) self-hosted path where data never
     leaves the clinic.
+
+    ``jurisdictions`` selects which government-document names count as
+    identifiers. It comes from the tenant's
+    :class:`~app.core.privacy.PrivacyPolicy` — build through
+    :meth:`for_policy` rather than passing the set by hand. Omitting it
+    falls back to every jurisdiction this module knows, which
+    over-redacts rather than under-redacts.
     """
 
-    def __init__(self, *, enabled: bool = True) -> None:
+    def __init__(
+        self,
+        *,
+        enabled: bool = True,
+        jurisdictions: frozenset[str] | None = None,
+    ) -> None:
         self.enabled = enabled
+        self.jurisdictions = ALL_JURISDICTIONS if jurisdictions is None else jurisdictions
+        self._kind_for_key = _kind_for_key(self.jurisdictions)
         self.table = SymbolTable()
+
+    @classmethod
+    def for_policy(cls, policy: PrivacyPolicy, *, enabled: bool = True) -> Redactor:
+        """Build a redactor bound to a tenant's declared jurisdictions."""
+        return cls(enabled=enabled, jurisdictions=policy.jurisdictions)
 
     # --- seeding --------------------------------------------------------
 
@@ -168,7 +264,7 @@ class Redactor:
         if not value:
             return value
         lkey = (key or "").lower()
-        kind = _KIND_FOR_KEY.get(lkey)
+        kind = self._kind_for_key.get(lkey)
         if kind is not None:
             return self.table.tokenize(value, kind)
         if lkey in _ID_KIND and _UUID_RE.match(value):

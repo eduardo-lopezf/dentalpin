@@ -16,6 +16,7 @@ from app.core.agents.models import Agent, AgentSession
 from app.core.agents.orchestrator import ConfirmationRequired, Final, Token, ToolCallFinished
 from app.core.auth.models import User
 from app.core.llm.base import Done, ProviderEvent, TextDelta, ToolUse, Usage
+from app.core.privacy import SELF_HOSTED_POLICY
 from app.modules.copilot.bridge import _tool_names_for, drive_turn, resume_turn
 from app.modules.copilot.models import CopilotMessage
 from app.modules.copilot.service import ConversationService, CopilotSettingsService
@@ -59,6 +60,7 @@ async def _drive(db, conv, settings_row, user_id, agent_id, session_id, provider
             db=db,
             conv=conv,
             settings_row=settings_row,
+            privacy=SELF_HOSTED_POLICY,
             permissions=perms,
             user_id=user_id,
             agent_id=agent_id,
@@ -173,6 +175,7 @@ async def test_write_suspends_then_resume_executes(db_session, test_clinic) -> N
             db=db_session,
             conv=conv,
             settings_row=settings_row,
+            privacy=SELF_HOSTED_POLICY,
             permissions=["*"],
             user_id=user_id,
             agent_id=agent_id,
@@ -215,6 +218,7 @@ async def test_reject_does_not_execute(db_session, test_clinic) -> None:
             db=db_session,
             conv=conv,
             settings_row=settings_row,
+            privacy=SELF_HOSTED_POLICY,
             permissions=["*"],
             user_id=user_id,
             agent_id=agent_id,

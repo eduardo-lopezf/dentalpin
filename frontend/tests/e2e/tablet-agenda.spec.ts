@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test'
-import { expect, test } from './_fixtures'
+import { API_BASE, expect, test } from './_fixtures'
 
 /**
  * The agenda's touch gestures, run in both tablet orientations.
@@ -34,10 +34,10 @@ async function awaitDetection(page: Page): Promise<void> {
  * same behaviour `nuxt.config.ts` calls out around `optimizeDeps.include`.
  * It can only happen once per dep, so a single retry settles it.
  */
-async function gotoAgenda(page: Page): Promise<void> {
+async function gotoAgenda(page: Page, path = '/appointments'): Promise<void> {
   for (const attempt of [1, 2]) {
     try {
-      await page.goto('/appointments', { waitUntil: 'domcontentloaded' })
+      await page.goto(path, { waitUntil: 'domcontentloaded' })
       return
     } catch (error) {
       if (attempt === 2 || !String(error).includes('ERR_ABORTED')) throw error
@@ -45,8 +45,69 @@ async function gotoAgenda(page: Page): Promise<void> {
   }
 }
 
-async function openAgenda(page: Page): Promise<void> {
-  await gotoAgenda(page)
+/**
+ * Statuses the board draws into a column that is expanded by default.
+ * `completed` and `no_show`/`cancelled` land in "Finalizadas" and "No
+ * asistió", both `collapsedByDefault` — their cards exist in the DOM's
+ * eyes only once a human opens the column, so a day made of those is
+ * indistinguishable from an empty one here.
+ */
+const EXPANDED_COLUMN_STATUSES = new Set([
+  'scheduled',
+  'confirmed',
+  'checked_in',
+  'in_treatment'
+])
+
+/**
+ * The local date of a seeded appointment the kanban will actually draw,
+ * as `YYYY-MM-DD` for the page's `?date=` param.
+ *
+ * Unlike the week and day grids, the board renders a single day
+ * (`currentDate`, defaulting to today), so it needs a day that really
+ * has cards. Neither "today" nor any hardcoded weekday is that day:
+ * `generate_appointments_data` places visits Monday–Friday only *and*
+ * carries its slot counter across the past/current/future weeks, so
+ * which weekdays get filled shifts per week — the current week can
+ * start on a Tuesday and leave Monday empty. Asking the API keeps this
+ * correct whatever day CI runs on and however the fixtures are
+ * redistributed later.
+ */
+async function dayWithKanbanCard(page: Page): Promise<string> {
+  const token = (await page.context().cookies()).find(c => c.name === 'access_token')?.value
+  if (!token) throw new Error('no access_token cookie — did the login fixture run?')
+
+  const from = new Date()
+  from.setDate(from.getDate() - 7)
+  const to = new Date()
+  to.setDate(to.getDate() + 21)
+
+  const response = await page.context().request.get(`${API_BASE}/api/v1/agenda/appointments`, {
+    params: { start_date: from.toISOString(), end_date: to.toISOString(), page_size: 500 },
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  if (!response.ok()) {
+    throw new Error(`appointment lookup failed: ${response.status()} ${await response.text()}`)
+  }
+
+  const body = (await response.json()) as { data: { start_time: string, status: string }[] }
+  const usable = body.data
+    .filter(a => EXPANDED_COLUMN_STATUSES.has(a.status))
+    .sort((a, b) => a.start_time.localeCompare(b.start_time))[0]
+  if (!usable) {
+    throw new Error('no seeded appointment lands in an expanded kanban column')
+  }
+
+  // Local getters on purpose: the board's own `isSameDay` compares local
+  // date parts, and `?date=` is parsed as local midnight.
+  const day = new Date(usable.start_time)
+  const mm = String(day.getMonth() + 1).padStart(2, '0')
+  const dd = String(day.getDate()).padStart(2, '0')
+  return `${day.getFullYear()}-${mm}-${dd}`
+}
+
+async function openAgenda(page: Page, path = '/appointments'): Promise<void> {
+  await gotoAgenda(page, path)
   await awaitDetection(page)
   await expect(page.locator('html')).toHaveAttribute('data-pointer', 'coarse')
   // Wait for the grid itself, not for a duration: the view components are
@@ -138,7 +199,7 @@ test.describe('agenda by touch', () => {
   })
 
   test('a kanban card follows the pointer after a long press', async ({ loggedIn: page }) => {
-    await openAgenda(page)
+    await openAgenda(page, `/appointments?date=${await dayWithKanbanCard(page)}`)
     await page.getByRole('tab', { name: 'Kanban', exact: true }).click()
     await page.waitForTimeout(3000)
 

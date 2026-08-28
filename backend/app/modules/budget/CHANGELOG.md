@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Presupuestos con partidas, histórico y firmas. **Sí borra**: una oferta precontractual no es documento fiscal. Se van el nombre y el email de la firma, y las notas libres.
+
+- fix(privacy): classified this module's personal columns with `pii()`
+  so the copilot's PHI boundary derives them from the schema instead of a
+  hand-kept list ([ADR 0025](../../../../docs/adr/0025-pii-is-classified-on-the-column.md)).
+  `budget_signatures.signed_by_name` / `signed_by_email` were not
+  redacted before.
+
 - fix(money): the item preview total coerces prices and discounts before
   arithmetic (audit S5, Decimal-as-string).
 
