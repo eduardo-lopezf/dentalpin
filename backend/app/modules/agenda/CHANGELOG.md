@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- feat(ui): one date navigator instead of three. The week, day and
+  kanban views each rendered their own identical prev / today / next row
+  plus date label, stacked under the page header and the filters; the
+  new `AppointmentDateNav` renders once in the page header's `#lead`
+  slot and steps by week or day depending on the active view. Recovers a
+  full row — ~7% of the visible day on an 800 px-tall tablet — and the
+  header wraps to two lines in portrait rather than overflowing.
+
+- refactor(ui): `AppointmentMobileDayView` → `AppointmentDayList`,
+  `AppointmentMobileTimeline` → `AppointmentDayTimeline`,
+  `AppointmentMobileDaySummary` → `AppointmentDayHeader`. The old names
+  said where the component ran, which was already misleading — a tablet
+  held upright wants that same free-slot list — and would have gone on
+  being wrong as layouts move. Names now say what the component is. No
+  behaviour change; the typecheck baseline moves only by those paths.
+
 - refactor(ui): the pointer-capability branches are now a dispatcher over
   a pair of named functions (`pressAppointmentWithMouse` /
   `pressAppointmentByTouch`, `pressCardWithMouse` / `pressCardByTouch`)

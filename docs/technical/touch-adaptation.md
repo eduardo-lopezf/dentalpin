@@ -185,10 +185,29 @@ never fires. A device-specific function is justified only to quarantine a
 named engine bug, with the bug in the comment and a plan to delete it.
 
 A separate component is right when the screen answers a **different
-question**, not when it looks different: `AppointmentMobileDayView`
-shares no logic at all with the grids because it shows the day as a list
-of free slots. If a "mobile" component shares helpers with its sibling,
+question**, not when it looks different: `AppointmentDayList` shares no
+logic at all with the grids because it shows the day as a list of free
+slots — "what is next today, and where are the gaps" rather than "how
+does the week lay out". If a component shares helpers with its sibling,
 that is the signal to merge them and extract a composable instead.
+
+Name it for what it is, never for where it runs. `AppointmentDayList`
+was `AppointmentMobileDayView`, which suggested it was phone-only when
+nothing in it is: a tablet held upright wants that same list. A name
+that encodes a viewport becomes a lie the first time the layout moves.
+
+## One row, not three
+
+The agenda's date navigator used to be rendered by each of the week, day
+and kanban views, three identical copies stacked under the page header
+and the filters. `AppointmentDateNav` now renders once, in `PageHeader`'s
+`#lead` slot — a slot for controls that belong *to the title* rather than
+to the page's actions — and steps by week or by day depending on the
+active view.
+
+`PageHeader` wraps, so landscape fits title, navigator, view tabs and the
+create button on one line, and portrait falls to two. That is the rule
+again: orientation changes the layout, never the interaction.
 
 ## Known gaps
 
@@ -202,7 +221,3 @@ These are not covered yet and are tracked as follow-up work:
   route today.
 - **Periodontal charting is 14 px cells.** Needs a dedicated touch entry
   mode with an on-screen numeric keypad and auto-advance.
-- **The agenda spends ~48 px on a date-navigator row** that each of the
-  three view components renders for itself. Merging it into the page
-  header would return about 7% of the visible day on an 800 px-tall
-  screen, and would drop triplicated markup.

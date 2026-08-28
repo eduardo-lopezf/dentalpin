@@ -22,7 +22,6 @@ const emit = defineEmits<{
   'slot-click': [professionalId: string, time: string]
   'slot-drag-create': [professionalId: string, startTime: string, endTime: string]
   'appointment-click': [appointment: Appointment]
-  'date-change': [date: Date]
   'appointment-move': [appointmentId: string, newProfessionalId: string, newStartTime: string, newEndTime: string]
   'appointment-resize': [appointmentId: string, newEndTime: string]
   'highlight-cleared': []
@@ -183,15 +182,6 @@ const timeSlots = computed(() => {
   return slots
 })
 
-// Format date for header
-const formattedDate = computed(() => {
-  return props.currentDate.toLocaleDateString(locale.value, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-})
 
 // Check if current date is today
 const isToday = computed(() => {
@@ -199,22 +189,6 @@ const isToday = computed(() => {
   return props.currentDate.toDateString() === today.toDateString()
 })
 
-// Navigate days
-function prevDay() {
-  const newDate = new Date(props.currentDate)
-  newDate.setDate(newDate.getDate() - 1)
-  emit('date-change', newDate)
-}
-
-function nextDay() {
-  const newDate = new Date(props.currentDate)
-  newDate.setDate(newDate.getDate() + 1)
-  emit('date-change', newDate)
-}
-
-function goToToday() {
-  emit('date-change', new Date())
-}
 
 // Calculate slot index from time string
 function getSlotIndex(timeStr: string): number {
@@ -388,38 +362,6 @@ const appointmentsByProfIndex = computed(() => {
 
 <template>
   <div class="flex flex-col h-full">
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-4 flex-shrink-0">
-      <div class="flex items-center gap-2">
-        <UButton
-          variant="outline"
-          color="neutral"
-          icon="i-lucide-chevron-left"
-          @click="prevDay"
-        />
-        <UButton
-          variant="outline"
-          color="neutral"
-          @click="goToToday"
-        >
-          {{ t('appointments.today') }}
-        </UButton>
-        <UButton
-          variant="outline"
-          color="neutral"
-          icon="i-lucide-chevron-right"
-          @click="nextDay"
-        />
-      </div>
-
-      <h2
-        class="text-h2 capitalize"
-        :class="isToday ? 'text-[var(--color-primary-soft-text)]' : 'text-default'"
-      >
-        {{ formattedDate }}
-      </h2>
-    </div>
-
     <!-- Loading -->
     <div
       v-if="isLoading"

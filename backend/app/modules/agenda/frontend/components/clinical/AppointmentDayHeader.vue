@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Sticky mobile-agenda header. Issue #61.
+ * Sticky header for `AppointmentDayList`. Issue #61.
  *
  * Three layers:
  *   1. Resource selector — pick one professional or one cabinet to scope

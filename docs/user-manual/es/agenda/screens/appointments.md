@@ -57,8 +57,11 @@ flujo (programada → confirmada → en sala → completada → cobrada).
   pulsada una tarjeta y arrástrala a otra columna.
 - **En tablet, la orientación cambia la disposición, no los gestos** —
   en vertical el kanban reparte sus columnas en dos filas en lugar de
-  desplazarse en horizontal. Girar la tablet nunca cambia cómo
-  funciona un gesto.
+  desplazarse en horizontal, y la cabecera pasa a dos líneas. Girar la
+  tablet nunca cambia cómo funciona un gesto.
+- **Navegación de fechas en la cabecera** — los botones anterior / hoy /
+  siguiente y la fecha viven junto al título, y avanzan de semana en
+  semana o de día en día según la vista activa.
 - **Conflictos del backend** — si el servidor rechaza una cita por
   solape (HTTP 409) el calendario refresca la vista y muestra un
   *toast* de error; nada queda inconsistente.

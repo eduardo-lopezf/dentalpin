@@ -1,13 +1,19 @@
 <script setup lang="ts">
 /**
- * Mobile agenda — single-track day view with explicit free slots.
- * Issue #61.
+ * Single-track day view with explicit free slots. Issue #61.
  *
- * Composes the week-strip date nav, the day summary (resource selector
- * + metrics + min-duration filter), and the timeline (busy/free/blocked
- * chronological list). Free slots are tappable and emit `free-slot-tap`
- * with a payload the parent can hand straight to the appointment
- * composer.
+ * Composes the week-strip date nav, `AppointmentDayHeader` (resource
+ * selector + metrics + min-duration filter), and
+ * `AppointmentDayTimeline` (busy/free/blocked chronological list). Free
+ * slots are tappable and emit `free-slot-tap` with a payload the parent
+ * can hand straight to the appointment composer.
+ *
+ * Named for what it is, not for where it runs. It is currently mounted
+ * below 768 px, but nothing in it is phone-specific: it answers "what is
+ * next today, and where are the gaps", which is a different question
+ * from the grids' "how does the week lay out", and that is why it is a
+ * separate component rather than a restyled grid. See
+ * docs/technical/touch-adaptation.md.
  */
 import type { Appointment, Cabinet, Professional } from '~~/app/types'
 import type {
@@ -351,7 +357,7 @@ const hasAnyEntry = computed(() => entries.value.length > 0)
         </button>
       </div>
 
-      <AppointmentMobileDaySummary
+      <AppointmentDayHeader
         :resource-kind="resourceKind"
         :resource-id="resourceId"
         :professionals="professionals"
@@ -405,7 +411,7 @@ const hasAnyEntry = computed(() => entries.value.length > 0)
         </UButton>
       </div>
 
-      <AppointmentMobileTimeline
+      <AppointmentDayTimeline
         v-else
         :entries="entries"
         :professionals="professionals"

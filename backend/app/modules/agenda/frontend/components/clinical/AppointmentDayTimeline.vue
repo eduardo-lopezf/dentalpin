@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * Mobile agenda timeline. Issue #61.
+ * Chronological day timeline, rendered inside `AppointmentDayList`.
+ * Issue #61.
  *
  * Renders a chronological list of busy appointments, free-slot cards,
  * and blocked (off-hours / closed) bands for one resource on one day.

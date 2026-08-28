@@ -9,7 +9,7 @@ import { formatLocalDate } from '../../utils/date'
 const AppointmentCalendar = defineAsyncComponent(() => import('../../components/clinical/AppointmentCalendar.vue'))
 const AppointmentDailyView = defineAsyncComponent(() => import('../../components/clinical/AppointmentDailyView.vue'))
 const AppointmentKanbanView = defineAsyncComponent(() => import('../../components/clinical/AppointmentKanbanView.vue'))
-const AppointmentMobileDayView = defineAsyncComponent(() => import('../../components/clinical/AppointmentMobileDayView.vue'))
+const AppointmentDayList = defineAsyncComponent(() => import('../../components/clinical/AppointmentDayList.vue'))
 
 const { t } = useI18n()
 const toast = useToast()
@@ -603,6 +603,24 @@ watch(isMobile, async (mobile) => {
 <template>
   <div class="h-full flex flex-col w-full min-w-0 overflow-hidden">
     <PageHeader :title="t('appointments.title')">
+      <!--
+        The date navigator lives here rather than inside each view: all
+        three rendered their own identical copy, stacked under this
+        header and the filters, and that third row cost ~7% of the
+        visible day on an 800 px-tall tablet. The mobile day list keeps
+        its own compact navigator.
+      -->
+      <template #lead>
+        <AppointmentDateNav
+          v-if="!isMobile"
+          :mode="viewMode === 'week' ? 'week' : 'day'"
+          :week-start="currentWeekStart"
+          :date="currentDate"
+          @week-change="handleWeekChange"
+          @date-change="handleDateChange"
+        />
+      </template>
+
       <template #actions>
         <SegmentedControl
           v-if="!isMobile"
@@ -691,7 +709,7 @@ watch(isMobile, async (mobile) => {
     <!-- Calendar -->
     <div class="flex-1 min-h-0 min-w-0">
       <!-- Mobile day view (replaces all desktop views on <md) -->
-      <AppointmentMobileDayView
+      <AppointmentDayList
         v-if="isMobile"
         :appointments="filteredAppointments"
         :professionals="professionalsWithColors"
@@ -718,7 +736,6 @@ watch(isMobile, async (mobile) => {
         @slot-click="handleSlotClick"
         @slot-drag-create="handleSlotDragCreate"
         @appointment-click="handleAppointmentClick"
-        @week-change="handleWeekChange"
         @appointment-move="handleAppointmentMove"
         @appointment-resize="handleAppointmentResize"
         @highlight-cleared="clearHighlight"
@@ -735,7 +752,6 @@ watch(isMobile, async (mobile) => {
         @slot-click="handleDailySlotClick"
         @slot-drag-create="handleDailySlotDragCreate"
         @appointment-click="handleAppointmentClick"
-        @date-change="handleDateChange"
         @appointment-move="handleDailyAppointmentMove"
         @appointment-resize="handleDailyAppointmentResize"
         @highlight-cleared="clearHighlight"
@@ -750,7 +766,6 @@ watch(isMobile, async (mobile) => {
         :current-date="currentDate"
         :is-loading="isLoading"
         @appointment-click="handleAppointmentClick"
-        @date-change="handleDateChange"
         @professional-filter="handleProfessionalFilter"
       />
     </div>

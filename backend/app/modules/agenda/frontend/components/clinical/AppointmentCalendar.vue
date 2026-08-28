@@ -27,7 +27,6 @@ const emit = defineEmits<{
   'slot-click': [date: Date, time: string]
   'slot-drag-create': [date: Date, startTime: string, endTime: string]
   'appointment-click': [appointment: Appointment]
-  'week-change': [weekStart: Date]
   'appointment-move': [appointmentId: string, newDate: string, newStartTime: string, newEndTime: string]
   'appointment-resize': [appointmentId: string, newEndTime: string]
   'highlight-cleared': []
@@ -231,29 +230,6 @@ function isToday(date: Date): boolean {
   return date.toDateString() === today.toDateString()
 }
 
-// Navigate weeks
-function prevWeek() {
-  const newStart = new Date(props.currentWeekStart)
-  newStart.setDate(newStart.getDate() - 7)
-  emit('week-change', newStart)
-}
-
-function nextWeek() {
-  const newStart = new Date(props.currentWeekStart)
-  newStart.setDate(newStart.getDate() + 7)
-  emit('week-change', newStart)
-}
-
-function goToToday() {
-  const today = new Date()
-  const dayOfWeek = today.getDay()
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek // Monday as start
-  const monday = new Date(today)
-  monday.setDate(today.getDate() + diff)
-  monday.setHours(0, 0, 0, 0)
-  emit('week-change', monday)
-}
-
 // Calculate appointment position and height
 function getSlotIndex(timeStr: string): number {
   const parts = timeStr.split(':').map(Number)
@@ -408,18 +384,6 @@ function handleAppointmentClick(appointment: Appointment, event: Event) {
 }
 
 
-// Format week range for header
-const weekRangeText = computed(() => {
-  const start = props.currentWeekStart
-  const end = new Date(start)
-  end.setDate(end.getDate() + 6)
-
-  const startStr = start.toLocaleDateString(locale.value, { month: 'short', day: 'numeric' })
-  const endStr = end.toLocaleDateString(locale.value, { month: 'short', day: 'numeric', year: 'numeric' })
-
-  return `${startStr} - ${endStr}`
-})
-
 // Check if two appointments overlap in time
 function appointmentsOverlap(apt1: Appointment, apt2: Appointment): boolean {
   const start1 = new Date(apt1.start_time).getTime()
@@ -553,35 +517,6 @@ const allAppointmentsWithDayIndex = computed(() => {
 
 <template>
   <div class="flex flex-col h-full">
-    <!-- Calendar header -->
-    <div class="flex items-center justify-between mb-4 flex-shrink-0">
-      <div class="flex items-center gap-2">
-        <UButton
-          variant="outline"
-          color="neutral"
-          icon="i-lucide-chevron-left"
-          @click="prevWeek"
-        />
-        <UButton
-          variant="outline"
-          color="neutral"
-          @click="goToToday"
-        >
-          {{ t('appointments.today') }}
-        </UButton>
-        <UButton
-          variant="outline"
-          color="neutral"
-          icon="i-lucide-chevron-right"
-          @click="nextWeek"
-        />
-      </div>
-
-      <h2 class="text-h2 text-default">
-        {{ weekRangeText }}
-      </h2>
-    </div>
-
     <!-- Loading overlay -->
     <div
       v-if="isLoading"

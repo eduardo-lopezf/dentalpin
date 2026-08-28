@@ -24,7 +24,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'appointment-click': [appointment: Appointment]
-  'date-change': [date: Date]
   'professional-filter': [professionalId: string | null]
 }>()
 
@@ -534,34 +533,6 @@ function headerSubtitle(col: ColumnDef): string {
   return t('appointments.kanban.subtitleCount', { count: items.length })
 }
 
-// ---------------------------------------------------------------------
-// Date navigation.
-// ---------------------------------------------------------------------
-function formattedDate(): string {
-  return props.currentDate.toLocaleDateString(locale.value, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
-
-function nextDay() {
-  const d = new Date(props.currentDate)
-  d.setDate(d.getDate() + 1)
-  emit('date-change', d)
-}
-function prevDay() {
-  const d = new Date(props.currentDate)
-  d.setDate(d.getDate() - 1)
-  emit('date-change', d)
-}
-function goToday() {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  emit('date-change', d)
-}
-
 function isDropHint(col: ColumnDef, cabinetName?: string): boolean {
   return !!drag.value
     && drag.value.targetColumnId === col.id
@@ -594,18 +565,6 @@ function isInvalidHint(col: ColumnDef): boolean {
         {{ drag.label }}
       </div>
     </Teleport>
-    <!-- Date nav -->
-    <div class="flex items-center justify-between mb-4 flex-shrink-0 min-w-0">
-      <div class="flex items-center gap-2">
-        <UButton variant="outline" color="neutral" icon="i-lucide-chevron-left" @click="prevDay" />
-        <UButton variant="outline" color="neutral" @click="goToday">
-          {{ t('appointments.today') }}
-        </UButton>
-        <UButton variant="outline" color="neutral" icon="i-lucide-chevron-right" @click="nextDay" />
-      </div>
-      <h2 class="text-h2 text-default capitalize truncate ml-4">{{ formattedDate() }}</h2>
-    </div>
-
     <!-- Professionals strip (#51): one pill per working pro today, live
          state derived from appointments + schedules. -->
     <ProfessionalsStrip

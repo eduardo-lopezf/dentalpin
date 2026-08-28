@@ -56,8 +56,11 @@ professionals and rooms, and walk them through their workflow
   dragging. In kanban, long-press a card and drag it to another column.
 - **On a tablet, orientation changes the layout, not the gestures** —
   held upright the kanban wraps its columns into two rows instead of
-  scrolling sideways. Rotating the tablet never changes how a gesture
-  behaves.
+  scrolling sideways, and the header falls to two lines. Rotating the
+  tablet never changes how a gesture behaves.
+- **Date navigation lives in the header** — previous / today / next and
+  the date sit next to the title, and step by week or by day depending
+  on the active view.
 - **Backend conflicts** — if the server rejects a placement (HTTP 409)
   the calendar refreshes and shows an error toast; the appointment
   snaps back to its previous slot.
