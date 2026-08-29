@@ -49,15 +49,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["requested_by"], ["users.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "ix_core_subject_request_clinic_id", "core_subject_request", ["clinic_id"]
-    )
-    op.create_index(
-        "ix_core_subject_request_patient_id", "core_subject_request", ["patient_id"]
-    )
-    op.create_index(
-        "ix_core_subject_request_created_at", "core_subject_request", ["created_at"]
-    )
+    op.create_index("ix_core_subject_request_clinic_id", "core_subject_request", ["clinic_id"])
+    op.create_index("ix_core_subject_request_patient_id", "core_subject_request", ["patient_id"])
+    op.create_index("ix_core_subject_request_created_at", "core_subject_request", ["created_at"])
 
 
 def downgrade() -> None:
