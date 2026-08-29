@@ -34,10 +34,10 @@ async function awaitDetection(page: Page): Promise<void> {
  * same behaviour `nuxt.config.ts` calls out around `optimizeDeps.include`.
  * It can only happen once per dep, so a single retry settles it.
  */
-async function gotoAgenda(page: Page): Promise<void> {
+async function gotoAgenda(page: Page, path = '/appointments'): Promise<void> {
   for (const attempt of [1, 2]) {
     try {
-      await page.goto('/appointments', { waitUntil: 'domcontentloaded' })
+      await page.goto(path, { waitUntil: 'domcontentloaded' })
       return
     } catch (error) {
       if (attempt === 2 || !String(error).includes('ERR_ABORTED')) throw error
@@ -45,8 +45,28 @@ async function gotoAgenda(page: Page): Promise<void> {
   }
 }
 
-async function openAgenda(page: Page): Promise<void> {
-  await gotoAgenda(page)
+/**
+ * This week's Monday, as a `YYYY-MM-DD` local date string.
+ *
+ * The demo fixtures (`generate_appointments_data`) only ever place
+ * appointments Monday–Friday. The kanban board filters to a single day
+ * (`currentDate`, which defaults to today), so a run that lands on a
+ * weekend sees an empty board. Pin the date to a weekday that is
+ * guaranteed to have seeded cards instead of trusting "today".
+ */
+function mondayOfCurrentWeek(): string {
+  const now = new Date()
+  const diffToMonday = now.getDay() === 0 ? -6 : 1 - now.getDay()
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + diffToMonday)
+  const yyyy = monday.getFullYear()
+  const mm = String(monday.getMonth() + 1).padStart(2, '0')
+  const dd = String(monday.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+async function openAgenda(page: Page, path = '/appointments'): Promise<void> {
+  await gotoAgenda(page, path)
   await awaitDetection(page)
   await expect(page.locator('html')).toHaveAttribute('data-pointer', 'coarse')
   // Wait for the grid itself, not for a duration: the view components are
@@ -138,7 +158,7 @@ test.describe('agenda by touch', () => {
   })
 
   test('a kanban card follows the pointer after a long press', async ({ loggedIn: page }) => {
-    await openAgenda(page)
+    await openAgenda(page, `/appointments?date=${mondayOfCurrentWeek()}`)
     await page.getByRole('tab', { name: 'Kanban', exact: true }).click()
     await page.waitForTimeout(3000)
 
