@@ -34,6 +34,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.privacy import DataClass, PiiKind, pii
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -80,8 +81,12 @@ class VerifactuSettings(Base, TimestampMixin):
     # SIF producer identity. Goes into <SistemaInformatico> on every
     # record. Defaults can come from env vars but the canonical source
     # is whatever the wizard wrote here.
-    producer_nif: Mapped[str | None] = mapped_column(String(20), default=None)
-    producer_name: Mapped[str | None] = mapped_column(String(200), default=None)
+    producer_nif: Mapped[str | None] = mapped_column(
+        String(20), default=None, info=pii(PiiKind.NATIONAL_ID, data_class=DataClass.FINANCIAL)
+    )
+    producer_name: Mapped[str | None] = mapped_column(
+        String(200), default=None, info=pii(PiiKind.NAME, data_class=DataClass.FINANCIAL)
+    )
     producer_id_sistema: Mapped[str] = mapped_column(String(2), default="DP", nullable=False)
     producer_version: Mapped[str | None] = mapped_column(String(20), default=None)
     declaracion_responsable_signed_at: Mapped[datetime | None] = mapped_column(
@@ -160,7 +165,9 @@ class VerifactuCertificate(Base, TimestampMixin):
 
     subject_cn: Mapped[str | None] = mapped_column(String(200), default=None)
     issuer_cn: Mapped[str | None] = mapped_column(String(200), default=None)
-    nif_titular: Mapped[str | None] = mapped_column(String(20), default=None)
+    nif_titular: Mapped[str | None] = mapped_column(
+        String(20), default=None, info=pii(PiiKind.NATIONAL_ID, data_class=DataClass.FINANCIAL)
+    )
     valid_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     valid_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 

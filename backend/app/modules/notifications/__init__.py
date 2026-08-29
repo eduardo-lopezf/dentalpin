@@ -47,6 +47,23 @@ class NotificationsModule(BaseModule):
             "assistant": ["preferences.read", "preferences.write", "send"],
             "receptionist": ["preferences.read", "preferences.write", "send"],
         },
+        "egress": [
+            {
+                "target": "smtp",
+                "subprocessor": (
+                    "El servidor SMTP que configure cada clínica — el "
+                    "destinatario real depende de esa configuración y no de "
+                    "este código, así que el contrato lo firma la clínica."
+                ),
+                "residency": "unspecified",
+                "data_classes": ["identifier", "operational"],
+                "purpose": (
+                    "Entregar avisos y recordatorios al paciente. Salen su "
+                    "dirección de correo y el cuerpo del mensaje."
+                ),
+                "required": True,
+            }
+        ],
         "frontend": {
             "layer_path": "frontend",
         },
@@ -64,6 +81,11 @@ class NotificationsModule(BaseModule):
 
     def get_router(self) -> APIRouter:
         return router
+
+    def get_subject_contributors(self) -> list:
+        from . import privacy
+
+        return privacy.get_subject_contributors()
 
     def get_tools(self) -> list:
         from . import tools

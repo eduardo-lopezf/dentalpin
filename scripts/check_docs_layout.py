@@ -35,6 +35,7 @@ ROOT_FILES_ALLOWED: frozenset[str] = frozenset(
         "glossary.md",
         "events-catalog.md",
         "modules-catalog.md",
+        "subprocessors-catalog.md",
     }
 )
 

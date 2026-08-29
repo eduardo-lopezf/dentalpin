@@ -17,6 +17,7 @@ from sqlalchemy import Boolean, Date, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.privacy import DataClass, PiiKind, pii
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -30,10 +31,10 @@ class Patient(Base, TimestampMixin):
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
-    first_name: Mapped[str] = mapped_column(String(100))
-    last_name: Mapped[str] = mapped_column(String(100))
-    phone: Mapped[str | None] = mapped_column(String(20))
-    email: Mapped[str | None] = mapped_column(String(255))
+    first_name: Mapped[str] = mapped_column(String(100), info=pii(PiiKind.NAME))
+    last_name: Mapped[str] = mapped_column(String(100), info=pii(PiiKind.NAME))
+    phone: Mapped[str | None] = mapped_column(String(20), info=pii(PiiKind.PHONE))
+    email: Mapped[str | None] = mapped_column(String(255), info=pii(PiiKind.EMAIL))
     date_of_birth: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="active")  # active, archived
@@ -44,8 +45,11 @@ class Patient(Base, TimestampMixin):
 
     # Extended demographics
     gender: Mapped[str | None] = mapped_column(String(20))  # male, female
-    national_id: Mapped[str | None] = mapped_column(String(50))  # CURP/INE/Passport
-    national_id_type: Mapped[str | None] = mapped_column(String(20))  # curp, ine, passport
+    # CURP/INE/Passport
+    national_id: Mapped[str | None] = mapped_column(String(50), info=pii(PiiKind.NATIONAL_ID))
+    # curp / ine (MX), dni / nie / nif (ES), passport. Accepted values
+    # live in ``schemas.NATIONAL_ID_TYPES``; there is no DB constraint.
+    national_id_type: Mapped[str | None] = mapped_column(String(20))
     profession: Mapped[str | None] = mapped_column(String(100))
     workplace: Mapped[str | None] = mapped_column(String(200))
     preferred_language: Mapped[str] = mapped_column(String(10), default="es")
@@ -53,10 +57,18 @@ class Patient(Base, TimestampMixin):
     photo_url: Mapped[str | None] = mapped_column(String(500))
 
     # Billing
-    billing_name: Mapped[str | None] = mapped_column(String(200), default=None)
-    billing_tax_id: Mapped[str | None] = mapped_column(String(50), default=None)
+    billing_name: Mapped[str | None] = mapped_column(
+        String(200), default=None, info=pii(PiiKind.NAME, data_class=DataClass.FINANCIAL)
+    )
+    billing_tax_id: Mapped[str | None] = mapped_column(
+        String(50),
+        default=None,
+        info=pii(PiiKind.NATIONAL_ID, data_class=DataClass.FINANCIAL),
+    )
     billing_address: Mapped[dict | None] = mapped_column(JSONB, default=None)
-    billing_email: Mapped[str | None] = mapped_column(String(255), default=None)
+    billing_email: Mapped[str | None] = mapped_column(
+        String(255), default=None, info=pii(PiiKind.EMAIL, data_class=DataClass.FINANCIAL)
+    )
 
     # Relationships
     #

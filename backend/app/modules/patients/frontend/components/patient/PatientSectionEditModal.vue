@@ -94,11 +94,18 @@ const genderOptions = computed(() => [
   { label: t('patients.gender.female'), value: 'female' }
 ])
 
-// National ID type options
+// National ID type options. Both markets are listed because the backend
+// accepts both (see patients/schemas.py NATIONAL_ID_TYPES) and a patient
+// imported from Spanish software carries a NIF that must stay selectable —
+// a value missing from this list renders the field blank and looks like
+// data loss. Narrowing per tenant belongs with PrivacyPolicy.jurisdictions.
 const nationalIdTypeOptions = computed(() => [
   { label: t('patients.curp'), value: 'curp' },
   { label: t('patients.ine'), value: 'ine' },
-  { label: t('patients.passport'), value: 'passport' }
+  { label: t('patients.passport'), value: 'passport' },
+  { label: t('patients.dni'), value: 'dni' },
+  { label: t('patients.nie'), value: 'nie' },
+  { label: t('patients.nif'), value: 'nif' }
 ])
 
 // Initialize form data when modal opens
@@ -376,7 +383,7 @@ const canSave = computed(() => {
             <UFormField :label="t('patients.billingTaxId')">
               <UInput
                 v-model="billingForm.billing_tax_id"
-                placeholder="NIF/CIF"
+                :placeholder="t('patients.billingTaxIdPlaceholder')"
               />
             </UFormField>
             <UFormField :label="t('patients.billingEmail')">

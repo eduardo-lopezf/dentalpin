@@ -15,6 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.core.privacy.egress import EgressDeclaration, EgressError
+
 from .state import ModuleCategory
 
 REQUIRED_KEYS = ("name", "version")
@@ -43,6 +45,9 @@ class Manifest:
     data_files: tuple[str, ...] = ()
     role_permissions: dict[str, tuple[str, ...]] = field(default_factory=dict)
     frontend: dict[str, Any] = field(default_factory=dict)
+    egress: tuple[EgressDeclaration, ...] = ()
+    """External destinations this module sends data to (ADR 0027).
+    Empty means the module never leaves the deployment."""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Manifest:
@@ -65,6 +70,16 @@ class Manifest:
             raise ManifestError(f"role_permissions must be a dict for module '{data['name']}'")
         role_permissions = {role: tuple(perms) for role, perms in role_permissions_raw.items()}
 
+        egress_raw = data.get("egress") or ()
+        if not isinstance(egress_raw, (list, tuple)):
+            raise ManifestError(f"egress must be a list for module '{data['name']}'")
+        try:
+            egress = tuple(
+                EgressDeclaration.from_dict(entry, module=str(data["name"])) for entry in egress_raw
+            )
+        except EgressError as exc:
+            raise ManifestError(str(exc)) from exc
+
         return cls(
             name=str(data["name"]),
             version=str(data["version"]),
@@ -81,6 +96,7 @@ class Manifest:
             data_files=tuple(data.get("data_files") or ()),
             role_permissions=role_permissions,
             frontend=dict(data.get("frontend") or {}),
+            egress=egress,
         )
 
     def to_snapshot(self) -> dict[str, Any]:
@@ -103,6 +119,7 @@ class Manifest:
                 role: list(perms) for role, perms in self.role_permissions.items()
             },
             "frontend": self.frontend,
+            "egress": [entry.to_snapshot() for entry in self.egress],
         }
 
 

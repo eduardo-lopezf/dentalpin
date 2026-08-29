@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Citas y su rastro (tratamientos aplicados, cambios de estado y de gabinete). Registro asistencial: se conservan.
+
 - feat(ui): one date navigator instead of three. The week, day and
   kanban views each rendered their own identical prev / today / next row
   plus date label, stacked under the page header and the filters; the

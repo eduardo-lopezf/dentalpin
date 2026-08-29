@@ -7,6 +7,7 @@ from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.privacy import DataClass, PiiKind, pii
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 # yet built (see docs/adr for the tenant-tier roadmap). Root is
 # deliberately not a value here — it is a platform-level actor, not a
 # kind of clinic, and does not belong to this taxonomy.
-TENANT_TYPES: Final[list[str]] = [
+ACCOUNT_TIERS: Final[list[str]] = [
     "basic",
     "medium",
     "advanced",
@@ -36,12 +37,18 @@ class Clinic(Base, TimestampMixin):
     __tablename__ = "clinics"
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    name: Mapped[str] = mapped_column(String(200))
-    tax_id: Mapped[str] = mapped_column(String(20))  # CIF/NIF
-    legal_name: Mapped[str | None] = mapped_column(String(200), default=None)
+    name: Mapped[str] = mapped_column(String(200), info=pii(PiiKind.NAME))
+    # RFC in Mexico, CIF/NIF in Spain — the column is the tax identifier
+    # of the clinic whatever the jurisdiction calls it.
+    tax_id: Mapped[str] = mapped_column(
+        String(20), info=pii(PiiKind.NATIONAL_ID, data_class=DataClass.FINANCIAL)
+    )
+    legal_name: Mapped[str | None] = mapped_column(
+        String(200), default=None, info=pii(PiiKind.NAME, data_class=DataClass.FINANCIAL)
+    )
     address: Mapped[dict | None] = mapped_column(JSONB, default=dict)
-    phone: Mapped[str | None] = mapped_column(String(20))
-    email: Mapped[str | None] = mapped_column(String(255))
+    phone: Mapped[str | None] = mapped_column(String(20), info=pii(PiiKind.PHONE))
+    email: Mapped[str | None] = mapped_column(String(255), info=pii(PiiKind.EMAIL))
     # IANA timezone id (e.g. "Europe/Madrid"). Single source of truth
     # for any module that needs local-time semantics — schedules,
     # reports, future billing date-windows, etc.
@@ -51,10 +58,13 @@ class Clinic(Base, TimestampMixin):
     # ISO 4217 currency code. Single source of truth for any module
     # that renders money — budgets, invoices, catalog, reports.
     currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default="MXN")
-    # Account/business tier — see TENANT_TYPES. No behavior is gated on
+    # Account/business tier — see ACCOUNT_TIERS. No behavior is gated on
     # this yet; it only reserves the taxonomy ahead of building the
-    # tiers beyond the current "clinic" product.
-    tenant_type: Mapped[str] = mapped_column(String(20), nullable=False, server_default="clinic")
+    # tiers beyond the current "clinic" product. Named ``account_tier``
+    # and not ``tenant_type`` because a tenant is the DB-isolation unit
+    # (ADR 0012) and a clinic lives *inside* one — the old name put two
+    # unrelated concepts under the same word (ADR 0023).
+    account_tier: Mapped[str] = mapped_column(String(20), nullable=False, server_default="clinic")
     settings: Mapped[dict] = mapped_column(JSONB, default=dict)
 
     # Relationships
@@ -76,10 +86,12 @@ class User(Base, TimestampMixin):
     __tablename__ = "users"
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    email: Mapped[str] = mapped_column(
+        String(255), unique=True, index=True, info=pii(PiiKind.EMAIL)
+    )
     password_hash: Mapped[str] = mapped_column(String(255))
-    first_name: Mapped[str] = mapped_column(String(100))
-    last_name: Mapped[str] = mapped_column(String(100))
+    first_name: Mapped[str] = mapped_column(String(100), info=pii(PiiKind.NAME))
+    last_name: Mapped[str] = mapped_column(String(100), info=pii(PiiKind.NAME))
     professional_id: Mapped[str | None] = mapped_column(String(50))  # Colegiado number
     is_active: Mapped[bool] = mapped_column(default=True)
     token_version: Mapped[int] = mapped_column(default=0)  # For token revocation

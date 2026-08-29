@@ -28,7 +28,7 @@ también deep-links — un click llega al detalle.
 
 ## Diseño
 
-- **Cabecera sticky** — avatar, nombre, edad, DNI, contacto, chips de
+- **Cabecera sticky** — avatar, nombre, edad, identificación, contacto, chips de
   alergias críticas (alergia, embarazo, anticoagulante…) y botones
   *Editar* + *Acciones ▾* (Cita, Cobrar, Nota, Archivar).
   Permanece visible al hacer scroll y entre pestañas.

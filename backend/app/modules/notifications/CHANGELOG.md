@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- feat(privacy): declara su egress en el manifest
+  ([ADR 0027](../../../../docs/adr/0027-egress-is-declared-in-the-manifest.md)):
+  `smtp` — el servidor que configure cada clínica. Era el destino más
+  fácil de pasar por alto: el receptor es configuración, no un proveedor
+  nombrado en el código, y en cada recordatorio salen el correo y el
+  nombre del paciente.
+
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Mensajes enviados y preferencias de contacto. **Sí borra**. De paso se clasificó `to_address` (email o teléfono del destinatario) como `PiiKind.CONTACT`: no la veía el contrato de PII porque el nombre de la columna no lo delata.
+
+- fix(privacy): classified this module's personal columns with `pii()`
+  so the copilot's PHI boundary derives them from the schema instead of a
+  hand-kept list ([ADR 0025](../../../../docs/adr/0025-pii-is-classified-on-the-column.md)).
+  The clinic's own SMTP sending identity (`from_email`, `from_name`)
+  is covered too.
+
 - fix(ui): the conversation reply guards on `sending`. Enter bypassed the
   button's `:loading`, so two quick presses sent two WhatsApp messages —
   billed twice and read twice by the patient (audit S5).

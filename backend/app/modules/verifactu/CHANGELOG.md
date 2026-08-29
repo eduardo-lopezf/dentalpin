@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- feat(privacy): declara su egress en el manifest
+  ([ADR 0027](../../../../docs/adr/0027-egress-is-declared-in-the-manifest.md)):
+  `aeat` — Agencia Tributaria española. Salen el nombre fiscal y el NIF
+  del destinatario de cada factura.
+
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Registros remitidos a la AEAT, alcanzados a través de las facturas del paciente. No se borran: romperían la cadena de huellas.
+
+- fix(privacy): classified this module's personal columns with `pii()`
+  so the copilot's PHI boundary derives them from the schema instead of a
+  hand-kept list ([ADR 0025](../../../../docs/adr/0025-pii-is-classified-on-the-column.md)).
+  `producer_nif`, `producer_name` and `nif_titular` were not redacted
+  before.
+
 - fix(frontend): the queue tabs (Pendientes/Rechazadas/Fallos) rendered
   the same unfiltered list — `listQueue` passed `{ params }`, which
   `useApi` dropped. Switched to the new `useApi` `query` option so the

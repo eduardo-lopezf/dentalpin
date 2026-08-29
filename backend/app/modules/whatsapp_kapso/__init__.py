@@ -43,6 +43,19 @@ class WhatsappKapsoModule(BaseModule):
         "auto_install": False,
         "removable": True,
         "role_permissions": {"admin": ["*"]},
+        "egress": [
+            {
+                "target": "kapso",
+                "subprocessor": "Kapso (api.kapso.ai) y, por detrás, Meta Platforms",
+                "residency": "unspecified",
+                "data_classes": ["identifier", "operational"],
+                "purpose": (
+                    "Entregar mensajes de WhatsApp al paciente. Salen su número "
+                    "y el contenido del mensaje."
+                ),
+                "required": True,
+            }
+        ],
         "frontend": {"layer_path": "frontend", "navigation": []},
     }
 

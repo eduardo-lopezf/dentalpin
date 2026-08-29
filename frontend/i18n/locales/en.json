@@ -47,7 +47,7 @@
     "serverError": "The server is unavailable. Please try again in a few minutes",
     "unknownError": "Unexpected error. Please try again",
     "profile": "Profile: {type}",
-    "tenantTypes": {
+    "accountTiers": {
       "basic": "Beginner",
       "medium": "Medium",
       "advanced": "Advanced",
@@ -129,6 +129,7 @@
     "billingName": "Billing name",
     "billingNamePlaceholder": "Name or company for invoices",
     "billingTaxId": "Tax ID",
+    "billingTaxIdPlaceholder": "XAXX010101000",
     "billingEmail": "Billing email",
     "billingAddress": "Billing address",
     "billingComplete": "Complete",
@@ -139,6 +140,9 @@
     "curp": "CURP",
     "ine": "INE",
     "passport": "Passport",
+    "dni": "DNI",
+    "nie": "NIE",
+    "nif": "NIF",
     "profession": "Profession",
     "workplace": "Workplace",
     "years": "years",

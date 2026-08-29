@@ -73,6 +73,11 @@ class AgendaModule(BaseModule):
     def get_router(self) -> APIRouter:
         return router
 
+    def get_subject_contributors(self) -> list:
+        from . import privacy
+
+        return privacy.get_subject_contributors()
+
     def get_permissions(self) -> list[str]:
         return [
             "appointments.read",

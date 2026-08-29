@@ -102,8 +102,9 @@ def get_tools() -> list[Tool]:
             name="search_patients",
             description=(
                 "Buscar pacientes de la clínica por nombre (completo o "
-                "parcial), teléfono, email o DNI/NIE. Pasa el nombre y "
-                "apellido juntos en una sola consulta."
+                "parcial), teléfono, email o documento de identidad (CURP, "
+                "INE o pasaporte). Pasa el nombre y apellido juntos en una "
+                "sola consulta."
             ),
             parameters=SearchPatientsArgs,
             handler=_search_patients,

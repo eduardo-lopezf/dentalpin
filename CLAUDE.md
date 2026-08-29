@@ -46,10 +46,13 @@ DentalPin is built as independent modules under `backend/app/modules/<name>/` wi
 | New module | Create `backend/app/modules/<name>/CLAUDE.md` + `CHANGELOG.md`. Create `docs/technical/<name>/{overview,events,permissions}.md`. If the module has Nuxt pages, also `docs/user-manual/{en,es}/<name>/{index.md, screens/<slug>.md}` per page. Run `python backend/scripts/generate_catalogs.py`. Follow `docs/checklists/new-module.md`. |
 | New screen (page under `<module>/frontend/pages/**`) | Create both `docs/user-manual/en/<module>/screens/<slug>.md` and `docs/user-manual/es/<module>/screens/<slug>.md` with the [frontmatter contract](./docs/technical/documentation-portal.md#2-frontmatter-contract-the-part-claude-relies-on). Screenshots into `docs/screenshots/<module>/`. |
 | New interactive surface (any screen or component with controls) | Nothing to do for tap targets — `main.css` enforces the 44 px minimum under `(pointer: coarse)`. If the surface's cells are units of time or anatomy rather than buttons, put `data-dense` on a container **and** pair it with a real touch interaction; it is a debt marker, never a way to silence the audit. Add the route to `frontend/tests/e2e/tablet-touch.spec.ts` if it matters on tablet. See [`docs/technical/touch-adaptation.md`](./docs/technical/touch-adaptation.md) ([ADR 0022](./docs/adr/0022-touch-adaptation-is-capability-driven.md)). |
+| New model column holding personal data | Classify it on the column: `mapped_column(..., info=pii(PiiKind.NAME))` ([ADR 0025](./docs/adr/0025-pii-is-classified-on-the-column.md)). `PiiKind` picks the redaction token family; pass `data_class=` when it is not a plain `IDENTIFIER` (billing → `FINANCIAL`). `tests/test_pii_redaction_contract.py` fails on a personal-looking column that carries neither a classification nor a reasoned entry in its `_NOT_PERSONAL` allowlist. |
+| Module calls an external service | Declare it in `manifest.egress` ([ADR 0027](./docs/adr/0027-egress-is-declared-in-the-manifest.md)): `target` (id matched against `TENANT_EGRESS_ALLOWED`), `subprocessor` (legal name for the DPA), `purpose` (prose a clinic can show a patient), `data_classes` and `required`. Re-run `generate_catalogs.py` — `docs/subprocessors-catalog.md` is generated and CI fails on drift. `tests/test_egress_declarations.py` fails when a module imports an HTTP/SMTP client without declaring. |
+| New module (or new table) holding patient data | Implement `get_subject_contributors()` in the module's `privacy.py` ([ADR 0026](./docs/adr/0026-subject-rights-are-a-module-contract.md)). Every contributor `export`s; it then either supplies `anonymize` (use `anonymize_instance(row)` — it reads the `pii()` classification and spares `FINANCIAL` columns) **or** states a `retention_reason` saying why the law forbids erasure. Supplying neither raises. A module that skips the hook contributes nothing to an export and survives an erasure request silently. |
 | New endpoint | Document under the gating permission's row in `docs/technical/<module>/permissions.md`. Bump `last_verified_commit` on every screen MD whose `related_endpoints` covers it. |
 | New event published or consumed | Publish with `event_bus.publish_after_commit(db, ...)` (ADR 0019). Add to `EventType` in `backend/app/core/events/types.py`. Add row to `docs/technical/<module>/events.md`. Re-run `generate_catalogs.py`. Document publisher payload in module CLAUDE.md. |
 | New permission | Return from `get_permissions()` (no module prefix). List in `manifest.role_permissions`. Add row to `docs/technical/<module>/permissions.md`. Add to `frontend/app/config/permissions.ts` if user-facing. |
-| New agent-exposed capability | Declare a `Tool` in `backend/app/modules/<name>/tools.py` and return it from the module's `get_tools()`. **Wrap an existing service method — never duplicate business logic.** Filter by `ctx.clinic_id`. Set `permissions=[...]` to the gating RBAC string the HTTP route uses, and `category` conservatively (`WRITE` for mutations, `DESTRUCTIVE` for deletes/irreversible side-effects). Set `exposes_free_text=True` if the result is free prose (it is then excluded from the cloud LLM path under redaction). **Return native values (UUID/Decimal/datetime/Pydantic) — `jsonify` at the registry chokepoint coerces them; don't hand-`str()`/`.isoformat()`/`float()`.** Name PII fields with redactor-known keys (`full_name`, `phone`, `email`, `dni`, `*_id`) so they tokenize. Document it under "Tools exposed" in the module CLAUDE.md. See [`docs/technical/copilot-agentic-architecture.md`](./docs/technical/copilot-agentic-architecture.md) §3. |
+| New agent-exposed capability | Declare a `Tool` in `backend/app/modules/<name>/tools.py` and return it from the module's `get_tools()`. **Wrap an existing service method — never duplicate business logic.** Filter by `ctx.clinic_id`. Set `permissions=[...]` to the gating RBAC string the HTTP route uses, and `category` conservatively (`WRITE` for mutations, `DESTRUCTIVE` for deletes/irreversible side-effects). Set `exposes_free_text=True` if the result is free prose (it is then excluded from the cloud LLM path under redaction). **Return native values (UUID/Decimal/datetime/Pydantic) — `jsonify` at the registry chokepoint coerces them; don't hand-`str()`/`.isoformat()`/`float()`.** Return PII under the **column's own name** (`first_name`, `phone`, `email`, `national_id`) so the classification on that column tokenizes it ([ADR 0025](./docs/adr/0025-pii-is-classified-on-the-column.md)); a key you invent is not covered by anything. `full_name`, `patient_name` and `mobile` are the composed keys the redactor also knows. Government-document names (`curp`, `rfc`, `dni`, …) tokenize only under the tenant's `PrivacyPolicy.jurisdictions` ([ADR 0023](./docs/adr/0023-privacy-policy-and-custody-modes.md)). Document it under "Tools exposed" in the module CLAUDE.md. See [`docs/technical/copilot-agentic-architecture.md`](./docs/technical/copilot-agentic-architecture.md) §3. |
 | Touched a screen's behaviour or visuals | Update the matching screen MD in **both** `docs/user-manual/{en,es}/<module>/screens/`. Refresh screenshots if visuals changed. Bump `last_verified_commit` in each locale. |
 | Architectural decision | Copy `docs/adr/TEMPLATE.md` → `docs/adr/NNNN-title.md`. |
 | New domain term (ES↔EN) | Append to `docs/glossary.md`. |
@@ -89,7 +92,7 @@ Reference material:
 | Operational runbook / end-to-end workflow | `docs/workflows/` |
 | Auto-generated catalog | `docs/` root, suffix `-catalog.md` |
 
-**Only these files live at `docs/` root:** `README.md` (taxonomy index), `glossary.md`, `events-catalog.md`, `modules-catalog.md`. Anything else fails CI.
+**Only these files live at `docs/` root:** `README.md` (taxonomy index), `glossary.md`, `events-catalog.md`, `modules-catalog.md`, `subprocessors-catalog.md`. Anything else fails CI.
 
 Decision tree + folder descriptions: [`docs/README.md`](./docs/README.md).
 
@@ -431,3 +434,40 @@ TESTING=false
 - TypeScript: strict mode, ESLint.
 - Commits: Conventional Commits (`feat:`, `fix:`, `docs:`).
 - No over-engineering. No tech debt. Refactor when it pays off, not preemptively.
+
+---
+
+
+## 1. Think Before Coding
+Don't assume. Don't hide confusion. Surface tradeoffs.
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them.
+- If a simpler approach exists, say so.
+- If something is unclear, stop. Name what's confusing.
+
+## 2. Simplicity First
+Minimum code that solves the problem. Nothing speculative.
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No “flexibility” that wasn't requested.
+- No error handling for impossible scenarios.
+- If 200 lines could be 50, rewrite it.
+
+## 3. Surgical Changes
+Touch only what you must. Clean up only your own mess.
+
+- Don't “improve” adjacent code or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice dead code, mention it — don't delete it.
+
+## 4. Goal-Driven Execution
+Define success criteria. Loop until verified.
+
+Transform tasks into verifiable goals:
+- “Add validation” → “Write tests, then make them pass”
+- “Fix the bug” → “Reproduce it in a test, then fix”
+- “Refactor X” → “Ensure tests pass before and after”

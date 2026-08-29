@@ -685,13 +685,91 @@ Tracked in issue #42. Phase 1 landed the core contract; Phase 2/3 extend the sys
 
 ### GDPR 🟠 P1
 
-| Feature | Description |
-|---------|-------------|
-| Consent management | Consent tracking by channel |
-| Right of access | Patient data export |
-| Right to erasure | Anonymization/deletion workflow |
-| Data minimization | Configurable retention periods |
-| Breach notification | Notification workflow |
+Applies to the Spanish side of the deployment (`verifactu` files with the
+AEAT, and `TENANT_JURISDICTIONS` ships as `MX,ES`). For the primary
+market see **Mexican regulatory framework** below — LFPDPPP is stricter
+on health data, which is a *dato personal sensible*.
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Right of access | ✅ done | Per-module export fan-out + `GET /api/v1/privacy/subjects/{id}/export` ([ADR 0026](../adr/0026-subject-rights-are-a-module-contract.md)) |
+| Right to erasure | ✅ done | Anonymization with per-section retention reasons + `POST .../erasure` (ADR 0026) |
+| Subprocessor register | ✅ done | Generated from `manifest.egress` into [`subprocessors-catalog.md`](../subprocessors-catalog.md) ([ADR 0027](../adr/0027-egress-is-declared-in-the-manifest.md)) |
+| Consent management | pending | Consent tracking by channel and purpose. **The largest practical gap today**: `whatsapp_kapso` and `notifications` message patients with nothing recording the legal basis. `Patient.do_not_contact` is an opt-out, which is not the same thing. |
+| Data minimization | pending | Configurable retention periods. `DataClass` (ADR 0025) and `PrivacyPolicy.regulations` (ADR 0023) already carry the axes; nothing reads them for retention. |
+| Breach notification | pending | Notification workflow |
+
+### Mexican regulatory framework (LFPDPPP) — pending 🟠 P1
+
+> **Unverified.** Mexico's private-sector data protection law was
+> **replaced in March 2025**, after the constitutional reform that
+> dissolved INAI and moved oversight to the Secretaría Anticorrupción y
+> Buen Gobierno. Everything below needs checking against the text in
+> force with Mexican counsel before anything is built on it. It is a map
+> of what to ask about, not an opinion on what the law says.
+
+The primary market is Mexico (default currency MXN, `national_id_type`
+accepts `curp`/`ine`/`passport`), so LFPDPPP — not GDPR — is the regime
+that decides what ships. Three obligations have no implementation at all:
+
+| Obligation | Status | What is missing |
+|---|---|---|
+| **Consent for sensitive data** | ❌ none | Health data is a *dato personal sensible*, which normally requires **express written consent** — stricter than GDPR, where several legal bases are available. `whatsapp_kapso` and `notifications` message patients today with nothing recording a legal basis. `Patient.do_not_contact` is an opt-out and does not substitute for it. |
+| **Aviso de privacidad** | ❌ none | Mandatory, with prescribed contents: who the responsable is, what is collected, for what purposes, which transfers happen and to whom, and how to exercise rights. Nothing in the system stores or versions one. The transfers section is exactly what [`subprocessors-catalog.md`](../subprocessors-catalog.md) generates (ADR 0027) — that catalog is an input to a legal document, not only internal reference. |
+| **Processing contract for `managed`** | ❌ none | Hosting a clinic's data makes us an *encargado*; that relationship needs a written contract with the clinic. It is also the conversation still open about the business model — see [ADR 0023](../adr/0023-privacy-policy-and-custody-modes.md), where `self` is noted as the costliest option for the clinic and pending that decision. |
+| **ARCO rights** | ⚠️ partial | Acceso and Cancelación ship (ADR 0026); Rectificación exists de facto through patient editing; **Oposición does not**. The bigger gap is shape: ARCO carries **statutory response deadlines**, and `core_subject_request` records requests *already executed*. Serving ARCO needs the request recorded **when it arrives**, with a status and a due date — a model change, not an extra column. |
+| **Breach notification** | ❌ none | The law requires telling affected data subjects about breaches that significantly affect their rights. Listed under GDPR above as generic future work; under LFPDPPP it has an addressee and a deadline. |
+
+### Retention policies — pending 🟠 P1
+
+Retention is currently **prose, not policy**. Each `SubjectContributor`
+carries a `retention_reason` written for the patient (ADR 0026), and
+every clinical one says some version of *"la normativa sanitaria fija un
+plazo de conservación"* — without saying what the period is, because
+nothing in the system holds one.
+
+Two concrete sources would replace the prose with a number:
+
+| Source | Covers | Feeds |
+|---|---|---|
+| **NOM-004-SSA3-2012** (expediente clínico) | How long a clinical record must be kept, counted from the last medical act | The `retention_reason` of `agenda`, `odontogram`, `periodontogram`, `treatment_plan`, `clinical_notes`, `media`, `patients_clinical` |
+| **Código Fiscal de la Federación, art. 30** | Accounting-record retention | The `retention_reason` of `billing`, `payments`, `verifactu` |
+
+The axes to hang them on already exist and are unused: `DataClass`
+(ADR 0025) says what kind of data a column holds, and
+`PrivacyPolicy.regulations` (ADR 0023) says which regime a tenant answers
+to. A retention table keyed on both is the natural shape — a
+`CLINICAL` column under `lfpdppp` gets the NOM-004 window, the same
+column under `gdpr`/`lopdgdd` gets the Spanish one.
+
+Note the constraint recorded in ADR 0023: **`PrivacyPolicy` must stay
+hashable**, because `TenantContext` is, so the retention table cannot be
+a plain `dict` on the policy.
+
+Also unbuilt: anything that *acts* on a window. Knowing a record is past
+its retention period is not the same as archiving, exporting or purging
+it, and for clinical data the action is legally loaded enough that it
+should not be automatic on first release.
+
+### Clinical-record access log + break-glass — deferred as one piece
+
+Both are deliberately **not** built yet, and they are deferred *together*
+because doing either alone is worse than doing neither.
+
+| Piece | Why it waits |
+|-------|--------------|
+| **Access log** — who opened which patient's chart | Fully buildable in code today. It is deferred with break-glass because it is that mechanism's prerequisite: an emergency operator session with no access log records nothing, so building break-glass first would produce a control with no evidence. Independently valuable — *"who has looked at this record?"* has no answer today — and it is what makes `regulations` meaningful for a HIPAA tenant. |
+| **Break-glass operator access** — bounded, justified, expiring, disclosed | The deployment already declares `managed` (ADR 0023), which *names* this control. Implementing it in the application alone would be **theatre**: it would bound access through the app while an operator keeps a standing `psql` connection. Making `managed` true starts with removing standing database access in production and routing support through the application — infrastructure posture, not code. The code piece comes after, and its job is to record and bound whatever access remains. |
+
+**Order when they are picked up:** infrastructure (remove standing DB
+access) → access log → break-glass sessions on top of it. Until then
+`policy_from_settings()` warns on every boot that `managed` declares more
+than the code enforces, which is the honest interim state.
+
+Open design questions to settle first: what counts as an "access" worth
+logging (a chart open? a list row? a tool call?), and how the table is
+partitioned — a row per clinical read grows faster than anything else in
+the schema.
 
 ### Audit Log 🔴 P0
 

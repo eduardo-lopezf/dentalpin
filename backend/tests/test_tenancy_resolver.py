@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from starlette.requests import Request
 
-from app.core.tenancy import SingleTenantResolver, TenantContext, TenantResolver
-from app.core.tenancy.single import DEFAULT_TENANT_SLUG
+from app.core.privacy import CustodyMode, KeyCustody
+from app.core.tenancy import (
+    SingleTenantResolver,
+    TenantContext,
+    TenantResolver,
+    get_tenant,
+)
+from app.core.tenancy.single import DEFAULT_TENANT_SLUG, policy_from_settings
 
 
 @pytest.fixture
@@ -58,6 +64,21 @@ class TestResolve:
         ctx = await resolver.resolve(fake_request)
         assert ctx.modules_enabled == frozenset({"patients", "agenda"})
 
+    @pytest.mark.asyncio
+    async def test_carries_the_configured_custody_policy(
+        self, resolver: SingleTenantResolver, fake_request: Request
+    ) -> None:
+        # The resolver does not decide custody; it reads what the
+        # deployment declared. ``managed`` is the default (ADR 0023).
+        # Whether the mode's controls exist is a separate question —
+        # see ``tests/test_custody_settings.py``.
+        ctx = await resolver.resolve(fake_request)
+        assert ctx.privacy.custody_mode is CustodyMode.MANAGED
+        assert ctx.privacy.key_custody is KeyCustody.OPERATOR
+        # Default-deny holds whatever the mode: nothing has declared an
+        # external destination for this tenant.
+        assert not ctx.privacy.allows_egress("openai")
+
 
 class TestResolveBySlug:
     @pytest.mark.asyncio
@@ -82,3 +103,46 @@ class TestResolveBySlug:
 class TestProtocolConformance:
     def test_satisfies_runtime_protocol(self, resolver: SingleTenantResolver) -> None:
         assert isinstance(resolver, TenantResolver)
+
+
+class TestGetTenantDependency:
+    """``get_tenant`` is how a request reaches the tenant's policy."""
+
+    @pytest.mark.asyncio
+    async def test_uses_the_resolver_installed_by_the_lifespan(self) -> None:
+        sentinel = TenantContext(
+            slug="default",
+            db_url="postgresql+asyncpg://x/y",
+            privacy=policy_from_settings(),
+        )
+        app = MagicMock()
+        app.state.tenant_resolver = MagicMock()
+        app.state.tenant_resolver.resolve = AsyncMock(return_value=sentinel)
+        request = Request(scope={"type": "http", "headers": [], "app": app})
+
+        assert await get_tenant(request) is sentinel
+
+    @pytest.mark.asyncio
+    async def test_falls_back_when_no_lifespan_ran(self) -> None:
+        # Test harnesses mount the ASGI app directly, so a missing
+        # resolver is expected. The fallback builds the same resolver the
+        # lifespan would, so a test sees the deployment's real custody
+        # rather than a friendlier stand-in.
+        app = MagicMock()
+        del app.state.tenant_resolver
+        request = Request(scope={"type": "http", "headers": [], "app": app})
+
+        ctx = await get_tenant(request)
+        assert ctx.slug == DEFAULT_TENANT_SLUG
+        assert ctx.privacy == policy_from_settings()
+
+    @pytest.mark.asyncio
+    async def test_fallback_is_not_cached_onto_app_state(self) -> None:
+        # Caching it would freeze a registry snapshot taken before the
+        # modules mounted.
+        app = MagicMock()
+        del app.state.tenant_resolver
+        request = Request(scope={"type": "http", "headers": [], "app": app})
+
+        await get_tenant(request)
+        assert not hasattr(app.state, "tenant_resolver")

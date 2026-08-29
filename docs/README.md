@@ -24,6 +24,7 @@ Index for `/docs`. Pick a folder by **type** of doc, never drop new files at thi
 | `glossary.md` | Bilingual ES↔EN domain terms. |
 | `events-catalog.md` | Auto-generated event catalog. Do not edit. |
 | `modules-catalog.md` | Auto-generated module catalog. Do not edit. |
+| `subprocessors-catalog.md` | Auto-generated register of every external destination a module sends data to (ADR 0027). Do not edit. |
 
 Adding any other `.md` at this root is a CI failure (see `scripts/check_docs_layout.py`).
 

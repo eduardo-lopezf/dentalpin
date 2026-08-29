@@ -149,7 +149,7 @@ const actionItems = computed(() => [
           />
         </div>
 
-        <!-- Metadata strip — age · gender · DNI · contact icons -->
+        <!-- Metadata strip — age · gender · ID document · contact icons -->
         <div class="flex items-center gap-x-2.5 gap-y-1 flex-wrap text-caption text-muted">
           <span
             v-if="age != null"

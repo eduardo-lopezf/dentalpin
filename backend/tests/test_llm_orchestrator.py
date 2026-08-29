@@ -7,6 +7,7 @@ a scripted fake provider exercise the whole loop without Postgres.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from uuid import uuid4
 
@@ -24,7 +25,7 @@ from app.core.agents.orchestrator import (
     TurnUsage,
     run_turn,
 )
-from app.core.agents.redaction import Redactor
+from app.core.agents.redaction import ALL_JURISDICTIONS, Redactor, _jurisdiction_keys
 from app.core.agents.tools.schema import tool_to_openai_schema
 from app.core.agents.tools.tool import Tool, ToolCategory, ToolResult
 from app.core.llm.base import (
@@ -40,6 +41,7 @@ from app.core.llm.base import (
     Usage,
 )
 from app.core.llm.factory import get_provider
+from app.core.privacy import PrivacyPolicy
 
 
 class _Args(BaseModel):
@@ -270,6 +272,96 @@ def test_redactor_disabled_is_identity() -> None:
     msg = ProviderMessage(Role.TOOL, [ToolResultBlock("c1", {"full_name": "Ana"})])
     assert r.redact_outgoing([msg]) is not None
     assert r.redact_outgoing([msg])[0].content[0].content == {"full_name": "Ana"}
+
+
+def test_redactor_tokenizes_government_ids() -> None:
+    # Two families must tokenize: the document names of the active
+    # jurisdiction (curp/rfc/ine) and the field names this codebase actually
+    # uses — including LegalGuardian.dni and the nif row key emitted by
+    # accounting_export, which exist regardless of the market.
+    r = Redactor(enabled=True)
+    payload = {
+        "curp": "GOMA850101HDFNRL09",
+        "rfc": "GOMA850101AB1",
+        "ine": "1234567890123",
+        "national_id": "GOMA850101HDFNRL09",
+        "tax_id": "ABC123456T1A",
+        "billing_tax_id": "XAXX010101000",
+        "dni": "12345678Z",
+        "nif": "B12345678",
+    }
+    out = r.redact_outgoing([ProviderMessage(Role.TOOL, [ToolResultBlock("c1", payload)])])
+    redacted = out[0].content[0].content
+    for key, real in payload.items():
+        assert redacted[key] != real, key
+        assert redacted[key].startswith("NATID_"), key
+        assert r.rehydrate(redacted[key]) == real, key
+
+
+def test_redactor_keys_follow_the_tenant_jurisdiction() -> None:
+    # The document names that count as identifiers come from the tenant's
+    # policy, not from the module (ADR 0023).
+    mx = Redactor.for_policy(
+        PrivacyPolicy.self_hosted(
+            jurisdictions=frozenset({"MX"}), regulations=frozenset({"lfpdppp"})
+        )
+    )
+    es = Redactor.for_policy(
+        PrivacyPolicy.self_hosted(jurisdictions=frozenset({"ES"}), regulations=frozenset({"gdpr"}))
+    )
+    payload = {"curp": "GOMA850101HDFNRL09", "nie": "X1234567L"}
+
+    mx_out = mx.redact_outgoing([ProviderMessage(Role.TOOL, [ToolResultBlock("c1", payload)])])
+    mx_seen = mx_out[0].content[0].content
+    assert mx_seen["curp"].startswith("NATID_")
+    assert mx_seen["nie"] == "X1234567L"  # not a Mexican document
+
+    es_out = es.redact_outgoing([ProviderMessage(Role.TOOL, [ToolResultBlock("c1", payload)])])
+    es_seen = es_out[0].content[0].content
+    assert es_seen["nie"].startswith("NATID_")
+    assert es_seen["curp"] == "GOMA850101HDFNRL09"
+
+
+def test_redactor_covers_schema_keys_under_every_jurisdiction() -> None:
+    # The columns this codebase defines hold an identifier whatever the
+    # country, so no jurisdiction may switch them off.
+    payload = {"national_id": "X", "tax_id": "Y", "billing_tax_id": "Z", "dni": "W", "nif": "V"}
+    for codes in (frozenset({"MX"}), frozenset({"ES"}), frozenset({"MX", "ES"})):
+        r = Redactor.for_policy(
+            PrivacyPolicy.self_hosted(jurisdictions=codes, regulations=frozenset({"gdpr"}))
+        )
+        out = r.redact_outgoing([ProviderMessage(Role.TOOL, [ToolResultBlock("c1", payload)])])
+        seen = out[0].content[0].content
+        assert all(v.startswith("NATID_") for v in seen.values()), codes
+
+
+def test_redactor_without_jurisdictions_over_redacts() -> None:
+    # A caller that forgets its policy must fail closed: every known
+    # document name still tokenizes.
+    r = Redactor(enabled=True)
+    assert r.jurisdictions == ALL_JURISDICTIONS
+    payload = {"curp": "A", "nie": "B"}
+    out = r.redact_outgoing([ProviderMessage(Role.TOOL, [ToolResultBlock("c1", payload)])])
+    assert all(v.startswith("NATID_") for v in out[0].content[0].content.values())
+
+
+def test_redactor_unknown_jurisdiction_keeps_schema_keys(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # An unmodelled country degrades to the schema family and says so.
+    _jurisdiction_keys.cache_clear()
+    with caplog.at_level(logging.WARNING, logger="app.core.agents.redaction"):
+        r = Redactor.for_policy(
+            PrivacyPolicy.self_hosted(
+                jurisdictions=frozenset({"BR"}), regulations=frozenset({"lgpd"})
+            )
+        )
+    assert "BR" in caplog.text
+    payload = {"national_id": "A", "cpf": "B"}
+    out = r.redact_outgoing([ProviderMessage(Role.TOOL, [ToolResultBlock("c1", payload)])])
+    seen = out[0].content[0].content
+    assert seen["national_id"].startswith("NATID_")
+    assert seen["cpf"] == "B"  # documented gap, not a silent one
 
 
 def test_redactor_replaces_known_entity_in_free_text() -> None:

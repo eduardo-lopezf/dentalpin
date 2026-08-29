@@ -22,6 +22,7 @@ from app.core.agents.tools.registry import tool_registry
 from app.core.auth.permissions import permission_matches
 from app.core.llm.base import ProviderMessage, Role, TextBlock, ToolResultBlock, ToolUseBlock
 from app.core.llm.factory import get_provider
+from app.core.privacy import PrivacyPolicy
 
 from .models import CopilotConversation, CopilotSettings
 from .serde import message_from_row
@@ -116,8 +117,18 @@ def _build_context(
     )
 
 
-def _redactor_for(conv: CopilotConversation, settings_row: CopilotSettings) -> Redactor:
-    r = Redactor(enabled=settings_row.redaction_enabled)
+def _redactor_for(
+    conv: CopilotConversation,
+    settings_row: CopilotSettings,
+    privacy: PrivacyPolicy,
+) -> Redactor:
+    """Bind the PHI boundary to the tenant's declared jurisdictions.
+
+    Which government documents count as identifiers is a property of the
+    tenant, not of the code (ADR 0023). The clinic still decides whether
+    redaction runs at all — that stays in ``copilot_settings``.
+    """
+    r = Redactor.for_policy(privacy, enabled=settings_row.redaction_enabled)
     r.seed(conv.context)
     return r
 
@@ -139,6 +150,7 @@ async def drive_turn(
     db: AsyncSession,
     conv: CopilotConversation,
     settings_row: CopilotSettings,
+    privacy: PrivacyPolicy,
     permissions: list[str],
     user_id: UUID,
     agent_id: UUID,
@@ -153,7 +165,7 @@ async def drive_turn(
     history.append(user_msg)
 
     provider = provider or get_provider(conv.provider)
-    redactor = _redactor_for(conv, settings_row)
+    redactor = _redactor_for(conv, settings_row, privacy)
     budget = ClinicBudgetGuard(settings_row, conv)
     ctx = _build_context(
         db=db,
@@ -185,6 +197,7 @@ async def resume_turn(
     db: AsyncSession,
     conv: CopilotConversation,
     settings_row: CopilotSettings,
+    privacy: PrivacyPolicy,
     permissions: list[str],
     user_id: UUID,
     agent_id: UUID,
@@ -200,7 +213,7 @@ async def resume_turn(
         return
 
     provider = provider or get_provider(conv.provider)
-    redactor = _redactor_for(conv, settings_row)
+    redactor = _redactor_for(conv, settings_row, privacy)
     budget = ClinicBudgetGuard(settings_row, conv)
     ctx = _build_context(
         db=db,

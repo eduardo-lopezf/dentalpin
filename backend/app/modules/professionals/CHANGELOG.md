@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- fix(privacy): classified this module's personal columns with `pii()`
+  so the copilot's PHI boundary derives them from the schema instead of a
+  hand-kept list ([ADR 0025](../../../../docs/adr/0025-pii-is-classified-on-the-column.md)).
+
 - feat(specialties)!: `specialty` is no longer free text. Replaced by a
   many-to-many link to the catalog's `specialties` table via
   `professional_specialties` (migration `pro_0002`, `depends_on = cat_0004`).

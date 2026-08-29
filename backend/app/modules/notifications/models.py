@@ -29,6 +29,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.privacy import DataClass, PiiKind, pii
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -230,8 +231,14 @@ class ClinicSmtpSettings(Base, TimestampMixin):
     use_tls: Mapped[bool] = mapped_column(Boolean, default=True)
     use_ssl: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    from_email: Mapped[str | None] = mapped_column(String(255), default=None)
-    from_name: Mapped[str | None] = mapped_column(String(255), default=None)
+    # The clinic's own sending identity, not a patient's — but it is
+    # still contact data and there is no reason for it to reach a model.
+    from_email: Mapped[str | None] = mapped_column(
+        String(255), default=None, info=pii(PiiKind.EMAIL, data_class=DataClass.OPERATIONAL)
+    )
+    from_name: Mapped[str | None] = mapped_column(
+        String(255), default=None, info=pii(PiiKind.NAME, data_class=DataClass.OPERATIONAL)
+    )
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -259,7 +266,10 @@ class CommunicationMessage(Base, TimestampMixin):
     channel: Mapped[str] = mapped_column(String(20), default="email")
     # outbound (we send) | inbound (patient replied) — the conversation thread.
     direction: Mapped[str] = mapped_column(String(20), default="outbound")
-    to_address: Mapped[str] = mapped_column(String(255))  # email or E.164 phone (the counterparty)
+    # Email or E.164 phone of the counterparty — the patient, usually.
+    to_address: Mapped[str] = mapped_column(
+        String(255), info=pii(PiiKind.CONTACT, data_class=DataClass.OPERATIONAL)
+    )
     patient_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("patients.id"), index=True, default=None
     )

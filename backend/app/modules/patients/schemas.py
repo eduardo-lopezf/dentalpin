@@ -10,6 +10,31 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+# --- Identity documents --------------------------------------------------
+
+# Accepted values for ``Patient.national_id_type``, grouped by the country
+# whose document it is. The set was Mexico-only, which made every patient
+# imported from Gesdén (Spanish software, ``migration_import`` labels them
+# ``nif``) unsaveable: the value round-trips through the edit form, and the
+# validator rejected it on the first save of that patient's demographics.
+#
+# The deployment serves both markets — ``verifactu`` files with the Spanish
+# AEAT while the default currency is MXN — so the accepted set is the union.
+# Narrowing it *per tenant* from ``PrivacyPolicy.jurisdictions`` (ADR 0023)
+# is the coherent next step, and it needs the check to move out of the
+# Pydantic validator, which cannot see the tenant. Grouped here so that
+# move is a rewiring rather than a rediscovery.
+NATIONAL_ID_TYPES_BY_JURISDICTION: dict[str, tuple[str, ...]] = {
+    "MX": ("curp", "ine"),
+    "ES": ("dni", "nie", "nif"),
+}
+UNIVERSAL_NATIONAL_ID_TYPES: tuple[str, ...] = ("passport",)
+
+NATIONAL_ID_TYPES: frozenset[str] = frozenset(UNIVERSAL_NATIONAL_ID_TYPES).union(
+    *NATIONAL_ID_TYPES_BY_JURISDICTION.values()
+)
+
+
 # --- Billing -------------------------------------------------------------
 
 
@@ -133,6 +158,7 @@ class PatientExtendedUpdate(PatientUpdate):
     def validate_national_id_type(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        if value not in {"curp", "ine", "passport"}:
-            raise ValueError("national_id_type must be either 'curp', 'ine' or 'passport'")
+        if value not in NATIONAL_ID_TYPES:
+            accepted = ", ".join(sorted(NATIONAL_ID_TYPES))
+            raise ValueError(f"national_id_type must be one of: {accepted}")
         return value

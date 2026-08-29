@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  El registro original del sistema de origen, en JSON. **Sí borra** — staging de una migración terminada, ni asistencial ni contable. Se limpian `payload` y `raw_source_data`.
+
+- fix(patients): the `nif` document type this mapper writes is now
+  accepted by the patients schema. The mapper is unchanged — `nif` is the
+  right label for an identifier coming out of Spanish software — but the
+  value it wrote could not survive a round-trip through the patient edit
+  form. `tests/modules/migration_import/test_patient_mapper_national_id.py`
+  pins both ends together.
+
 - fix(verifactu-gate): the fiscal-compliance gate now asks
   ``module_registry.is_installed("verifactu")`` instead of
   ``is_loaded()``. Both spellings used to mean "the code is on

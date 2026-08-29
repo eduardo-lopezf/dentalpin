@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — this module now answers
+  for its own data when a patient exercises portability or erasure
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  **Declines erasure** with a stated `retention_reason`: an issued
+  invoice is a fiscal document whose retention is set by tax law. It
+  still exports.
+
+- fix(privacy): classified this module's personal columns with `pii()`
+  so the copilot's PHI boundary derives them from the schema instead of a
+  hand-kept list ([ADR 0025](../../../../docs/adr/0025-pii-is-classified-on-the-column.md)).
+  `invoices.billing_name` / `billing_tax_id` / `billing_email` were
+  reaching the cloud model in cleartext until now.
+
 - fix(money): invoice/budget line maths coerce before adding. Money is a
   Decimal **string** on the wire; `*` and `-` converted silently, so the
   totals worked by luck — one future `+` would have concatenated. The

@@ -24,6 +24,37 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     ALLOWED_ORIGINS: str = ""
 
+    # Tenant custody and regime (ADR 0023). These describe *this*
+    # deployment; a SaaS control plane supplies them per tenant instead.
+    #
+    # Defaults to ``managed`` because that is what this product is: we
+    # run the deployment and hold its keys. A self-hoster overrides it.
+    #
+    # **The controls each mode names are not implemented yet.**
+    # ``managed`` promises break-glass operator access — bounded,
+    # justified, disclosed — and there is no such mechanism; today an
+    # operator's access is simply standing. ``byok`` is out of scope for
+    # this stage entirely. The mode is an accurate statement of *who
+    # holds what*, and not yet a statement about enforced controls.
+    TENANT_CUSTODY_MODE: str = "managed"
+    # Comma-separated ISO 3166-1 alpha-2 codes. Decides which government
+    # documents count as identifiers for the PHI boundary (ADR 0025).
+    # Both markets by default: verifactu files with the Spanish AEAT
+    # while the default currency is MXN.
+    TENANT_JURISDICTIONS: str = "MX,ES"
+    # Where the data physically lives — a region id, or ``on-prem``.
+    # Left empty it resolves to ``on-prem`` under ``self`` (true by
+    # definition) and to ``unspecified`` otherwise, with a warning: a
+    # hosted deployment that cannot say where the data lives has not
+    # answered the question a clinic is asking, and saying ``on-prem``
+    # for it would be a lie rather than a gap.
+    TENANT_DATA_RESIDENCY: str = ""
+    # Comma-separated destination ids this deployment has contracted for
+    # (``openai``, ``kapso``, ``aeat``, ``smtp``). Default-deny, so an
+    # empty value means every module that calls out is reported at boot.
+    # It is a report, not a block — see ADR 0027 for why.
+    TENANT_EGRESS_ALLOWED: str = ""
+
     # Rate limiting
     LOGIN_RATE_LIMIT: str = "5/minute"
     REGISTER_RATE_LIMIT: str = "3/hour"

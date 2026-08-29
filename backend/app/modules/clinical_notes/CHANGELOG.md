@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Notas cuyo owner es el paciente. Registro asistencial: se conservan. **Hueco**: una nota colgada de una cita o un plan no se encuentra sin importar esos módulos.
+
 - fix(ui): a failed save no longer wipes the note. All five composer
   surfaces now check what `createNote`/`updateNote` returned instead of
   clearing regardless, and the three delete surfaces that lacked one

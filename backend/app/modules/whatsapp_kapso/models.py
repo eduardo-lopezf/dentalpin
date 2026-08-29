@@ -13,6 +13,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, Uniqu
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.privacy import PiiKind, pii
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -32,7 +33,9 @@ class WhatsappKapsoSettings(Base, TimestampMixin):
     phone_number_id: Mapped[str] = mapped_column(String(64), index=True)
     business_account_id: Mapped[str | None] = mapped_column(String(64), default=None)
     webhook_secret_encrypted: Mapped[str] = mapped_column(Text)
-    display_phone_number: Mapped[str | None] = mapped_column(String(32), default=None)
+    display_phone_number: Mapped[str | None] = mapped_column(
+        String(32), default=None, info=pii(PiiKind.PHONE)
+    )
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — this module now answers
+  for its own data when a patient exercises portability or erasure
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Exports the identity row; erasure scrubs the classified columns plus
+  date of birth and address (quasi-identifiers) and archives the row
+  rather than deleting it, because invoices and appointments point at it.
+
+- fix(schemas): `national_id_type` accepted only `curp`/`ine`/`passport`,
+  so every patient imported from Gesdén (labelled `nif` by
+  `migration_import`) 422'd on the first save of their demographics — the
+  edit modal loads the stored value and sends it back untouched. The
+  accepted set is now the union of both markets the deployment serves,
+  grouped by jurisdiction in `NATIONAL_ID_TYPES_BY_JURISDICTION` so that
+  narrowing it per tenant later is a rewiring rather than a
+  rediscovery. Existing rows become valid without a data migration.
+
+- fix(privacy): classified this module's personal columns with `pii()`
+  so the copilot's PHI boundary derives them from the schema instead of a
+  hand-kept list ([ADR 0025](../../../../docs/adr/0025-pii-is-classified-on-the-column.md)).
+
+- fix(i18n): the `search_patients` tool told the model it could search by
+  "DNI/NIE". `Patient.national_id` holds a CURP, INE or passport (the
+  schema validator accepts nothing else), so the description now names
+  those. The searched fields are unchanged.
+
+- fix(i18n): the billing tax-id field was labelled "NIF/CIF" in Spanish
+  while every other tax-id label in that locale (`setup`, `settings`,
+  `invoice`) already said RFC, and its placeholder was hardcoded in the
+  template instead of going through `t()`. Label is now "RFC" and the
+  placeholder moved to `patients.billingTaxIdPlaceholder` in both locales.
+
 - fix(ui): removed the "linked to plan" badge from the administration
   tab — `treatment_plan_id` exists nowhere in the budget module, so the
   badge could never render.

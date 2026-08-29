@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- feat(privacy): declara su egress en el manifest
+  ([ADR 0027](../../../../docs/adr/0027-egress-is-declared-in-the-manifest.md)):
+  `kapso` — api.kapso.ai y Meta por detrás. Salen el número del
+  paciente y el contenido del mensaje.
+
+- fix(privacy): classified this module's personal columns with `pii()`
+  so the copilot's PHI boundary derives them from the schema instead of a
+  hand-kept list ([ADR 0025](../../../../docs/adr/0025-pii-is-classified-on-the-column.md)).
+  `display_phone_number` was not redacted before.
+
 - fix(ui): "send test" is now single-shot (in-flight flag + `:loading`).
   Kapso bills per message, and the button had no guard at all (audit S5).
 

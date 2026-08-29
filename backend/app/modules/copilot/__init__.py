@@ -38,6 +38,21 @@ class CopilotModule(BaseModule):
             "assistant": ["chat", "history.read"],
             "receptionist": ["chat", "history.read"],
         },
+        "egress": [
+            {
+                "target": "openai",
+                "subprocessor": "OpenAI, L.L.C.",
+                "residency": "us",
+                "data_classes": ["identifier", "clinical", "operational"],
+                "purpose": (
+                    "Generar las respuestas del copiloto. Los identificadores se "
+                    "tokenizan antes de salir cuando la redacción está activa "
+                    "(ADR 0025), pero el texto libre del usuario puede llevar "
+                    "datos que ninguna clasificación de columna ve."
+                ),
+                "required": False,
+            }
+        ],
         "frontend": {
             "layer_path": "frontend",
             "navigation": [

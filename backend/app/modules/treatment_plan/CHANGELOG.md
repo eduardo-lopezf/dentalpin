@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Planes con sus partidas y sesiones. Registro asistencial: se conservan.
+
 - fix(ui): pipeline pagination works — same Nuxt UI v2-props-on-v4
   problem as media and catalog.
 

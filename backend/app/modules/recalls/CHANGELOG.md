@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- feat(privacy): `get_subject_contributors()` — este módulo ya responde
+  cuando un paciente ejerce portabilidad o supresión
+  ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Recordatorios e intentos de contacto. **Sí borra**, incluidas las notas libres.
+
 - fix(ui): the call list has a pager. It tracked `page`/`total` and sent
   them to the API, but nothing changed the page and no control was
   rendered — a clinic with more than 50 recalls in the month saw the
