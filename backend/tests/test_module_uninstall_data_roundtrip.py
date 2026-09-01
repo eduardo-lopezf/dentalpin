@@ -39,13 +39,18 @@ async def _seed_clinic_hours_row(clinic_id) -> None:
         # Required parent: a clinic must exist before clinic_weekly_schedules
         # references it. Insert a minimal clinic row.
         await conn.execute(
-            "INSERT INTO clinics (id, name, tax_id, settings, created_at, updated_at) "
-            "VALUES ($1, $2, $3, $4::jsonb, NOW(), NOW()) "
+            # ``account_tier`` is listed explicitly: migration 0011 dropped
+            # its server_default on purpose, so a raw INSERT that omits it
+            # now violates the NOT NULL.
+            "INSERT INTO clinics "
+            "(id, name, tax_id, settings, account_tier, created_at, updated_at) "
+            "VALUES ($1, $2, $3, $4::jsonb, $5, NOW(), NOW()) "
             "ON CONFLICT (id) DO NOTHING",
             clinic_id,
             "BackupTest Clinic",
             f"BKT-{str(clinic_id)[:8]}",
             "{}",
+            "clinic",
         )
         # The actual columns of clinic_weekly_schedules are intentionally
         # narrow (id, clinic_id, is_active, timestamps) — no per-day data
