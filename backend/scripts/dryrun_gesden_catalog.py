@@ -38,7 +38,9 @@ from app.modules.migration_import.models import ImportJob
 async def run(dpmf_path: Path, passphrase: str | None = None) -> None:
     async with async_session_maker() as db:
         # Throwaway clinic + admin so we don't touch seeded ones.
-        clinic = Clinic(id=uuid4(), name="dryrun", tax_id=f"B{uuid4().hex[:8]}")
+        clinic = Clinic(
+            id=uuid4(), name="dryrun", tax_id=f"B{uuid4().hex[:8]}", account_tier="clinic"
+        )
         admin = User(
             id=uuid4(),
             email=f"dryrun-{uuid4().hex[:8]}@test.local",

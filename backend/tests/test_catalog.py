@@ -26,6 +26,7 @@ async def catalog_clinic_setup(
         tax_id="B87654321",
         address={"street": "Catalog St", "city": "Madrid"},
         settings={"slot_duration_min": 15},
+        account_tier="clinic",
     )
     db_session.add(clinic)
     await db_session.flush()

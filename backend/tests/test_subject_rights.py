@@ -136,7 +136,7 @@ class TestFanOutOverModules:
 
     async def test_export_is_scoped_to_the_clinic(self, db_session) -> None:
         clinic, patient = await _bootstrap(db_session)
-        other_clinic = Clinic(id=uuid4(), name="Otra", tax_id="B2")
+        other_clinic = Clinic(id=uuid4(), name="Otra", tax_id="B2", account_tier="clinic")
         db_session.add(other_clinic)
         await db_session.flush()
 
@@ -347,7 +347,7 @@ async def _noop_anonymize(db, clinic_id, patient_id):  # noqa: ARG001
 
 
 async def _bootstrap(db_session, *, with_invoice: bool = True):
-    clinic = Clinic(id=uuid4(), name="C", tax_id="B1")
+    clinic = Clinic(id=uuid4(), name="C", tax_id="B1", account_tier="clinic")
     author = User(
         id=uuid4(),
         email=f"admin-{uuid4().hex[:8]}@test.local",

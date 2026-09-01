@@ -34,6 +34,7 @@ async def photo_setup(
         tax_id="B11111111",
         address={"street": "Foto St"},
         settings={"slot_duration_min": 15},
+        account_tier="clinic",
     )
     db_session.add(clinic)
     await db_session.flush()

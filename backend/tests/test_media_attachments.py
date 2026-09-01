@@ -34,6 +34,7 @@ async def attach_setup(
         tax_id="B22222222",
         address={"street": "Adj St"},
         settings={"slot_duration_min": 15},
+        account_tier="clinic",
     )
     db_session.add(clinic)
     await db_session.flush()

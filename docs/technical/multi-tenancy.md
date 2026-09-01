@@ -92,6 +92,19 @@ Implementación default para self-hosted. Lee de settings y del `ModuleRegistry`
 
 O(1), sin red, sin cache (precomputa). Ignora el `request`.
 
+**Licencia (pendiente, [ADR 0028](../adr/0028-self-hosting-is-the-premium-tier.md)).**
+El self-hosting en producción es el tier premium y se activa con una
+clave firmada. Cuando exista, es aquí donde se verifica —offline, sin
+llamada de red, porque un phone-home contradiría justo la propiedad que
+`self` vende— y de ahí saldrán los `modules_enabled` en lugar del
+registry completo. Dos reglas que la implementación no puede saltarse:
+la verificación **nunca** condiciona lecturas clínicas ni los endpoints
+de derechos del interesado (ADR 0026), y **nunca** se apoya en
+`clinics.account_tier`, que vive en la DB del propio cliente
+([ADR 0024](../adr/0024-control-plane-holds-what-constrains-the-customer.md)
+regla 3). Un despliegue sin clave arranca en estado *evaluación*, que es
+exactamente el uso no productivo que la BSL ya concede.
+
 ---
 
 ## 3. Eventos publicados (post-Fase 1+2)

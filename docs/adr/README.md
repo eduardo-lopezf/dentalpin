@@ -48,7 +48,7 @@ Triggers (any one):
 | 0001 | [Modular plugin architecture](0001-modular-plugin-architecture.md) | accepted | 2026-04-27 |
 | 0002 | [Per-module Alembic branches](0002-per-module-alembic-branches.md) | accepted | 2026-04-27 |
 | 0003 | [Event bus over direct cross-module imports](0003-event-bus-over-direct-imports.md) | accepted | 2026-04-27 |
-| 0004 | [BSL 1.1 license, Apache 2.0 after 4 years](0004-bsl-license.md) | accepted | 2026-04-27 |
+| 0004 | [BSL 1.1 license, Apache 2.0 after 4 years](0004-bsl-license.md) | accepted (amended) | 2026-04-27 |
 | 0005 | [Relative permissions, registry-prefixed namespacing](0005-relative-permissions.md) | accepted | 2026-04-27 |
 | 0006 | [Budget public link two-factor authentication](0006-budget-public-link-2-factor-auth.md) | accepted | 2026-04-28 |
 | 0007 | [Polymorphic attachment owner registry in `media`](0007-polymorphic-attachment-registry.md) | accepted | 2026-05-02 |
@@ -67,8 +67,10 @@ Triggers (any one):
 | 0020 | [Handler failures are recorded, not just logged](0020-handler-failures-are-recorded.md) | accepted | 2026-08-26 |
 | 0021 | [Module layers are typechecked, behind a shrinking baseline](0021-module-layers-are-typechecked.md) | accepted | 2026-08-26 |
 | 0022 | [Touch adaptation is capability-driven, not width- or UA-driven](0022-touch-adaptation-is-capability-driven.md) | accepted | 2026-08-27 |
-| 0023 | [Custody is a tenant property, declared in three modes](0023-privacy-policy-and-custody-modes.md) | accepted | 2026-08-28 |
+| 0023 | [Custody is a tenant property, declared in three modes](0023-privacy-policy-and-custody-modes.md) | accepted (amended) | 2026-08-28 |
 | 0024 | [The control plane holds what constrains the customer](0024-control-plane-holds-what-constrains-the-customer.md) | accepted | 2026-08-28 |
 | 0025 | [PII is classified on the column, and the classification is enforced](0025-pii-is-classified-on-the-column.md) | accepted | 2026-08-28 |
 | 0026 | [Subject rights are a module contract, and erasure must be justified](0026-subject-rights-are-a-module-contract.md) | accepted | 2026-08-29 |
 | 0027 | [Egress is declared in the manifest, and reported before it is blocked](0027-egress-is-declared-in-the-manifest.md) | accepted | 2026-08-29 |
+| 0028 | [Self-hosting is the premium tier, activated by a signed key](0028-self-hosting-is-the-premium-tier.md) | accepted | 2026-08-31 |
+| 0029 | [Security is a set of invariants with chokepoints, not a list of practices](0029-security-invariants-with-chokepoints.md) | proposed | 2026-09-01 |

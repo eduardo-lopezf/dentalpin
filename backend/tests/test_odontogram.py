@@ -26,6 +26,7 @@ async def odontogram_setup(
         tax_id="B12345678",
         address={"street": "Test St", "city": "Madrid"},
         settings={"slot_duration_min": 15},
+        account_tier="clinic",
     )
     db_session.add(clinic)
     await db_session.flush()

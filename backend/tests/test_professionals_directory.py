@@ -84,6 +84,7 @@ async def test_system_access_scoped_to_clinic_membership(
         tax_id="B87654321",
         address={"street": "Other St", "city": "Madrid"},
         settings={"slot_duration_min": 15},
+        account_tier="clinic",
     )
     db_session.add(other_clinic)
     await db_session.flush()
@@ -230,6 +231,7 @@ async def test_specialty_from_another_clinic_is_rejected(
         tax_id="B99999999",
         address={"street": "Otra", "city": "Madrid"},
         settings={},
+        account_tier="clinic",
     )
     db_session.add(other_clinic)
     await db_session.flush()

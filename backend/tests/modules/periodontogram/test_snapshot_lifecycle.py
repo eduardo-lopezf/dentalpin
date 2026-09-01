@@ -196,6 +196,7 @@ async def test_snapshot_from_other_clinic_returns_404(
         tax_id="B99999999",
         address={"street": "Otra", "city": "BCN"},
         settings={},
+        account_tier="clinic",
     )
     db_session.add(foreign_clinic)
     await db_session.flush()

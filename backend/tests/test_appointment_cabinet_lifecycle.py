@@ -40,7 +40,14 @@ from app.modules.professionals.models import Professional
 
 
 async def _world(db: AsyncSession) -> dict[str, UUID]:
-    clinic = Clinic(id=uuid4(), name="CB", tax_id="B0", address={"city": "M"}, settings={})
+    clinic = Clinic(
+        id=uuid4(),
+        name="CB",
+        tax_id="B0",
+        address={"city": "M"},
+        settings={},
+        account_tier="clinic",
+    )
     admin = User(
         id=uuid4(),
         email=f"a-{uuid4().hex[:6]}@t.c",

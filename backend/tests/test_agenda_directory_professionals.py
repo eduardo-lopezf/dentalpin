@@ -25,6 +25,7 @@ async def directory_clinic(
         tax_id="B12345678",
         address={"street": "Test St", "city": "Madrid"},
         settings={"slot_duration_min": 15},
+        account_tier="clinic",
     )
     dentist_account = User(
         id=uuid4(),

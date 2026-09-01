@@ -17,7 +17,11 @@ DentalPin is open source dental clinic management software designed to be:
 
 ### License: BSL 1.1
 
-- **Free to use** for clinics (self-hosted or cloud)
+- **Free** for evaluation and any non-production use
+- **Licensed** for production use in a clinic. Self-hosting is the
+  premium tier, activated by a signed key that never gates the clinic's
+  own data ([ADR 0028](../adr/0028-self-hosting-is-the-premium-tier.md),
+  [ADR 0004 Amendment 1](../adr/0004-bsl-license.md))
 - **Contributions** welcome and encouraged
 - **Prohibited** to host as a competing commercial SaaS
 - **Converts to Apache 2.0** after 4 years
@@ -716,7 +720,7 @@ that decides what ships. Three obligations have no implementation at all:
 |---|---|---|
 | **Consent for sensitive data** | ❌ none | Health data is a *dato personal sensible*, which normally requires **express written consent** — stricter than GDPR, where several legal bases are available. `whatsapp_kapso` and `notifications` message patients today with nothing recording a legal basis. `Patient.do_not_contact` is an opt-out and does not substitute for it. |
 | **Aviso de privacidad** | ❌ none | Mandatory, with prescribed contents: who the responsable is, what is collected, for what purposes, which transfers happen and to whom, and how to exercise rights. Nothing in the system stores or versions one. The transfers section is exactly what [`subprocessors-catalog.md`](../subprocessors-catalog.md) generates (ADR 0027) — that catalog is an input to a legal document, not only internal reference. |
-| **Processing contract for `managed`** | ❌ none | Hosting a clinic's data makes us an *encargado*; that relationship needs a written contract with the clinic. It is also the conversation still open about the business model — see [ADR 0023](../adr/0023-privacy-policy-and-custody-modes.md), where `self` is noted as the costliest option for the clinic and pending that decision. |
+| **Processing contract for `managed`** | ❌ none | Hosting a clinic's data makes us an *encargado*; that relationship needs a written contract with the clinic. The business-model half of that question is now settled — `self` is the premium tier ([ADR 0023 Amendment 2](../adr/0023-privacy-policy-and-custody-modes.md), [ADR 0028](../adr/0028-self-hosting-is-the-premium-tier.md)) — which makes the contract more urgent, not less: `managed` is the tier we keep offering to clinics that will not run their own deployment, and it is the one that needs the paperwork. |
 | **ARCO rights** | ⚠️ partial | Acceso and Cancelación ship (ADR 0026); Rectificación exists de facto through patient editing; **Oposición does not**. The bigger gap is shape: ARCO carries **statutory response deadlines**, and `core_subject_request` records requests *already executed*. Serving ARCO needs the request recorded **when it arrives**, with a status and a due date — a model change, not an extra column. |
 | **Breach notification** | ❌ none | The law requires telling affected data subjects about breaches that significantly affect their rights. Listed under GDPR above as generic future work; under LFPDPPP it has an addressee and a deadline. |
 
@@ -750,6 +754,51 @@ Also unbuilt: anything that *acts* on a window. Knowing a record is past
 its retention period is not the same as archiving, exporting or purging
 it, and for clinical data the action is legally loaded enough that it
 should not be automatic on first release.
+
+### Clinic-wide CSV export — pending 🟠 P1
+
+The business model commits to it in writing: **a clinic can always take
+its own data out as CSV**, under any tier, in any licence state, with
+every trial and temporary-upgrade token expired
+([`../features/licensing-and-packaging.md`](../features/licensing-and-packaging.md)
+§2, and the constraint it inherits from
+[ADR 0028](../adr/0028-self-hosting-is-the-premium-tier.md) rule 3). It
+is the answer to the question a clinic asks before it signs — *what
+happens if we leave* — and it is deliberately phrased so it can be
+checked rather than believed.
+
+**Nothing implements it.** What exists today is two other things:
+
+| Ships today | Shape | Why it is not the guarantee |
+|---|---|---|
+| `GET /api/v1/privacy/subjects/{id}/export` | **JSON**, one patient | Answers a *patient's* portability request (ADR 0026), not the clinic's. Different requester, different scope, and the wrong format for this promise. |
+| `accounting_export` | **CSV**, invoices + payments | Real CSV, but scoped to accounting — and it is an **optional module**, which is exactly the placement the guarantee forbids. |
+
+**The trap to design around.** `modules_enabled` is the enforcement axis
+(ADR 0024 rule 3), and `core_module.state` decides what runs
+(ADR 0018) — so a tier that excludes a module leaves that module's tables
+full of the clinic's data with nothing able to read them out. A guarantee
+that stops covering odontograms because the tier does not include
+`odontogram` is not a guarantee. Whatever is built has to sit outside the
+module set a tier controls, for the same reason the rest of the
+compliance floor does.
+
+That points at the ADR 0026 contributor pattern — core aggregating what
+each module declares — with one difference that has to be resolved rather
+than inherited: subject rights accept that an uninstalled module
+contributes nothing, and this cannot.
+
+Open before anything is built:
+
+- Which tables the export covers, and whether it is one CSV per table or
+  a single archive.
+- Where it lives, given the constraint above.
+- Whether it reuses `get_subject_contributors()` or needs its own
+  contract, and how either behaves for a module whose data exists but
+  whose code is not mounted.
+- How it is offered: on demand in the UI, on a schedule, or both.
+- Whether it must also cover rows written under an expired trial or
+  temporary-upgrade token — it must; see the brief §4, constraint 1.
 
 ### Clinical-record access log + break-glass — deferred as one piece
 

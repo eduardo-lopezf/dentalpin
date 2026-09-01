@@ -16,7 +16,9 @@ from app.config import settings
 from app.core.events import event_bus
 from app.core.events.types import EventType
 from app.core.plugins import module_registry
+from app.core.privacy import TierCustodyError, tiers_available_under, validate_tier_custody
 from app.core.schemas import ApiResponse, PaginatedApiResponse
+from app.core.tenancy import TenantContext, get_tenant
 from app.database import get_db
 
 from .dependencies import ClinicContext, get_clinic_context, get_current_user, require_permission
@@ -80,10 +82,23 @@ async def _refresh_rate_key(request: Request) -> str:
 @router.get("/setup/status", response_model=ApiResponse[SetupStatusResponse])
 async def setup_status(
     db: Annotated[AsyncSession, Depends(get_db)],
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
 ) -> ApiResponse[SetupStatusResponse]:
-    """Whether the system already has an account (drives the first-run wizard)."""
+    """Whether the system already has an account (drives the first-run wizard).
+
+    Also reports the deployment's custody mode and the tiers it may
+    create, so the wizard offers a choice that will be accepted rather
+    than one the POST refuses.
+    """
     count = await db.scalar(select(func.count()).select_from(User))
-    return ApiResponse(data=SetupStatusResponse(initialized=bool(count)))
+    mode = tenant.privacy.custody_mode
+    return ApiResponse(
+        data=SetupStatusResponse(
+            initialized=bool(count),
+            custody_mode=mode.value,
+            available_account_tiers=[tier.value for tier in tiers_available_under(mode)],
+        )
+    )
 
 
 @router.post("/setup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -92,6 +107,7 @@ async def setup(
     request: Request,
     data: SystemSetup,
     db: Annotated[AsyncSession, Depends(get_db)],
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
 ) -> TokenResponse:
     """First-run: create the first admin account and its clinic, then log them in.
 
@@ -115,9 +131,23 @@ async def setup(
             detail=error_msg,
         )
 
+    # Both halves of the commercial pairing are mandatory and neither is
+    # defaulted: the tier arrives in the payload, the custody mode comes
+    # from the deployment that is running (ADR 0024 keeps it out of this
+    # database). This is one of the two places both are known at once, so
+    # it is one of the two places the pair can be checked.
+    try:
+        validate_tier_custody(data.account_tier, tenant.privacy.custody_mode)
+    except TierCustodyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
     clinic = Clinic(
         name=data.clinic_name,
         tax_id=data.clinic_tax_id,
+        account_tier=data.account_tier.value,
         timezone=data.timezone or "America/Mexico_City",
         currency=data.currency or "MXN",
     )

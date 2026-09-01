@@ -77,6 +77,7 @@ async def test_create_recall_for_foreign_patient_rejected(
         tax_id="B77777777",
         address={"street": "x", "city": "y"},
         settings={},
+        account_tier="clinic",
     )
     db_session.add(other_clinic)
     foreign_patient = Patient(

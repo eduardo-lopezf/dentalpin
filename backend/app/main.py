@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -28,6 +28,7 @@ from app.core.plugins.loader import discover_and_register, mount_active
 from app.core.plugins.processor import PendingProcessor
 from app.core.plugins.registry import module_registry
 from app.core.plugins.service import ModuleService, installed_module_names
+from app.core.privacy import PrivacyPolicy, incompatible_tiers
 from app.core.privacy.egress import log_egress_audit
 from app.core.scheduler import init_scheduler, shutdown_scheduler
 from app.core.schemas import ErrorResponse
@@ -67,6 +68,32 @@ async def _mount_installed_modules(app: FastAPI, skip: set[str] | None = None) -
             installed -= blocked
 
     mount_active(app, installed)
+
+
+async def _log_tier_custody_audit(policy: PrivacyPolicy) -> None:
+    """Warn about clinics whose tier this deployment is not sold under.
+
+    Reports rather than refuses: a boot that fails over a commercial rule
+    would take a working clinic offline, which is the trade this codebase
+    already declined for licence expiry (ADR 0028 rule 3).
+    """
+    from app.core.auth.models import Clinic
+
+    try:
+        async with async_session_maker() as session:
+            tiers = (await session.scalars(select(Clinic.account_tier).distinct())).all()
+    except Exception:
+        logger.exception("Could not read clinic tiers for the custody audit")
+        return
+
+    offenders = incompatible_tiers(tiers, policy.custody_mode)
+    if offenders:
+        logger.warning(
+            "Custody audit: custody mode %r does not serve account tier(s) %s, "
+            "but clinics exist under them. Either the mode or those clinics are wrong.",
+            policy.custody_mode.value,
+            ", ".join(repr(tier) for tier in offenders),
+        )
 
 
 @asynccontextmanager
@@ -117,7 +144,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Say, once, which modules reach a destination the policy has not
     # permitted. A warning rather than a refusal — see ADR 0027.
-    log_egress_audit((await app.state.tenant_resolver.resolve_by_slug("default")).privacy)
+    policy = (await app.state.tenant_resolver.resolve_by_slug("default")).privacy
+    log_egress_audit(policy)
+
+    # And say, once, whether any clinic is running under a tier this
+    # deployment's custody mode does not serve. The pair is validated at
+    # creation, but the custody half is an environment variable and can be
+    # changed under clinics that already exist.
+    await _log_tier_custody_audit(policy)
 
     # Initialize scheduler for background jobs (installed modules only —
     # ``module_registry.list_modules()`` is the active set).
@@ -164,6 +198,63 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Paths whose response is an HTML page rather than JSON, and which
+# therefore cannot live under ``default-src 'none'``. Both are Swagger /
+# ReDoc, both load their assets from a CDN, and both are mounted only
+# when ``ENVIRONMENT == "development"`` — so in production this set is
+# never matched.
+_HTML_DOC_PATHS: frozenset[str] = frozenset({"/docs", "/redoc", "/docs/oauth2-redirect"})
+
+# One policy for an API that returns JSON and nothing else. ``'none'``
+# rather than ``'self'`` because there is no legitimate subresource a
+# response from this app should ever pull: if a browser is executing
+# something out of an API response, that is the incident.
+_API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """Attach the response headers that bound what a browser will do.
+
+    The API had none of these (ADR 0029, invariant 4). They are cheap
+    and each closes a specific door:
+
+    - ``X-Content-Type-Options`` — stops a JSON response, or an uploaded
+      file served by ``media``, from being sniffed into HTML and run.
+    - ``Content-Security-Policy`` / ``X-Frame-Options`` — nothing loads,
+      nothing frames. ``frame-ancestors`` is what modern browsers read;
+      ``X-Frame-Options`` covers the ones that do not.
+    - ``Referrer-Policy`` — the public budget URL carries its token in
+      the path (ADR 0006), and a referrer header hands that token to
+      whatever the page links out to.
+    - ``X-Robots-Tag`` — ADR 0006 assumed this existed ("mitigated
+      separately with ``noindex`` headers"). It did not. An API has no
+      business in an index, so it is set unconditionally rather than
+      per-route.
+    - ``Strict-Transport-Security`` — production only, where TLS is a
+      given. Sending it over plaintext development would pin localhost.
+
+    Set after ``call_next`` and with ``setdefault``, so a handler that
+    deliberately needs a different value keeps it.
+    """
+    response = await call_next(request)
+
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
+
+    if request.url.path not in _HTML_DOC_PATHS:
+        response.headers.setdefault("Content-Security-Policy", _API_CSP)
+
+    if settings.ENVIRONMENT == "production":
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
+
+    return response
 
 
 @app.middleware("http")

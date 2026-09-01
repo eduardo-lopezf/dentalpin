@@ -22,7 +22,9 @@ from app.modules.patients.models import Patient
 
 
 async def _world(db: AsyncSession) -> dict[str, UUID]:
-    clinic = Clinic(id=uuid4(), name="K", tax_id="B0", address={}, settings={})
+    clinic = Clinic(
+        id=uuid4(), name="K", tax_id="B0", address={}, settings={}, account_tier="clinic"
+    )
     dentist = User(
         id=uuid4(),
         email=f"d-{uuid4().hex[:6]}@t.c",

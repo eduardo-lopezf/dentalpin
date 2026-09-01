@@ -45,6 +45,7 @@ async def _setup_clinic(
         timezone="Europe/Madrid",
         currency="EUR",
         settings={},
+        account_tier="clinic",
     )
     db.add(clinic)
     await db.flush()

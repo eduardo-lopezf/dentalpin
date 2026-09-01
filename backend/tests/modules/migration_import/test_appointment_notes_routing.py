@@ -25,7 +25,7 @@ from app.modules.patients.models import Patient
 
 
 async def _bootstrap(db_session):
-    clinic = Clinic(id=uuid4(), name="C", tax_id=uuid4().hex[:8])
+    clinic = Clinic(id=uuid4(), name="C", tax_id=uuid4().hex[:8], account_tier="clinic")
     admin = User(
         id=uuid4(),
         email=f"admin-{uuid4().hex[:8]}@test.local",

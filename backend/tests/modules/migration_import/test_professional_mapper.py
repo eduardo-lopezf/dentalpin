@@ -111,7 +111,7 @@ async def test_deactivated_payload_imports_as_inactive(db_session) -> None:
 
 
 async def _bootstrap(db_session):
-    clinic = Clinic(id=uuid4(), name="C", tax_id="B1")
+    clinic = Clinic(id=uuid4(), name="C", tax_id="B1", account_tier="clinic")
     admin = User(
         id=uuid4(),
         email=f"admin-{uuid4().hex[:8]}@test.local",

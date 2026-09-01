@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- chore(security): the six `/professionals/{professional_id}/…` routes now
+  carry `@declares_permissions("schedules.professional.read"|"…write")`.
+  They already enforced those permissions through
+  `_require_professional_access`, in the body rather than as a dependency,
+  because the choice between managing any professional's calendar and
+  managing your own is not known until the path parameter resolves. The
+  decorator only makes that enforcement visible to
+  `tests/test_route_authorization_coverage.py`
+  ([ADR 0029](../../../../docs/adr/0029-security-invariants-with-chokepoints.md)),
+  which would otherwise have read six authorized routes as six gaps. No
+  behaviour change.
+
 - fix(migrations): `sch_0002` dropped `professional_overrides`' FK to
   `users` *after* `_migrate_profiles` had already repointed the column at
   a synthetic professional id, so the UPDATE hit a live constraint and

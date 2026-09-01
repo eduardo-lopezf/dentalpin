@@ -97,6 +97,23 @@ export default defineNuxtPlugin(() => {
     order: 10
   })
 
+  // ---- Privacy -------------------------------------------------------
+  registerSettingsPage({
+    path: 'subject-requests',
+    category: 'privacy',
+    labelKey: 'privacy.subjectRequest',
+    descriptionKey: 'privacy.subjectRequestDescription',
+    icon: 'i-lucide-shield-check',
+    permission: 'privacy.subject.read',
+    component: () => import('~/components/settings/pages/PrivacyPage.vue'),
+    searchKeywords: [
+      'privacidad', 'privacy', 'arco', 'gdpr', 'rgpd', 'lfpdppp',
+      'exportar', 'export', 'portabilidad', 'supresion', 'borrar',
+      'derechos', 'rights', 'erasure'
+    ],
+    order: 10
+  })
+
   // ---- Modules (link to existing /settings/modules) -----------------
   registerSettingsPage({
     path: 'manage',

@@ -69,6 +69,18 @@
     "passwordHint": "At least 8 characters, with letters and numbers",
     "clinicName": "Clinic name",
     "taxId": "Tax ID",
+    "accountTier": "Account plan",
+    "accountTierPlaceholder": "Choose a plan",
+    "accountTierHint": "Sets the scope of the product. It cannot be left undecided.",
+    "accountTierRequired": "Choose a plan for the account",
+    "tiers": {
+      "basic": "Basic",
+      "medium": "Medium",
+      "advanced": "Advanced",
+      "clinic": "Clinic",
+      "clinic_pro": "Clinic Pro",
+      "hospital": "Hospital"
+    },
     "next": "Next",
     "back": "Back",
     "submit": "Create and start",
@@ -1027,6 +1039,10 @@
       "account": {
         "label": "Account",
         "description": "Your profile, password and language."
+      },
+      "privacy": {
+        "label": "Privacy",
+        "description": "Patients' rights over their data and the log of handled requests."
       }
     },
     "search": {
@@ -2960,5 +2976,35 @@
     "created": "Series created",
     "saved": "Series updated",
     "resetSuccess": "Counter reset"
+  },
+  "privacy": {
+    "subjectRequest": "Patient rights",
+    "subjectRequestDescription": "Handle an access or erasure request over a patient's data. Who ran it and why is recorded.",
+    "patientId": "Patient (ID)",
+    "patientIdPlaceholder": "Patient identifier",
+    "reason": "Reason",
+    "reasonHint": "At least 10 characters. On an erasure it is the only part of the request that survives the deletion.",
+    "reasonPlaceholder": "Request submitted by the patient on…",
+    "export": "Export data",
+    "erase": "Erase data",
+    "exportReady": "Export ready",
+    "exportReadyHint": "The file has been downloaded. These are the sections holding data; the ones marked retained cannot be erased.",
+    "retained": "Retained",
+    "erasureDone": "Erasure completed",
+    "scrubbed": "Anonymized data",
+    "retainedSections": "Retained sections",
+    "retainedHint": "These sections were not erased. The reason is part of the answer the clinic owes the patient.",
+    "requestLog": "Handled requests",
+    "requestLogDescription": "Log of exercised rights. It survives the erasure it documents.",
+    "noRequests": "No request has been handled yet.",
+    "refresh": "Refresh",
+    "action": {
+      "export": "Access",
+      "erasure": "Erasure"
+    },
+    "confirmErasureTitle": "Erase this patient's data?",
+    "confirmErasureBody": "Anonymization is irreversible and cannot be undone. Identifying data is removed; the clinical record and fiscal documents are retained because the law requires it.",
+    "confirmErasureRetention": "When it finishes you will see which sections were anonymized and which were retained, with their reason.",
+    "confirmErasureAction": "Yes, erase"
   }
 }

@@ -43,6 +43,7 @@ async def clinic_setup(
         tax_id="B99999999",
         address={"city": "Madrid"},
         settings={},
+        account_tier="clinic",
     )
     db_session.add(clinic)
     await db_session.flush()

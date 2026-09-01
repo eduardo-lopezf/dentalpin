@@ -24,6 +24,7 @@ export type SettingsCategoryId
     | 'billing'
     | 'communications'
     | 'integrations'
+    | 'privacy'
     | 'modules'
     | 'account'
 
@@ -154,6 +155,14 @@ const DEFAULT_CATEGORIES: readonly SettingsCategory[] = [
     descriptionKey: 'settings.categories.integrations.description',
     icon: 'i-lucide-plug',
     order: 70
+  },
+  {
+    id: 'privacy',
+    labelKey: 'settings.categories.privacy.label',
+    descriptionKey: 'settings.categories.privacy.description',
+    icon: 'i-lucide-shield-check',
+    order: 75,
+    permission: 'privacy.subject.read'
   },
   {
     id: 'modules',

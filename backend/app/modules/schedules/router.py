@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.dependencies import (
     ClinicContext,
+    declares_permissions,
     get_clinic_context,
     require_permission,
 )
@@ -290,6 +291,7 @@ async def delete_clinic_override(
     "/professionals/{professional_id}/hours",
     response_model=ApiResponse[ProfessionalHoursResponse],
 )
+@declares_permissions("schedules.professional.read")
 async def get_professional_hours(
     professional_id: UUID,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
@@ -306,6 +308,7 @@ async def get_professional_hours(
     "/professionals/{professional_id}/hours",
     response_model=ApiResponse[ProfessionalHoursResponse],
 )
+@declares_permissions("schedules.professional.write")
 async def update_professional_hours(
     professional_id: UUID,
     payload: ProfessionalHoursUpdate,
@@ -334,6 +337,7 @@ async def update_professional_hours(
     "/professionals/{professional_id}/overrides",
     response_model=ApiResponse[list[ProfessionalOverrideResponse]],
 )
+@declares_permissions("schedules.professional.read")
 async def list_professional_overrides(
     professional_id: UUID,
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
@@ -355,6 +359,7 @@ async def list_professional_overrides(
     response_model=ApiResponse[ProfessionalOverrideResponse],
     status_code=status.HTTP_201_CREATED,
 )
+@declares_permissions("schedules.professional.write")
 async def create_professional_override(
     professional_id: UUID,
     payload: ProfessionalOverrideCreate,
@@ -385,6 +390,7 @@ async def create_professional_override(
     "/professionals/{professional_id}/overrides/{override_id}",
     response_model=ApiResponse[ProfessionalOverrideResponse],
 )
+@declares_permissions("schedules.professional.write")
 async def update_professional_override(
     professional_id: UUID,
     override_id: UUID,
@@ -418,6 +424,7 @@ async def update_professional_override(
     "/professionals/{professional_id}/overrides/{override_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@declares_permissions("schedules.professional.write")
 async def delete_professional_override(
     professional_id: UUID,
     override_id: UUID,

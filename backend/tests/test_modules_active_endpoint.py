@@ -45,6 +45,7 @@ async def _register_and_assign(
         tax_id=f"B{uuid4().int % 100_000_000:08d}",
         address={"street": "Test St"},
         settings={},
+        account_tier="clinic",
     )
     db_session.add(clinic)
     await db_session.flush()

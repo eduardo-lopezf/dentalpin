@@ -23,6 +23,7 @@ async def _setup(db: AsyncSession) -> tuple[Clinic, User, Patient, Invoice, Veri
         legal_name="Clínica Demo S.L.",
         tax_id="A28000000",
         settings={"country": "ES"},
+        account_tier="clinic",
     )
     db.add(clinic)
     user = User(
@@ -128,7 +129,12 @@ async def test_regenerate_after_party_change_noop_when_no_record(
     db_session: AsyncSession,
 ) -> None:
     clinic = Clinic(
-        id=uuid4(), name="X", legal_name="X", tax_id="A28000000", settings={"country": "ES"}
+        id=uuid4(),
+        name="X",
+        legal_name="X",
+        tax_id="A28000000",
+        settings={"country": "ES"},
+        account_tier="clinic",
     )
     db_session.add(clinic)
     user = User(

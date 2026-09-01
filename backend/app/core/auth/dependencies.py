@@ -129,6 +129,12 @@ async def get_clinic_context(
     )
 
 
+# Attribute carrying the permissions a route is gated by, readable
+# without executing the route. ``tests/test_route_authorization_coverage.py``
+# walks every mounted route looking for it (ADR 0029, invariant 1).
+PERMISSION_MARKER = "__dentalpin_permissions__"
+
+
 def require_permission(permission: str) -> Callable:
     """FastAPI dependency factory that requires a specific permission.
 
@@ -150,4 +156,35 @@ def require_permission(permission: str) -> Callable:
                 detail=f"Permission denied: {permission}",
             )
 
+    # So the coverage test can read which permission gates the route
+    # instead of inferring it from the closure.
+    setattr(permission_checker, PERMISSION_MARKER, (permission,))
     return permission_checker
+
+
+def declares_permissions(*permissions: str) -> Callable:
+    """Mark a handler that checks its own permissions in the body.
+
+    The dependency in :func:`require_permission` is the normal way, and
+    it is preferred: it is declarative, it runs before the handler, and
+    it cannot be skipped by an early ``return``. A handful of routes
+    cannot use it, because *which* permission applies depends on the
+    object being addressed — ``schedules`` picks between managing any
+    professional's calendar and managing your own, and that is not known
+    until the path parameter is resolved.
+
+    Those routes are authorized; they are simply authorized somewhere a
+    dependency scan cannot see. This decorator makes the enforcement
+    **declared** rather than merely present, so the coverage test can
+    tell them apart from a route nobody remembered to gate. It changes
+    no behaviour — the handler still does the checking.
+
+    Do not reach for this to silence the coverage test. A route whose
+    permission is a constant belongs in ``require_permission``.
+    """
+
+    def decorate(handler: Callable) -> Callable:
+        setattr(handler, PERMISSION_MARKER, tuple(permissions))
+        return handler
+
+    return decorate

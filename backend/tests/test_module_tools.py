@@ -111,7 +111,9 @@ async def test_search_is_clinic_scoped(db_session, test_clinic) -> None:
     from app.core.auth.models import Clinic
 
     # Patient belongs to a *different* clinic.
-    other = Clinic(id=uuid4(), name="Other Clinic", tax_id="X99999999", settings={})
+    other = Clinic(
+        id=uuid4(), name="Other Clinic", tax_id="X99999999", settings={}, account_tier="clinic"
+    )
     db_session.add(other)
     await db_session.flush()
     await PatientService.create_patient(
@@ -464,7 +466,9 @@ async def test_reschedule_is_clinic_scoped(db_session, test_clinic) -> None:
     from app.core.auth.models import Clinic
 
     world = await _appointment_world(db_session, test_clinic.id)
-    other = Clinic(id=uuid4(), name="Other Clinic", tax_id="X88888888", settings={})
+    other = Clinic(
+        id=uuid4(), name="Other Clinic", tax_id="X88888888", settings={}, account_tier="clinic"
+    )
     db_session.add(other)
     await db_session.flush()
 
@@ -667,7 +671,9 @@ async def test_recall_write_denied_without_permission(db_session, test_clinic) -
 async def test_recall_tools_clinic_scoped(db_session, test_clinic) -> None:
     from app.core.auth.models import Clinic
 
-    other = Clinic(id=uuid4(), name="Other Clinic", tax_id="X77777777", settings={})
+    other = Clinic(
+        id=uuid4(), name="Other Clinic", tax_id="X77777777", settings={}, account_tier="clinic"
+    )
     db_session.add(other)
     await db_session.flush()
     ctx = await _ctx(db_session, test_clinic.id, ["recalls.read", "recalls.write"])
@@ -867,7 +873,9 @@ async def test_budget_tools_clinic_scoped(db_session, test_clinic) -> None:
     from app.core.auth.models import Clinic
 
     world = await _money_world(db_session, test_clinic.id)
-    other = Clinic(id=uuid4(), name="Other Clinic", tax_id="X66666666", settings={})
+    other = Clinic(
+        id=uuid4(), name="Other Clinic", tax_id="X66666666", settings={}, account_tier="clinic"
+    )
     db_session.add(other)
     await db_session.flush()
     other_ctx = await _ctx(db_session, other.id, ["budget.read", "billing.read"])

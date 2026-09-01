@@ -49,6 +49,7 @@ async def test_create_user_in_foreign_clinic_forbidden(
         tax_id="B99999999",
         address={"street": "Elsewhere", "city": "Bilbao"},
         settings={},
+        account_tier="clinic",
     )
     db_session.add(other)
     await db_session.commit()

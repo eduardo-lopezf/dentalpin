@@ -69,6 +69,18 @@
     "passwordHint": "Mínimo 8 caracteres, con letras y números",
     "clinicName": "Nombre de la clínica",
     "taxId": "RFC",
+    "accountTier": "Plan de la cuenta",
+    "accountTierPlaceholder": "Elige un plan",
+    "accountTierHint": "Determina el alcance del producto. No se puede dejar sin definir.",
+    "accountTierRequired": "Elige un plan para la cuenta",
+    "tiers": {
+      "basic": "Básico",
+      "medium": "Medio",
+      "advanced": "Avanzado",
+      "clinic": "Clínica",
+      "clinic_pro": "Clínica Pro",
+      "hospital": "Hospital"
+    },
     "next": "Siguiente",
     "back": "Atrás",
     "submit": "Crear y empezar",
@@ -1027,6 +1039,10 @@
       "account": {
         "label": "Cuenta",
         "description": "Tu perfil, contraseña e idioma."
+      },
+      "privacy": {
+        "label": "Privacidad",
+        "description": "Derechos de los pacientes sobre sus datos y registro de solicitudes atendidas."
       }
     },
     "search": {
@@ -2960,5 +2976,35 @@
       "plans": "Planes",
       "catalog": "Catálogo"
     }
+  },
+  "privacy": {
+    "subjectRequest": "Derechos del paciente",
+    "subjectRequestDescription": "Atiende una solicitud de acceso o de supresión sobre los datos de un paciente. Queda registrada quién la ejecutó y por qué.",
+    "patientId": "Paciente (ID)",
+    "patientIdPlaceholder": "Identificador del paciente",
+    "reason": "Motivo",
+    "reasonHint": "Mínimo 10 caracteres. En una supresión es lo único de la solicitud que sobrevive al borrado.",
+    "reasonPlaceholder": "Solicitud presentada por el paciente el…",
+    "export": "Exportar datos",
+    "erase": "Suprimir datos",
+    "exportReady": "Export generado",
+    "exportReadyHint": "El fichero se ha descargado. Estas son las secciones con datos; las marcadas como conservadas no se pueden suprimir.",
+    "retained": "Se conserva",
+    "erasureDone": "Supresión ejecutada",
+    "scrubbed": "Datos anonimizados",
+    "retainedSections": "Secciones conservadas",
+    "retainedHint": "Estas secciones no se han suprimido. El motivo es parte de la respuesta que la clínica le debe al paciente.",
+    "requestLog": "Solicitudes atendidas",
+    "requestLogDescription": "Registro de derechos ejercidos. Sobrevive a la supresión que documenta.",
+    "noRequests": "Todavía no se ha atendido ninguna solicitud.",
+    "refresh": "Actualizar",
+    "action": {
+      "export": "Acceso",
+      "erasure": "Supresión"
+    },
+    "confirmErasureTitle": "¿Suprimir los datos de este paciente?",
+    "confirmErasureBody": "La anonimización es irreversible y no tiene deshacer. Los datos identificativos se borran; el historial clínico y los documentos fiscales se conservan porque la ley lo exige.",
+    "confirmErasureRetention": "Al terminar verás qué secciones se anonimizaron y cuáles se conservaron, con su motivo.",
+    "confirmErasureAction": "Sí, suprimir"
   }
 }

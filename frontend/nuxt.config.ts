@@ -93,6 +93,36 @@ export default defineNuxtConfig({
   srcDir: 'app',
   buildDir: process.env.NUXT_BUILD_DIR ?? '.nuxt',
 
+  // Response headers that bound what a browser will do with a page
+  // (ADR 0029, invariant 4). The API sets its own set; this is the half
+  // that covers the rendered app.
+  //
+  // No `Content-Security-Policy` here yet, deliberately: Nuxt inlines
+  // the hydration payload, so a real policy needs per-request nonces
+  // and a pass over every inline style. Shipping a wrong one either
+  // breaks hydration or gets relaxed to `unsafe-inline`, which is a
+  // header that looks like a control and is not one. Tracked as
+  // follow-up in ADR 0029.
+  routeRules: {
+    '/**': {
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
+      }
+    },
+    // The patient-facing budget view carries its access token in the
+    // path (ADR 0006). `no-referrer` keeps that token out of the
+    // `Referer` of anything the page links to, and `noindex` is the
+    // header ADR 0006 assumed was already set and never was.
+    '/p/**': {
+      headers: {
+        'Referrer-Policy': 'no-referrer',
+        'X-Robots-Tag': 'noindex, nofollow'
+      }
+    }
+  },
+
   // Restart dev server when the backend rewrites `modules.json` on
   // module install/uninstall. `extends` is evaluated once at config
   // boot, so a layer added after Nuxt started is invisible until

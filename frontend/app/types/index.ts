@@ -77,6 +77,15 @@ export interface Clinic {
   updated_at: string
 }
 
+// First-run wizard. `available_account_tiers` is what this deployment's
+// custody mode may create — `basic` and `medium` are sold managed only —
+// so the wizard offers a choice the backend will accept.
+export interface SetupStatus {
+  initialized: boolean
+  custody_mode: string
+  available_account_tiers: string[]
+}
+
 // Auth types
 export interface LoginCredentials {
   email: string

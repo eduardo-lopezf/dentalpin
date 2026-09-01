@@ -177,6 +177,7 @@ async def seed_clinic(db: AsyncSession) -> Clinic:
         timezone=clinic_data["timezone"],
         currency=clinic_data["currency"],
         settings=clinic_data["settings"],
+        account_tier="clinic",
     )
     db.add(clinic)
     await db.flush()

@@ -3,11 +3,11 @@
 from typing import TYPE_CHECKING, Final
 from uuid import uuid4
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import CheckConstraint, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.privacy import DataClass, PiiKind, pii
+from app.core.privacy import AccountTier, DataClass, PiiKind, pii
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -15,20 +15,13 @@ if TYPE_CHECKING:
     from app.modules.patients.models import Patient
 
 
-# Reserved account/business tiers a Clinic row can operate under. Only
-# "clinic" has real functionality today (the current staffed-clinic
-# product); the others are reserved names for tiers agreed on but not
-# yet built (see docs/adr for the tenant-tier roadmap). Root is
-# deliberately not a value here — it is a platform-level actor, not a
+# Account/business tiers a Clinic row can operate under. The taxonomy and
+# the rule pairing it with a custody mode live in
+# ``app.core.privacy.tiers``; this is the string view of it, kept because
+# the column stores text and the CHECK constraint below is built from it.
+# Root is deliberately not a value — it is a platform-level actor, not a
 # kind of clinic, and does not belong to this taxonomy.
-ACCOUNT_TIERS: Final[list[str]] = [
-    "basic",
-    "medium",
-    "advanced",
-    "clinic",
-    "clinic_pro",
-    "hospital",
-]
+ACCOUNT_TIERS: Final[list[str]] = [tier.value for tier in AccountTier]
 
 
 class Clinic(Base, TimestampMixin):
@@ -58,14 +51,26 @@ class Clinic(Base, TimestampMixin):
     # ISO 4217 currency code. Single source of truth for any module
     # that renders money — budgets, invoices, catalog, reports.
     currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default="MXN")
-    # Account/business tier — see ACCOUNT_TIERS. No behavior is gated on
-    # this yet; it only reserves the taxonomy ahead of building the
-    # tiers beyond the current "clinic" product. Named ``account_tier``
-    # and not ``tenant_type`` because a tenant is the DB-isolation unit
-    # (ADR 0012) and a clinic lives *inside* one — the old name put two
-    # unrelated concepts under the same word (ADR 0023).
-    account_tier: Mapped[str] = mapped_column(String(20), nullable=False, server_default="clinic")
+    # Account/business tier — see ``AccountTier``. Mandatory at creation
+    # and deliberately without a server default: a clinic that came into
+    # existence without anyone deciding its tier would get one by
+    # accident, and the tier is half of a commercial pairing whose other
+    # half (custody) is decided by the deployment. Still gates no
+    # behaviour at runtime (ADR 0024 rule 3) — what a tier is *allowed*
+    # to be pairs with ``CustodyMode`` in ``app.core.privacy.tiers``, and
+    # that check runs at creation, not on every request. Named
+    # ``account_tier`` and not ``tenant_type`` because a tenant is the
+    # DB-isolation unit (ADR 0012) and a clinic lives *inside* one — the
+    # old name put two unrelated concepts under the same word (ADR 0023).
+    account_tier: Mapped[str] = mapped_column(String(20), nullable=False)
     settings: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+    __table_args__ = (
+        CheckConstraint(
+            "account_tier IN (" + ", ".join(f"'{tier}'" for tier in ACCOUNT_TIERS) + ")",
+            name="ck_clinics_account_tier",
+        ),
+    )
 
     # Relationships
     memberships: Mapped[list["ClinicMembership"]] = relationship(

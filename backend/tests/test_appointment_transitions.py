@@ -46,6 +46,7 @@ async def _mkworld(db: AsyncSession) -> dict[str, UUID]:
         tax_id="B00000001",
         address={"city": "Madrid"},
         settings={},
+        account_tier="clinic",
     )
     admin = User(
         id=uuid4(),

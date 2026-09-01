@@ -175,7 +175,7 @@ async def test_unknown_tipo_odg_lands_in_migrated_catchall(db_session) -> None:
 
 
 async def _bootstrap(db_session):
-    clinic = Clinic(id=uuid4(), name="C", tax_id=f"B{uuid4().hex[:8]}")
+    clinic = Clinic(id=uuid4(), name="C", tax_id=f"B{uuid4().hex[:8]}", account_tier="clinic")
     admin = User(
         id=uuid4(),
         email=f"admin-{uuid4().hex[:8]}@test.local",

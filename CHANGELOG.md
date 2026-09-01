@@ -13,6 +13,50 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Added
 
+- **Every route's authorization is now proven, not assumed** — invariant 1
+  of [ADR 0029](docs/adr/0029-security-invariants-with-chokepoints.md).
+  `tests/test_route_authorization_coverage.py` walks all 400 mounted
+  method+path pairs and fails on any that carries no permission, against
+  an allowlist split into "needs no credentials" and "needs a user but no
+  permission" — each entry with a reason, and each verified against the
+  route's own dependency tree so an entry in the wrong bucket fails too.
+  The first run found no unguarded route: all 18 exemptions are
+  legitimate. It did find six `schedules` routes that authorize in the
+  handler body rather than through a dependency, because the permission
+  depends on the path parameter; those now carry a
+  `@declares_permissions(...)` marker so the enforcement is declared
+  rather than merely present. No behaviour change.
+
+- **Security headers on every response, and secrets that must be real in
+  production** — the first two invariants of
+  [ADR 0029](docs/adr/0029-security-invariants-with-chokepoints.md).
+  The API previously sent no security headers at all; it now sends
+  `X-Content-Type-Options`, `X-Frame-Options`, a `default-src 'none'`
+  CSP, `Referrer-Policy`, `X-Robots-Tag`, and HSTS in production. The
+  rendered app sends the same minus the CSP, plus `no-referrer` and
+  `noindex` on `/p/**` — the patient-facing budget link carries its
+  token in the path, and
+  [ADR 0006](docs/adr/0006-budget-public-link-2-factor-auth.md) assumed
+  a `noindex` header that had never existed. Separately,
+  `ENVIRONMENT=production` now refuses to boot on a `SECRET_KEY` that is
+  short, still the `.env.example` placeholder, or not plausibly random,
+  and on a `BUDGET_PUBLIC_SECRET_KEY` that is unset or equal to it —
+  two names for one key is not two keys.
+
+- **Privacy settings screen** — a *Privacidad* category in settings with a
+  page that handles a patient's access or erasure request and shows the
+  log of the ones already handled
+  ([ADR 0026](docs/adr/0026-subject-rights-are-a-module-contract.md)).
+  Until now the three `/api/v1/privacy` endpoints could only be reached
+  with curl, which is not a procedure a clinic can follow. The screen is
+  shaped by the two things that make this unlike other settings: the
+  reason is required before either action runs (on an erasure it is the
+  only record of the request that survives it), and the erasure sits
+  behind a confirmation that restates what will happen, then reports the
+  sections that legally refused — that refusal is part of the answer the
+  clinic owes the patient, not an error. The export downloads as JSON,
+  because a portability response is meant to leave the browser.
+
 - **`PrivacyPolicy` — custody and regime declared per tenant**
   ([ADR 0023](docs/adr/0023-privacy-policy-and-custody-modes.md)). Three
   custody modes: `self` (the customer runs the deployment, so no operator
@@ -38,6 +82,101 @@ frontend as a Nuxt layer under its own Python package.
   remaining configuration is handled by the existing onboarding checklist.
 
 ### Changed
+
+- **`LICENSE` gains a real Additional Use Grant.** The file carried a
+  non-standard "Use Limitation" field and no Additional Use Grant at all,
+  so its Terms granted only non-production use while ADR 0004 and the
+  README promised free self-hosting — the licence and the documentation
+  described different products. The grant now permits production use on
+  exactly two routes: a trial authorization the Licensor issues (which
+  ties the licence to the token mechanism the packaging brief plans,
+  rather than freezing a trial length into licence text) or a separate
+  commercial licence. "Production use" is defined as running a clinic on
+  real records, self-hosted or hosted for you, so the line does not turn
+  on who owns the server. The competing-managed-service exclusion moves
+  inside the grant instead of floating as a stray field, and the Change
+  Date now reads per version, which is what ADR 0004 always intended.
+  **A draft, not legal advice**: it has not been reviewed by counsel, and
+  it inherits one question drafting cannot fix — the Licensor is named
+  "DentalPin Contributors", which is not an entity that can grant a
+  commercial licence or sign a key.
+
+- **`account_tier` is mandatory at creation, and paired with a custody
+  mode.** `clinics.account_tier` carried `server_default='clinic'`, so a
+  clinic could come into existence without anyone deciding its tier and
+  be silently sold as the current product. The default is gone
+  (migration `0011`), a `CHECK` restricts the column to the taxonomy, and
+  `POST /api/v1/auth/setup` now requires the tier in its payload —
+  the first-run wizard grew a selector for it.
+
+  The tier is one half of a commercial pairing whose other half is the
+  deployment's custody mode, and **the entry tiers are sold hosted and
+  only hosted**: `basic` and `medium` are always `managed`, every other
+  tier may be `self`, `managed` or `byok`
+  (`backend/app/core/privacy/tiers.py`). The pairing is deliberately
+  *not* a database constraint — only one half lives in this database, and
+  [ADR 0024](docs/adr/0024-control-plane-holds-what-constrains-the-customer.md)
+  rule 2 keeps `custody_mode` out of the data plane precisely so a claim
+  about who can read a database is not stored where its own subject can
+  rewrite it. It is enforced where both halves are known at once: at
+  clinic creation (`422` with the modes that tier is sold under) and at
+  boot, where a lifespan audit **warns** if the custody mode was changed
+  under clinics whose tier it does not serve. Warns rather than refuses,
+  for the reason ADR 0028 rule 3 gives: taking a working clinic offline
+  over a commercial rule is worse than the rule being briefly untrue.
+  `GET /api/v1/auth/setup/status` now also reports the custody mode and
+  the tiers it may create, so the wizard offers a choice that will be
+  accepted. This deployment declares `clinic` + `managed` explicitly
+  rather than inheriting either.
+
+- **Self-hosting becomes the premium tier, activated by a signed licence
+  key** ([ADR 0028](docs/adr/0028-self-hosting-is-the-premium-tier.md),
+  with amendments to [ADR 0004](docs/adr/0004-bsl-license.md) and
+  [ADR 0023](docs/adr/0023-privacy-policy-and-custody-modes.md)).
+  Documentation only — nothing is implemented. The previous implicit
+  model had `self` free and `managed` paid, which prices custody
+  backwards: `self` is the one mode whose guarantee holds without a
+  control behind it (ADR 0023's status table), and it is the mode where
+  we hold none of the clinic's data, so charging for `managed` instead
+  meant earning more the more patient records we custody. The key is
+  verified **offline** — a phone-home would put an outbound channel into
+  the one mode sold on the absence of any channel — and it gates only
+  what we supply (updates, module installs, support, regulatory
+  currency). It never gates clinical reads, backups, or the
+  subject-rights endpoints from
+  [ADR 0026](docs/adr/0026-subject-rights-are-a-module-contract.md):
+  suspending those on non-payment would make the clinic breach LFPDPPP
+  on our schedule. A deployment with no key runs in a labelled
+  evaluation state, which is the non-production use the BSL already
+  grants. Two things this exposes: `LICENSE` carries no *Additional Use
+  Grant*, so its Terms grant only non-production use while ADR 0004 and
+  the README were promising free self-hosting — the file needs redrafting
+  by counsel, and existing production self-hosters should be
+  grandfathered by name rather than argued with. The packaging side —
+  the tier × delivery matrix, what may and may not be gated, and the
+  four licence states — is drafted in
+  [`docs/features/licensing-and-packaging.md`](docs/features/licensing-and-packaging.md),
+  with every price, unit and duration explicitly left open. That brief
+  also records two mechanisms as **pending**: a trial period per
+  `account_tier`, and temporary access to a higher tier's features. Both
+  activate through a token, and the token is deliberately *not* the
+  licence key — issued often rather than once, redeemed by a user rather
+  than read at boot, expiring on its own — so it is handled separately in
+  the security model. Two constraints on it are not pending: expiry never
+  takes away data created while the feature was available (reads,
+  exports and subject rights over it must survive), and a trial is never
+  the reason a clinic has the compliance floor. That floor now names an
+  **export guarantee**: a clinic can always take its own data out as CSV,
+  under any tier, in any licence state, with every trial and token
+  expired. Recorded as a promise with its gap stated — the only export
+  that ships today is the per-patient subject-rights one and it returns
+  JSON, while the only CSV in the codebase belongs to the optional
+  `accounting_export` module, which is precisely the kind of tier-gated
+  placement the guarantee forbids. The gap is tracked in
+  [`docs/technical/todos.md`](docs/technical/todos.md), together with the
+  tension it has to resolve: `modules_enabled` gates what runs, so a tier
+  that excludes a module would otherwise leave that module's data
+  unexportable.
 
 - **Two-plane data model recorded**
   ([ADR 0024](docs/adr/0024-control-plane-holds-what-constrains-the-customer.md)):

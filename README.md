@@ -245,9 +245,13 @@ See [docs/architecture.md](docs/architecture.md) for details.
 
 Business Source License 1.1 (BSL 1.1)
 
-**Use Limitation:** You may not offer DentalPin as a commercial SaaS for dental clinic management.
+**Free:** evaluation and any non-production use — read it, run it, modify it, redistribute it.
 
-**Change Date:** 4 years from release
+**Licensed:** production use — running a clinic on real patient records — whether you host it yourself or we host it for you. It requires either a trial authorization we issue or a commercial licence (see the Additional Use Grant in [LICENSE](LICENSE)). Self-hosting is the premium tier and activates with a signed licence key ([ADR 0028](docs/adr/0028-self-hosting-is-the-premium-tier.md)). The key never gates your clinical data: reads, exports, backups and the patient subject-rights endpoints keep working with an expired licence or none at all.
+
+**Not permitted at any tier:** offering DentalPin, or a service substantially derived from it, as a hosted dental clinic management service to third parties.
+
+**Change Date:** 4 years from each version's release
 
 **Change License:** Apache 2.0
 

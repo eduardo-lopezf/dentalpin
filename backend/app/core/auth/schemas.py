@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.core.privacy import AccountTier
+
 
 def _validate_iana_timezone(value: str | None) -> str | None:
     """Reject anything that isn't a valid IANA timezone id."""
@@ -203,9 +205,17 @@ class ProfessionalResponse(BaseModel):
 
 
 class SetupStatusResponse(BaseModel):
-    """Whether the system has already been initialized (has any user)."""
+    """Whether the system has already been initialized (has any user).
+
+    Carries the tiers this deployment may create so the first-run screen
+    offers only valid choices instead of letting one be picked and then
+    refused: which tiers are on offer depends on the deployment's custody
+    mode, which the browser has no other way to know.
+    """
 
     initialized: bool
+    custody_mode: str
+    available_account_tiers: list[str]
 
 
 class SystemSetup(BaseModel):
@@ -217,6 +227,11 @@ class SystemSetup(BaseModel):
     admin_password: str = Field(min_length=8)
     clinic_name: str = Field(min_length=1, max_length=200)
     clinic_tax_id: str = Field(min_length=1, max_length=20)
+    # Mandatory, without a default. The tier is one half of a commercial
+    # pairing — the other half is the deployment's custody mode — and a
+    # default here would decide it for whoever is standing up the tenant.
+    # The route validates the pair (``validate_tier_custody``).
+    account_tier: AccountTier
     timezone: str | None = Field(default=None, max_length=64)
     currency: str | None = Field(default=None, pattern="^[A-Z]{3}$")
 

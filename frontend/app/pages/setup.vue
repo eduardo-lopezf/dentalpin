@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ApiResponse, SetupStatus } from '~/types'
+
 definePageMeta({
   layout: 'guest'
 })
@@ -21,10 +23,34 @@ const form = reactive({
   password: '',
   passwordConfirm: '',
   clinicName: '',
-  taxId: ''
+  taxId: '',
+  accountTier: ''
 })
 
 const errors = reactive<Record<string, string>>({})
+
+// The tier is mandatory and has no default: which tiers exist depends on
+// this deployment's custody mode (`basic` and `medium` are sold managed
+// only), and the browser has no other way to know which. Offer what the
+// backend will accept instead of letting a choice be made and refused.
+const availableTiers = ref<string[]>([])
+
+const tierOptions = computed(() =>
+  availableTiers.value.map(value => ({ value, label: t(`setup.tiers.${value}`) }))
+)
+
+onMounted(async () => {
+  try {
+    const status = await api.get<ApiResponse<SetupStatus>>(
+      '/api/v1/auth/setup/status',
+      { skipAuth: true }
+    )
+    availableTiers.value = status.data.available_account_tiers
+  } catch {
+    // A failed probe must not block the wizard; the POST still validates.
+    availableTiers.value = []
+  }
+})
 
 function validateAccount(): boolean {
   errors.firstName = form.firstName.trim() ? '' : t('setup.firstNameRequired')
@@ -51,7 +77,8 @@ function validateAccount(): boolean {
 function validateClinic(): boolean {
   errors.clinicName = form.clinicName.trim() ? '' : t('setup.clinicNameRequired')
   errors.taxId = form.taxId.trim() ? '' : t('setup.taxIdRequired')
-  return !errors.clinicName && !errors.taxId
+  errors.accountTier = form.accountTier ? '' : t('setup.accountTierRequired')
+  return !errors.clinicName && !errors.taxId && !errors.accountTier
 }
 
 function goNext() {
@@ -76,7 +103,8 @@ async function onSubmit() {
       admin_email: form.email.trim(),
       admin_password: form.password,
       clinic_name: form.clinicName.trim(),
-      clinic_tax_id: form.taxId.trim()
+      clinic_tax_id: form.taxId.trim(),
+      account_tier: form.accountTier
     }, { skipAuth: true })
 
     // ponytail: re-login con las credenciales recién creadas en vez de
@@ -261,6 +289,23 @@ async function onSubmit() {
             v-model="form.taxId"
             class="w-full"
             icon="i-lucide-hash"
+            :disabled="isLoading"
+          />
+        </UFormField>
+
+        <UFormField
+          :label="t('setup.accountTier')"
+          name="accountTier"
+          :error="errors.accountTier || undefined"
+          :help="t('setup.accountTierHint')"
+        >
+          <USelect
+            v-model="form.accountTier"
+            :items="tierOptions"
+            value-key="value"
+            class="w-full"
+            icon="i-lucide-layers"
+            :placeholder="t('setup.accountTierPlaceholder')"
             :disabled="isLoading"
           />
         </UFormField>

@@ -19,6 +19,9 @@ _SETUP_PAYLOAD = {
     "admin_password": "SecurePass123",
     "clinic_name": "My Clinic",
     "clinic_tax_id": "B12345678",
+    # Mandatory, and there is no default to fall back on. The pairing with
+    # the deployment's custody mode is covered in test_account_tier_custody.
+    "account_tier": "clinic",
 }
 
 

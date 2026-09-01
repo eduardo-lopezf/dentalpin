@@ -4,11 +4,35 @@ Licensor: DentalPin Contributors
 Licensed Work: DentalPin
 The Licensed Work is (c) 2026 DentalPin Contributors
 
-Use Limitation: You may not use the Licensed Work for providing a commercial
-Software-as-a-Service (SaaS) offering for dental clinic management where the
-primary value is substantially derived from the Licensed Work.
+Additional Use Grant: You may make production use of the Licensed Work only:
 
-Change Date: Four years from the date the Licensed Work is published.
+  (a) during an evaluation or trial period authorized by the Licensor,
+      including through a license key, token, or other authorization the
+      Licensor issues for that purpose, and only for as long as that
+      authorization remains in effect; or
+
+  (b) under a separate commercial license granted by the Licensor.
+
+  "Production use" means using the Licensed Work in the ordinary course of
+  providing dental or medical care, or of operating a clinic — including
+  creating, storing, or processing the records of real patients,
+  appointments, treatments, invoices, or payments. Whether you host the
+  Licensed Work yourself or someone hosts it for you makes no difference to
+  this definition.
+
+  Use of the Licensed Work for evaluation, development, testing, continuous
+  integration, security research, demonstration, training, or contribution
+  to the Licensed Work is not production use, and the Terms below already
+  permit it without further authorization.
+
+  Neither this Additional Use Grant nor any commercial license granted by
+  the Licensor permits you to offer the Licensed Work, or a service whose
+  primary value is substantially derived from it, as a hosted or managed
+  dental clinic management service to third parties, unless the Licensor
+  grants that right expressly and in writing.
+
+Change Date: Four years from the date each version of the Licensed Work is
+first publicly distributed under this License.
 
 Change License: Apache License, Version 2.0
 

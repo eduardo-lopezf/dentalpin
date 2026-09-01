@@ -27,6 +27,7 @@ async def test_override_from_other_clinic_not_listed(
         tax_id="B99999999",
         address={},
         settings={},
+        account_tier="clinic",
     )
     db_session.add(other)
     await db_session.flush()

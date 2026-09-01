@@ -36,6 +36,7 @@ async def _seed_clinic(db: AsyncSession, *, tax_id: str = "B12345678") -> Clinic
         tax_id=tax_id,
         address={"street": "x", "city": "Madrid"},
         settings={"country": "ES"},
+        account_tier="clinic",
     )
     db.add(clinic)
     await db.flush()

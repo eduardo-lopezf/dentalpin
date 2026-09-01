@@ -1,6 +1,6 @@
 # 0023 — Custody is a tenant property, declared in three modes
 
-- **Status:** accepted (amended 2026-08-28, see *Amendment 1*)
+- **Status:** accepted (amended 2026-08-28 and 2026-08-31, see *Amendment 1* and *Amendment 2*)
 - **Date:** 2026-08-28
 - **Deciders:** Eduardo
 - **Tags:** security, privacy, tenancy, compliance
@@ -60,7 +60,9 @@ Four clarifications, each of which is the part that matters:
    `SELF` policy carrying break-glass terms is rejected at construction —
    describing bounds on an access route that does not exist would be a
    claim we cannot honour. This is also the mode's commercial point: we
-   supply software, so there is no processing agreement to sign.
+   supply software rather than hosting, so there is no processing
+   agreement to sign — and, since *Amendment 2*, it is what the clinic
+   is charged for rather than what it falls back to.
 
 3. **Operator access, where it exists, is break-glass and never
    standing.** `BreakGlassPolicy` carries the terms — the session
@@ -175,7 +177,7 @@ This is the part to read before showing any of this to a clinic.
 
 | Mode | Status |
 |---|---|
-| `self` | **Real.** The only mode whose guarantee holds, because it is an absence rather than a control: there is no operator, so there is nothing to bypass. Commercially it is the *most expensive* option for the clinic — they carry infrastructure, backups and upgrades — and how it is offered is pending the business model. |
+| `self` | **Real.** The only mode whose guarantee holds, because it is an absence rather than a control: there is no operator, so there is nothing to bypass. Commercially it is the *most expensive* option for the clinic — they carry infrastructure, backups and upgrades, and since [ADR 0028](0028-self-hosting-is-the-premium-tier.md) they also carry a paid licence. See *Amendment 2*. |
 | `managed` | **Declared, not enforced.** The default. It names break-glass operator access — bounded, justified, expiring, disclosed — and **no such mechanism exists**; operator access today is standing. Deferred deliberately, and not only for want of time: see below. |
 | `byok` | **Out of scope for this stage.** It needs envelope encryption and per-field key metadata, neither of which exists (`SECRET_KEY` derives one Fernet key and encrypted fields do not record which key encrypted them). The mode is kept as vocabulary so the model is complete and so building it later is wiring rather than redesign. |
 
@@ -200,6 +202,30 @@ Tracked in
 Because two of the three modes claim more than the code delivers, the
 resolver logs a warning at every boot naming the specific gap. A gap
 printed on every boot is better than one discovered during an audit.
+
+## Amendment 2 — `self` is the premium tier (2026-08-31)
+
+The ADR left the commercial shape of `self` open, and everything written
+around it assumed the obvious arrangement: `self` free, `managed` paid.
+
+That is backwards, and the status table above is the argument. `self` is
+the only mode whose guarantee holds today; `managed` and `byok` claim
+more than the code delivers. Leaving the one real guarantee as the
+unpaid, unsupported option — while charging for the mode in which we
+hold a clinic's patient records and take on the *encargado* role —
+prices custody exactly the wrong way round and points our incentives at
+holding more data, not less.
+
+**`self` is now the premium tier: priced, and activated by a signed
+licence key verified offline.** The full rule, including what the key
+must never gate (clinical reads and the subject-rights endpoints), is
+[ADR 0028](0028-self-hosting-is-the-premium-tier.md).
+
+Nothing about the policy model changes: custody is still a property of
+the tenant, `TENANT_CUSTODY_MODE` still declares it, and the dangerous
+direction is still an operated deployment reporting `self`. A licence
+key is a statement about a contract, not an access route, and it does
+not become one by being checked at boot.
 
 ## Alternatives considered
 

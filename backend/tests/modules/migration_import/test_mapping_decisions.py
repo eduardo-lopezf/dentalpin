@@ -278,7 +278,7 @@ async def test_bulk_accept_picks_high_confidence_only(db_session) -> None:
 
 
 async def _bootstrap(db_session):
-    clinic = Clinic(id=uuid4(), name="C", tax_id=f"B{uuid4().hex[:8]}")
+    clinic = Clinic(id=uuid4(), name="C", tax_id=f"B{uuid4().hex[:8]}", account_tier="clinic")
     admin = User(
         id=uuid4(),
         email=f"admin-{uuid4().hex[:8]}@test.local",

@@ -36,9 +36,23 @@ from .subject import (
     patient_keyed_export,
     row_to_dict,
 )
+from .tiers import (
+    AccountTier,
+    TierCustodyError,
+    allowed_custody_modes,
+    incompatible_tiers,
+    tiers_available_under,
+    validate_tier_custody,
+)
 
 __all__ = [
     "ANONYMIZED",
+    "AccountTier",
+    "TierCustodyError",
+    "allowed_custody_modes",
+    "incompatible_tiers",
+    "tiers_available_under",
+    "validate_tier_custody",
     "SELF_HOSTED_POLICY",
     "AnonymizeFn",
     "BreakGlassPolicy",

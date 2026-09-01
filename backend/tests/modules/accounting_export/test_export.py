@@ -188,7 +188,7 @@ async def test_clinic_isolation(
     user_id = await _me(client, auth_headers)
     await _invoice(db_session, test_clinic.id, test_patient.id, user_id, number="FAC-A")
 
-    other = Clinic(id=uuid4(), name="Other", tax_id="B99999999")
+    other = Clinic(id=uuid4(), name="Other", tax_id="B99999999", account_tier="clinic")
     db_session.add(other)
     await db_session.flush()
     other_patient = Patient(id=uuid4(), clinic_id=other.id, first_name="O", last_name="P")
