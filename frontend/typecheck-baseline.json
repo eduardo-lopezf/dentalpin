@@ -1,5 +1,5 @@
 {
-  "total": 187,
+  "total": 186,
   "errors": {
     "app/components/shared/PatientSearch.vue|TS2345|Argument of type '{ id: string; clinic_id: string; first_name: string; last_name: string; phone?: string | undefined; email?: string | undefined; date_of_birth?: string | undefined; notes?: string | undefined; ... 8 more ...; updated_at: string; } | undefined' is not assignable to parameter of type 'Patient'.": 1,
     "app/components/shared/PlannedTreatmentSelector.vue|TS18048|'tooth' is possibly 'undefined'.": 3,
@@ -108,7 +108,6 @@
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlanItemDoctorChip.vue|TS2345|Argument of type '{ readonly id: string; readonly first_name: string; readonly last_name: string; readonly full_name: string; readonly professional_type: \"dentist\" | \"hygienist\" | \"collaborator\"; ... 7 more ...; readonly has_system_access: boolean; }' is not assignable to parameter of type 'Professional'.": 4,
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlansListView.vue|TS2367|This comparison appears to be unintentional because the types 'TreatmentPlanStatus' and '\"closed\"' have no overlap.": 1,
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlansListView.vue|TS2367|This comparison appears to be unintentional because the types 'TreatmentPlanStatus' and '\"pending\"' have no overlap.": 1,
-    "backend/app/modules/treatment_plan/frontend/components/clinical/PlansMode.vue|TS2339|Property 'fetchPatientPlans' does not exist on type '{ view: \"list\" | \"detail\"; currentPage: number; plans: { id: string; clinic_id: string; patient_id: string; plan_number: string; title?: string | undefined; status: TreatmentPlanStatus; ... 9 more ...; budget?: { ...; } | undefined; }[]; ... 389 more ...; $localeLocation: LocaleLocationFunction; }'.": 1,
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue|TS2339|Property 'notes' does not exist on type 'TreatmentBrief'.": 2,
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue|TS2367|This comparison appears to be unintentional because the types 'ClinicalType | undefined' and '\"migrated\"' have no overlap.": 1,
     "backend/app/modules/treatment_plan/frontend/components/summary/PlanCard.vue|TS2367|This comparison appears to be unintentional because the types 'TreatmentPlanStatus' and '\"pending\"' have no overlap.": 1,
