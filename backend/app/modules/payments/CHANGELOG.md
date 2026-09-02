@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- fix(security): `GET /payments/patients/{patient_id}/ledger` and
+  `.../pending-charges` accepted a `patient_id` from any clinic.
+  The aggregation itself was correctly scoped by `clinic_id` — the
+  response was all zeros, so nothing leaked — but the patient's ownership
+  was never checked, so the route answered about a patient it should not
+  have been able to name. `pending-charges` was not a sweep finding — it
+  returns a list, so a foreign id came back as `200 []` and disclosed
+  nothing — but it is the same pattern next door, and the frontend
+  already degrades a failed fetch to an empty list, so the 404 is
+  invisible to the UI. Both now 404, via the `_ensure_patient` helper that
+  mirrors odontogram / periodontogram, minus their `status != "archived"`
+  clause: money outlives the chart, so an archived patient's ledger must
+  stay readable. Found by `tests/test_cross_tenant_isolation.py`
+  ([ADR 0029](../../../../docs/adr/0029-security-invariants-with-chokepoints.md)).
+
+
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

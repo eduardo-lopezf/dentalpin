@@ -12,6 +12,23 @@ import hashlib
 import sqlite3
 
 
+def is_safe_identifier(name: str) -> bool:
+    """True when ``name`` is safe to interpolate as a SQL identifier.
+
+    Table names cannot be bound as parameters, so the entity tables in a
+    DPMF have to be interpolated. Everything reachable this way comes out
+    of the uploaded file's own ``_entities`` table, which is written by
+    whatever exported it — not by us — so "the writer validates it" is a
+    statement about a party we do not control.
+
+    Lives here rather than in ``reader``: both modules need it and
+    ``reader`` already imports this one.
+    """
+    if not name:
+        return False
+    return all(ch.islower() or ch.isdigit() or ch == "_" for ch in name) and name[0].isalpha()
+
+
 def _discover_entity_tables(conn: sqlite3.Connection) -> list[str]:
     """Return entity table names in the DPMF, sorted.
 
@@ -36,9 +53,12 @@ def compute_logical_hash(conn: sqlite3.Connection) -> str:
         hasher.update(f"_entities|{row[0]}|{row[1]}|{row[2]}\n".encode())
 
     for entity_type in _discover_entity_tables(conn):
-        # The table name is interpolated; entity_type comes from a
-        # PRIMARY KEY column populated by the writer, which itself
-        # validates the identifier shape.
+        # The table name is interpolated because an identifier cannot be
+        # bound. ``reader`` already validated this same value before its
+        # own interpolation; doing it in one place and trusting the file
+        # in the other was an asymmetry, not a decision.
+        if not is_safe_identifier(entity_type):
+            raise ValueError(f"unsafe entity_type identifier: {entity_type!r}")
         for row in conn.execute(
             f"SELECT canonical_uuid, source_id, source_system, payload, raw_source_data "
             f'FROM "{entity_type}" ORDER BY canonical_uuid'

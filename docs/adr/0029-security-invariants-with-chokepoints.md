@@ -96,9 +96,37 @@ cross-tenant leak, and nothing catches it.
 
 Two steps, in order.
 
-First, a per-module cross-tenant test: seed two clinics, authenticate as clinic A,
-and assert that every read endpoint 404s on clinic B's ids. Cheap, and it catches
-the existing holes.
+First, a cross-tenant sweep, which **has now landed**. It is driven by the route
+table rather than by a hand-kept list: 35 mounted GET endpoints across 13 modules take
+a `{patient_id}`, so one foreign patient exercises nearly every module holding patient
+data. The caller is an admin — the role with `*` — so nothing it finds can be a
+permission failure in disguise: if a response comes back, authorization allowed it and
+only scoping could have stopped it.
+
+**No disclosure was found.** Three routes did answer about a patient in another
+tenant, and the distinction between them matters:
+
+- `billing/patients/{id}/summary` and `payments/patients/{id}/ledger` aggregated under
+  a correct `clinic_id` filter, so they returned zeros and leaked nothing. What they
+  never did is check that the patient was the caller's, so they answered a question
+  they should not have understood. Each now calls an `_ensure_patient` helper mirroring
+  the one odontogram and periodontogram already carry — minus its `status != "archived"`
+  clause, because money outlives the chart and an archived patient's ledger still has
+  to be readable.
+- `notifications/preferences/patient/{id}` was a different animal: it called
+  `get_or_create_patient_preferences`, which **writes** a `notification_preferences`
+  row carrying the caller's `clinic_id` and the unvalidated `patient_id` — a column
+  whose FK points at `patients.id`. A GET therefore created a row in clinic A
+  referencing clinic B's patient: not a disclosure, but a cross-tenant write performed
+  by a read. Its guard went into the service rather than either handler, because all
+  three call sites — the GET, the PUT, and the inbound-message gateway — reach the
+  write through it.
+
+**All three were fixed rather than recorded, so the `KNOWN_UNSCOPED` baseline is
+empty.** It stays in the file because `strict=True` makes it honest in both
+directions, in the spirit of [ADR 0021](0021-module-layers-are-typechecked.md): an
+entry added there to quiet a failure becomes a failure of its own the day the route is
+fixed. A baseline nobody can park anything in quietly is worth more than no baseline.
 
 Second, and this is the one that actually changes the shape of the problem:
 **PostgreSQL row-level security**, with the request session issuing
@@ -154,9 +182,23 @@ interpolate `tab_where`, `extra_where` and `order_by` into f-strings — safe be
 those three come from a closed `if/elif` of literals and every user value travels as
 `:params`, and fragile the moment someone wires a `?sort=` parameter to it.
 
-So the control is not "write careful SQL". It is a grep-test over `sa_text(f"...")`
-with a reasoned allowlist — the `test_event_transaction_boundary.py` pattern applied
-to a second rule.
+So the control is not "write careful SQL". It is a test with a reasoned allowlist —
+the `test_event_transaction_boundary.py` pattern applied to a second rule — and it has
+now landed. An AST walk rather than a grep, because what matters is not that `text()`
+appears but that its argument was assembled from parts: `sa.text("… WHERE id = :id")`
+must not be flagged and `sa.text(f"… {table}")` must be, even when `table` is a literal
+three lines up. Entries are keyed `path.py::function`, so an unrelated edit above does
+not invalidate them and a *new* interpolation elsewhere in an already-listed file is
+still caught.
+
+Nine call sites exist. Eight are safe and listed with the reason. The ninth was not:
+`migration_import`'s `compute_logical_hash` interpolated a DPMF entity table name into
+SQL trusting a comment that said the writer validates it — except that for an uploaded
+file the writer is the clinic's old export tool, not us, and `reader.entity_iter`
+already validated the identical value from the identical source before its own
+interpolation. One validated, one trusted: an asymmetry, not a decision. Fixed rather
+than listed. The blast radius was narrow — SQLite, on a throwaway connection over the
+uploaded file — which is why it survived a read-through and not a scan.
 
 XSS is the same story from the other side. Vue escapes by default; the five `v-html`
 sites are accounted for (`CopilotMarkdown.vue` sanitises with DOMPurify, the
@@ -239,8 +281,8 @@ decision, and none of them is an invariant of the kind this ADR is about.
 
 ### Bad / accepted trade-offs
 
-- **Half of this is implemented.** Invariants 1 and 6 have landed, and invariant 4's
-  headers with them (`app/config.py`, the `security_headers_middleware` in
+- **Half of this is implemented.** Invariants 1 and 6 have landed, invariant 2's test
+  half with them, and invariant 4's headers (`app/config.py`, the `security_headers_middleware` in
   `app/main.py`, `frontend/nuxt.config.ts` `routeRules`,
   `app/core/auth/dependencies.py`). Still an intention: invariant 4's dynamic-SQL
   test and the frontend CSP — which needs per-request nonces before it can be
@@ -255,7 +297,12 @@ decision, and none of them is an invariant of the kind this ADR is about.
   reason that is simply wrong.
 - Invariant 2's RLS half is genuinely expensive and touches every module's migration
   branch. It may stall at the test half for a long time, which leaves the structural
-  guarantee unmade.
+  guarantee unmade — and the test half only covers the routes it enumerates. The
+  `{patient_id}` and `{professional_id}` sweeps are in; `{budget_id}`,
+  `{invoice_id}`, `{appointment_id}` and a dozen more are not, because each needs its
+  own seed chain. Nothing at all covers the service layer, where
+  `patients_clinical.get_allergy(db, allergy_id)` still takes no `clinic_id` and is
+  kept honest only by its router.
 - Invariant 3 changes the login contract, so it costs a coordinated frontend and
   backend release and logs every user out once.
 - Invariant 5 writes a row per clinical read. On a busy day that is the highest-volume
@@ -294,7 +341,10 @@ By yield per unit of work, not by severity:
 2. ~~Production secret validators~~ — **done** (invariant 6).
 3. ~~Route authorization coverage test~~ — **done** (invariant 1); the finding is
    written up above.
-4. Cross-tenant isolation tests (invariant 2, first half).
+4. ~~Cross-tenant isolation tests~~ — **done** (invariant 2, first half); findings
+   above. Cheaper than feared: the sweep adds ~3 minutes to the suite, so it needs no
+   marker of its own. The dynamic-SQL test landed with it, completing invariant 4
+   except for the frontend CSP.
 5. Refresh rotation, reuse detection, server-side logout, Redis-backed rate limiting
    (invariant 3).
 6. Clinical access audit (invariant 5).
@@ -304,8 +354,10 @@ By yield per unit of work, not by severity:
 
 - `backend/tests/test_route_authorization_coverage.py` — every mounted path carries a
   permission dependency, or an allowlist entry with a reason.
-- `backend/tests/test_cross_tenant_isolation.py` — clinic A's token gets 404, never
-  200, on clinic B's ids.
+- `backend/tests/test_cross_tenant_isolation.py` — clinic A's admin gets nothing of
+  clinic B's on a foreign id, across every `{patient_id}` and `{professional_id}`
+  route; `KNOWN_UNSCOPED` is the strict-xfail baseline, and a positive control proves
+  the sweep would notice a leak rather than passing on a broken fixture.
 - `backend/tests/test_refresh_rotation.py` — a reused refresh token kills the session
   family; logout invalidates server-side.
 - `backend/tests/test_no_dynamic_sql.py` — fails on a new `sa_text(f"...")` outside the

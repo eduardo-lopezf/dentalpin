@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- fix(security): `compute_logical_hash` interpolated the DPMF entity table
+  name into SQL without validating it, relying on a comment saying the
+  writer validates the identifier shape — but for an uploaded file the
+  writer is somebody else's exporter, so that was a statement about a
+  party we do not control. `reader.entity_iter` already validated the
+  same value from the same source, which made this an asymmetry rather
+  than a decision. `_is_safe_identifier` moves to `integrity.py` as the
+  public `is_safe_identifier` (reader already imports that module, so the
+  other direction would have been a cycle) and both call sites use it.
+  Narrow blast radius — SQLite, on a throwaway connection over the
+  uploaded file itself — but the fix is one call. Found by
+  `tests/test_no_dynamic_sql.py`
+  ([ADR 0029](../../../../docs/adr/0029-security-invariants-with-chokepoints.md)).
+
+
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

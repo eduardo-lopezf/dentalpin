@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- fix(security): `GET`/`PUT /preferences/patient/{patient_id}` accepted a
+  patient from any clinic. Both funnel into
+  `get_or_create_patient_preferences`, which created a
+  `notification_preferences` row with the caller's `clinic_id` and the
+  unvalidated `patient_id` — a column whose FK points at `patients.id` —
+  so a **GET** planted a row in one clinic referencing another clinic's
+  patient. No data was disclosed (the response is a fresh default
+  record), but any authenticated user with `notifications.preferences.read`
+  could seed cross-tenant rows at will. The ownership check now sits in
+  the service, before the write, because all three call sites reach the
+  write through it; both endpoints map the refusal to 404. Found by
+  `tests/test_cross_tenant_isolation.py`
+  ([ADR 0029](../../../../docs/adr/0029-security-invariants-with-chokepoints.md)).
+
+
 - feat(privacy): declara su egress en el manifest
   ([ADR 0027](../../../../docs/adr/0027-egress-is-declared-in-the-manifest.md)):
   `smtp` — el servidor que configure cada clínica. Era el destino más

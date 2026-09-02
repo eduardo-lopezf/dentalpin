@@ -56,6 +56,32 @@ from .workflow import (
 router = APIRouter()
 
 
+async def _ensure_patient(db: AsyncSession, clinic_id: UUID, patient_id: UUID) -> None:
+    """404 when the patient is not this clinic's.
+
+    Mirrors the odontogram / periodontogram pattern, minus its
+    ``status != "archived"`` clause: money outlives the chart, and an
+    archived patient's ledger still has to be readable.
+
+    The aggregation below is already scoped by ``clinic_id``, so this
+    discloses nothing that was leaking — it stops the route answering a
+    question about a patient it should not be able to name
+    (ADR 0029, invariant 2).
+    """
+    from sqlalchemy import select
+
+    from app.modules.patients.models import Patient
+
+    owned = await db.scalar(
+        select(Patient.id).where(
+            Patient.id == patient_id,
+            Patient.clinic_id == clinic_id,
+        )
+    )
+    if owned is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+
 def _bad_request(exc: Exception) -> HTTPException:
     return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
 
@@ -225,6 +251,7 @@ async def patient_ledger(
     _: Annotated[None, Depends(require_permission("payments.record.read"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[PatientLedger]:
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
     ledger = await LedgerService.get_patient_ledger(
         db, ctx.clinic_id, patient_id, currency=ctx.clinic.currency
     )
@@ -242,6 +269,7 @@ async def patient_pending_charges(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[list[dict]]:
     """Earned entries not yet covered by net payments (FIFO virtual)."""
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
     pending = await LedgerService.compute_pending_charges(db, ctx.clinic_id, patient_id)
     return ApiResponse(data=pending)
 

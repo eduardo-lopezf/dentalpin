@@ -277,10 +277,35 @@ class NotificationService:
         clinic_id: UUID,
         patient_id: UUID,
     ) -> NotificationPreference:
-        """Get or create notification preferences for a patient."""
+        """Get or create notification preferences for a patient.
+
+        Raises ``ValueError`` when the patient is not in ``clinic_id``.
+
+        The check guards a *write*, and it lives here rather than in the
+        router because all three callers reach the write through this
+        method. ``patient_id`` is a live FK into ``patients``, so an
+        unverified id does not merely return the wrong answer — it plants
+        a row in one clinic pointing at another clinic's patient. Two
+        endpoints were doing exactly that, one of them a GET, until
+        ``tests/test_cross_tenant_isolation.py`` swept them up
+        (ADR 0029, invariant 2).
+        """
         prefs = await NotificationService.get_patient_preferences(db, clinic_id, patient_id)
         if prefs:
             return prefs
+
+        # `patients` is a declared dependency (manifest.depends), and the
+        # local import is the idiom the rest of this module already uses.
+        from app.modules.patients.models import Patient
+
+        owned = await db.scalar(
+            select(Patient.id).where(
+                Patient.id == patient_id,
+                Patient.clinic_id == clinic_id,
+            )
+        )
+        if owned is None:
+            raise ValueError(f"Patient {patient_id} is not in clinic {clinic_id}")
 
         # Create default preferences
         prefs = NotificationPreference(

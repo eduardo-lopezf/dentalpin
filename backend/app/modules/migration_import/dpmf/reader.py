@@ -25,7 +25,7 @@ from pathlib import Path
 
 from .compress import ZSTD_MAGIC, decompress_to
 from .crypto import DPME_MAGIC, DpmeError, decrypt_to
-from .integrity import compute_logical_hash
+from .integrity import compute_logical_hash, is_safe_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,7 @@ class DpmfHandle:
         """
         # Validate identifier before interpolation — defence in depth even
         # though entity_type came from _entities (writer side validated).
-        if not _is_safe_identifier(entity_type):
+        if not is_safe_identifier(entity_type):
             raise DpmfFormatError(f"unsafe entity_type identifier: {entity_type!r}")
         cursor = self._conn.execute(
             f"SELECT canonical_uuid, source_id, source_system, payload, raw_source_data, "
@@ -180,9 +180,3 @@ def _read_meta(conn: sqlite3.Connection) -> dict[str, str]:
     except sqlite3.DatabaseError as exc:
         raise DpmfFormatError(f"failed to read DPMF _meta table: {exc}") from exc
     return {row[0]: row[1] for row in rows}
-
-
-def _is_safe_identifier(name: str) -> bool:
-    if not name:
-        return False
-    return all(ch.islower() or ch.isdigit() or ch == "_" for ch in name) and name[0].isalpha()

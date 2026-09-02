@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- fix(security): `GET /billing/patients/{patient_id}/summary` accepted a `patient_id` from any clinic.
+  The aggregation itself was correctly scoped by `clinic_id` — the
+  response was all zeros, so nothing leaked — but the patient's ownership
+  was never checked, so the route answered about a patient it should not
+  have been able to name. Now 404s, via the `_ensure_patient` helper that
+  mirrors odontogram / periodontogram, minus their `status != "archived"`
+  clause: money outlives the chart, so an archived patient's billing history must
+  stay readable. Found by `tests/test_cross_tenant_isolation.py`
+  ([ADR 0029](../../../../docs/adr/0029-security-invariants-with-chokepoints.md)).
+
+
 - feat(privacy): `get_subject_contributors()` — this module now answers
   for its own data when a patient exercises portability or erasure
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

@@ -63,6 +63,32 @@ def _attach_paid_summary(
 router = APIRouter()
 
 
+async def _ensure_patient(db: AsyncSession, clinic_id: UUID, patient_id: UUID) -> None:
+    """404 when the patient is not this clinic's.
+
+    Mirrors the odontogram / periodontogram pattern, minus its
+    ``status != "archived"`` clause: money outlives the chart, and an
+    archived patient's billing history still has to be readable.
+
+    The aggregation below is already scoped by ``clinic_id``, so this
+    discloses nothing that was leaking — it stops the route answering a
+    question about a patient it should not be able to name
+    (ADR 0029, invariant 2).
+    """
+    from sqlalchemy import select
+
+    from app.modules.patients.models import Patient
+
+    owned = await db.scalar(
+        select(Patient.id).where(
+            Patient.id == patient_id,
+            Patient.clinic_id == clinic_id,
+        )
+    )
+    if owned is None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+
 # ============================================================================
 # Invoice Series Endpoints
 # ============================================================================
@@ -1148,5 +1174,6 @@ async def get_patient_billing_summary(
     """
     from app.modules.reports.services import BillingReportService
 
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
     summary = await BillingReportService.get_patient_summary(db, ctx.clinic_id, patient_id)
     return ApiResponse(data=PatientBillingSummary(**summary))

@@ -198,11 +198,16 @@ async def get_patient_preferences(
 ) -> ApiResponse[NotificationPreferenceResponse]:
     """Get notification preferences for a patient.
 
-    Creates default preferences if they don't exist.
+    Creates default preferences if they don't exist — which is why a
+    patient outside the clinic is a 404 rather than an empty default:
+    answering would write a row pointing at another clinic's patient.
     """
-    prefs = await NotificationService.get_or_create_patient_preferences(
-        db, ctx.clinic_id, patient_id
-    )
+    try:
+        prefs = await NotificationService.get_or_create_patient_preferences(
+            db, ctx.clinic_id, patient_id
+        )
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
     return ApiResponse(data=NotificationPreferenceResponse.model_validate(prefs))
 
 
@@ -218,9 +223,12 @@ async def update_patient_preferences(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[NotificationPreferenceResponse]:
     """Update notification preferences for a patient."""
-    prefs = await NotificationService.update_patient_preferences(
-        db, ctx.clinic_id, patient_id, data.model_dump(exclude_unset=True)
-    )
+    try:
+        prefs = await NotificationService.update_patient_preferences(
+            db, ctx.clinic_id, patient_id, data.model_dump(exclude_unset=True)
+        )
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
     return ApiResponse(data=NotificationPreferenceResponse.model_validate(prefs))
 
 

@@ -13,6 +13,34 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Added
 
+- **SQL built from string parts is now a test failure** — invariant 4 of
+  [ADR 0029](docs/adr/0029-security-invariants-with-chokepoints.md).
+  `tests/test_no_dynamic_sql.py` walks the AST of every file under `app/`
+  and fails on an f-string, concatenation, `%` or `.format()` reaching a
+  SQL-executing call, against an allowlist keyed `path.py::function` so a
+  new interpolation elsewhere in a listed file is still caught. Eight of
+  the nine existing call sites are safe and listed with a reason; the
+  ninth was not — `migration_import.compute_logical_hash` interpolated a
+  DPMF entity table name trusting a comment about the file's writer,
+  while `reader.entity_iter` validated the same value from the same
+  source. `is_safe_identifier` now guards both.
+
+- **Cross-tenant reads are now swept, not assumed** — invariant 2 of
+  [ADR 0029](docs/adr/0029-security-invariants-with-chokepoints.md),
+  test half. `tests/test_cross_tenant_isolation.py` seeds a second clinic
+  and, as an admin of the first, hits every mounted GET route taking a
+  `{patient_id}` (35 across 13 modules) or a `{professional_id}`. No
+  disclosure was found. Three routes did answer about a patient in
+  another tenant, and all three are fixed: the billing summary and the
+  payments ledger aggregated under a correct `clinic_id` filter and
+  returned zeros, but never checked the patient was the caller's, and now
+  404; `notifications/preferences/patient/{id}` was worse — its
+  `get_or_create` wrote a row carrying the caller's `clinic_id` and an
+  unvalidated `patient_id` FK, so a **GET** created a row in clinic A
+  pointing at clinic B's patient, a cross-tenant write performed by a
+  read. The `strict=True` xfail baseline ships empty and is meant to stay
+  that way.
+
 - **Every route's authorization is now proven, not assumed** — invariant 1
   of [ADR 0029](docs/adr/0029-security-invariants-with-chokepoints.md).
   `tests/test_route_authorization_coverage.py` walks all 400 mounted
