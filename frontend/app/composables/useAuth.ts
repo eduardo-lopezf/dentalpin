@@ -74,6 +74,24 @@ export function useAuth() {
   }
 
   async function logout(): Promise<void> {
+    // Reach the server before dropping the cookie. Clearing it locally
+    // only hid the tokens: the refresh stayed valid for its full seven
+    // days, so "log out" ended the tab and not the session. Best effort
+    // on purpose — a network failure must still log the user out of this
+    // browser, and the server-side revocation is idempotent.
+    const token = refreshToken.value
+    if (token) {
+      try {
+        await $fetch('/api/v1/auth/logout', {
+          baseURL: apiBaseUrl.value,
+          method: 'POST',
+          body: { refresh_token: token }
+        })
+      } catch {
+        // Already expired, revoked, or unreachable — nothing to recover.
+      }
+    }
+
     accessToken.value = null
     refreshToken.value = null
     user.value = null

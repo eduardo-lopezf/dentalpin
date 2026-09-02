@@ -79,12 +79,13 @@ jobs:
       # hold a release for; low and moderate are visible above and get
       # handled on their own schedule.
       #
-      # Known and accepted at the time of writing: `nuxt` carries a high
-      # advisory whose fix is 4.5.x, and 4.5.2 breaks the build with two
-      # `builtin:vite-json` errors (reproduced against this lockfile —
-      # the build is green on 4.4.5 and red on 4.5.2). Tracked separately;
-      # this job is expected to be RED on that one advisory until it is
-      # resolved, and that is the honest state rather than a suppression.
-      - name: Fail on high or critical advisories
+      # Through a script rather than `npm audit --audit-level=high`,
+      # because npm offers no per-advisory exception and there is one
+      # advisory whose fix is genuinely out of reach today. The choice
+      # `npm audit` leaves is a gate that is red forever or one raised
+      # past the severity we care about, and both end with nobody reading
+      # it. The exceptions and their reasons live in the script, and a
+      # stale one fails as loudly as a new advisory.
+      - name: Fail on unlisted high or critical advisories
         working-directory: frontend
-        run: npm audit --audit-level=high
+        run: node scripts/audit-gate.mjs

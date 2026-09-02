@@ -34,6 +34,10 @@ UNAUTHENTICATED: dict[str, str] = {
     "POST /api/v1/auth/setup": "creates the first account; self-closing, 409s afterwards",
     "POST /api/v1/auth/login": "issues the credentials everything else requires",
     "POST /api/v1/auth/refresh": "authorized by the refresh token it carries",
+    # Same shape as /refresh, and deliberately takes no access token: a
+    # session whose access token already expired must still be endable,
+    # and requiring one would make logout fail exactly when it matters.
+    "POST /api/v1/auth/logout": "authorized by the refresh token it revokes",
     # ADR 0006: possession of the token plus a knowledge factor, with
     # per-token lockout and an access log. Authorization is the token,
     # not a role — the patient has no account.

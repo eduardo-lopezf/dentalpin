@@ -13,6 +13,22 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Added
 
+- **A session can now be ended** — invariant 3 of
+  [ADR 0029](docs/adr/0029-security-invariants-with-chokepoints.md),
+  backend half. `auth_sessions` holds one row per refresh token keyed by
+  its `jti`, all rows from one login sharing a `family_id`. Refreshing
+  rotates: the presented token is spent and a successor issued. A spent
+  or revoked token presented again means two holders and no way to tell
+  which is the thief, so the whole family is revoked and the event
+  logged. `POST /auth/logout` reaches the server — until now
+  `useAuth.logout()` cleared a cookie and left the refresh valid for its
+  full seven days. Previously the only revocation was
+  `User.token_version`, a global switch incremented in one place, so a
+  clinic that lost a laptop could not end that session without ending
+  every other one. Not covered: tokens still live in JS-readable cookies,
+  and the access token paired with a revoked refresh survives its
+  remaining 15 minutes.
+
 - **Dependency advisories are now checked, weekly and on every PR** —
   the first of ADR 0029's out-of-scope items to land, in its own
   `security-audit.yml` rather than in `ci.yml`: a vulnerability is
@@ -25,9 +41,17 @@ frontend as a Nuxt layer under its own Python package.
   library that sanitises copilot LLM output; `nanoid`; `js-yaml`), and
   the `ecdsa` advisory is ignored with a reason — it is reachable only
   through python-jose's EC algorithms, both encode and decode pin HS256,
-  and upstream has published no fix. **The npm job is expected red on one
-  advisory**: `nuxt`'s fix is 4.5.x, and 4.5.2 breaks the build with two
-  `builtin:vite-json` errors (reproduced: green on 4.4.5, red on 4.5.2).
+  and upstream has published no fix. The npm gate runs through
+  `scripts/audit-gate.mjs` rather than `npm audit --audit-level=high`,
+  because npm has no per-advisory exception and there is exactly one
+  advisory out of reach: `nuxt`'s fix is 4.5.x, which needs
+  `@nuxtjs/i18n` v10 — bisected, the build fails with two
+  `builtin:vite-json` errors and succeeds with the i18n module removed,
+  so it is an i18n v9 incompatibility rather than a Nuxt regression, and
+  a major-version migration to resolve. Exposure meanwhile is nil, not
+  low: the advisory needs a `.server.vue` page rendered as an island and
+  the codebase has neither. A stale exception fails the gate as loudly as
+  a new advisory.
 
 - **SQL built from string parts is now a test failure** — invariant 4 of
   [ADR 0029](docs/adr/0029-security-invariants-with-chokepoints.md).

@@ -56,8 +56,15 @@ def create_access_token(
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def create_refresh_token(user_id: UUID, token_version: int = 0) -> str:
-    """Create a JWT refresh token."""
+def create_refresh_token(user_id: UUID, token_version: int = 0, jti: UUID | None = None) -> str:
+    """Create a JWT refresh token.
+
+    ``jti`` names the ``auth_sessions`` row that decides whether this
+    token is still usable (ADR 0029, invariant 3). It is optional only so
+    that callers which have no session to point at — none in production —
+    still get a token; a refresh presented without one is rejected,
+    because a token nothing can revoke is the thing this replaced.
+    """
     expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": str(user_id),
@@ -65,6 +72,8 @@ def create_refresh_token(user_id: UUID, token_version: int = 0) -> str:
         "type": "refresh",
         "token_version": token_version,
     }
+    if jti is not None:
+        payload["jti"] = str(jti)
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 

@@ -1,9 +1,10 @@
 """Core authentication and authorization models."""
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Final
 from uuid import uuid4
 
-from sqlalchemy import CheckConstraint, ForeignKey, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -83,6 +84,59 @@ class Clinic(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="Cabinet.display_order",
     )
+
+
+class AuthSession(Base, TimestampMixin):
+    """One refresh token's lifetime, so a session can be ended (ADR 0029, invariant 3).
+
+    Before this table the only revocation was ``User.token_version``: a
+    global switch that logs a user out of every device at once and is
+    incremented in exactly one place, when an account is deactivated. A
+    clinic that loses a laptop could not end *that* session without
+    ending every other one.
+
+    One row per refresh token. ``id`` is the token's ``jti``, so the
+    token itself carries no state — the row is the state. Rotation
+    creates a new row and stamps ``rotated_at`` on the old one, and every
+    row from one login shares a ``family_id``.
+
+    That pairing is what makes theft detectable. A refresh token is a
+    bearer credential: a stolen one is indistinguishable from the real
+    one *until somebody uses it twice*. When a token that has already
+    been rotated (or revoked) is presented again, one of the two holders
+    is an attacker and there is no way to tell which — so the whole
+    family dies and both parties have to log in.
+
+    Deliberately holds no IP and no user agent. Both are personal data
+    under GDPR and would need classification and a retention policy
+    (ADR 0025); neither is needed to *end* a session, only to label one
+    in a UI that does not exist yet.
+    """
+
+    __tablename__ = "auth_sessions"
+
+    # The refresh token's ``jti``. Not a surrogate key: the token names
+    # the row it depends on.
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Constant across every rotation descending from one login, so
+    # revoking a compromised chain does not need to walk it.
+    family_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # Set when this token was exchanged for the next one. A rotated token
+    # is spent; presenting it again is the reuse signal.
+    rotated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    # ``logout`` | ``reuse`` | ``superseded`` — why the row stopped being
+    # usable. Prose for an operator reading the table after an incident.
+    revoked_reason: Mapped[str | None] = mapped_column(String(20), default=None)
+
+    @property
+    def is_usable(self) -> bool:
+        return self.revoked_at is None and self.rotated_at is None
 
 
 class User(Base, TimestampMixin):

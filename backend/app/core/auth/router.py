@@ -1,5 +1,6 @@
 """Authentication router with rate limiting."""
 
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -21,7 +22,13 @@ from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.core.tenancy import TenantContext, get_tenant
 from app.database import get_db
 
-from .dependencies import ClinicContext, get_clinic_context, get_current_user, require_permission
+from . import sessions
+from .dependencies import (
+    ClinicContext,
+    get_clinic_context,
+    get_current_user,
+    require_permission,
+)
 from .models import Clinic, ClinicMembership, User
 from .permissions import CORE_PERMISSIONS, ROLES, expand_permissions, get_role_permissions
 from .schemas import (
@@ -55,6 +62,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # caps after a handful of reloads.
 _limiter_enabled = settings.ENVIRONMENT == "production" and not settings.TESTING
 limiter = Limiter(key_func=get_remote_address, enabled=_limiter_enabled)
+
+logger = logging.getLogger(__name__)
 
 
 async def _refresh_rate_key(request: Request) -> str:
@@ -178,10 +187,13 @@ async def setup(
         {"clinic_id": str(clinic.id), "created_by": str(user.id), "name": clinic.name},
     )
 
+    session = await sessions.start_session(db, user.id)
+    await db.commit()
+
     access_token = create_access_token(
         user.id, clinic_id=clinic.id, token_version=user.token_version
     )
-    refresh_token = create_refresh_token(user.id, token_version=user.token_version)
+    refresh_token = create_refresh_token(user.id, token_version=user.token_version, jti=session.id)
 
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
@@ -218,13 +230,17 @@ async def login(
     if user.memberships:
         clinic_id = user.memberships[0].clinic_id
 
-    # Generate tokens
+    # Generate tokens. The session row is what makes this login endable
+    # later — by logout, or by reuse detection killing its family.
+    session = await sessions.start_session(db, user.id)
+    await db.commit()
+
     access_token = create_access_token(
         user.id,
         clinic_id=clinic_id,
         token_version=user.token_version,
     )
-    refresh_token = create_refresh_token(user.id, token_version=user.token_version)
+    refresh_token = create_refresh_token(user.id, token_version=user.token_version, jti=session.id)
 
     return TokenResponse(
         access_token=access_token,
@@ -245,8 +261,12 @@ async def refresh_token(
         user_id = payload.get("sub")
         token_type = payload.get("type")
         token_version = payload.get("token_version", 0)
+        raw_jti = payload.get("jti")
 
-        if user_id is None or token_type != "refresh":
+        # A refresh without a jti predates the session table and names no
+        # row, so nothing could ever revoke it. Rejecting it logs those
+        # holders out once, which is the point of the change.
+        if user_id is None or token_type != "refresh" or raw_jti is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token",
@@ -299,13 +319,35 @@ async def refresh_token(
     if memberships:
         clinic_id = memberships[0].clinic_id
 
+    # Spend the presented token and open its successor. A token seen
+    # twice means two holders and no way to tell which is the thief, so
+    # `rotate` revokes the whole family before raising.
+    try:
+        successor = await sessions.rotate(db, UUID(raw_jti))
+    except sessions.RefreshReuseError:
+        await db.commit()
+        logger.warning("Refresh token reuse for user %s — session family revoked", user.id)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+        ) from None
+    except LookupError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        ) from None
+
+    await db.commit()
+
     # Generate new tokens
     access_token = create_access_token(
         user.id,
         clinic_id=clinic_id,
         token_version=user.token_version,
     )
-    new_refresh_token = create_refresh_token(user.id, token_version=user.token_version)
+    new_refresh_token = create_refresh_token(
+        user.id, token_version=user.token_version, jti=successor.id
+    )
 
     return AuthResponse(
         access_token=access_token,
@@ -313,6 +355,44 @@ async def refresh_token(
         user=UserResponse.model_validate(user),
         clinics=clinics,
     )
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("30/minute")
+async def logout(
+    request: Request,
+    data: TokenRefresh,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """End the session the refresh token belongs to.
+
+    Until now logging out cleared a cookie in the browser and left the
+    tokens valid on the server for their full lifetime — seven days for
+    the refresh. This revokes the whole family, so every token descended
+    from that login stops working.
+
+    Deliberately answers 204 whether or not the token was real, and takes
+    no access token: an endpoint that reports which tokens exist is an
+    oracle, and refusing to log somebody out because their token had
+    already expired would be a refusal with no upside. The access token
+    it was paired with still works until it expires — that is what
+    ``token_version`` is for, and 15 minutes is the window this design
+    accepts.
+    """
+    try:
+        payload = decode_token(data.refresh_token)
+    except JWTError:
+        return
+
+    raw_jti = payload.get("jti")
+    if payload.get("type") != "refresh" or raw_jti is None:
+        return
+
+    try:
+        await sessions.end_session(db, UUID(raw_jti))
+    except ValueError:
+        return
+    await db.commit()
 
 
 @router.get("/me", response_model=ApiResponse[MeResponse])

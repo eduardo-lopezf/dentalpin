@@ -179,6 +179,26 @@ persisted refresh tokens keyed by `jti`, rotation on every use, and **reuse
 detection**: a refresh token presented twice means one of the two holders is an
 attacker, so the whole session family dies and the event is recorded.
 
+**The backend half has landed.** `auth_sessions` holds one row per refresh token, keyed
+by the token's `jti`, with every row descending from one login sharing a `family_id`.
+Rotation stamps `rotated_at` and issues a successor; presenting a spent or revoked token
+revokes the family and logs it. `/auth/logout` exists and reaches the server — until now
+`useAuth.logout()` cleared a cookie and left the refresh valid for its full seven days,
+so logging out ended the tab and not the session.
+
+Three deliberate limits. A refresh token minted before the table names no row and is now
+refused, which logs its holders out once. The **access token paired with a revoked
+refresh keeps working until it expires** — 15 minutes — because an access token is
+stateless by design and checking a table on every request is precisely what
+statelessness buys; `token_version` remains the switch for the case where those minutes
+matter. And the table holds no IP and no user agent: both are personal data needing
+classification and retention ([ADR 0025](0025-pii-is-classified-on-the-column.md)), and
+neither is needed to *end* a session, only to label one in a UI that does not exist yet.
+
+**The frontend half has not.** Tokens still live in JS-readable cookies, so an XSS still
+hands an attacker a working refresh — it now gets caught the second time it is used,
+which is detection rather than prevention.
+
 Note one thing that already works and should not be "fixed": role changes take effect
 immediately, because `get_clinic_context` reads `membership.role` from the database on
 every request rather than trusting a claim in the token.
