@@ -422,8 +422,8 @@ def _render_events_catalog(modules, publishers) -> str:
         for event in feral:
             sites = publishers[event]
             lines.append(f"- `{event}` — {len(sites)} site(s):")
-            for _, relpath, lineno in sites:
-                lines.append(f"  - `{relpath}:{lineno}`")
+            for _, relpath, _ in sites:
+                lines.append(f"  - `{relpath}`")
 
     lines.append("")
     lines.append("## Detail\n")
@@ -435,8 +435,13 @@ def _render_events_catalog(modules, publishers) -> str:
         lines.append(f"- **Constant:** `EventType.{const}`")
         if pubs:
             lines.append("- **Publishers:**")
-            for module_name, relpath, lineno in pubs:
-                lines.append(f"  - `{module_name}` — `{relpath}:{lineno}`")
+            # File, not file:line. The line number is still scanned — the
+            # feral-event CI annotation points at the exact callsite with
+            # it — but rendering it here made the catalog go stale on any
+            # edit that shifted lines above a publish call, with nothing
+            # about the events having changed.
+            for module_name, relpath, _ in pubs:
+                lines.append(f"  - `{module_name}` — `{relpath}`")
         else:
             lines.append("- **Publishers:** _none in tree — declared but unused_")
         if subs:

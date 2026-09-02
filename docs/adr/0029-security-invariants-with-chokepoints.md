@@ -122,8 +122,18 @@ tenant, and the distinction between them matters:
   three call sites — the GET, the PUT, and the inbound-message gateway — reach the
   write through it.
 
-**All three were fixed rather than recorded, so the `KNOWN_UNSCOPED` baseline is
-empty.** It stays in the file because `strict=True` makes it honest in both
+A second sweep followed, over the verb with the worse ending. 32 mounted DELETE
+routes take an id in the path, and a cross-tenant delete does not disclose another
+clinic's data — it destroys it. Seven of them, one per module holding patient data,
+are now swept with a foreign row seeded for each. **All seven refuse.** The assertion
+that carries the weight is not the status code but the snapshot: a 404 that deleted
+anyway would pass a status check and fail the clinic, so the row's existence *and* its
+soft-delete markers are compared before and after — `patients` is soft-deleted by
+convention, and "the row is still there" is not the same claim as "the row is
+untouched".
+
+**All three findings were fixed rather than recorded, so the `KNOWN_UNSCOPED` baseline
+is empty.** It stays in the file because `strict=True` makes it honest in both
 directions, in the spirit of [ADR 0021](0021-module-layers-are-typechecked.md): an
 entry added there to quiet a failure becomes a failure of its own the day the route is
 fixed. A baseline nobody can park anything in quietly is worth more than no baseline.
@@ -251,6 +261,61 @@ the breach.
 While in there: JWTs get a `kid` header, so key rotation is possible later without a
 flag day.
 
+### Owed: activation keys and entitlement tokens
+
+[ADR 0028](0028-self-hosting-is-the-premium-tier.md) closes by deferring trials and
+temporary tier upgrades to "the security model, which is pending", and
+[`licensing-and-packaging.md`](../features/licensing-and-packaging.md) §4 has a
+subsection headed *What the security model has to state*. This is that document, and
+until now it said nothing — so both references dangled. They should not, and the gap
+is wider than the deferral implies.
+
+**None of the licensing machinery exists — not the trials, the licence key itself.**
+There is no `DENTALPIN_LICENSE`, no signature verification, no public key shipped in
+the release, and no entitlement resolution: `TenantContext.modules_enabled` is filled
+from `module_registry.list_modules()` (`core/tenancy/single.py:128`), which is the
+install state and nothing else. ADR 0028 is `accepted` and describes machinery nobody
+has written. That is a legitimate state for an ADR — the decision is made, the code is
+not — but it belongs next to the invariants, because a reader who finds `account_tier`
+on the `clinics` table will reasonably assume something enforces it. Nothing does, and
+per [ADR 0024](0024-control-plane-holds-what-constrains-the-customer.md) rule 3 nothing
+in the data plane should: the tier is a per-clinic fact in the customer's own database
+and is never consulted at runtime.
+
+**They are two artifacts, and the security model's first job is to keep them apart.**
+The licence key is issued once, read at boot, scoped to a deployment, verified offline.
+An entitlement token is issued repeatedly, redeemed by a user, scoped to a clinic, and
+expires on its own. Building the second as a variation on the first carries the wrong
+assumptions across — offline verification of a *self-expiring* grant with no issuer to
+ask is where replay and clock skew bite, and it is the hard problem of the two.
+
+When it is specified, it owes answers to what §4 already lists: what issues and signs a
+token and whether it is single-use; offline versus control-plane verification; replay,
+and reuse of one token across deployments; who may redeem one — an admin, or a
+permission of its own; and revocation before expiry, including what a revoked-but-unexpired
+token does.
+
+Two rules constrain the answer before it is written, and both are this ADR's business
+rather than the feature brief's:
+
+1. **A token that gates data access has stopped being a commercial control.** ADR 0028
+   rule 4 accepts that the licence check is patchable in an afternoon, because what it
+   protects is a contract, not a boundary. That acceptance does not transfer to anything
+   standing between a user and a patient record. The line gets hard to see exactly where
+   a higher-tier feature is one that reads clinical data, which is where it will first be
+   tested.
+
+2. **Expiry never takes the clinic's data**, and this is the constraint a naive
+   implementation breaks first. A higher-tier module writes rows during a trial; the
+   token expires; those rows are still part of a patient's clinical record. Reading them,
+   backing them up, exporting them and answering subject rights over them
+   ([ADR 0026](0026-subject-rights-are-a-module-contract.md)) must all survive expiry.
+   A trial that ends by making its own output unexportable is a trap, not a trial.
+
+Unscheduled, and deliberately not given an invariant number: an invariant here would be a
+chokepoint and a test for a mechanism that does not exist, which is the failure mode this
+ADR opens by naming. It gets one when the mechanism is specified.
+
 ### Not in scope, deliberately
 
 Named so they are not mistaken for oversights, and because two of them are more likely
@@ -298,11 +363,14 @@ decision, and none of them is an invariant of the kind this ADR is about.
 - Invariant 2's RLS half is genuinely expensive and touches every module's migration
   branch. It may stall at the test half for a long time, which leaves the structural
   guarantee unmade — and the test half only covers the routes it enumerates. The
-  `{patient_id}` and `{professional_id}` sweeps are in; `{budget_id}`,
-  `{invoice_id}`, `{appointment_id}` and a dozen more are not, because each needs its
-  own seed chain. Nothing at all covers the service layer, where
-  `patients_clinical.get_allergy(db, allergy_id)` still takes no `clinic_id` and is
-  kept honest only by its router.
+  `{patient_id}` and `{professional_id}` GET sweeps are in, and seven of the 32
+  DELETE routes; `{budget_id}`, `{invoice_id}`, `{appointment_id}` reads and the
+  remaining 25 destructive routes are not, because each needs its own seed chain.
+  **PUT and PATCH are untouched entirely** — 53 mounted routes — because unlike DELETE
+  they need a valid body per endpoint, which is the sweep's next real cost. Nothing at
+  all covers the service layer, where `patients_clinical.get_allergy(db, allergy_id)`
+  still takes no `clinic_id` and is kept honest only by its router: correct today,
+  and one direct caller — a copilot tool, an event handler — away from not being.
 - Invariant 3 changes the login contract, so it costs a coordinated frontend and
   backend release and logs every user out once.
 - Invariant 5 writes a row per clinical read. On a busy day that is the highest-volume

@@ -1,0 +1,90 @@
+# Dependency advisories — ADR 0029.
+#
+# Separate from ci.yml on purpose. A vulnerability is published on the
+# world's schedule, not on ours, so this needs a weekly trigger that the
+# main pipeline should not inherit: adding `schedule:` to ci.yml would
+# run the two-hour test suite every Monday to answer a question about
+# npm metadata.
+#
+# It has teeth, and the teeth are calibrated. Failing on every advisory
+# at any severity is how a job like this gets disabled within a month —
+# the floor is what we would actually stop a release for, and everything
+# below it is printed rather than enforced.
+name: Security audit
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Mondays 06:00 UTC. Catches an advisory published against code
+    # nobody has touched, which is the case push/PR triggers miss.
+    - cron: "0 6 * * 1"
+
+jobs:
+  python-advisories:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install project + pip-audit
+        working-directory: backend
+        run: |
+          pip install --upgrade pip setuptools
+          pip install -e .
+          pip install pip-audit
+
+      # `--ignore-vuln` entries are promises, like the allowlists in
+      # tests/test_no_dynamic_sql.py. Each needs a reason that survives
+      # review, and each should be removed the moment a fix ships.
+      #
+      # PYSEC-2026-1325 (ecdsa): reached only through python-jose's EC
+      # algorithms. Both `create_access_token` and `decode_token` pin
+      # HS256 — decode passes `algorithms=[settings.ALGORITHM]`, so a
+      # token cannot talk us onto an EC path — and upstream has published
+      # no fixed version, so there is nothing to upgrade to.
+      - name: Audit Python dependencies
+        working-directory: backend
+        run: |
+          pip-audit --progress-spinner off --ignore-vuln PYSEC-2026-1325
+
+  npm-advisories:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      # Printed, never fails: the full picture including low/moderate,
+      # so the job is readable when it goes red for one high advisory.
+      - name: Report all advisories
+        working-directory: frontend
+        continue-on-error: true
+        run: npm audit
+
+      # The gate. `high` is the floor because it is the severity we would
+      # hold a release for; low and moderate are visible above and get
+      # handled on their own schedule.
+      #
+      # Known and accepted at the time of writing: `nuxt` carries a high
+      # advisory whose fix is 4.5.x, and 4.5.2 breaks the build with two
+      # `builtin:vite-json` errors (reproduced against this lockfile —
+      # the build is green on 4.4.5 and red on 4.5.2). Tracked separately;
+      # this job is expected to be RED on that one advisory until it is
+      # resolved, and that is the honest state rather than a suppression.
+      - name: Fail on high or critical advisories
+        working-directory: frontend
+        run: npm audit --audit-level=high

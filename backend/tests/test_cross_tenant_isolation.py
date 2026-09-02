@@ -21,6 +21,7 @@ what stands between a forgotten ``.where(clinic_id == ...)`` and a leak.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from uuid import UUID, uuid4
 
 import pytest
@@ -29,9 +30,15 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth.models import Clinic
+from app.core.auth.models import Clinic, User
+from app.modules.budget.models import Budget
+from app.modules.clinical_notes.models import ClinicalNote
+from app.modules.media.models import Document
 from app.modules.patients.models import Patient
+from app.modules.patients_clinical.models import Allergy
 from app.modules.professionals.models import Professional
+from app.modules.recalls.models import Recall
+from app.modules.treatment_plan.models import TreatmentPlan
 
 # Distinctive enough that finding it anywhere in a response body is
 # unambiguous evidence, and that a substring search cannot false-positive
@@ -118,6 +125,12 @@ class Foreign:
     clinic_id: UUID
     patient_id: UUID
     professional_id: UUID
+    allergy_id: UUID
+    note_id: UUID
+    recall_id: UUID
+    document_id: UUID
+    budget_id: UUID
+    plan_id: UUID
 
 
 @pytest_asyncio.fixture
@@ -154,13 +167,70 @@ async def foreign(db_session: AsyncSession) -> Foreign:
         last_name=f"{MARKER}sen",
         professional_type="dentist",
     )
-    db_session.add_all([patient, professional])
+    user = User(
+        email=f"{MARKER.lower()}@staff.test",
+        password_hash="x" * 60,
+        first_name=MARKER,
+        last_name=f"{MARKER}sen",
+    )
+    db_session.add_all([patient, professional, user])
+    await db_session.flush()
+
+    # One row per destructive route below. Seeded directly rather than
+    # through the business flow: the question is whether a foreign id is
+    # honoured, not whether the row is realistic.
+    allergy = Allergy(clinic_id=clinic.id, patient_id=patient.id, name=MARKER)
+    note = ClinicalNote(
+        clinic_id=clinic.id,
+        note_type="diagnosis",
+        owner_type="patient",
+        owner_id=patient.id,
+        body=MARKER,
+        author_id=user.id,
+    )
+    recall = Recall(
+        clinic_id=clinic.id,
+        patient_id=patient.id,
+        due_month=date(2027, 1, 1),
+        reason="hygiene",
+    )
+    document = Document(
+        clinic_id=clinic.id,
+        patient_id=patient.id,
+        document_type="other",
+        title=MARKER,
+        original_filename=f"{MARKER}.pdf",
+        storage_path=f"foreign/{MARKER}.pdf",
+        mime_type="application/pdf",
+        file_size=1,
+        uploaded_by=user.id,
+    )
+    budget = Budget(
+        clinic_id=clinic.id,
+        patient_id=patient.id,
+        budget_number=f"{MARKER}-B1",
+        valid_from=date(2026, 1, 1),
+        created_by=user.id,
+    )
+    plan = TreatmentPlan(
+        clinic_id=clinic.id,
+        patient_id=patient.id,
+        plan_number=f"{MARKER}-P1",
+        created_by=user.id,
+    )
+    db_session.add_all([allergy, note, recall, document, budget, plan])
     await db_session.commit()
 
     return Foreign(
         clinic_id=clinic.id,
         patient_id=patient.id,
         professional_id=professional.id,
+        allergy_id=allergy.id,
+        note_id=note.id,
+        recall_id=recall.id,
+        document_id=document.id,
+        budget_id=budget.id,
+        plan_id=plan.id,
     )
 
 
@@ -223,6 +293,76 @@ async def test_professional_routes_reject_a_foreign_professional(
     url = template.format(prid=foreign.professional_id)
 
     _assert_no_leak(await client.get(url, headers=auth_headers), url)
+
+
+# --- Destructive routes ---------------------------------------------------
+#
+# The sweeps above walk GETs. A cross-tenant DELETE is the same defect with
+# a worse ending — it does not disclose another clinic's data, it destroys
+# it — and 32 mounted DELETE routes take an id in the path. These are the
+# ones carrying patient data, one per module that has such a route.
+#
+# The assertion that matters is the second one: a 404 that deleted anyway
+# would pass a status check and fail the clinic. Soft deletes are why the
+# snapshot compares `status` and `deleted_at` rather than mere existence —
+# `patients` is soft-deleted by convention, so "the row is still there" is
+# not the same as "the row is untouched".
+DELETE_ROUTES: tuple[tuple[str, type, str], ...] = (
+    ("/api/v1/patients/{patient_id}", Patient, "patient_id"),
+    (
+        "/api/v1/patients_clinical/patients/{patient_id}/allergies/{allergy_id}",
+        Allergy,
+        "allergy_id",
+    ),
+    ("/api/v1/clinical_notes/notes/{note_id}", ClinicalNote, "note_id"),
+    ("/api/v1/recalls/{recall_id}", Recall, "recall_id"),
+    ("/api/v1/media/documents/{document_id}", Document, "document_id"),
+    ("/api/v1/budget/budgets/{budget_id}", Budget, "budget_id"),
+    ("/api/v1/treatment_plan/treatment-plans/{plan_id}", TreatmentPlan, "plan_id"),
+)
+
+
+async def _snapshot(db: AsyncSession, model: type, row_id: UUID) -> tuple:
+    """What must not change: existence, and any soft-delete marker."""
+    row = await db.get(model, row_id)
+    if row is None:
+        return (False, None, None)
+    await db.refresh(row)
+    return (True, getattr(row, "status", None), getattr(row, "deleted_at", None))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "template,model,attr",
+    DELETE_ROUTES,
+    ids=[t for t, _, _ in DELETE_ROUTES],
+)
+async def test_delete_routes_reject_a_foreign_object(
+    client: AsyncClient,
+    auth_headers: dict,
+    test_clinic: Clinic,
+    foreign: Foreign,
+    db_session: AsyncSession,
+    template: str,
+    model: type,
+    attr: str,
+) -> None:
+    row_id = getattr(foreign, attr)
+    # `patient_id` is both a path segment of the nested routes and the
+    # target of the first one, so build the mapping before formatting.
+    url = template.format(**{"patient_id": foreign.patient_id, attr: row_id})
+    before = await _snapshot(db_session, model, row_id)
+    assert before[0], "the fixture did not seed the row this case is about"
+
+    response = await client.delete(url, headers=auth_headers)
+
+    assert 400 <= response.status_code < 500, (
+        f"{url} answered {response.status_code} deleting another clinic's row: "
+        f"{response.text[:300]}"
+    )
+    assert await _snapshot(db_session, model, row_id) == before, (
+        f"{url} refused the request and mutated the row anyway"
+    )
 
 
 @pytest.mark.asyncio

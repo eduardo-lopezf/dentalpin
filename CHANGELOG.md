@@ -13,6 +13,22 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Added
 
+- **Dependency advisories are now checked, weekly and on every PR** —
+  the first of ADR 0029's out-of-scope items to land, in its own
+  `security-audit.yml` rather than in `ci.yml`: a vulnerability is
+  published on the world's schedule, so it needs a `schedule:` trigger
+  that the two-hour test suite should not inherit. `pip-audit` for the
+  backend, `npm audit --audit-level=high` for the frontend, with the full
+  low/moderate picture printed alongside. The first run found 10 Python
+  and 7 npm advisories. Three npm fixes were taken via `overrides`
+  (`dompurify` 3.4.12→3.4.14, which patches an XSS bypass in the very
+  library that sanitises copilot LLM output; `nanoid`; `js-yaml`), and
+  the `ecdsa` advisory is ignored with a reason — it is reachable only
+  through python-jose's EC algorithms, both encode and decode pin HS256,
+  and upstream has published no fix. **The npm job is expected red on one
+  advisory**: `nuxt`'s fix is 4.5.x, and 4.5.2 breaks the build with two
+  `builtin:vite-json` errors (reproduced: green on 4.4.5, red on 4.5.2).
+
 - **SQL built from string parts is now a test failure** — invariant 4 of
   [ADR 0029](docs/adr/0029-security-invariants-with-chokepoints.md).
   `tests/test_no_dynamic_sql.py` walks the AST of every file under `app/`
@@ -39,7 +55,12 @@ frontend as a Nuxt layer under its own Python package.
   unvalidated `patient_id` FK, so a **GET** created a row in clinic A
   pointing at clinic B's patient, a cross-tenant write performed by a
   read. The `strict=True` xfail baseline ships empty and is meant to stay
-  that way.
+  that way. A second sweep covers the verb with the worse ending: seven of
+  the 32 mounted DELETE routes, one per module holding patient data, each
+  with a foreign row seeded for it. All seven refuse, and the test compares
+  the row's existence and its soft-delete markers before and after rather
+  than trusting the status code — a 404 that deleted anyway would pass a
+  status check and fail the clinic.
 
 - **Every route's authorization is now proven, not assumed** — invariant 1
   of [ADR 0029](docs/adr/0029-security-invariants-with-chokepoints.md).
