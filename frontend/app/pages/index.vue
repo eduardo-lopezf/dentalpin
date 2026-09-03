@@ -22,61 +22,72 @@ const { t } = useI18n()
   <div class="space-y-8">
     <HomeGreeting />
 
-    <section
-      v-if="heroEntries.length > 0"
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-    >
-      <ModuleSlot
-        name="dashboard.hero"
-        :ctx="{}"
-      />
-    </section>
-
-    <section v-if="timelineEntries.length > 0">
-      <ModuleSlot
-        name="dashboard.timeline"
-        :ctx="{}"
-      />
-    </section>
-
-    <section
-      v-if="attentionEntries.length > 0 || activityEntries.length > 0"
-      class="grid grid-cols-1 lg:grid-cols-2 gap-6"
-    >
-      <div
-        v-if="attentionEntries.length > 0"
-        class="space-y-6"
+    <!--
+      Every module registers its dashboard slots from a `.client.ts` plugin, so
+      the registry is empty during SSR and every `v-if="…Entries.length > 0"`
+      below resolves false on the server and true on the client. That is a
+      structural hydration mismatch on every load: Vue patched the tree it had
+      not rendered and the next client-side navigation died with
+      `insertBefore: node is not a child of this node`, leaving a blank page.
+      The content is client-only by construction, so say so.
+    -->
+    <ClientOnly>
+      <section
+        v-if="heroEntries.length > 0"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
       >
         <ModuleSlot
-          name="dashboard.attention"
+          name="dashboard.hero"
           :ctx="{}"
         />
-      </div>
-      <div
-        v-if="activityEntries.length > 0"
-        class="space-y-6"
-        :class="{ 'lg:col-span-2': attentionEntries.length === 0 }"
-      >
+      </section>
+
+      <section v-if="timelineEntries.length > 0">
         <ModuleSlot
-          name="dashboard.activity"
+          name="dashboard.timeline"
           :ctx="{}"
         />
-      </div>
-    </section>
+      </section>
 
-    <section v-if="widgetEntries.length > 0">
-      <ModuleSlot
-        name="dashboard.widgets"
-        :ctx="{}"
-      />
-    </section>
+      <section
+        v-if="attentionEntries.length > 0 || activityEntries.length > 0"
+        class="grid grid-cols-1 lg:grid-cols-2 gap-6"
+      >
+        <div
+          v-if="attentionEntries.length > 0"
+          class="space-y-6"
+        >
+          <ModuleSlot
+            name="dashboard.attention"
+            :ctx="{}"
+          />
+        </div>
+        <div
+          v-if="activityEntries.length > 0"
+          class="space-y-6"
+          :class="{ 'lg:col-span-2': attentionEntries.length === 0 }"
+        >
+          <ModuleSlot
+            name="dashboard.activity"
+            :ctx="{}"
+          />
+        </div>
+      </section>
 
-    <UCard v-if="!hasAnyContent">
-      <EmptyState
-        icon="i-lucide-smile"
-        :title="t('dashboard.welcome')"
-        :description="t('dashboard.welcomeMessage')"
-      />
-    </UCard>
+      <section v-if="widgetEntries.length > 0">
+        <ModuleSlot
+          name="dashboard.widgets"
+          :ctx="{}"
+        />
+      </section>
+
+      <UCard v-if="!hasAnyContent">
+        <EmptyState
+          icon="i-lucide-smile"
+          :title="t('dashboard.welcome')"
+          :description="t('dashboard.welcomeMessage')"
+        />
+      </UCard>
+    </ClientOnly>
   </div>
 </template>

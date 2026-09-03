@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- fix(budget): "Válido desde / hasta" no longer shows the previous day.
+  `valid_from` / `valid_until` are DATE columns; `new Date('2026-09-02')`
+  parses as UTC midnight, so any negative-offset reader saw 1/9/2026 for
+  a budget saved on the 2nd. Both now use the shared `formatDateOnly`
+  helper (`frontend/app/utils/date.ts`); `created_at` is a real instant
+  and keeps its previous formatting.
+
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

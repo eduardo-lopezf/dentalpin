@@ -219,6 +219,19 @@ class TreatmentType(StrEnum):
     ATTACHMENT = "attachment"
     RETAINER = "retainer"
 
+    # Esquelético (Skeletal / orthognathic) — acts on the facial skeleton, not
+    # on a tooth. Deliberately absent from TREATMENTS_BY_CATEGORY and from
+    # TREATMENT_VISUALIZATION_RULES below: those drive the per-tooth palette
+    # (whose fallback hard-codes ``treatment_scope: 'tooth'``) and the drawing
+    # of a tooth, and neither applies here. A skeletal treatment reaches the UI
+    # as a ``global_mouth`` / ``global_arch`` catalog item, so it renders as a
+    # named chip in the "Boca completa" tab and draws nothing on the chart.
+    OSTEOTOMY_LEFORT1 = "osteotomy_lefort1"  # Le Fort I maxillary osteotomy.
+    OSTEOTOMY_SAGITTAL_RAMUS = "osteotomy_sagittal_ramus"  # Bilateral sagittal split (BSSO).
+    GENIOPLASTY = "genioplasty"  # Sliding genioplasty of the mandibular symphysis.
+    OSTEOSYNTHESIS = "osteosynthesis"  # Plate/screw fixation of the osteotomised segments.
+    OSTEOSYNTHESIS_REMOVAL = "osteosynthesis_removal"  # Deferred hardware removal.
+
 
 class VisualizationRule(StrEnum):
     """Visualization rules for rendering treatments."""

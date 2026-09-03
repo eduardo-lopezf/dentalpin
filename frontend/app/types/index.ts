@@ -105,7 +105,7 @@ export interface AuthResponse extends AuthTokens {
 
 export interface MeResponse {
   user: User
-  clinics: Array<{ id: string, name: string, role: string }>
+  clinics: Array<{ id: string, name: string, role: string, timezone: string }>
   permissions: string[]
 }
 
@@ -469,6 +469,14 @@ export type ClinicalType
     | 'band'
     | 'attachment'
     | 'retainer'
+    // Esquelético — actúa sobre el esqueleto facial, no sobre un diente.
+    // Llegan a la UI como ítems de catálogo global_mouth / global_arch, así
+    // que no aparecen en TREATMENT_CATEGORIES ni pintan nada en el diagrama.
+    | 'osteotomy_lefort1'
+    | 'osteotomy_sagittal_ramus'
+    | 'genioplasty'
+    | 'osteosynthesis'
+    | 'osteosynthesis_removal'
 
 /** @deprecated — kept for gradual migration; prefer ClinicalType. */
 export type TreatmentType = ClinicalType

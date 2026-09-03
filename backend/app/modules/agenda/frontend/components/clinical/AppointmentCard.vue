@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Appointment } from '~~/app/types'
+import { formatWallClockTime, wallClockDate } from '../../utils/date'
 
 interface Cabinet {
   id?: string
@@ -68,27 +69,29 @@ const patientName = computed(() => {
   return `${p.first_name} ${p.last_name}`.trim()
 })
 
-const startLabel = computed(() => {
-  const d = new Date(props.appointment.start_time)
-  return d.toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' })
-})
+const startLabel = computed(() =>
+  formatWallClockTime(props.appointment.start_time, locale.value)
+)
 
-const endLabel = computed(() => {
-  const d = new Date(props.appointment.end_time)
-  return d.toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' })
-})
+const endLabel = computed(() =>
+  formatWallClockTime(props.appointment.end_time, locale.value)
+)
 
 const plannedMinutes = computed(() => {
-  const start = new Date(props.appointment.start_time).getTime()
-  const end = new Date(props.appointment.end_time).getTime()
+  const start = wallClockDate(props.appointment.start_time).getTime()
+  const end = wallClockDate(props.appointment.end_time).getTime()
   return Math.max(1, Math.round((end - start) / 60_000))
 })
 
 const timerLabel = computed(() => {
   const apt = props.appointment
   const nowMs = now.value.getTime()
+  // ``current_status_since`` is a real server instant, so it subtracts
+  // straight from ``now``. ``start_time`` is a clinic wall clock: comparing
+  // it as an instant made every card read "retrasada" by the browser↔UTC
+  // gap (8 h on a UTC−6 desk for an appointment that had not started yet).
   const sinceMs = new Date(apt.current_status_since).getTime()
-  const startMs = new Date(apt.start_time).getTime()
+  const startMs = wallClockDate(apt.start_time).getTime()
 
   if (apt.status === 'scheduled' || apt.status === 'confirmed') {
     const diffMin = Math.round((startMs - nowMs) / 60_000)

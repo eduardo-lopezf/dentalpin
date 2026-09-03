@@ -7,6 +7,11 @@
  */
 import type { Appointment } from '~~/app/types'
 import type { AvailabilityPayload } from './useScheduleAvailability'
+// Appointment and availability ISO strings carry a clinic wall clock, not
+// an instant to convert. The day window below is built from browser-local
+// hours, so both sides have to be read the same way or the timeline is
+// offset by the browser↔UTC gap.
+import { wallClockDate } from '../utils/date'
 
 export type ResourceKind = 'professional' | 'cabinet'
 
@@ -136,7 +141,7 @@ export function useFreeSlots(opts: {
     if (!res) return []
     return appointments.value.filter((apt) => {
       if (apt.status === 'cancelled') return false
-      const start = new Date(apt.start_time)
+      const start = wallClockDate(apt.start_time)
       if (!isSameDay(start, date.value)) return false
       if (res.kind === 'professional') return apt.professional_id === res.id
       // Cabinet: name-based match (Appointment.cabinet stores cabinet name).
@@ -163,7 +168,7 @@ export function useFreeSlots(opts: {
         if (r.professional_id && r.professional_id !== res.id) continue
       }
       const clamped = clamp(
-        { start: new Date(r.start), end: new Date(r.end) },
+        { start: wallClockDate(r.start), end: wallClockDate(r.end) },
         window_
       )
       if (!clamped) continue
@@ -179,7 +184,7 @@ export function useFreeSlots(opts: {
     const intervals: Interval[] = []
     for (const apt of resourceAppointments.value) {
       const clamped = clamp(
-        { start: new Date(apt.start_time), end: new Date(apt.end_time) },
+        { start: wallClockDate(apt.start_time), end: wallClockDate(apt.end_time) },
         window.value
       )
       if (clamped) intervals.push(clamped)
@@ -210,8 +215,8 @@ export function useFreeSlots(opts: {
     for (const apt of resourceAppointments.value) {
       out.push({
         type: 'busy',
-        start: new Date(apt.start_time),
-        end: new Date(apt.end_time),
+        start: wallClockDate(apt.start_time),
+        end: wallClockDate(apt.end_time),
         appointment: apt
       })
     }

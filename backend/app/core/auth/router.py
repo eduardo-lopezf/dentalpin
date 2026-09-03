@@ -310,6 +310,7 @@ async def refresh_token(
             id=m.clinic.id,
             name=m.clinic.name,
             role=m.role,
+            timezone=m.clinic.timezone,
         )
         for m in memberships
     ]
@@ -414,6 +415,7 @@ async def get_me(
             id=m.clinic.id,
             name=m.clinic.name,
             role=m.role,
+            timezone=m.clinic.timezone,
         )
         for m in memberships
     ]

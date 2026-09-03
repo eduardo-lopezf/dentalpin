@@ -2,6 +2,7 @@
 import type { DeepReadonly } from 'vue'
 import type { BudgetItem, InvoiceListItem, PaginatedResponse, SignatureCreate } from '~~/app/types'
 import { BUDGET_STATUS_ROLE } from '~~/app/config/severity'
+import { formatDateOnly } from '~~/app/utils/date'
 import { PERMISSIONS } from '~~/app/config/permissions'
 import type { EntityChip } from '~~/app/components/shared/EntityStatusChips.vue'
 import type { EntityAction } from '~~/app/components/shared/EntityActionBar.vue'
@@ -332,8 +333,14 @@ async function handleDownloadPDF() {
 // Format helpers
 const { format: formatMoney } = useCurrency()
 
+/** For true instants (``created_at``). Date-only columns such as
+ *  ``valid_from`` / ``valid_until`` use ``formatDateOnly`` instead. */
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString(locale.value)
+}
+
+function formatValidity(dateStr: string): string {
+  return formatDateOnly(dateStr, locale.value)
 }
 
 const statusChips = computed<EntityChip[]>(() => {
@@ -586,13 +593,13 @@ function getItemName(item: DeepReadonly<BudgetItem>): string {
               <div>
                 <span class="text-caption text-subtle">{{ t('budget.validFrom') }}</span>
                 <p class="font-medium">
-                  {{ formatDate(currentBudget.valid_from) }}
+                  {{ formatValidity(currentBudget.valid_from) }}
                 </p>
               </div>
               <div>
                 <span class="text-caption text-subtle">{{ t('budget.validUntil') }}</span>
                 <p class="font-medium">
-                  {{ currentBudget.valid_until ? formatDate(currentBudget.valid_until) : t('budget.noExpiry') }}
+                  {{ currentBudget.valid_until ? formatValidity(currentBudget.valid_until) : t('budget.noExpiry') }}
                 </p>
               </div>
               <div v-if="currentBudget.global_discount_value">

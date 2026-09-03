@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+- fix(core auth): `/auth/me` now returns each clinic's `timezone`. It was the
+  only clock reference the frontend could have during SSR — the global auth
+  middleware awaits `auth.init()` on the server, while `useClinic` fetches from
+  a watcher nobody awaits and is still null there. Both construction sites
+  already `selectinload` the clinic, so it costs no extra query. `useAuth`
+  keeps it as `clinicTimezone`.
+
+- fix(home): the dashboard greeting is rendered in the clinic's zone instead of
+  the server's, and no longer flashes. It read `new Date()` during SSR, so the
+  container (UTC) and the browser disagreed; on a night when the two straddled
+  midnight the server sent "Buenas noches / jueves 3" and the client expected
+  "Buenas tardes / miércoles 2". That text mismatch corrupted the hydrated DOM
+  and the next client-side navigation died with `insertBefore: node is not a
+  child of this node` — clicking "Tratamientos" from the dashboard landed on a
+  blank page. Server and client now format the same instant (seeded through the
+  payload) in the same zone.
+
+- fix(home): the slot-driven dashboard sections render inside `<ClientOnly>`.
+  Every module registers its slots from a `.client.ts` plugin, so the registry
+  is empty during SSR and each `v-if="…Entries.length > 0"` resolved false on
+  the server and true on the client — a structural hydration mismatch on every
+  single load, and the other half of the blank page above.
+
+- fix(agenda): read appointment times as clinic wall clocks everywhere.
+  `start_time` / `end_time` carry the clinic's wall clock with an offset
+  that is a storage artifact, and `utils/date.ts` already said so — but
+  the kanban card, the home strip, the unconfirmed panel, the patient
+  summary card and `useFreeSlots` all routed them through `new Date()`
+  first. On any desk whose zone differs from the stored offset the same
+  12:00 appointment was drawn at 12:00 on the calendar grid and 06:00 on
+  the kanban, the "retrasada N min" timer was off by the same gap, and
+  `fetchAppointments` asked the API for a window slid by that gap —
+  silently dropping early-morning appointments. New `wallClockDate`,
+  `formatWallClockTime` and `toWallClockIso` helpers make the reading
+  rule explicit; covered by `frontend/tests/agenda/wallClock.test.ts`.
+  True instants (`current_status_since`) still go through `new Date()`.
+
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

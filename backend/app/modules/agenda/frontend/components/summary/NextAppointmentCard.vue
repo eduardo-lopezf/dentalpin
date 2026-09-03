@@ -8,6 +8,9 @@
  * with day-relative formatting.
  */
 import type { Appointment, PaginatedResponse, PatientExtended } from '~~/app/types'
+// ``start_time`` is a clinic wall clock, so it is compared against a
+// browser-local "now" rather than treated as an instant.
+import { formatWallClockTime, wallClockDate } from '../../utils/date'
 
 interface Ctx {
   patient: PatientExtended
@@ -38,15 +41,15 @@ const upcoming = computed<Appointment | null>(() => {
   const now = Date.now()
   const list = data.value?.data ?? []
   const future = list
-    .filter(a => new Date(a.start_time).getTime() > now && a.status !== 'cancelled')
-    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+    .filter(a => wallClockDate(a.start_time).getTime() > now && a.status !== 'cancelled')
+    .sort((a, b) => wallClockDate(a.start_time).getTime() - wallClockDate(b.start_time).getTime())
   return future[0] ?? null
 })
 
 const dayLabel = computed(() => {
   if (!upcoming.value) return ''
   const now = new Date()
-  const apt = new Date(upcoming.value.start_time)
+  const apt = wallClockDate(upcoming.value.start_time)
   const days = Math.ceil((apt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
   if (days === 0) return t('appointments.today', 'Hoy')
   if (days === 1) return t('appointments.tomorrow', 'Mañana')
@@ -55,15 +58,12 @@ const dayLabel = computed(() => {
 
 const timeLabel = computed(() => {
   if (!upcoming.value) return ''
-  return new Date(upcoming.value.start_time).toLocaleTimeString(locale.value, {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return formatWallClockTime(upcoming.value.start_time, locale.value)
 })
 
 const isToday = computed(() => {
   if (!upcoming.value) return false
-  const days = Math.ceil((new Date(upcoming.value.start_time).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  const days = Math.ceil((wallClockDate(upcoming.value.start_time).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
   return days === 0
 })
 

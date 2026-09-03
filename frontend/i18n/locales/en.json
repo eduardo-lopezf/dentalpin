@@ -593,7 +593,13 @@
         "rotate": "Rotated",
         "displace": "Displaced",
         "splint": "Splint",
-        "migrated": "General treatment"
+        "bridge": "Bridge",
+        "migrated": "General treatment",
+        "osteotomy_lefort1": "Le Fort I osteotomy",
+        "osteotomy_sagittal_ramus": "Sagittal split ramus osteotomy",
+        "genioplasty": "Genioplasty",
+        "osteosynthesis": "Osteosynthesis",
+        "osteosynthesis_removal": "Osteosynthesis removal"
       },
       "treatmentAdded": "Treatment added",
       "treatmentPerformed": "Treatment marked as performed",

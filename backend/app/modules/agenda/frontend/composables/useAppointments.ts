@@ -1,4 +1,5 @@
 import type { Appointment, AppointmentCreate, AppointmentStatus, AppointmentUpdate, PaginatedResponse, ApiResponse } from '~~/app/types'
+import { toWallClockIso } from '../utils/date'
 
 export function useAppointments() {
   const api = useApi()
@@ -34,9 +35,12 @@ export function useAppointments() {
     error.value = null
 
     try {
+      // Callers pass local day/week boundaries; ``start_time`` is stored
+      // as a clinic wall clock, so the window has to be serialized the
+      // same way instead of being converted to an instant.
       const params = new URLSearchParams({
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
+        start_date: toWallClockIso(startDate),
+        end_date: toWallClockIso(endDate),
         page_size: '500'
       })
 

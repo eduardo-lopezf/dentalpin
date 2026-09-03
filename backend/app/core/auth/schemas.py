@@ -63,6 +63,11 @@ class ClinicResponse(BaseModel):
     id: UUID
     name: str
     role: str  # User's role in this clinic
+    # IANA zone the clinic works in. Travels with ``/auth/me`` so the frontend
+    # can render clock-dependent UI during SSR: the server and the browser
+    # rarely share a zone, and without this the two disagree on what time —
+    # and sometimes what day — it is for the clinic.
+    timezone: str
 
     model_config = ConfigDict(from_attributes=True)
 

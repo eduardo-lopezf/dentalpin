@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Appointment } from '~~/app/types'
+import { formatWallClockTime } from '../../utils/date'
 
 defineProps<{ ctx?: unknown }>()
 
@@ -93,7 +94,7 @@ const professionalLanes = computed<Lane[]>(() => {
 })
 
 function formatApptTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' })
+  return formatWallClockTime(iso, locale.value)
 }
 
 function statusIcon(a: Appointment): string | null {

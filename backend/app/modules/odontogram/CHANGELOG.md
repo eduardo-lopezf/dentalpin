@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+- feat(odontogram): skeletal clinical types for orthognathic surgery.
+  `TreatmentType` was closed and entirely tooth-bound, so a maxillofacial
+  catalog item had no honest type to map to and had to borrow `extraction`.
+  Adds `osteotomy_lefort1`, `osteotomy_sagittal_ramus`, `genioplasty`,
+  `osteosynthesis` and `osteosynthesis_removal`, mirrored in the
+  `ClinicalType` union and labelled in both locales, with glyphs so the
+  bar does not render an empty icon.
+
+  They are deliberately **not** in `TREATMENTS_BY_CATEGORY` nor in
+  `TREATMENT_VISUALIZATION_RULES`: those drive the per-tooth palette —
+  whose fallback hard-codes `treatment_scope: 'tooth'` — and the drawing on
+  the chart, and a skeletal act is neither. They reach the UI as
+  `global_mouth` / `global_arch` catalog items, in the "Boca completa" tab.
+
+  No migration: `treatments.clinical_type` is `VARCHAR(30)` with no CHECK,
+  and every new value fits. `frontend/tests/odontogram/clinicalTypeParity.test.ts`
+  now pins the Python enum, the TypeScript union and the two label bundles
+  together — they were hand-mirrored with nothing checking them.
+
+- fix(odontogram i18n): `bridge` had no label in either bundle, so anywhere
+  the clinical type is named on its own it rendered the raw key. Only the
+  multi-tooth picker was unaffected, because it reads its own
+  `odontogram.multiTooth.bridge.label` ("Puente fijo"). Named "Puente" /
+  "Bridge", matching how the catalog already spells it ("Puente zirconio",
+  "Puente Maryland"). Found by the parity test above, which now runs with
+  no exemptions.
+
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

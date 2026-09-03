@@ -456,6 +456,52 @@ export const TREATMENT_ICONS: Record<string, string> = {
   `,
 
   // ============================================================================
+  // ESQUELÉTICO (skeletal / orthognathic)
+  // ============================================================================
+  // These render in the "Boca completa" tab, where the chip carries the
+  // catalog name; the glyph only has to read as "bone, not tooth" at 24 px.
+
+  // Le Fort I - maxilla with the horizontal osteotomy line above the apices
+  osteotomy_lefort1: `
+    <path d="M4 6H20V12C20 16 16.5 19 12 19C7.5 19 4 16 4 12V6Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    <line x1="2.5" y1="11" x2="21.5" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 2"/>
+    <line x1="9" y1="14" x2="9" y2="17" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="15" y1="14" x2="15" y2="17" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+  `,
+
+  // Sagittal split ramus - mandibular ramus and body with the oblique split
+  osteotomy_sagittal_ramus: `
+    <path d="M7 3V13C7 17 10 20 14 20H20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="5" y1="7" x2="13" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 2"/>
+    <circle cx="7" cy="3.5" r="1.6" fill="currentColor"/>
+  `,
+
+  // Genioplasty - symphysis with the lower segment advanced past the cut
+  genioplasty: `
+    <path d="M6 4C6 4 7 10 12 10C17 10 18 4 18 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="4" y1="13" x2="20" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 2"/>
+    <path d="M8 16H17C17 19 14.5 21 12.5 21C10 21 8 19.5 8 16Z" fill="currentColor" fill-opacity="0.45" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+  `,
+
+  // Osteosynthesis - titanium plate with screws bridging two bone segments
+  osteosynthesis: `
+    <line x1="12" y1="3" x2="12" y2="21" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2 2"/>
+    <rect x="3" y="9" width="18" height="6" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <circle cx="6.5" cy="12" r="1.5" fill="currentColor"/>
+    <circle cx="17.5" cy="12" r="1.5" fill="currentColor"/>
+  `,
+
+  // Osteosynthesis removal - the same plate, lifted away
+  osteosynthesis_removal: `
+    <rect x="3" y="12" width="15" height="5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <circle cx="6" cy="14.5" r="1.3" fill="currentColor"/>
+    <circle cx="15" cy="14.5" r="1.3" fill="currentColor"/>
+    <path d="M18 8L21 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M21 5H17.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M21 5V8.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  `,
+
+  // ============================================================================
   // POSITION ACTIONS (legacy aliases)
   // ============================================================================
 

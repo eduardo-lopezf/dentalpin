@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Appointment } from '~~/app/types'
+import { formatWallClockTime } from '../../utils/date'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
 defineProps<{ ctx?: unknown }>()
@@ -47,7 +48,7 @@ async function confirm(a: Appointment) {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' })
+  return formatWallClockTime(iso, locale.value)
 }
 
 function isoDay(iso: string): string {

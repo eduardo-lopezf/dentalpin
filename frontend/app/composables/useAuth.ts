@@ -33,6 +33,11 @@ export function useAuth() {
   // State
   const user = useState<User | null>('auth:user', () => null)
   const permissions = useState<string[]>('auth:permissions', () => [])
+  // The clinic's IANA zone, filled from ``/auth/me``. Lives here rather than
+  // in ``useClinic`` because the global auth middleware awaits ``init()`` on
+  // the server, so this is the one clock reference that exists during SSR —
+  // ``useClinic`` fetches from a non-awaited watcher and is still null there.
+  const clinicTimezone = useState<string | null>('auth:clinic-timezone', () => null)
   // Cookie lifetime matches refresh token; JWT expiry is enforced by the
   // backend, and a 401 triggers refresh in useApi. Matching the access
   // cookie's maxAge to the 15min JWT TTL caused premature logouts.
@@ -96,6 +101,7 @@ export function useAuth() {
     refreshToken.value = null
     user.value = null
     permissions.value = []
+    clinicTimezone.value = null
     // SSR: skip router.push — calling it from middleware can crash the
     // response. The global auth middleware redirects to /login once it
     // sees isAuthenticated === false.
@@ -182,6 +188,7 @@ export function useAuth() {
       })
       user.value = response.data.user
       permissions.value = response.data.permissions
+      clinicTimezone.value = response.data.clinics[0]?.timezone ?? null
     } catch (error: unknown) {
       const fetchError = error as { statusCode?: number }
       // Only try refresh on 401 (expired token), not on other errors
@@ -223,12 +230,14 @@ export function useAuth() {
       refreshToken.value = null
       user.value = null
       permissions.value = []
+      clinicTimezone.value = null
     }
   }
 
   return {
     user: readonly(user),
     permissions: readonly(permissions),
+    clinicTimezone: readonly(clinicTimezone),
     accessToken: readonly(accessToken),
     isAuthenticated,
     login,

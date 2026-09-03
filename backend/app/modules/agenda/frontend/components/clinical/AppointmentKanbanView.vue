@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Appointment, AppointmentStatus } from '~~/app/types'
+import { formatLocalDate, formatWallClockTime, isoPartsToDateKey, parseIsoParts } from '../../utils/date'
 
 interface Cabinet {
   id?: string
@@ -113,15 +114,14 @@ function toggleCollapsed(id: string) {
   collapsedColumns.value = next
 }
 
-// Only keep appointments for the currently selected day. Uses local-date
-// comparison so timezone shifts don't lose edge-case cards.
+// Only keep appointments for the currently selected day. Compares the
+// appointment's *wall-clock* date against the selected day: routing
+// ``start_time`` through ``new Date()`` first shifted early-morning and
+// late-evening cards into the neighbouring day whenever the browser and
+// the stored offset disagreed, which is exactly the edge case this
+// filter exists to protect.
 function isSameDay(iso: string, target: Date): boolean {
-  const d = new Date(iso)
-  return (
-    d.getFullYear() === target.getFullYear()
-    && d.getMonth() === target.getMonth()
-    && d.getDate() === target.getDate()
-  )
+  return isoPartsToDateKey(parseIsoParts(iso)) === formatLocalDate(target)
 }
 
 const dayAppointments = computed(() =>
@@ -662,8 +662,7 @@ function isInvalidHint(col: ColumnDef): boolean {
                 class="text-caption text-subtle italic px-1"
               >
                 {{ t('appointments.kanban.nextIn', {
-                  time: new Date(nextForCabinet(entry.cabinet.name)!.start_time)
-                    .toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+                  time: formatWallClockTime(nextForCabinet(entry.cabinet.name)!.start_time, locale)
                 }) }}
               </div>
             </div>

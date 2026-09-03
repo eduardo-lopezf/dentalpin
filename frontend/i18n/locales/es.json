@@ -593,7 +593,13 @@
         "rotate": "Rotado",
         "displace": "Desplazado",
         "splint": "Férula",
-        "migrated": "Tratamiento general"
+        "bridge": "Puente",
+        "migrated": "Tratamiento general",
+        "osteotomy_lefort1": "Osteotomía Le Fort I",
+        "osteotomy_sagittal_ramus": "Osteotomía sagital de rama",
+        "genioplasty": "Mentoplastia",
+        "osteosynthesis": "Osteosíntesis",
+        "osteosynthesis_removal": "Retirada de osteosíntesis"
       },
       "treatmentAdded": "Tratamiento añadido",
       "treatmentPerformed": "Tratamiento marcado como realizado",
