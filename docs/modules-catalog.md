@@ -30,7 +30,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `recalls` | 0.1.0 | official | patients, agenda, professionals | auto | yes | 3 | 4 | 5 | yes |
 | `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments, professionals | auto | no | 3 | 0 | 0 | yes |
 | `schedules` | 0.1.0 | official | agenda, professionals | auto | yes | 8 | 0 | 3 | yes |
-| `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media, professionals | auto | no | 5 | 13 | 5 | yes |
+| `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media, professionals | auto | no | 6 | 13 | 6 | yes |
 | `verifactu` | 0.1.0 | official | billing, catalog | manual | yes | 5 | 1 | 1 | yes |
 | `whatsapp_kapso` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | yes |
 
@@ -573,6 +573,7 @@ Patient treatment plans with budget + odontogram sync.
   - `budget.accepted`
   - `budget.rejected`
   - `budget.renegotiated`
+  - `clinic.created`
   - `odontogram.treatment.performed`
 - **Module CLAUDE.md:** [`backend/app/modules/treatment_plan/CLAUDE.md`](../backend/app/modules/treatment_plan/CLAUDE.md)
 

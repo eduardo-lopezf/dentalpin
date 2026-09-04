@@ -47,6 +47,10 @@ _NOT_PERSONAL: frozenset[tuple[str, str]] = frozenset(
         ("patients_clinical_systemic_disease", "name"),
         ("cabinets", "name"),
         ("whatsapp_kapso_templates", "name"),
+        # The shape of a plan ("primera visita", "implante unitario"),
+        # authored by the clinic and reused across patients. Tokenizing it
+        # would redact a workflow label as if it named someone.
+        ("plan_templates", "name"),
         ("notification_templates", "provider_template_name"),
         # Machinery: module registry, tool calls, agent and adapter names.
         ("agents", "name"),

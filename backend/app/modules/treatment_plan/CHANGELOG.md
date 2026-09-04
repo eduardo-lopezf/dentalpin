@@ -1,6 +1,26 @@
 # Changelog — treatment_plan module
 
 ## Unreleased
+- fix(ui): las etiquetas de sesión se partían letra a letra («Ape / rtur /
+  a y»). La fila metía siete elementos en una línea dentro de la columna
+  estrecha del plan y todos menos la etiqueta eran `shrink-0`, así que la
+  etiqueta se quedaba con unos pocos píxeles y `break-words` rompía por
+  carácter. Ahora importe, fecha y acciones viajan como un bloque que baja a
+  la segunda línea cuando la etiqueta no conserva el 55% de la fila; en
+  pantallas anchas todo sigue cabiendo en una sola línea.
+
+- feat(propuestas): «Proponer desde el odontograma». Los hallazgos ya están
+  en la ficha — un dentista marcó la caries del 16 — y volver a teclearlos
+  como partidas del plan era reintroducir un hecho clínico que el sistema ya
+  guarda. Ahora el plan en borrador lista los hallazgos sin tratamiento
+  planificado, cada uno con el tratamiento que le propone
+  (`caries → obturación`, `pulpitis en molar → endodoncia molar`, contando
+  raíces por posición FDI), y con un clic entran todos. El hallazgo no se
+  toca: el diagnóstico y el plan son registros distintos y la caries debe
+  seguir dibujada hasta que se trate. La tabla de propuestas es criterio
+  clínico comprimido y se equivocará: por eso propone lo menos invasivo y
+  no crea nada hasta que se marca la fila.
+
 - feat(plantillas): un plan se puede empezar desde una plantilla. Una
   plantilla es una forma recurrente — la secuencia de tratamientos con su
   fase — y nunca lleva dientes: esos se dan al aplicarla. La regla de

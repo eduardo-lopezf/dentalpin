@@ -42,6 +42,8 @@ Routes mounted at `/api/v1/treatment-plans/`.
 - `PUT   /plan-templates/{id}`              — update; items are a full replace when sent
 - `DELETE /plan-templates/{id}`             — soft delete (`is_active=False`)
 - `POST  /plan-templates/from-plan/{id}`    — save an existing plan as a template
+- `GET   /treatment-plans/{id}/proposals`   — charted findings with nothing planned yet
+- `POST  /treatment-plans/{id}/proposals`   — turn accepted findings into plan items
 
 > **Notes endpoints moved.** Since issue #60 the `clinical_notes` module
 > owns every clinical-note CRUD path (`/api/v1/clinical_notes/*`). The
@@ -156,6 +158,21 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   It runs against templates that were just created and never loaded;
   touching `template.items` there triggers a lazy load the async session
   cannot service.
+- **Proposals read the chart, they never write to it.** `proposals.py` lists
+  findings (`Treatment` rows with a diagnostic `clinical_type`,
+  `status='performed'`, no catalog link) that have no planned work on the same
+  tooth, and pairs each with a catalog item resolved by `internal_code` from
+  the `SUGGESTIONS` table. Accepting one creates a *new* planned Treatment;
+  the finding is left alone, because the diagnosis and the plan are separate
+  records and the chart should keep showing the caries until it is treated.
+  The "already addressed" test is coarse on purpose — any planned treatment on
+  that tooth hides the finding. Guessing whether a given plan line answers a
+  given finding would be a guess.
+- **`SUGGESTIONS` is clinical judgement in a table, so it stays conservative.**
+  Where the honest answer depends on how much tooth is left, the least
+  invasive option is proposed: upgrading a composite to a crown is a smaller
+  correction than the reverse. Nothing is created until the dentist ticks the
+  row.
 - **Auto-close cron lives here** (`tasks.py:auto_close_expired_plans`),
   not in budget — closing a plan is a treatment_plan write and budget
   is in this module's depends, so the read of `budgets` from the

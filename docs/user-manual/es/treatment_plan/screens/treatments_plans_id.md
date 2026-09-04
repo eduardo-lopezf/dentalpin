@@ -14,6 +14,9 @@ related_endpoints:
   - PATCH /api/v1/treatment_plan/treatments/plans/{plan_id}/status
   - POST /api/v1/treatment_plan/treatments/plans
   - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/close
+  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/apply-template
+  - GET /api/v1/treatment_plan/treatment-plans/{plan_id}/proposals
+  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/proposals
   - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/confirm
   - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/contact-log
   - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/generate-budget
@@ -32,6 +35,9 @@ related_permissions:
   - treatment_plan.plans.reactivate
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/[id].vue
+  - backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue
+  - backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue
+  - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
 last_verified_commit: e372dd4
 ---
@@ -43,6 +49,40 @@ columna principal con los ítems (catálogo o tratamiento odontograma)
 y columna lateral con presupuesto enlazado, ejecuciones y contactos.
 Aquí se confirma, sincroniza con el presupuesto, marca ítems como
 ejecutados y se cierra o reactiva.
+
+## Construir el plan
+
+Hay tres formas de meter tratamientos en un plan en borrador, y se
+combinan:
+
+- **Aplicar plantilla.** Trae una forma completa de plan (ver
+  [Nuevo plan](./treatments_plans_new.md)). Se puede aplicar varias
+  veces, así que un plan puede ser fase higiénica + implante
+  unitario.
+- **Proponer desde el odontograma.** El botón aparece con un número
+  cuando el paciente tiene hallazgos marcados en la ficha para los que
+  no hay nada planificado. La lista empareja cada hallazgo con el
+  tratamiento que le corresponde — caries → obturación, pulpitis en
+  molar → endodoncia molar — y con **Añadir** entran todos. El
+  hallazgo se queda en el odontograma: el diagnóstico y el plan son
+  cosas distintas y la caries sigue ahí hasta que se trate.
+  Desmarca la fila si la propuesta no encaja y añádelo a mano desde
+  la barra.
+- **Barra de tratamientos.** Elige el tratamiento y haz clic en el
+  diente. El tratamiento **sigue armado** después de aplicarlo, así
+  que 16, 26 y 36 son tres clics, no tres búsquedas. La chapa de la
+  cabecera dice qué está armado; la ✕ o `Esc` lo sueltan. Para un
+  cuadrante entero, usa los botones **Cuadrante 1–4** que aparecen
+  junto a la chapa: pide confirmación nombrando las piezas antes de
+  crear nada.
+
+La lista del plan se agrupa por **fase**: urgencia, estabilización,
+rehabilitación, mantenimiento. La fase de cada partida sale del
+catálogo. Arrastrar reordena dentro de una fase; para mover algo a
+otra fase, cambia la fase del tratamiento.
+
+**Guardar como plantilla** está en el menú **···**: se guardan los
+tratamientos y sus fases, no los dientes ni los precios.
 
 ## De un vistazo
 

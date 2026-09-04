@@ -14,6 +14,9 @@ related_endpoints:
   - PATCH /api/v1/treatment_plan/treatments/plans/{plan_id}/status
   - POST /api/v1/treatment_plan/treatments/plans
   - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/close
+  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/apply-template
+  - GET /api/v1/treatment_plan/treatment-plans/{plan_id}/proposals
+  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/proposals
   - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/confirm
   - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/contact-log
   - POST /api/v1/treatment_plan/treatments/plans/{plan_id}/generate-budget
@@ -32,6 +35,9 @@ related_permissions:
   - treatment_plan.plans.reactivate
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/[id].vue
+  - backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue
+  - backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue
+  - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
 last_verified_commit: e372dd4
 ---
@@ -43,6 +49,37 @@ column with the items (catalog or odontogram tooth treatment); and
 sidebar with the linked budget, executions, and contacts. This is
 where you confirm, sync with the budget, mark items as performed,
 and close or reactivate.
+
+## Building the plan
+
+There are three ways to get treatments into a draft plan, and they
+combine:
+
+- **Apply template.** Brings in a whole plan shape (see
+  [New plan](./treatments_plans_new.md)). It can be applied more than
+  once, so a plan can be hygiene phase + single implant.
+- **Propose from the chart.** The button appears with a count when the
+  patient has findings charted that nothing is planned for. The list
+  pairs each finding with the matching treatment — caries →
+  composite, pulpitis on a molar → molar endodontics — and **Add**
+  brings them all in. The finding stays on the chart: the diagnosis
+  and the plan are separate things, and the caries is still there
+  until it is treated. Untick a row whose suggestion does not fit and
+  add that one by hand from the bar.
+- **Treatment bar.** Pick the treatment and click the tooth. The
+  treatment **stays armed** after each application, so 16, 26 and 36
+  are three clicks, not three searches. The badge in the header says
+  what is armed; the ✕ or `Esc` releases it. For a whole quadrant,
+  use the **Quadrant 1–4** buttons next to the badge: they confirm,
+  naming the teeth, before creating anything.
+
+The plan list is grouped by **stage of care**: emergency,
+stabilisation, rehabilitation, maintenance. Each item's stage comes
+from the catalog. Dragging reorders within a stage; to move something
+to another stage, change the treatment's stage.
+
+**Save as template** lives in the **···** menu: treatments and their
+stages are saved, teeth and prices are not.
 
 ## At a glance
 

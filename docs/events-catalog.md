@@ -29,7 +29,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `budget.renegotiated` | `EventType.BUDGET_RENEGOTIATED` | `budget` | `patient_timeline`, `treatment_plan` |
 | `budget.sent` | `EventType.BUDGET_SENT` | `budget` | `notifications`, `patient_timeline` |
 | `budget.viewed` | `EventType.BUDGET_VIEWED` | `budget` | `patient_timeline` |
-| `clinic.created` | `EventType.CLINIC_CREATED` | `core:core` | `catalog` |
+| `clinic.created` | `EventType.CLINIC_CREATED` | `core:core` | `catalog`, `treatment_plan` |
 | `clinical_notes.administrative_created` | `EventType.CLINICAL_NOTE_ADMINISTRATIVE_CREATED` | `clinical_notes` | `patient_timeline` |
 | `clinical_notes.appointment_administrative_created` | `EventType.CLINICAL_NOTE_APPOINTMENT_ADMINISTRATIVE_CREATED` | `clinical_notes` | — |
 | `clinical_notes.appointment_clinical_created` | `EventType.CLINICAL_NOTE_APPOINTMENT_CLINICAL_CREATED` | `clinical_notes` | — |
@@ -277,6 +277,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
   - `core:core` — `backend/app/core/auth/router.py`
 - **Subscribers:**
   - `catalog`
+  - `treatment_plan`
 
 ### `clinical_notes.administrative_created`
 
