@@ -92,10 +92,16 @@ function confirmDiscard() {
           {{ t('periodontogram.session.closedBadge') }}
         </UBadge>
 
-        <span v-if="snapshot?.closed_at" class="text-sm text-muted">
+        <span
+          v-if="snapshot?.closed_at"
+          class="text-sm text-muted"
+        >
           {{ t('periodontogram.session.recordedAt', { date: formatDate(snapshot.closed_at) }) }}
         </span>
-        <span v-else-if="snapshot?.recorded_at" class="text-sm text-muted">
+        <span
+          v-else-if="snapshot?.recorded_at"
+          class="text-sm text-muted"
+        >
           {{ t('periodontogram.session.recordedAt', { date: formatDate(snapshot.recorded_at) }) }}
         </span>
 
@@ -130,7 +136,10 @@ function confirmDiscard() {
 
       <!-- Session actions — only on drafts. Cerrar sesión = finalize,
            Descartar borrador = throw away. -->
-      <div v-if="isDraft" class="flex items-center gap-2">
+      <div
+        v-if="isDraft"
+        class="flex items-center gap-2"
+      >
         <UButton
           variant="ghost"
           color="error"
@@ -213,10 +222,18 @@ function confirmDiscard() {
       </template>
       <template #footer>
         <div class="flex justify-end gap-2 p-2">
-          <UButton variant="outline" color="neutral" @click="showClose = false">
+          <UButton
+            variant="outline"
+            color="neutral"
+            @click="showClose = false"
+          >
             Cancelar
           </UButton>
-          <UButton color="primary" icon="i-lucide-check" @click="confirmClose">
+          <UButton
+            color="primary"
+            icon="i-lucide-check"
+            @click="confirmClose"
+          >
             Cerrar sesión
           </UButton>
         </div>
@@ -239,10 +256,18 @@ function confirmDiscard() {
       </template>
       <template #footer>
         <div class="flex justify-end gap-2 p-2">
-          <UButton variant="outline" color="neutral" @click="showDiscard = false">
+          <UButton
+            variant="outline"
+            color="neutral"
+            @click="showDiscard = false"
+          >
             Cancelar
           </UButton>
-          <UButton color="error" icon="i-lucide-trash-2" @click="confirmDiscard">
+          <UButton
+            color="error"
+            icon="i-lucide-trash-2"
+            @click="confirmDiscard"
+          >
             Descartar
           </UButton>
         </div>

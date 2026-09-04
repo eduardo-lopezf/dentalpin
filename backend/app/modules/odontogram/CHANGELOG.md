@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- feat(odontogram): the plan builder reaches every therapeutic category.
+  `THERAPEUTIC_CATEGORIES` listed four of them, so the bar's planning mode
+  silently dropped every mapped periodontal, preventive and paediatric
+  treatment — 8 of the 61 items that carry a mapping. `diagnostico` stays out
+  on purpose: it holds findings you record and never plan, and billable
+  diagnostic *acts* are whole-mouth items that reach the bar through the
+  globals tab.
+
+  `TreatmentClinicalCategory` grew with it, on both sides. It listed five
+  values while the database already held seven — `clinical_category` is a free
+  string in the API, so the seed wrote catalog category keys straight through.
+  Tab labels come from the catalog category of the same key, so no new i18n.
+
+- feat(odontogram): process clinical types — `consultation`, `checkup`,
+  `imaging`, `hygiene`. The visit itself, rather than work on a structure:
+  billable, plannable, attached to no tooth. Without them a first visit had to
+  map to `extraction` to satisfy the odontogram mapping. Same treatment as the
+  skeletal block: absent from the per-tooth palette and the drawing rules,
+  reached as `global_mouth` catalog items, with their own glyphs.
+
+  `clinicalTypeParity.test.ts` now also pins the clinical-category union to the
+  Python enum and checks that every therapeutic key is a real category.
+
 - feat(odontogram): skeletal clinical types for orthognathic surgery.
   `TreatmentType` was closed and entirely tooth-bound, so a maxillofacial
   catalog item had no honest type to map to and had to borrow `extraction`.

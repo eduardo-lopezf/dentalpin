@@ -34,7 +34,7 @@ const {
   verify,
   accept,
   reject,
-  downloadSignedPdf,
+  downloadSignedPdf
 } = usePublicBudget(token.value)
 
 const downloadingPdf = ref(false)
@@ -61,7 +61,7 @@ async function onDownloadSigned() {
   }
 }
 
-async function onReauthVerify(payload: { method: string; value: string }) {
+async function onReauthVerify(payload: { method: string, value: string }) {
   const ok = await verify(payload.method as never, payload.value)
   if (ok) {
     reauthForDownload.value = false
@@ -108,7 +108,7 @@ const consentChecked = ref(false)
 const rejectReason = ref<'price' | 'time' | 'second_opinion' | 'other'>('price')
 const rejectNote = ref('')
 
-async function onVerifySubmit(payload: { method: string; value: string }) {
+async function onVerifySubmit(payload: { method: string, value: string }) {
   const ok = await verify(payload.method as never, payload.value)
   if (ok) {
     await fetchMeta()
@@ -181,7 +181,7 @@ async function onAcceptSubmit() {
   decisionError.value = null
   const ok = await accept({
     signer_name: signerName.value.trim(),
-    signature_data: signaturePng.value ? { png: signaturePng.value } : undefined,
+    signature_data: signaturePng.value ? { png: signaturePng.value } : undefined
   })
   if (!ok) {
     decisionError.value = t('budget.public.accept.error')
@@ -195,7 +195,7 @@ async function onRejectSubmit() {
   decisionError.value = null
   const ok = await reject({
     reason: rejectReason.value,
-    note: rejectNote.value.trim() || undefined,
+    note: rejectNote.value.trim() || undefined
   })
   if (!ok) {
     decisionError.value = t('budget.public.reject.error')
@@ -222,7 +222,7 @@ function formatDate(iso: string | null | undefined): string {
     return new Date(iso).toLocaleDateString(locale.value, {
       day: '2-digit',
       month: 'long',
-      year: 'numeric',
+      year: 'numeric'
     })
   } catch {
     return iso
@@ -248,7 +248,7 @@ const reasonOptions = computed(() => [
   { value: 'price', label: t('budget.public.reject.reasons.price') },
   { value: 'time', label: t('budget.public.reject.reasons.time') },
   { value: 'second_opinion', label: t('budget.public.reject.reasons.second_opinion') },
-  { value: 'other', label: t('budget.public.reject.reasons.other') },
+  { value: 'other', label: t('budget.public.reject.reasons.other') }
 ])
 
 const greeting = computed(() => {
@@ -260,14 +260,20 @@ const greeting = computed(() => {
 <template>
   <div class="public-budget">
     <!-- Loading -->
-    <div v-if="!meta" class="container space-y-3 py-6">
+    <div
+      v-if="!meta"
+      class="container space-y-3 py-6"
+    >
       <USkeleton class="h-12 w-2/3" />
       <USkeleton class="h-4 w-1/2" />
       <USkeleton class="h-64 w-full" />
     </div>
 
     <!-- Cold states -->
-    <div v-else-if="meta.locked || meta.expired" class="container py-8 space-y-4">
+    <div
+      v-else-if="meta.locked || meta.expired"
+      class="container py-8 space-y-4"
+    >
       <UCard>
         <div class="flex flex-col items-center text-center gap-3 py-8 px-4">
           <div
@@ -283,13 +289,16 @@ const greeting = computed(() => {
           <h1 class="text-xl font-semibold">
             {{ meta.locked ? t('budget.public.locked') : t('budget.public.expired') }}
           </h1>
-          <div v-if="meta.clinic_phone" class="pt-2">
+          <div
+            v-if="meta.clinic_phone"
+            class="pt-2"
+          >
             <UButton
+              :is="'a'"
               color="primary"
               size="lg"
               icon="i-lucide-phone"
               :href="`tel:${meta.clinic_phone}`"
-              :is="'a'"
             >
               {{ t('budget.public.callClinic') }}
             </UButton>
@@ -322,7 +331,10 @@ const greeting = computed(() => {
             }}
           </h1>
 
-          <div v-if="meta.decided_status === 'accepted' && !reauthForDownload" class="w-full max-w-xs pt-2">
+          <div
+            v-if="meta.decided_status === 'accepted' && !reauthForDownload"
+            class="w-full max-w-xs pt-2"
+          >
             <UButton
               color="primary"
               size="lg"
@@ -333,12 +345,18 @@ const greeting = computed(() => {
             >
               {{ t('budget.public.download.signedPdf') }}
             </UButton>
-            <p v-if="downloadError" class="text-xs text-red-600 mt-2">
+            <p
+              v-if="downloadError"
+              class="text-xs text-red-600 mt-2"
+            >
               {{ downloadError }}
             </p>
           </div>
 
-          <div v-if="reauthForDownload" class="w-full pt-4">
+          <div
+            v-if="reauthForDownload"
+            class="w-full pt-4"
+          >
             <p class="text-sm text-[var(--ui-text-muted)] mb-3">
               {{ t('budget.public.download.reauthIntro') }}
             </p>
@@ -350,14 +368,17 @@ const greeting = computed(() => {
             />
           </div>
 
-          <div v-if="meta.clinic_phone" class="pt-2">
+          <div
+            v-if="meta.clinic_phone"
+            class="pt-2"
+          >
             <UButton
+              :is="'a'"
               color="primary"
               variant="soft"
               size="lg"
               icon="i-lucide-phone"
               :href="`tel:${meta.clinic_phone}`"
-              :is="'a'"
             >
               {{ t('budget.public.callClinic') }}
             </UButton>
@@ -367,7 +388,10 @@ const greeting = computed(() => {
     </div>
 
     <!-- Verify gate -->
-    <div v-else-if="!budget && meta.requires_verification" class="container py-8 space-y-4">
+    <div
+      v-else-if="!budget && meta.requires_verification"
+      class="container py-8 space-y-4"
+    >
       <BudgetVerifyForm
         :method="meta.method"
         :verifying="verifying"
@@ -384,8 +408,13 @@ const greeting = computed(() => {
           <div class="hero-clinic">
             <span class="hero-clinic-badge">{{ (meta.clinic_name || 'C').slice(0, 2).toUpperCase() }}</span>
             <div class="min-w-0">
-              <p class="hero-clinic-name">{{ meta.clinic_name }}</p>
-              <p v-if="meta.clinic_address_line" class="hero-clinic-meta">
+              <p class="hero-clinic-name">
+                {{ meta.clinic_name }}
+              </p>
+              <p
+                v-if="meta.clinic_address_line"
+                class="hero-clinic-meta"
+              >
                 {{ meta.clinic_address_line }}
               </p>
             </div>
@@ -400,13 +429,21 @@ const greeting = computed(() => {
       <main class="container content space-y-5 pb-32 md:pb-10">
         <!-- Greeting -->
         <header class="space-y-1">
-          <h1 class="page-title">{{ greeting }}</h1>
+          <h1 class="page-title">
+            {{ greeting }}
+          </h1>
           <p class="page-sub">
             {{ t('budget.public.subtitle') }}
             <span v-if="meta.clinic_name">·&nbsp;{{ meta.clinic_name }}</span>
           </p>
-          <p v-if="budget.valid_until" class="page-validity">
-            <UIcon name="i-lucide-calendar-clock" class="w-4 h-4 inline-block mr-1" />
+          <p
+            v-if="budget.valid_until"
+            class="page-validity"
+          >
+            <UIcon
+              name="i-lucide-calendar-clock"
+              class="w-4 h-4 inline-block mr-1"
+            />
             {{ t('budget.public.validUntil', { date: formatDate(budget.valid_until) }) }}
           </p>
         </header>
@@ -425,7 +462,9 @@ const greeting = computed(() => {
         <UCard class="treatments-card">
           <template #header>
             <div class="flex items-center justify-between">
-              <h2 class="card-title">{{ t('budget.public.items') }}</h2>
+              <h2 class="card-title">
+                {{ t('budget.public.items') }}
+              </h2>
               <span class="text-xs text-[var(--ui-text-muted)]">
                 {{ budget.items.length }}
               </span>
@@ -433,11 +472,20 @@ const greeting = computed(() => {
           </template>
 
           <ul class="treatments-list">
-            <li v-for="(item, idx) in budget.items" :key="item.id" class="treatments-row">
+            <li
+              v-for="(item, idx) in budget.items"
+              :key="item.id"
+              class="treatments-row"
+            >
               <span class="treatments-index">{{ idx + 1 }}</span>
               <div class="min-w-0 flex-1">
-                <p class="treatments-name">{{ itemName(item) }}</p>
-                <p v-if="item.tooth_number" class="treatments-meta">
+                <p class="treatments-name">
+                  {{ itemName(item) }}
+                </p>
+                <p
+                  v-if="item.tooth_number"
+                  class="treatments-meta"
+                >
                   {{ t('budget.public.tooth', { number: item.tooth_number }) }}
                 </p>
               </div>
@@ -445,7 +493,9 @@ const greeting = computed(() => {
                 <p class="treatments-qty">
                   {{ item.quantity }} × {{ formatMoney(item.unit_price, meta?.clinic_currency) }}
                 </p>
-                <p class="treatments-total">{{ formatMoney(item.line_total, meta?.clinic_currency) }}</p>
+                <p class="treatments-total">
+                  {{ formatMoney(item.line_total, meta?.clinic_currency) }}
+                </p>
               </div>
             </li>
           </ul>
@@ -458,7 +508,10 @@ const greeting = computed(() => {
               <dt>{{ t('budget.public.subtotal') }}</dt>
               <dd>{{ formatMoney(budget.subtotal, meta?.clinic_currency) }}</dd>
             </div>
-            <div v-if="Number(budget.total_discount) > 0" class="totals-row totals-row-discount">
+            <div
+              v-if="Number(budget.total_discount) > 0"
+              class="totals-row totals-row-discount"
+            >
               <dt>{{ t('budget.public.discount') }}</dt>
               <dd>−{{ formatMoney(budget.total_discount, meta?.clinic_currency) }}</dd>
             </div>
@@ -476,22 +529,36 @@ const greeting = computed(() => {
         <!-- Trust strip -->
         <ul class="trust-strip">
           <li>
-            <UIcon name="i-lucide-lock" class="w-4 h-4" />
+            <UIcon
+              name="i-lucide-lock"
+              class="w-4 h-4"
+            />
             <span>{{ t('budget.public.trustSecure') }}</span>
           </li>
           <li>
-            <UIcon name="i-lucide-shield-check" class="w-4 h-4" />
+            <UIcon
+              name="i-lucide-shield-check"
+              class="w-4 h-4"
+            />
             <span>{{ t('budget.public.trustEncrypted') }}</span>
           </li>
           <li>
-            <UIcon name="i-lucide-pen-line" class="w-4 h-4" />
+            <UIcon
+              name="i-lucide-pen-line"
+              class="w-4 h-4"
+            />
             <span>{{ t('budget.public.trustSignature') }}</span>
           </li>
         </ul>
 
         <!-- Desktop CTAs -->
         <div class="desktop-cta hidden md:flex flex-col gap-3 pt-2">
-          <UButton color="primary" size="xl" block @click="showAccept = true">
+          <UButton
+            color="primary"
+            size="xl"
+            block
+            @click="showAccept = true"
+          >
             {{ t('budget.public.cta_accept') }}
           </UButton>
           <button
@@ -504,11 +571,21 @@ const greeting = computed(() => {
         </div>
 
         <!-- Clinic contact footer -->
-        <div v-if="meta.clinic_phone || meta.clinic_email" class="contact-card">
-          <UIcon name="i-lucide-headphones" class="w-5 h-5 text-[var(--ui-primary)]" />
+        <div
+          v-if="meta.clinic_phone || meta.clinic_email"
+          class="contact-card"
+        >
+          <UIcon
+            name="i-lucide-headphones"
+            class="w-5 h-5 text-[var(--ui-primary)]"
+          />
           <div class="flex-1 min-w-0">
-            <p class="contact-title">{{ t('budget.public.needHelp') }}</p>
-            <p class="contact-name">{{ meta.clinic_name }}</p>
+            <p class="contact-title">
+              {{ t('budget.public.needHelp') }}
+            </p>
+            <p class="contact-name">
+              {{ meta.clinic_name }}
+            </p>
           </div>
           <div class="flex gap-2 shrink-0">
             <a
@@ -516,14 +593,20 @@ const greeting = computed(() => {
               :href="`tel:${meta.clinic_phone}`"
               class="contact-action"
             >
-              <UIcon name="i-lucide-phone" class="w-4 h-4" />
+              <UIcon
+                name="i-lucide-phone"
+                class="w-4 h-4"
+              />
             </a>
             <a
               v-if="meta.clinic_email"
               :href="`mailto:${meta.clinic_email}`"
               class="contact-action"
             >
-              <UIcon name="i-lucide-mail" class="w-4 h-4" />
+              <UIcon
+                name="i-lucide-mail"
+                class="w-4 h-4"
+              />
             </a>
           </div>
         </div>
@@ -531,11 +614,19 @@ const greeting = computed(() => {
 
       <!-- Mobile sticky CTA -->
       <div class="mobile-cta md:hidden">
-        <UButton color="primary" size="xl" block @click="showAccept = true">
+        <UButton
+          color="primary"
+          size="xl"
+          block
+          @click="showAccept = true"
+        >
           {{ t('budget.public.cta_accept') }}
         </UButton>
         <div class="mobile-cta-secondary">
-          <button type="button" @click="showReject = true">
+          <button
+            type="button"
+            @click="showReject = true"
+          >
             {{ t('budget.public.cta_reject') }}
           </button>
         </div>
@@ -547,12 +638,21 @@ const greeting = computed(() => {
       <template #content>
         <UCard>
           <template #header>
-            <h3 class="text-lg font-semibold">{{ t('budget.public.accept.title') }}</h3>
+            <h3 class="text-lg font-semibold">
+              {{ t('budget.public.accept.title') }}
+            </h3>
           </template>
 
           <div class="space-y-4">
-            <UFormField :label="t('budget.public.accept.signerLabel')" required>
-              <UInput v-model="signerName" autofocus size="lg" />
+            <UFormField
+              :label="t('budget.public.accept.signerLabel')"
+              required
+            >
+              <UInput
+                v-model="signerName"
+                autofocus
+                size="lg"
+              />
             </UFormField>
 
             <div>
@@ -582,16 +682,26 @@ const greeting = computed(() => {
               </UButton>
             </div>
 
-            <UCheckbox v-model="consentChecked" :label="t('budget.public.accept.consent')" />
+            <UCheckbox
+              v-model="consentChecked"
+              :label="t('budget.public.accept.consent')"
+            />
 
-            <p v-if="decisionError" class="text-sm text-red-600">
+            <p
+              v-if="decisionError"
+              class="text-sm text-red-600"
+            >
               {{ decisionError }}
             </p>
           </div>
 
           <template #footer>
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showAccept = false">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="showAccept = false"
+              >
                 {{ t('common.cancel') }}
               </UButton>
               <UButton
@@ -613,7 +723,9 @@ const greeting = computed(() => {
       <template #content>
         <UCard>
           <template #header>
-            <h3 class="text-lg font-semibold">{{ t('budget.public.reject.title') }}</h3>
+            <h3 class="text-lg font-semibold">
+              {{ t('budget.public.reject.title') }}
+            </h3>
           </template>
 
           <div class="space-y-4">
@@ -621,23 +733,43 @@ const greeting = computed(() => {
               {{ t('budget.public.reject.intro') }}
             </p>
             <UFormField :label="t('budget.public.reject.reasonLabel')">
-              <USelect v-model="rejectReason" :items="reasonOptions" class="w-full" />
+              <USelect
+                v-model="rejectReason"
+                :items="reasonOptions"
+                class="w-full"
+              />
             </UFormField>
             <UFormField :label="t('budget.public.reject.noteLabel')">
-              <UTextarea v-model="rejectNote" :rows="3" :maxlength="2000" />
+              <UTextarea
+                v-model="rejectNote"
+                :rows="3"
+                :maxlength="2000"
+              />
             </UFormField>
 
-            <p v-if="decisionError" class="text-sm text-red-600">
+            <p
+              v-if="decisionError"
+              class="text-sm text-red-600"
+            >
               {{ decisionError }}
             </p>
           </div>
 
           <template #footer>
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showReject = false">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="showReject = false"
+              >
                 {{ t('common.cancel') }}
               </UButton>
-              <UButton color="error" :loading="submitting" :disabled="submitting" @click="onRejectSubmit">
+              <UButton
+                color="error"
+                :loading="submitting"
+                :disabled="submitting"
+                @click="onRejectSubmit"
+              >
                 {{ t('budget.public.reject.submit') }}
               </UButton>
             </div>
@@ -645,7 +777,6 @@ const greeting = computed(() => {
         </UCard>
       </template>
     </UModal>
-
   </div>
 </template>
 

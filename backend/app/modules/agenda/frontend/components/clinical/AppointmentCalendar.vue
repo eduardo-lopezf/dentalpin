@@ -41,7 +41,7 @@ watch(() => props.highlightedAppointmentId, (newId) => {
   }
 }, { immediate: true })
 
-const { t, locale } = useI18n()
+const { locale } = useI18n()
 
 // Time slots configuration. START_HOUR/END_HOUR default to 8–21 and
 // get narrowed to the actual clinic opening hours when the schedules
@@ -383,7 +383,6 @@ function handleAppointmentClick(appointment: Appointment, event: Event) {
   emit('appointment-click', appointment)
 }
 
-
 // Check if two appointments overlap in time
 function appointmentsOverlap(apt1: Appointment, apt2: Appointment): boolean {
   const start1 = new Date(apt1.start_time).getTime()
@@ -675,7 +674,10 @@ const allAppointmentsWithDayIndex = computed(() => {
                       @click.stop
                       @pointerdown.stop
                     >
-                      <AppointmentQuickActions :appointment="appointment" dense />
+                      <AppointmentQuickActions
+                        :appointment="appointment"
+                        dense
+                      />
                     </div>
                     <div class="flex items-center gap-1 min-h-[18px] pr-5 pl-5">
                       <UIcon

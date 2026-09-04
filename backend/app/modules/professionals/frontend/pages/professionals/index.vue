@@ -239,7 +239,7 @@ async function save() {
     isModalOpen.value = false
     await load()
   } catch (err) {
-    const message = (err as { data?: { message?: string; detail?: string } })?.data
+    const message = (err as { data?: { message?: string, detail?: string } })?.data
     toast.add({
       title: t('common.error'),
       description: message?.message || message?.detail || t('professionals.errors.save'),
@@ -398,7 +398,12 @@ onMounted(async () => {
           v-if="can(PERMISSIONS.professionals.write) && !search && typeFilter === 'all' && !showInactive"
           #actions
         >
-          <UButton color="primary" variant="soft" icon="i-lucide-plus" @click="openCreate">
+          <UButton
+            color="primary"
+            variant="soft"
+            icon="i-lucide-plus"
+            @click="openCreate"
+          >
             {{ t('professionals.create') }}
           </UButton>
         </template>
@@ -406,11 +411,20 @@ onMounted(async () => {
     </template>
 
     <template #rows>
-      <DataListItem v-for="professional in professionals" :key="professional.id">
+      <DataListItem
+        v-for="professional in professionals"
+        :key="professional.id"
+      >
         <template #row>
-          <UAvatar :src="professional.photo_url || undefined" :alt="professional.full_name" size="sm" />
+          <UAvatar
+            :src="professional.photo_url || undefined"
+            :alt="professional.full_name"
+            size="sm"
+          />
           <div class="flex-1 min-w-0">
-            <p class="text-ui text-default truncate">{{ professional.full_name }}</p>
+            <p class="text-ui text-default truncate">
+              {{ professional.full_name }}
+            </p>
             <p class="text-caption text-subtle truncate">
               {{ specialtyLabel(professional) || labelForType(professional.professional_type) }}
               <span v-if="professional.license_number"> · {{ t('professionals.licenseShort') }} {{ professional.license_number }}</span>
@@ -419,7 +433,10 @@ onMounted(async () => {
           <span class="hidden lg:block text-caption text-subtle truncate max-w-52">
             {{ professional.email || professional.phone || '—' }}
           </span>
-          <UBadge :color="professional.is_active ? 'success' : 'neutral'" variant="subtle">
+          <UBadge
+            :color="professional.is_active ? 'success' : 'neutral'"
+            variant="subtle"
+          >
             {{ t(professional.is_active ? 'professionals.status.active' : 'professionals.status.inactive') }}
           </UBadge>
           <UButton
@@ -435,14 +452,23 @@ onMounted(async () => {
 
         <template #card>
           <div class="flex items-center gap-3">
-            <UAvatar :src="professional.photo_url || undefined" :alt="professional.full_name" size="md" />
+            <UAvatar
+              :src="professional.photo_url || undefined"
+              :alt="professional.full_name"
+              size="md"
+            />
             <div class="flex-1 min-w-0">
-              <p class="font-medium text-default truncate">{{ professional.full_name }}</p>
+              <p class="font-medium text-default truncate">
+                {{ professional.full_name }}
+              </p>
               <p class="text-caption text-subtle truncate">
                 {{ specialtyLabel(professional) || labelForType(professional.professional_type) }}
               </p>
             </div>
-            <UBadge :color="professional.is_active ? 'success' : 'neutral'" variant="subtle">
+            <UBadge
+              :color="professional.is_active ? 'success' : 'neutral'"
+              variant="subtle"
+            >
               {{ t(professional.is_active ? 'professionals.status.active' : 'professionals.status.inactive') }}
             </UBadge>
           </div>
@@ -468,12 +494,23 @@ onMounted(async () => {
       <UCard>
         <template #header>
           <div class="flex items-center justify-between gap-3">
-            <h2 class="text-h1 text-default">{{ modalTitle }}</h2>
-            <UButton variant="ghost" color="neutral" icon="i-lucide-x" :aria-label="t('common.close')" @click="isModalOpen = false" />
+            <h2 class="text-h1 text-default">
+              {{ modalTitle }}
+            </h2>
+            <UButton
+              variant="ghost"
+              color="neutral"
+              icon="i-lucide-x"
+              :aria-label="t('common.close')"
+              @click="isModalOpen = false"
+            />
           </div>
         </template>
 
-        <form class="space-y-4" @submit.prevent="save">
+        <form
+          class="space-y-4"
+          @submit.prevent="save"
+        >
           <div class="flex items-center gap-4">
             <div class="relative shrink-0">
               <UAvatar
@@ -501,19 +538,37 @@ onMounted(async () => {
                 @change="onPhotoFileSelected"
               >
             </div>
-            <p v-if="!editingId" class="text-caption text-subtle">
+            <p
+              v-if="!editingId"
+              class="text-caption text-subtle"
+            >
               {{ t('professionals.photoAfterSave') }}
             </p>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <UFormField :label="t('professionals.firstName')" required>
-              <UInput v-model="form.first_name" required />
+            <UFormField
+              :label="t('professionals.firstName')"
+              required
+            >
+              <UInput
+                v-model="form.first_name"
+                required
+              />
             </UFormField>
-            <UFormField :label="t('professionals.lastName')" required>
-              <UInput v-model="form.last_name" required />
+            <UFormField
+              :label="t('professionals.lastName')"
+              required
+            >
+              <UInput
+                v-model="form.last_name"
+                required
+              />
             </UFormField>
           </div>
-          <UFormField :label="t('professionals.type')" required>
+          <UFormField
+            :label="t('professionals.type')"
+            required
+          >
             <USelect
               v-model="form.professional_type"
               :items="typeOptions"
@@ -543,22 +598,37 @@ onMounted(async () => {
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField :label="t('professionals.email')">
-              <UInput v-model="form.email" type="email" />
+              <UInput
+                v-model="form.email"
+                type="email"
+              />
             </UFormField>
             <UFormField :label="t('professionals.phone')">
-              <UInput v-model="form.phone" type="tel" />
+              <UInput
+                v-model="form.phone"
+                type="tel"
+              />
             </UFormField>
           </div>
           <UFormField :label="t('professionals.notes')">
-            <UTextarea v-model="form.notes" :rows="3" />
+            <UTextarea
+              v-model="form.notes"
+              :rows="3"
+            />
           </UFormField>
           <div class="flex items-center gap-4">
-            <UCheckbox v-model="form.is_active" :label="t('professionals.status.active')" />
+            <UCheckbox
+              v-model="form.is_active"
+              :label="t('professionals.status.active')"
+            />
             <span
               v-if="editingHasSystemAccess"
               class="flex items-center gap-1 text-caption text-success-accent"
             >
-              <UIcon name="i-lucide-check-circle-2" class="size-4" />
+              <UIcon
+                name="i-lucide-check-circle-2"
+                class="size-4"
+              />
               {{ t('professionals.status.hasSystemAccess') }}
             </span>
           </div>
@@ -566,8 +636,19 @@ onMounted(async () => {
 
         <template #footer>
           <div class="flex justify-end gap-3">
-            <UButton variant="outline" color="neutral" @click="isModalOpen = false">{{ t('common.cancel') }}</UButton>
-            <UButton color="primary" :loading="isSaving" :disabled="!form.first_name.trim() || !form.last_name.trim()" @click="save">
+            <UButton
+              variant="outline"
+              color="neutral"
+              @click="isModalOpen = false"
+            >
+              {{ t('common.cancel') }}
+            </UButton>
+            <UButton
+              color="primary"
+              :loading="isSaving"
+              :disabled="!form.first_name.trim() || !form.last_name.trim()"
+              @click="save"
+            >
               {{ t('common.save') }}
             </UButton>
           </div>

@@ -599,7 +599,11 @@
         "osteotomy_sagittal_ramus": "Sagittal split ramus osteotomy",
         "genioplasty": "Genioplasty",
         "osteosynthesis": "Osteosynthesis",
-        "osteosynthesis_removal": "Osteosynthesis removal"
+        "osteosynthesis_removal": "Osteosynthesis removal",
+        "consultation": "Consultation",
+        "checkup": "Check-up",
+        "imaging": "Imaging",
+        "hygiene": "Hygiene"
       },
       "treatmentAdded": "Treatment added",
       "treatmentPerformed": "Treatment marked as performed",
@@ -1502,7 +1506,8 @@
       "labelPlaceholder": "e.g. Impressions",
       "price": "Amount",
       "add": "Add session",
-      "sumStatus": "Sum {sum} € · Total {total} €"
+      "sumStatus": "Sum {sum} € · Total {total} €",
+      "labelColumn": "Session"
     },
     "categoryCreated": "Category created",
     "categoryUpdated": "Category updated",
@@ -1525,7 +1530,7 @@
     "cannotDeleteSystemItem": "Cannot delete a system treatment",
     "odontogramMapping": "Odontogram Visualization",
     "odontogramMappingDescription": "Associate this treatment with an odontogram visualization type so it appears in the patient chart.",
-    "odontogramType": "Treatment type",
+    "odontogramType": "Odontogram drawing",
     "clinicalCategory": "Clinical category",
     "noOdontogramMapping": "No association",
     "odontogramMappingHint": "Treatment characteristics will be automatically adjusted based on the selected type.",
@@ -1554,7 +1559,39 @@
       "estetica": "Elective aesthetics",
       "mantenimiento": "Maintenance"
     },
-    "visible": "Visible"
+    "visible": "Visible",
+    "sections": {
+      "what": "What it is",
+      "where": "Where it applies",
+      "money": "Price and duration",
+      "advanced": "Advanced settings"
+    },
+    "treatmentType": "Treatment type",
+    "namePlaceholder": "e.g. Composite filling",
+    "performedBy": "Performed by",
+    "performedByHelp": "Suggested by the type. Change it if another discipline does it here.",
+    "selectSpecialty": "Select specialty",
+    "placement": {
+      "tooth_surfaces": "One or more surfaces of a tooth",
+      "whole_tooth": "A whole tooth",
+      "several_teeth": "Several teeth",
+      "arch": "One arch",
+      "mouth": "The whole mouth"
+    },
+    "placementHelp": "The one clinical question that cannot be deduced: scope, surfaces and price calculation all follow from it.",
+    "phase": "Plan phase",
+    "codeAutoHelp": "Generated from the type and the name.",
+    "odontogramTypeHelp": "How it is drawn on the chart. Without it the treatment never reaches the plan builder.",
+    "derived": {
+      "title": "Configured automatically · reviewable",
+      "code": "Code",
+      "phase": "Plan phase",
+      "scope": "Scope",
+      "pricing": "Price calculation",
+      "barTab": "Odontogram tab",
+      "chart": "Odontogram drawing"
+    },
+    "placementFixed": "This kind of treatment always applies this way."
   },
   "placeholders": {
     "selectRole": "Select role..."

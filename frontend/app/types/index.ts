@@ -422,7 +422,12 @@ export interface OdontogramHistoryEntry {
 // API boundary.
 export type TreatmentStatus = 'existing' | 'planned'
 export type TreatmentCategory = 'surface' | 'whole_tooth'
-export type TreatmentClinicalCategory = 'diagnostico' | 'restauradora' | 'cirugia' | 'endodoncia' | 'ortodoncia'
+// Mirrors the catalog's category keys — a mapping's `clinical_category`
+// picks the tab of the odontogram bar, and the tab is labelled from the
+// catalog category of the same key.
+export type TreatmentClinicalCategory
+  = 'diagnostico' | 'restauradora' | 'cirugia' | 'endodoncia' | 'ortodoncia'
+    | 'preventivo' | 'periodoncia' | 'protesis' | 'estetica' | 'pediatrica'
 export type VisualizationLayer = 'pulp_fill' | 'occlusal_surface' | 'lateral_icon' | 'cenital_pattern'
 
 /** Clinical type (visualization key). Not a billable concept — pricing is in the catalog. */
@@ -477,6 +482,12 @@ export type ClinicalType
     | 'genioplasty'
     | 'osteosynthesis'
     | 'osteosynthesis_removal'
+    // Proceso — la visita en sí, no trabajo sobre una estructura. Igual que
+    // los esqueléticos: llegan como ítems global_mouth y no pintan nada.
+    | 'consultation'
+    | 'checkup'
+    | 'imaging'
+    | 'hygiene'
 
 /** @deprecated — kept for gradual migration; prefer ClinicalType. */
 export type TreatmentType = ClinicalType
@@ -649,6 +660,9 @@ export interface VatTypeBrief {
 export interface Specialty {
   id: string
   clinic_id: string
+  /** Stable key of a seeded specialty (`cirugia`, `endodoncia`…); null when the
+   *  clinic created it. Match on this, never on the display name. */
+  key?: string | null
   names: Record<string, string>
   is_active: boolean
   created_at: string
@@ -821,6 +835,10 @@ export interface TreatmentCatalogItemCreate {
   sessions?: CatalogItemSessionInput[]
   /** Listed on the clinical /treatments page. Defaults to true. */
   is_visible?: boolean
+  /** Stage of care this treatment usually belongs to. */
+  default_phase?: TreatmentPhase | null
+  /** Disciplines that perform it. Replaces the assignment when present. */
+  specialty_ids?: string[]
 }
 
 export interface TreatmentCatalogItemUpdate {
@@ -845,6 +863,10 @@ export interface TreatmentCatalogItemUpdate {
   is_visible?: boolean
   odontogram_mapping?: OdontogramMappingCreate
   sessions?: CatalogItemSessionInput[]
+  /** Stage of care this treatment usually belongs to. */
+  default_phase?: TreatmentPhase | null
+  /** Disciplines that perform it. Replaces the assignment when present. */
+  specialty_ids?: string[]
 }
 
 /** Layered visualization rule. Each layer renders on top of the previous. */

@@ -33,7 +33,10 @@ export function useVatTypes() {
   function getVatTypeLabel(vt: VatType | undefined): string {
     if (!vt) return ''
     const name = getVatTypeName(vt)
-    return `${name} (${vt.rate}%)`
+    // Seeded names already spell the rate out ("General (16%)"), so appending
+    // it printed "General (16%) (16%)". The rate lives in `vt.rate`; a name
+    // that also states it wins, and we do not repeat ourselves.
+    return /\(\s*[\d.,]+\s*%\s*\)/.test(name) ? name : `${name} (${vt.rate}%)`
   }
 
   // Get VAT type by ID

@@ -36,7 +36,11 @@ function formatDate(iso: string): string {
       <UIcon name="i-lucide-history" />
       <span>Viendo sesión del <strong>{{ formatDate(date) }}</strong> (solo lectura).</span>
     </div>
-    <UButton variant="outline" size="xs" @click="emit('returnToCurrent')">
+    <UButton
+      variant="outline"
+      size="xs"
+      @click="emit('returnToCurrent')"
+    >
       Volver al actual
     </UButton>
   </div>

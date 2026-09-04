@@ -2,6 +2,74 @@
 
 ## Unreleased
 
+- feat(catalog): the alta form asks four questions instead of fifteen.
+  Name, treatment type, who performs it and where in the mouth it applies —
+  everything else is deduced and shown in a reviewable panel. The tabs are
+  gone: a dentist adds a treatment a handful of times a year and needs to see
+  it whole. Derivation tables live in
+  `frontend/config/treatmentDefaults.ts`, covered by
+  `frontend/tests/catalog/treatmentDefaults.test.ts`.
+
+  From the type come the specialty, the plan phase, the odontogram bar tab and
+  the chart type; from "where it applies" come the scope, whether surfaces are
+  asked for, and the pricing strategy. `is_diagnostic` follows the type and
+  the internal code is generated from type + name, so nobody mints a unique
+  key by hand. The mapping is always sent — without one the treatment never
+  reaches the plan builder — and is surfaced in the panel rather than set
+  silently. Cost price leaves the form entirely: nothing reads it, and the
+  column stays for the day a margin report wants it.
+
+- feat(catalog): "where it applies" now offers only the placements that mean
+  something for the chosen type. Endodontics is a single tooth and nothing
+  else, so the row states it instead of offering five buttons; diagnosis is a
+  whole mouth or one tooth — a periapical radiograph is of a tooth, which is
+  why it cannot be pinned to the mouth. Kinds that are a single act
+  (diagnosis, prevention) no longer offer session billing: a consultation or a
+  fluoride application either happens or it does not.
+
+  Editing is the exception to the constraint. An item already saved outside
+  its type's list keeps its placement offered, so opening and saving an old
+  record never migrates its scope — `Férula de descarga` is a real case, an
+  arch-wide item filed under Restauradora.
+
+- fix(catalog UI): "Nuevo tratamiento" opens on a clean form again. The
+  populate step watched `props.item`, which stays null across two creations in
+  a row — null to null is not a change, so the second form opened still
+  carrying the first one's answers. It now also runs when the modal opens.
+
+- fix(catalog UI): the chart type is a dropdown of the types that fit, not a
+  free text box. Correcting the suggestion used to mean knowing the value is
+  spelled `imaging` — nothing on screen said so. The shortlist is narrowed by
+  type and placement: twelve findings for a tooth-scoped diagnostic item, the
+  four visit-level types for a whole-mouth one, plus the skeletal ones for
+  whole-mouth surgery. Labels are the localized names, never the identifiers.
+
+- fix(catalog UI): the field was labelled "Tipo de tratamiento", the same as
+  the item's own type two rows above. It is now "Dibujo en el odontograma",
+  matching the row it feeds in the derived panel — one concept, one name.
+
+- fix(catalog UI): picking a type on a new treatment now carries its placement
+  with it, so Diagnóstico lands on "toda la boca" instead of leaving "un
+  diente completo" over from the previous type. The watcher used to bail when
+  there was no previous type, which is exactly the first selection. Editing
+  still never rewrites a saved placement.
+
+- fix(catalog UI): the currency was rendered as a leading adornment, where the
+  three-letter code MXN overlapped the amount; `useCurrency().symbol` says in
+  its own comment that it is meant for suffixes. And the VAT select printed
+  "General (16%) (16%)" — the seeded name already spells the rate out, so the
+  label no longer appends it a second time.
+
+- feat(catalog API): `specialty_ids` on item create/update. Assignment was
+  only possible from the specialty side (`PUT /specialties/{id}/items`), which
+  is a full replace and needs `catalog.admin` — unusable from an item form
+  gated by `catalog.write`. Ids are resolved against the caller's clinic; an
+  unknown one is a 400, not a 500.
+
+- feat(catalog API): `/specialties` returns each specialty's `key`. The UI
+  needs to match a specialty by meaning (`cirugia`) rather than by a display
+  name the clinic may rename.
+
 - fix(money): `formatPrice` takes `Money`; the VAT edit form converts the
   rate at the boundary instead of assuming a number.
 

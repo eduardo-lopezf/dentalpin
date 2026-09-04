@@ -353,7 +353,10 @@ const hasAnyEntry = computed(() => entries.value.length > 0)
           >
             {{ countForDay(d) }}
           </span>
-          <span v-else class="h-[14px]" />
+          <span
+            v-else
+            class="h-[14px]"
+          />
         </button>
       </div>
 
@@ -373,7 +376,10 @@ const hasAnyEntry = computed(() => entries.value.length > 0)
 
     <!-- Timeline body -->
     <div class="flex-1 overflow-y-auto pb-24">
-      <div v-if="isLoading" class="p-6 flex justify-center">
+      <div
+        v-if="isLoading"
+        class="p-6 flex justify-center"
+      >
         <UIcon
           name="i-lucide-loader-2"
           class="w-8 h-8 animate-spin"
@@ -385,7 +391,10 @@ const hasAnyEntry = computed(() => entries.value.length > 0)
         v-else-if="!resource"
         class="p-6 flex flex-col items-center gap-3 text-center"
       >
-        <UIcon name="i-lucide-user-round-search" class="w-10 h-10 text-subtle" />
+        <UIcon
+          name="i-lucide-user-round-search"
+          class="w-10 h-10 text-subtle"
+        />
         <p class="text-ui text-muted">
           {{ resourceKind === 'professional'
             ? t('appointments.noProfessionals')
@@ -397,7 +406,10 @@ const hasAnyEntry = computed(() => entries.value.length > 0)
         v-else-if="!hasAnyEntry"
         class="p-6 flex flex-col items-center gap-3 text-center"
       >
-        <UIcon name="i-lucide-calendar-x" class="w-10 h-10 text-subtle" />
+        <UIcon
+          name="i-lucide-calendar-x"
+          class="w-10 h-10 text-subtle"
+        />
         <p class="text-ui text-muted">
           {{ t('appointments.emptyDay', 'No hay citas este día') }}
         </p>

@@ -599,7 +599,11 @@
         "osteotomy_sagittal_ramus": "Osteotomía sagital de rama",
         "genioplasty": "Mentoplastia",
         "osteosynthesis": "Osteosíntesis",
-        "osteosynthesis_removal": "Retirada de osteosíntesis"
+        "osteosynthesis_removal": "Retirada de osteosíntesis",
+        "consultation": "Consulta",
+        "checkup": "Revisión",
+        "imaging": "Radiología",
+        "hygiene": "Higiene"
       },
       "treatmentAdded": "Tratamiento añadido",
       "treatmentPerformed": "Tratamiento marcado como realizado",
@@ -1502,7 +1506,8 @@
       "labelPlaceholder": "Ej. Toma de medidas",
       "price": "Importe",
       "add": "Añadir sesión",
-      "sumStatus": "Suma {sum} € · Total {total} €"
+      "sumStatus": "Suma {sum} € · Total {total} €",
+      "labelColumn": "Sesión"
     },
     "categoryCreated": "Categoría creada",
     "categoryUpdated": "Categoría actualizada",
@@ -1525,7 +1530,7 @@
     "cannotDeleteSystemItem": "No se puede eliminar un tratamiento del sistema",
     "odontogramMapping": "Visualización en Odontograma",
     "odontogramMappingDescription": "Asocia este tratamiento con un tipo de visualización del odontograma para que aparezca en la ficha del paciente.",
-    "odontogramType": "Tipo de tratamiento",
+    "odontogramType": "Dibujo en el odontograma",
     "clinicalCategory": "Categoría clínica",
     "noOdontogramMapping": "Sin asociación",
     "odontogramMappingHint": "Las características del tratamiento se ajustarán automáticamente según el tipo seleccionado.",
@@ -1554,7 +1559,39 @@
       "estetica": "Estética electiva",
       "mantenimiento": "Mantenimiento"
     },
-    "visible": "Visible"
+    "visible": "Visible",
+    "sections": {
+      "what": "Qué es",
+      "where": "Dónde se aplica",
+      "money": "Precio y duración",
+      "advanced": "Ajustes avanzados"
+    },
+    "treatmentType": "Tipo de tratamiento",
+    "namePlaceholder": "Ej: Obturación composite",
+    "performedBy": "La realiza",
+    "performedByHelp": "Sugerida por el tipo. Cámbiala si en tu clínica lo hace otra.",
+    "selectSpecialty": "Seleccionar especialidad",
+    "placement": {
+      "tooth_surfaces": "Una o varias caras de un diente",
+      "whole_tooth": "Un diente completo",
+      "several_teeth": "Varios dientes",
+      "arch": "Una arcada",
+      "mouth": "Toda la boca"
+    },
+    "placementHelp": "Es la única pregunta clínica que no se puede deducir: de ella salen el ámbito, las caras y el cálculo del precio.",
+    "phase": "Fase del plan",
+    "codeAutoHelp": "Se genera solo a partir del tipo y el nombre.",
+    "odontogramTypeHelp": "Cómo se representa en el odontograma. Sin esto el tratamiento no aparece en el planificador.",
+    "derived": {
+      "title": "Se configura solo · revisable",
+      "code": "Código",
+      "phase": "Fase del plan",
+      "scope": "Ámbito",
+      "pricing": "Cálculo del precio",
+      "barTab": "Pestaña del odontograma",
+      "chart": "Dibujo en el odontograma"
+    },
+    "placementFixed": "Este tipo de tratamiento se aplica siempre así."
   },
   "placeholders": {
     "selectRole": "Seleccionar rol..."

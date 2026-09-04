@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { InvoiceItemCreate, Patient, VatType } from '~~/app/types'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()

@@ -14,9 +14,10 @@
 // path in a type-only import did not resolve anywhere (it pointed inside
 // this layer), so the mode union is declared here instead of reaching
 // across a module boundary for it.
-type ClinicalMode = 'history' | 'diagnosis' | 'plans' | 'appointments'
 import type { TreatmentPlan } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+
+type ClinicalMode = 'history' | 'diagnosis' | 'plans' | 'appointments'
 
 const props = defineProps<{
   patientId: string

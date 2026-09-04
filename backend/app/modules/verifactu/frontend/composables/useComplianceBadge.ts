@@ -20,14 +20,14 @@ const SEVERITY_TO_COLOR: Record<ComplianceSeverity, ComplianceBadgeData['color']
   ok: 'success',
   warning: 'warning',
   pending: 'info',
-  error: 'error',
+  error: 'error'
 }
 
 const SEVERITY_TO_ICON: Record<ComplianceSeverity, string> = {
   ok: 'i-lucide-check',
   warning: 'i-lucide-alert-triangle',
   pending: 'i-lucide-clock-3',
-  error: 'i-lucide-x',
+  error: 'i-lucide-x'
 }
 
 // Mirrors backend ``services/severity.py``. Used as a fallback when
@@ -57,8 +57,8 @@ export function useComplianceBadge(
     const state = (es.state as string | null | undefined) ?? null
     const errorCode = (es.error_code as number | null | undefined) ?? null
     const errorMessage = (es.error_message as string | null | undefined) ?? null
-    const severity: ComplianceSeverity =
-      (es.severity as ComplianceSeverity | undefined) || deriveSeverity(state, errorCode)
+    const severity: ComplianceSeverity
+      = (es.severity as ComplianceSeverity | undefined) || deriveSeverity(state, errorCode)
 
     const tooltipBase = t(`verifactu.badge.tooltip.${severity}`)
     const tooltip = errorMessage && severity === 'error'
@@ -73,7 +73,7 @@ export function useComplianceBadge(
       tooltip,
       errorMessage,
       state,
-      errorCode,
+      errorCode
     }
   })
 }

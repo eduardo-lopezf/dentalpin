@@ -5,7 +5,7 @@
  * All odontogram components should import from here instead of defining locally.
  */
 
-import type { MultiToothTreatmentConfig } from '~/types'
+import type { MultiToothTreatmentConfig, TreatmentClinicalCategory } from '~/types'
 
 // ============================================================================
 // Visualization Rules
@@ -437,7 +437,10 @@ export function isUpperTooth(toothNumber: number): boolean {
 // Treatment Category Definitions (for TreatmentBar)
 // ============================================================================
 
-export type TreatmentClinicalCategory = 'diagnostico' | 'restauradora' | 'cirugia' | 'endodoncia' | 'ortodoncia'
+// Re-exported for the many components that import it from here. Not
+// redefined: this file used to keep its own five-value copy while `~/types`
+// had ten, so widening one left the other behind.
+export type { TreatmentClinicalCategory }
 
 /**
  * Categories that are diagnostic (existing conditions only, not treatments).
@@ -447,8 +450,25 @@ export const DIAGNOSTIC_CATEGORIES: TreatmentClinicalCategory[] = ['diagnostico'
 
 /**
  * Categories that are therapeutic (actual treatments that can be planned).
+ *
+ * Everything except `diagnostico`, which holds findings — caries, fractures,
+ * periapical lesions — that you record but never plan. The list used to stop
+ * at the four with a built-in palette, which silently hid every mapped
+ * periodontal, preventive and paediatric treatment from the plan builder.
+ * Billable diagnostic *acts* (first visit, imaging) are whole-mouth items and
+ * reach the bar through the globals tab, so they are unaffected.
  */
-export const THERAPEUTIC_CATEGORIES: TreatmentClinicalCategory[] = ['restauradora', 'cirugia', 'endodoncia', 'ortodoncia']
+export const THERAPEUTIC_CATEGORIES: TreatmentClinicalCategory[] = [
+  'restauradora',
+  'cirugia',
+  'endodoncia',
+  'ortodoncia',
+  'preventivo',
+  'periodoncia',
+  'protesis',
+  'estetica',
+  'pediatrica'
+]
 
 export const TREATMENT_CATEGORIES: Array<{
   key: TreatmentClinicalCategory
@@ -588,7 +608,12 @@ export const CATEGORY_STATUS_RESTRICTIONS: Record<TreatmentClinicalCategory, Tre
   restauradora: ['existing', 'planned'],
   cirugia: ['existing', 'planned'],
   endodoncia: ['existing', 'planned'],
-  ortodoncia: ['existing', 'planned']
+  ortodoncia: ['existing', 'planned'],
+  preventivo: ['existing', 'planned'],
+  periodoncia: ['existing', 'planned'],
+  protesis: ['existing', 'planned'],
+  estetica: ['existing', 'planned'],
+  pediatrica: ['existing', 'planned']
 }
 
 /**

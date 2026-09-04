@@ -232,6 +232,17 @@ class TreatmentType(StrEnum):
     OSTEOSYNTHESIS = "osteosynthesis"  # Plate/screw fixation of the osteotomised segments.
     OSTEOSYNTHESIS_REMOVAL = "osteosynthesis_removal"  # Deferred hardware removal.
 
+    # Proceso (Process) — the visit itself rather than work on a structure:
+    # examination, imaging, hygiene. Billable, plannable, and not attached to
+    # any tooth. Same treatment as the skeletal block above: absent from the
+    # per-tooth palette and from the drawing rules, reached as a
+    # ``global_mouth`` catalog item. Without these a first visit had to borrow
+    # ``extraction`` to satisfy the mapping.
+    CONSULTATION = "consultation"  # First visit, second opinion, urgent visit.
+    CHECKUP = "checkup"  # Periodic review of a known patient.
+    IMAGING = "imaging"  # Panoramic, periapical, CBCT, cephalometric, photos.
+    HYGIENE = "hygiene"  # Scaling, prophylaxis, fluoride, hygiene instruction.
+
 
 class VisualizationRule(StrEnum):
     """Visualization rules for rendering treatments."""
@@ -243,13 +254,27 @@ class VisualizationRule(StrEnum):
 
 
 class TreatmentClinicalCategory(StrEnum):
-    """Clinical categories for treatments (used in TreatmentBar)."""
+    """Clinical categories for treatments (used in TreatmentBar).
+
+    Mirrors the catalog's category keys: a mapping's ``clinical_category``
+    decides which tab of the bar an item lands in, and the tab takes its
+    label from the catalog category of the same key.
+
+    Only the first five carry a built-in findings palette in
+    ``TREATMENTS_BY_CATEGORY`` below; the rest reach the bar through the
+    catalog, which is where a clinic's own treatments live anyway.
+    """
 
     DIAGNOSTICO = "diagnostico"
     RESTAURADORA = "restauradora"
     CIRUGIA = "cirugia"
     ENDODONCIA = "endodoncia"
     ORTODONCIA = "ortodoncia"
+    PREVENTIVO = "preventivo"
+    PERIODONCIA = "periodoncia"
+    PROTESIS = "protesis"
+    ESTETICA = "estetica"
+    PEDIATRICA = "pediatrica"
 
 
 # Treatments by clinical category

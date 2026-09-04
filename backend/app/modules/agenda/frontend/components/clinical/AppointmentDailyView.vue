@@ -36,7 +36,7 @@ watch(() => props.highlightedAppointmentId, (newId) => {
   }
 }, { immediate: true })
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 // Time slots configuration. Narrowed to actual clinic hours via
 // schedules module; 8–21 fallback when that module is uninstalled.
@@ -182,13 +182,11 @@ const timeSlots = computed(() => {
   return slots
 })
 
-
 // Check if current date is today
 const isToday = computed(() => {
   const today = new Date()
   return props.currentDate.toDateString() === today.toDateString()
 })
-
 
 // Calculate slot index from time string
 function getSlotIndex(timeStr: string): number {
@@ -298,7 +296,10 @@ const appointmentsByProfId = computed(() => {
     const profId = apt.professional_id
     if (!profId) continue
     let bucket = map.get(profId)
-    if (!bucket) { bucket = []; map.set(profId, bucket) }
+    if (!bucket) {
+      bucket = []
+      map.set(profId, bucket)
+    }
     bucket.push(apt)
   }
   return map
@@ -530,7 +531,10 @@ const appointmentsByProfIndex = computed(() => {
                       @click.stop
                       @pointerdown.stop
                     >
-                      <AppointmentQuickActions :appointment="appointment" dense />
+                      <AppointmentQuickActions
+                        :appointment="appointment"
+                        dense
+                      />
                     </div>
                     <div class="flex items-center gap-1 min-h-[18px] pr-6">
                       <UIcon

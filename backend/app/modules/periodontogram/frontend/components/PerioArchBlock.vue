@@ -190,7 +190,9 @@ function selectOnFocus(e: FocusEvent) {
 <template>
   <section class="perio-arch-block rounded-lg border border-default bg-surface">
     <header class="flex items-center justify-between px-3 py-2">
-      <h4 class="text-xs font-semibold uppercase tracking-wide text-muted">{{ heading }}</h4>
+      <h4 class="text-xs font-semibold uppercase tracking-wide text-muted">
+        {{ heading }}
+      </h4>
       <span class="text-[10px] text-subtle">
         Vestibular (MV V DV) ↔ {{ innerFaceLabel }} (ML L DL)
       </span>
@@ -204,13 +206,17 @@ function selectOnFocus(e: FocusEvent) {
       class="perio-arch-table table-fixed border-collapse text-center font-mono text-[11px] leading-tight"
     >
       <colgroup>
-        <col style="width: 96px" />
-        <col v-for="t in orderedTeeth" :key="`col-${t.tooth_number}`" style="width: 60px" />
+        <col style="width: 96px">
+        <col
+          v-for="t in orderedTeeth"
+          :key="`col-${t.tooth_number}`"
+          style="width: 60px"
+        >
       </colgroup>
 
       <thead v-if="arch === 'upper'">
         <tr>
-          <th class="px-1 text-right font-medium text-muted"></th>
+          <th class="px-1 text-right font-medium text-muted" />
           <th
             v-for="t in orderedTeeth"
             :key="`fdi-${t.tooth_number}`"
@@ -222,11 +228,23 @@ function selectOnFocus(e: FocusEvent) {
       </thead>
 
       <!-- ============== UPPER ARCH ============== -->
-      <tbody v-if="arch === 'upper'" class="divide-y divide-gray-100 dark:divide-gray-800">
+      <tbody
+        v-if="arch === 'upper'"
+        class="divide-y divide-gray-100 dark:divide-gray-800"
+      >
         <!-- Implante (toggle ● / ·) -->
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Implante</th>
-          <td v-for="t in orderedTeeth" :key="`imp-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Implante
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`imp-${t.tooth_number}`"
+            class="px-1"
+          >
             <button
               class="perio-cell-cycle"
               :class="{ 'text-emerald-600 dark:text-emerald-400': t.is_implant }"
@@ -241,8 +259,17 @@ function selectOnFocus(e: FocusEvent) {
 
         <!-- Movilidad (cycle 0..3 + null) -->
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Movilidad</th>
-          <td v-for="t in orderedTeeth" :key="`mob-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Movilidad
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`mob-${t.tooth_number}`"
+            class="px-1"
+          >
             <button
               class="perio-cell-cycle"
               :disabled="readonly || !t.is_present"
@@ -256,8 +283,17 @@ function selectOnFocus(e: FocusEvent) {
 
         <!-- Pronóstico cycle -->
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Pronóstico</th>
-          <td v-for="t in orderedTeeth" :key="`pron-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Pronóstico
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`pron-${t.tooth_number}`"
+            class="px-1"
+          >
             <button
               class="perio-cell-cycle"
               :disabled="readonly || !t.is_present"
@@ -271,8 +307,17 @@ function selectOnFocus(e: FocusEvent) {
 
         <!-- Furca V / L cycles -->
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Furca V</th>
-          <td v-for="t in orderedTeeth" :key="`furv-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Furca V
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`furv-${t.tooth_number}`"
+            class="px-1"
+          >
             <button
               class="perio-cell-cycle"
               :disabled="readonly || !t.is_present"
@@ -284,8 +329,17 @@ function selectOnFocus(e: FocusEvent) {
           </td>
         </tr>
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Furca L/P</th>
-          <td v-for="t in orderedTeeth" :key="`furl-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Furca L/P
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`furl-${t.tooth_number}`"
+            class="px-1"
+          >
             <button
               class="perio-cell-cycle"
               :disabled="readonly || !t.is_present"
@@ -299,8 +353,17 @@ function selectOnFocus(e: FocusEvent) {
 
         <!-- Anchura encía (numeric input) -->
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Anchura encía</th>
-          <td v-for="t in orderedTeeth" :key="`kg-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Anchura encía
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`kg-${t.tooth_number}`"
+            class="px-1"
+          >
             <input
               type="number"
               min="0"
@@ -310,23 +373,37 @@ function selectOnFocus(e: FocusEvent) {
               class="perio-cell-input"
               @focus="selectOnFocus"
               @change="(e) => onToothNumberInput(t.tooth_number, 'keratinized_gingiva_mm', e)"
-            />
+            >
           </td>
         </tr>
 
         <!-- Vestibular site metrics — amber tint, sits above the V tooth row -->
-        <tr v-for="row in [
-          { kind: 'site-pd', label: 'Sondaje' },
-          { kind: 'site-gm', label: 'Margen' },
-          { kind: 'site-plaque', label: 'Placa' },
-          { kind: 'site-bop', label: 'Sangrado' }
-        ]" :key="`v-${row.kind}`" class="perio-row-vestibular">
-          <th scope="row" class="px-1 text-right font-medium text-amber-700 dark:text-amber-400">
+        <tr
+          v-for="row in [
+            { kind: 'site-pd', label: 'Sondaje' },
+            { kind: 'site-gm', label: 'Margen' },
+            { kind: 'site-plaque', label: 'Placa' },
+            { kind: 'site-bop', label: 'Sangrado' }
+          ]"
+          :key="`v-${row.kind}`"
+          class="perio-row-vestibular"
+        >
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-amber-700 dark:text-amber-400"
+          >
             {{ row.label }} <span class="text-[9px] text-amber-500 dark:text-amber-300/80">V</span>
           </th>
-          <td v-for="t in orderedTeeth" :key="`v-${row.kind}-${t.tooth_number}`" class="px-1">
+          <td
+            v-for="t in orderedTeeth"
+            :key="`v-${row.kind}-${t.tooth_number}`"
+            class="px-1"
+          >
             <div class="flex items-center justify-center gap-0.5 tabular-nums">
-              <template v-for="code in VESTIBULAR_SITES" :key="`v-${row.kind}-${t.tooth_number}-${code}`">
+              <template
+                v-for="code in VESTIBULAR_SITES"
+                :key="`v-${row.kind}-${t.tooth_number}-${code}`"
+              >
                 <input
                   v-if="row.kind === 'site-pd'"
                   type="number"
@@ -338,7 +415,7 @@ function selectOnFocus(e: FocusEvent) {
                   :title="`${code} sondaje (0–15 mm)`"
                   @focus="selectOnFocus"
                   @change="(e) => onSiteNumberInput(t.tooth_number, code, 'probing_depth_mm', e)"
-                />
+                >
                 <input
                   v-else-if="row.kind === 'site-gm'"
                   type="number"
@@ -350,7 +427,7 @@ function selectOnFocus(e: FocusEvent) {
                   :title="`${code} margen gingival (-5 a 10 mm)`"
                   @focus="selectOnFocus"
                   @change="(e) => onSiteNumberInput(t.tooth_number, code, 'gingival_margin_mm', e)"
-                />
+                >
                 <button
                   v-else-if="row.kind === 'site-plaque'"
                   type="button"
@@ -385,7 +462,10 @@ function selectOnFocus(e: FocusEvent) {
             class="px-1 text-right text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 perio-row-anchor"
           >
             Vestibular
-            <div class="perio-profile-anchor perio-profile-anchor--top" :style="{ width: profileOverlayWidth }">
+            <div
+              class="perio-profile-anchor perio-profile-anchor--top"
+              :style="{ width: profileOverlayWidth }"
+            >
               <PerioProfileStrip
                 :teeth="orderedTeeth"
                 face="vestibular"
@@ -393,8 +473,16 @@ function selectOnFocus(e: FocusEvent) {
               />
             </div>
           </th>
-          <td v-for="t in orderedTeeth" :key="`v-tooth-${t.tooth_number}`" class="px-0 align-top">
-            <PerioToothLateral :tooth="t" face="vestibular" :readonly="readonly" />
+          <td
+            v-for="t in orderedTeeth"
+            :key="`v-tooth-${t.tooth_number}`"
+            class="px-0 align-top"
+          >
+            <PerioToothLateral
+              :tooth="t"
+              face="vestibular"
+              :readonly="readonly"
+            />
           </td>
         </tr>
 
@@ -406,7 +494,10 @@ function selectOnFocus(e: FocusEvent) {
             class="px-1 text-right text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-400 perio-row-anchor"
           >
             {{ innerFaceLabel }}
-            <div class="perio-profile-anchor perio-profile-anchor--bottom" :style="{ width: profileOverlayWidth }">
+            <div
+              class="perio-profile-anchor perio-profile-anchor--bottom"
+              :style="{ width: profileOverlayWidth }"
+            >
               <PerioProfileStrip
                 :teeth="orderedTeeth"
                 :face="innerFace"
@@ -414,7 +505,11 @@ function selectOnFocus(e: FocusEvent) {
               />
             </div>
           </th>
-          <td v-for="t in orderedTeeth" :key="`p-tooth-${t.tooth_number}`" class="px-0 align-top">
+          <td
+            v-for="t in orderedTeeth"
+            :key="`p-tooth-${t.tooth_number}`"
+            class="px-0 align-top"
+          >
             <PerioToothLateral
               :tooth="t"
               :face="innerFace"
@@ -425,18 +520,32 @@ function selectOnFocus(e: FocusEvent) {
         </tr>
 
         <!-- Palatal site metrics — sky tint -->
-        <tr v-for="row in [
-          { kind: 'site-bop', label: 'Sangrado' },
-          { kind: 'site-plaque', label: 'Placa' },
-          { kind: 'site-gm', label: 'Margen' },
-          { kind: 'site-pd', label: 'Sondaje' }
-        ]" :key="`p-${row.kind}`" class="perio-row-palatal">
-          <th scope="row" class="px-1 text-right font-medium text-sky-700 dark:text-sky-400">
+        <tr
+          v-for="row in [
+            { kind: 'site-bop', label: 'Sangrado' },
+            { kind: 'site-plaque', label: 'Placa' },
+            { kind: 'site-gm', label: 'Margen' },
+            { kind: 'site-pd', label: 'Sondaje' }
+          ]"
+          :key="`p-${row.kind}`"
+          class="perio-row-palatal"
+        >
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-sky-700 dark:text-sky-400"
+          >
             {{ row.label }} <span class="text-[9px] text-sky-500 dark:text-sky-300/80">{{ innerFaceLabel.charAt(0) }}</span>
           </th>
-          <td v-for="t in orderedTeeth" :key="`p-${row.kind}-${t.tooth_number}`" class="px-1">
+          <td
+            v-for="t in orderedTeeth"
+            :key="`p-${row.kind}-${t.tooth_number}`"
+            class="px-1"
+          >
             <div class="flex items-center justify-center gap-0.5 tabular-nums">
-              <template v-for="code in innerSites" :key="`p-${row.kind}-${t.tooth_number}-${code}`">
+              <template
+                v-for="code in innerSites"
+                :key="`p-${row.kind}-${t.tooth_number}-${code}`"
+              >
                 <input
                   v-if="row.kind === 'site-pd'"
                   type="number"
@@ -448,7 +557,7 @@ function selectOnFocus(e: FocusEvent) {
                   :title="`${code} sondaje (0–15 mm)`"
                   @focus="selectOnFocus"
                   @change="(e) => onSiteNumberInput(t.tooth_number, code, 'probing_depth_mm', e)"
-                />
+                >
                 <input
                   v-else-if="row.kind === 'site-gm'"
                   type="number"
@@ -460,7 +569,7 @@ function selectOnFocus(e: FocusEvent) {
                   :title="`${code} margen gingival (-5 a 10 mm)`"
                   @focus="selectOnFocus"
                   @change="(e) => onSiteNumberInput(t.tooth_number, code, 'gingival_margin_mm', e)"
-                />
+                >
                 <button
                   v-else-if="row.kind === 'site-plaque'"
                   type="button"
@@ -486,20 +595,37 @@ function selectOnFocus(e: FocusEvent) {
       </tbody>
 
       <!-- ============== LOWER ARCH (mirror) ============== -->
-      <tbody v-else class="divide-y divide-gray-100 dark:divide-gray-800">
+      <tbody
+        v-else
+        class="divide-y divide-gray-100 dark:divide-gray-800"
+      >
         <!-- Lingual site metrics on top -->
-        <tr v-for="row in [
-          { kind: 'site-pd', label: 'Sondaje' },
-          { kind: 'site-gm', label: 'Margen' },
-          { kind: 'site-plaque', label: 'Placa' },
-          { kind: 'site-bop', label: 'Sangrado' }
-        ]" :key="`l-${row.kind}`" class="perio-row-palatal">
-          <th scope="row" class="px-1 text-right font-medium text-sky-700 dark:text-sky-400">
+        <tr
+          v-for="row in [
+            { kind: 'site-pd', label: 'Sondaje' },
+            { kind: 'site-gm', label: 'Margen' },
+            { kind: 'site-plaque', label: 'Placa' },
+            { kind: 'site-bop', label: 'Sangrado' }
+          ]"
+          :key="`l-${row.kind}`"
+          class="perio-row-palatal"
+        >
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-sky-700 dark:text-sky-400"
+          >
             {{ row.label }} <span class="text-[9px] text-sky-500 dark:text-sky-300/80">L</span>
           </th>
-          <td v-for="t in orderedTeeth" :key="`l-${row.kind}-${t.tooth_number}`" class="px-1">
+          <td
+            v-for="t in orderedTeeth"
+            :key="`l-${row.kind}-${t.tooth_number}`"
+            class="px-1"
+          >
             <div class="flex items-center justify-center gap-0.5 tabular-nums">
-              <template v-for="code in innerSites" :key="`l-${row.kind}-${t.tooth_number}-${code}`">
+              <template
+                v-for="code in innerSites"
+                :key="`l-${row.kind}-${t.tooth_number}-${code}`"
+              >
                 <input
                   v-if="row.kind === 'site-pd'"
                   type="number"
@@ -511,7 +637,7 @@ function selectOnFocus(e: FocusEvent) {
                   :title="`${code} sondaje (0–15 mm)`"
                   @focus="selectOnFocus"
                   @change="(e) => onSiteNumberInput(t.tooth_number, code, 'probing_depth_mm', e)"
-                />
+                >
                 <input
                   v-else-if="row.kind === 'site-gm'"
                   type="number"
@@ -523,7 +649,7 @@ function selectOnFocus(e: FocusEvent) {
                   :title="`${code} margen gingival (-5 a 10 mm)`"
                   @focus="selectOnFocus"
                   @change="(e) => onSiteNumberInput(t.tooth_number, code, 'gingival_margin_mm', e)"
-                />
+                >
                 <button
                   v-else-if="row.kind === 'site-plaque'"
                   type="button"
@@ -556,7 +682,10 @@ function selectOnFocus(e: FocusEvent) {
             class="px-1 text-right text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-400 perio-row-anchor"
           >
             {{ innerFaceLabel }}
-            <div class="perio-profile-anchor perio-profile-anchor--top" :style="{ width: profileOverlayWidth }">
+            <div
+              class="perio-profile-anchor perio-profile-anchor--top"
+              :style="{ width: profileOverlayWidth }"
+            >
               <PerioProfileStrip
                 :teeth="orderedTeeth"
                 :face="innerFace"
@@ -564,8 +693,16 @@ function selectOnFocus(e: FocusEvent) {
               />
             </div>
           </th>
-          <td v-for="t in orderedTeeth" :key="`l-tooth-${t.tooth_number}`" class="px-0 align-bottom">
-            <PerioToothLateral :tooth="t" :face="innerFace" :readonly="readonly" />
+          <td
+            v-for="t in orderedTeeth"
+            :key="`l-tooth-${t.tooth_number}`"
+            class="px-0 align-bottom"
+          >
+            <PerioToothLateral
+              :tooth="t"
+              :face="innerFace"
+              :readonly="readonly"
+            />
           </td>
         </tr>
 
@@ -578,7 +715,10 @@ function selectOnFocus(e: FocusEvent) {
             class="px-1 text-right text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 perio-row-anchor"
           >
             Vestibular
-            <div class="perio-profile-anchor perio-profile-anchor--bottom" :style="{ width: profileOverlayWidth }">
+            <div
+              class="perio-profile-anchor perio-profile-anchor--bottom"
+              :style="{ width: profileOverlayWidth }"
+            >
               <PerioProfileStrip
                 :teeth="orderedTeeth"
                 face="vestibular"
@@ -586,7 +726,11 @@ function selectOnFocus(e: FocusEvent) {
               />
             </div>
           </th>
-          <td v-for="t in orderedTeeth" :key="`v-tooth-${t.tooth_number}`" class="px-0 align-top">
+          <td
+            v-for="t in orderedTeeth"
+            :key="`v-tooth-${t.tooth_number}`"
+            class="px-0 align-top"
+          >
             <PerioToothLateral
               :tooth="t"
               face="vestibular"
@@ -597,18 +741,32 @@ function selectOnFocus(e: FocusEvent) {
         </tr>
 
         <!-- Vestibular site metrics directly below the V tooth row -->
-        <tr v-for="row in [
-          { kind: 'site-bop', label: 'Sangrado' },
-          { kind: 'site-plaque', label: 'Placa' },
-          { kind: 'site-gm', label: 'Margen' },
-          { kind: 'site-pd', label: 'Sondaje' }
-        ]" :key="`v-${row.kind}`" class="perio-row-vestibular">
-          <th scope="row" class="px-1 text-right font-medium text-amber-700 dark:text-amber-400">
+        <tr
+          v-for="row in [
+            { kind: 'site-bop', label: 'Sangrado' },
+            { kind: 'site-plaque', label: 'Placa' },
+            { kind: 'site-gm', label: 'Margen' },
+            { kind: 'site-pd', label: 'Sondaje' }
+          ]"
+          :key="`v-${row.kind}`"
+          class="perio-row-vestibular"
+        >
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-amber-700 dark:text-amber-400"
+          >
             {{ row.label }} <span class="text-[9px] text-amber-500 dark:text-amber-300/80">V</span>
           </th>
-          <td v-for="t in orderedTeeth" :key="`v-${row.kind}-${t.tooth_number}`" class="px-1">
+          <td
+            v-for="t in orderedTeeth"
+            :key="`v-${row.kind}-${t.tooth_number}`"
+            class="px-1"
+          >
             <div class="flex items-center justify-center gap-0.5 tabular-nums">
-              <template v-for="code in VESTIBULAR_SITES" :key="`v-${row.kind}-${t.tooth_number}-${code}`">
+              <template
+                v-for="code in VESTIBULAR_SITES"
+                :key="`v-${row.kind}-${t.tooth_number}-${code}`"
+              >
                 <input
                   v-if="row.kind === 'site-pd'"
                   type="number"
@@ -620,7 +778,7 @@ function selectOnFocus(e: FocusEvent) {
                   :title="`${code} sondaje (0–15 mm)`"
                   @focus="selectOnFocus"
                   @change="(e) => onSiteNumberInput(t.tooth_number, code, 'probing_depth_mm', e)"
-                />
+                >
                 <input
                   v-else-if="row.kind === 'site-gm'"
                   type="number"
@@ -632,7 +790,7 @@ function selectOnFocus(e: FocusEvent) {
                   :title="`${code} margen gingival (-5 a 10 mm)`"
                   @focus="selectOnFocus"
                   @change="(e) => onSiteNumberInput(t.tooth_number, code, 'gingival_margin_mm', e)"
-                />
+                >
                 <button
                   v-else-if="row.kind === 'site-plaque'"
                   type="button"
@@ -658,8 +816,17 @@ function selectOnFocus(e: FocusEvent) {
 
         <!-- Per-tooth metrics (reversed — closest to vestibular row) -->
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Anchura encía</th>
-          <td v-for="t in orderedTeeth" :key="`kg-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Anchura encía
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`kg-${t.tooth_number}`"
+            class="px-1"
+          >
             <input
               type="number"
               min="0"
@@ -669,70 +836,125 @@ function selectOnFocus(e: FocusEvent) {
               class="perio-cell-input"
               @focus="selectOnFocus"
               @change="(e) => onToothNumberInput(t.tooth_number, 'keratinized_gingiva_mm', e)"
-            />
+            >
           </td>
         </tr>
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Furca L/P</th>
-          <td v-for="t in orderedTeeth" :key="`furl-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Furca L/P
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`furl-${t.tooth_number}`"
+            class="px-1"
+          >
             <button
               class="perio-cell-cycle"
               :disabled="readonly || !t.is_present"
               title="Furca lingual/palatina (0/I/II/III)"
               @click="onToothCycle(t, 'furcation_lingual')"
-            >{{ furcaGlyph(t.furcation_lingual) }}</button>
+            >
+              {{ furcaGlyph(t.furcation_lingual) }}
+            </button>
           </td>
         </tr>
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Furca V</th>
-          <td v-for="t in orderedTeeth" :key="`furv-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Furca V
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`furv-${t.tooth_number}`"
+            class="px-1"
+          >
             <button
               class="perio-cell-cycle"
               :disabled="readonly || !t.is_present"
               title="Furca vestibular (0/I/II/III)"
               @click="onToothCycle(t, 'furcation_buccal')"
-            >{{ furcaGlyph(t.furcation_buccal) }}</button>
+            >
+              {{ furcaGlyph(t.furcation_buccal) }}
+            </button>
           </td>
         </tr>
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Pronóstico</th>
-          <td v-for="t in orderedTeeth" :key="`pron-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Pronóstico
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`pron-${t.tooth_number}`"
+            class="px-1"
+          >
             <button
               class="perio-cell-cycle"
               :disabled="readonly || !t.is_present"
               title="Bueno / Medio / Dudoso / Sin esperanza"
               @click="onToothCycle(t, 'prognosis')"
-            >{{ prognosisGlyph(t.prognosis) }}</button>
+            >
+              {{ prognosisGlyph(t.prognosis) }}
+            </button>
           </td>
         </tr>
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Movilidad</th>
-          <td v-for="t in orderedTeeth" :key="`mob-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Movilidad
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`mob-${t.tooth_number}`"
+            class="px-1"
+          >
             <button
               class="perio-cell-cycle"
               :disabled="readonly || !t.is_present"
               title="Clic para cambiar movilidad (0–3)"
               @click="onToothCycle(t, 'mobility')"
-            >{{ mobilityGlyph(t.mobility) }}</button>
+            >
+              {{ mobilityGlyph(t.mobility) }}
+            </button>
           </td>
         </tr>
         <tr>
-          <th scope="row" class="px-1 text-right font-medium text-muted">Implante</th>
-          <td v-for="t in orderedTeeth" :key="`imp-${t.tooth_number}`" class="px-1">
+          <th
+            scope="row"
+            class="px-1 text-right font-medium text-muted"
+          >
+            Implante
+          </th>
+          <td
+            v-for="t in orderedTeeth"
+            :key="`imp-${t.tooth_number}`"
+            class="px-1"
+          >
             <button
               class="perio-cell-cycle"
               :class="{ 'text-emerald-600 dark:text-emerald-400': t.is_implant }"
               :disabled="readonly"
               :title="t.is_implant ? 'Implante (clic para quitar)' : 'Clic para marcar como implante'"
               @click="onImplantToggle(t)"
-            >{{ t.is_implant ? '●' : '·' }}</button>
+            >
+              {{ t.is_implant ? '●' : '·' }}
+            </button>
           </td>
         </tr>
       </tbody>
 
       <tfoot v-if="arch === 'lower'">
         <tr>
-          <th class="px-1 text-right font-medium text-muted"></th>
+          <th class="px-1 text-right font-medium text-muted" />
           <th
             v-for="t in orderedTeeth"
             :key="`fdi-${t.tooth_number}`"

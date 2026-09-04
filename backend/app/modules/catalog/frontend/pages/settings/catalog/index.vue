@@ -923,237 +923,36 @@ const categoryOptions = computed(() => [
     </template>
 
     <template v-else>
-    <!-- Filters -->
-    <UCard>
-      <div class="flex flex-col sm:flex-row gap-4">
-        <div class="flex-1">
-          <UInput
-            v-model="searchQuery"
-            icon="i-lucide-search"
-            :placeholder="t('catalog.searchPlaceholder')"
-          />
-        </div>
-        <div class="w-full sm:w-64">
-          <USelect
-            v-model="selectedCategoryId"
-            :items="categoryOptions"
-            value-key="value"
-            label-key="label"
-            :placeholder="t('catalog.selectCategory')"
-          />
-        </div>
-      </div>
-    </UCard>
-
-    <!-- Items list - Grouped View -->
-    <div
-      v-if="showGroupedView"
-      class="space-y-4"
-    >
-      <!-- Header with expand/collapse buttons -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <h2 class="font-semibold text-default">
-            {{ t('catalog.items') }}
-          </h2>
-          <UBadge
-            variant="subtle"
-            color="neutral"
-          >
-            {{ catalog.totalItems.value }}
-          </UBadge>
-        </div>
-        <div class="flex gap-2">
-          <UButton
-            variant="ghost"
-            size="xs"
-            icon="i-lucide-chevrons-down"
-            @click="expandAll"
-          >
-            {{ t('catalog.expandAll') }}
-          </UButton>
-          <UButton
-            variant="ghost"
-            size="xs"
-            icon="i-lucide-chevrons-up"
-            @click="collapseAll"
-          >
-            {{ t('catalog.collapseAll') }}
-          </UButton>
-        </div>
-      </div>
-
-      <!-- Loading state -->
-      <div
-        v-if="catalog.loading.value"
-        class="space-y-3"
-      >
-        <USkeleton class="h-16 w-full" />
-        <USkeleton class="h-16 w-full" />
-        <USkeleton class="h-16 w-full" />
-      </div>
-
-      <!-- Category groups -->
-      <template v-else>
-        <UCard
-          v-for="group in groupedItems"
-          :key="group.category.id"
-          class="overflow-hidden"
-        >
-          <!-- Category header (clickable) -->
-          <template #header>
-            <button
-              class="w-full flex items-center justify-between py-1 text-left"
-              @click="toggleCategory(group.category.id)"
-            >
-              <div class="flex items-center gap-3">
-                <UIcon
-                  :name="isCategoryExpanded(group.category.id) ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
-                  class="w-5 h-5 text-subtle transition-transform"
-                />
-                <UIcon
-                  v-if="group.category.icon"
-                  :name="group.category.icon"
-                  class="w-5 h-5 text-primary-accent"
-                />
-                <span class="font-semibold text-default">
-                  {{ catalog.getCategoryName(group.category) }}
-                </span>
-                <UBadge
-                  variant="subtle"
-                  color="neutral"
-                  size="xs"
-                >
-                  {{ group.items.length }}
-                </UBadge>
-              </div>
-            </button>
-          </template>
-
-          <!-- Items table (collapsible) -->
-          <div
-            v-show="isCategoryExpanded(group.category.id)"
-            class="overflow-x-auto -mx-4 sm:-mx-6"
-          >
-            <table class="w-full">
-              <thead>
-                <tr class="border-b border-default bg-surface-muted/50">
-                  <th class="text-left py-2 px-4 font-medium text-muted text-sm">
-                    {{ t('catalog.code') }}
-                  </th>
-                  <th class="text-left py-2 px-4 font-medium text-muted text-sm">
-                    {{ t('catalog.name') }}
-                  </th>
-                  <th class="text-right py-2 px-4 font-medium text-muted text-sm">
-                    {{ t('catalog.price') }}
-                  </th>
-                  <th class="hidden sm:table-cell text-center py-2 px-4 font-medium text-muted text-sm">
-                    {{ t('catalog.vatType') }}
-                  </th>
-                  <th class="text-center py-2 px-4 font-medium text-muted text-sm">
-                    {{ t('catalog.visible') }}
-                  </th>
-                  <th class="hidden md:table-cell text-center py-2 px-4 font-medium text-muted text-sm">
-                    {{ t('catalog.duration') }}
-                  </th>
-                  <th class="text-right py-2 px-4 font-medium text-muted text-sm" />
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-[var(--color-border-subtle)]">
-                <tr
-                  v-for="item in group.items"
-                  :key="item.id"
-                  class="hover:bg-surface-muted"
-                >
-                  <td class="py-2.5 px-4">
-                    <span class="font-mono text-sm text-muted dark:text-subtle">
-                      {{ item.internal_code }}
-                    </span>
-                  </td>
-                  <td class="py-2.5 px-4">
-                    <span class="font-medium text-default">
-                      {{ getItemName(item) }}
-                    </span>
-                    <UBadge
-                      v-if="item.is_system"
-                      variant="subtle"
-                      color="info"
-                      class="ml-2"
-                      size="xs"
-                    >
-                      {{ t('catalog.system') }}
-                    </UBadge>
-                    <UBadge
-                      v-if="!item.is_active"
-                      variant="subtle"
-                      color="error"
-                      class="ml-2"
-                      size="xs"
-                    >
-                      {{ t('common.inactive') }}
-                    </UBadge>
-                  </td>
-                  <td class="py-2.5 px-4 text-right font-medium">
-                    {{ catalog.formatPrice(item.default_price) }}
-                  </td>
-                  <td class="hidden sm:table-cell py-2.5 px-4 text-center">
-                    <UBadge
-                      :color="getVatTypeBadgeColor(item.vat_type)"
-                      variant="subtle"
-                      size="xs"
-                    >
-                      {{ getVatTypeLabel(item.vat_type) }}
-                    </UBadge>
-                  </td>
-                    <td class="py-2.5 px-4 text-center">
-                      <UCheckbox
-                        :model-value="item.is_visible !== false"
-                        :disabled="!isAdmin || isTogglingVisibility(item.id)"
-                        @update:model-value="toggleVisible(item)"
-                      />
-                    </td>
-                  <td class="hidden md:table-cell py-2.5 px-4 text-center text-muted dark:text-subtle">
-                    {{ item.default_duration_minutes ? `${item.default_duration_minutes} min` : '-' }}
-                  </td>
-                  <td class="py-2.5 px-4 text-right">
-                    <div
-                      v-if="isAdmin"
-                      class="flex items-center justify-end gap-1"
-                    >
-                      <UButton
-                        icon="i-lucide-pencil"
-                        size="xs"
-                        variant="ghost"
-                        color="neutral"
-                        @click="openEditModal(item)"
-                      />
-                      <UButton
-                        v-if="!item.is_system"
-                        icon="i-lucide-trash-2"
-                        size="xs"
-                        variant="ghost"
-                        color="error"
-                        @click="confirmDelete(item)"
-                      />
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+      <!-- Filters -->
+      <UCard>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div class="flex-1">
+            <UInput
+              v-model="searchQuery"
+              icon="i-lucide-search"
+              :placeholder="t('catalog.searchPlaceholder')"
+            />
           </div>
-        </UCard>
-      </template>
-    </div>
+          <div class="w-full sm:w-64">
+            <USelect
+              v-model="selectedCategoryId"
+              :items="categoryOptions"
+              value-key="value"
+              label-key="label"
+              :placeholder="t('catalog.selectCategory')"
+            />
+          </div>
+        </div>
+      </UCard>
 
-    <!-- Items list - Flat View (when category is filtered) -->
-    <UCard v-else>
-      <template #header>
+      <!-- Items list - Grouped View -->
+      <div
+        v-if="showGroupedView"
+        class="space-y-4"
+      >
+        <!-- Header with expand/collapse buttons -->
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <UIcon
-              name="i-lucide-list"
-              class="w-5 h-5 text-primary-accent"
-            />
             <h2 class="font-semibold text-default">
               {{ t('catalog.items') }}
             </h2>
@@ -1164,162 +963,363 @@ const categoryOptions = computed(() => [
               {{ catalog.totalItems.value }}
             </UBadge>
           </div>
-        </div>
-      </template>
-
-      <!-- Loading state -->
-      <div
-        v-if="catalog.loading.value"
-        class="space-y-3"
-      >
-        <USkeleton class="h-12 w-full" />
-        <USkeleton class="h-12 w-full" />
-        <USkeleton class="h-12 w-full" />
-      </div>
-
-      <!-- Empty state -->
-      <div
-        v-else-if="catalog.items.value.length === 0"
-        class="text-center py-12 text-muted"
-      >
-        <UIcon
-          name="i-lucide-package"
-          class="w-12 h-12 mx-auto mb-4 opacity-50"
-        />
-        <p>{{ t('catalog.noItems') }}</p>
-      </div>
-
-      <!-- Items table -->
-      <div
-        v-else
-        class="overflow-x-auto"
-      >
-        <table class="w-full">
-          <thead>
-            <tr class="border-b border-default">
-              <th class="text-left py-3 px-4 font-medium text-muted">
-                {{ t('catalog.code') }}
-              </th>
-              <th class="text-left py-3 px-4 font-medium text-muted">
-                {{ t('catalog.name') }}
-              </th>
-              <th class="hidden md:table-cell text-left py-3 px-4 font-medium text-muted">
-                {{ t('catalog.category') }}
-              </th>
-              <th class="text-right py-3 px-4 font-medium text-muted">
-                {{ t('catalog.price') }}
-              </th>
-              <th class="hidden sm:table-cell text-center py-3 px-4 font-medium text-muted">
-                {{ t('catalog.vatType') }}
-              </th>
-              <th class="text-center py-3 px-4 font-medium text-muted">
-                {{ t('catalog.visible') }}
-              </th>
-              <th class="hidden lg:table-cell text-center py-3 px-4 font-medium text-muted">
-                {{ t('catalog.duration') }}
-              </th>
-              <th class="text-right py-3 px-4 font-medium text-muted" />
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[var(--color-border-subtle)]">
-            <tr
-              v-for="item in catalog.items.value"
-              :key="item.id"
-              class="hover:bg-surface-muted"
+          <div class="flex gap-2">
+            <UButton
+              variant="ghost"
+              size="xs"
+              icon="i-lucide-chevrons-down"
+              @click="expandAll"
             >
-              <td class="py-3 px-4">
-                <span class="font-mono text-sm text-muted dark:text-subtle">
-                  {{ item.internal_code }}
-                </span>
-              </td>
-              <td class="py-3 px-4">
-                <span class="font-medium text-default">
-                  {{ getItemName(item) }}
-                </span>
-                <UBadge
-                  v-if="item.is_system"
-                  variant="subtle"
-                  color="info"
-                  class="ml-2"
-                  size="xs"
-                >
-                  {{ t('catalog.system') }}
-                </UBadge>
-                <UBadge
-                  v-if="!item.is_active"
-                  variant="subtle"
-                  color="error"
-                  class="ml-2"
-                  size="xs"
-                >
-                  {{ t('common.inactive') }}
-                </UBadge>
-              </td>
-              <td class="hidden md:table-cell py-3 px-4 text-muted dark:text-subtle">
-                {{ getCategoryName(item.category_id) }}
-              </td>
-              <td class="py-3 px-4 text-right font-medium">
-                {{ catalog.formatPrice(item.default_price) }}
-              </td>
-              <td class="hidden sm:table-cell py-3 px-4 text-center">
-                <UBadge
-                  :color="getVatTypeBadgeColor(item.vat_type)"
-                  variant="subtle"
-                  size="xs"
-                >
-                  {{ getVatTypeLabel(item.vat_type) }}
-                </UBadge>
-              </td>
-              <td class="py-3 px-4 text-center">
-                <UCheckbox
-                  :model-value="item.is_visible !== false"
-                  :disabled="!isAdmin || isTogglingVisibility(item.id)"
-                  @update:model-value="toggleVisible(item)"
-                />
-              </td>
-              <td class="hidden lg:table-cell py-3 px-4 text-center text-muted dark:text-subtle">
-                {{ item.default_duration_minutes ? `${item.default_duration_minutes} min` : '-' }}
-              </td>
-              <td class="py-3 px-4 text-right">
-                <div
-                  v-if="isAdmin"
-                  class="flex items-center justify-end gap-1"
-                >
-                  <UButton
-                    icon="i-lucide-pencil"
-                    size="xs"
-                    variant="ghost"
+              {{ t('catalog.expandAll') }}
+            </UButton>
+            <UButton
+              variant="ghost"
+              size="xs"
+              icon="i-lucide-chevrons-up"
+              @click="collapseAll"
+            >
+              {{ t('catalog.collapseAll') }}
+            </UButton>
+          </div>
+        </div>
+
+        <!-- Loading state -->
+        <div
+          v-if="catalog.loading.value"
+          class="space-y-3"
+        >
+          <USkeleton class="h-16 w-full" />
+          <USkeleton class="h-16 w-full" />
+          <USkeleton class="h-16 w-full" />
+        </div>
+
+        <!-- Category groups -->
+        <template v-else>
+          <UCard
+            v-for="group in groupedItems"
+            :key="group.category.id"
+            class="overflow-hidden"
+          >
+            <!-- Category header (clickable) -->
+            <template #header>
+              <button
+                class="w-full flex items-center justify-between py-1 text-left"
+                @click="toggleCategory(group.category.id)"
+              >
+                <div class="flex items-center gap-3">
+                  <UIcon
+                    :name="isCategoryExpanded(group.category.id) ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
+                    class="w-5 h-5 text-subtle transition-transform"
+                  />
+                  <UIcon
+                    v-if="group.category.icon"
+                    :name="group.category.icon"
+                    class="w-5 h-5 text-primary-accent"
+                  />
+                  <span class="font-semibold text-default">
+                    {{ catalog.getCategoryName(group.category) }}
+                  </span>
+                  <UBadge
+                    variant="subtle"
                     color="neutral"
-                    @click="openEditModal(item)"
-                  />
-                  <UButton
-                    v-if="!item.is_system"
-                    icon="i-lucide-trash-2"
                     size="xs"
-                    variant="ghost"
-                    color="error"
-                    @click="confirmDelete(item)"
-                  />
+                  >
+                    {{ group.items.length }}
+                  </UBadge>
                 </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </button>
+            </template>
+
+            <!-- Items table (collapsible) -->
+            <div
+              v-show="isCategoryExpanded(group.category.id)"
+              class="overflow-x-auto -mx-4 sm:-mx-6"
+            >
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-default bg-surface-muted/50">
+                    <th class="text-left py-2 px-4 font-medium text-muted text-sm">
+                      {{ t('catalog.code') }}
+                    </th>
+                    <th class="text-left py-2 px-4 font-medium text-muted text-sm">
+                      {{ t('catalog.name') }}
+                    </th>
+                    <th class="text-right py-2 px-4 font-medium text-muted text-sm">
+                      {{ t('catalog.price') }}
+                    </th>
+                    <th class="hidden sm:table-cell text-center py-2 px-4 font-medium text-muted text-sm">
+                      {{ t('catalog.vatType') }}
+                    </th>
+                    <th class="text-center py-2 px-4 font-medium text-muted text-sm">
+                      {{ t('catalog.visible') }}
+                    </th>
+                    <th class="hidden md:table-cell text-center py-2 px-4 font-medium text-muted text-sm">
+                      {{ t('catalog.duration') }}
+                    </th>
+                    <th class="text-right py-2 px-4 font-medium text-muted text-sm" />
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-[var(--color-border-subtle)]">
+                  <tr
+                    v-for="item in group.items"
+                    :key="item.id"
+                    class="hover:bg-surface-muted"
+                  >
+                    <td class="py-2.5 px-4">
+                      <span class="font-mono text-sm text-muted dark:text-subtle">
+                        {{ item.internal_code }}
+                      </span>
+                    </td>
+                    <td class="py-2.5 px-4">
+                      <span class="font-medium text-default">
+                        {{ getItemName(item) }}
+                      </span>
+                      <UBadge
+                        v-if="item.is_system"
+                        variant="subtle"
+                        color="info"
+                        class="ml-2"
+                        size="xs"
+                      >
+                        {{ t('catalog.system') }}
+                      </UBadge>
+                      <UBadge
+                        v-if="!item.is_active"
+                        variant="subtle"
+                        color="error"
+                        class="ml-2"
+                        size="xs"
+                      >
+                        {{ t('common.inactive') }}
+                      </UBadge>
+                    </td>
+                    <td class="py-2.5 px-4 text-right font-medium">
+                      {{ catalog.formatPrice(item.default_price) }}
+                    </td>
+                    <td class="hidden sm:table-cell py-2.5 px-4 text-center">
+                      <UBadge
+                        :color="getVatTypeBadgeColor(item.vat_type)"
+                        variant="subtle"
+                        size="xs"
+                      >
+                        {{ getVatTypeLabel(item.vat_type) }}
+                      </UBadge>
+                    </td>
+                    <td class="py-2.5 px-4 text-center">
+                      <UCheckbox
+                        :model-value="item.is_visible !== false"
+                        :disabled="!isAdmin || isTogglingVisibility(item.id)"
+                        @update:model-value="toggleVisible(item)"
+                      />
+                    </td>
+                    <td class="hidden md:table-cell py-2.5 px-4 text-center text-muted dark:text-subtle">
+                      {{ item.default_duration_minutes ? `${item.default_duration_minutes} min` : '-' }}
+                    </td>
+                    <td class="py-2.5 px-4 text-right">
+                      <div
+                        v-if="isAdmin"
+                        class="flex items-center justify-end gap-1"
+                      >
+                        <UButton
+                          icon="i-lucide-pencil"
+                          size="xs"
+                          variant="ghost"
+                          color="neutral"
+                          @click="openEditModal(item)"
+                        />
+                        <UButton
+                          v-if="!item.is_system"
+                          icon="i-lucide-trash-2"
+                          size="xs"
+                          variant="ghost"
+                          color="error"
+                          @click="confirmDelete(item)"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </UCard>
+        </template>
       </div>
 
-      <!-- Pagination -->
-      <div
-        v-if="catalog.totalPages.value > 1"
-        class="flex justify-center pt-4 border-t border-default mt-4"
-      >
-        <UPagination
-          :page="catalog.currentPage.value"
-          :total="catalog.totalItems.value"
-          :items-per-page="catalog.pageSize.value"
-          @update:page="handlePageChange"
-        />
-      </div>
-    </UCard>
+      <!-- Items list - Flat View (when category is filtered) -->
+      <UCard v-else>
+        <template #header>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <UIcon
+                name="i-lucide-list"
+                class="w-5 h-5 text-primary-accent"
+              />
+              <h2 class="font-semibold text-default">
+                {{ t('catalog.items') }}
+              </h2>
+              <UBadge
+                variant="subtle"
+                color="neutral"
+              >
+                {{ catalog.totalItems.value }}
+              </UBadge>
+            </div>
+          </div>
+        </template>
+
+        <!-- Loading state -->
+        <div
+          v-if="catalog.loading.value"
+          class="space-y-3"
+        >
+          <USkeleton class="h-12 w-full" />
+          <USkeleton class="h-12 w-full" />
+          <USkeleton class="h-12 w-full" />
+        </div>
+
+        <!-- Empty state -->
+        <div
+          v-else-if="catalog.items.value.length === 0"
+          class="text-center py-12 text-muted"
+        >
+          <UIcon
+            name="i-lucide-package"
+            class="w-12 h-12 mx-auto mb-4 opacity-50"
+          />
+          <p>{{ t('catalog.noItems') }}</p>
+        </div>
+
+        <!-- Items table -->
+        <div
+          v-else
+          class="overflow-x-auto"
+        >
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-default">
+                <th class="text-left py-3 px-4 font-medium text-muted">
+                  {{ t('catalog.code') }}
+                </th>
+                <th class="text-left py-3 px-4 font-medium text-muted">
+                  {{ t('catalog.name') }}
+                </th>
+                <th class="hidden md:table-cell text-left py-3 px-4 font-medium text-muted">
+                  {{ t('catalog.category') }}
+                </th>
+                <th class="text-right py-3 px-4 font-medium text-muted">
+                  {{ t('catalog.price') }}
+                </th>
+                <th class="hidden sm:table-cell text-center py-3 px-4 font-medium text-muted">
+                  {{ t('catalog.vatType') }}
+                </th>
+                <th class="text-center py-3 px-4 font-medium text-muted">
+                  {{ t('catalog.visible') }}
+                </th>
+                <th class="hidden lg:table-cell text-center py-3 px-4 font-medium text-muted">
+                  {{ t('catalog.duration') }}
+                </th>
+                <th class="text-right py-3 px-4 font-medium text-muted" />
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[var(--color-border-subtle)]">
+              <tr
+                v-for="item in catalog.items.value"
+                :key="item.id"
+                class="hover:bg-surface-muted"
+              >
+                <td class="py-3 px-4">
+                  <span class="font-mono text-sm text-muted dark:text-subtle">
+                    {{ item.internal_code }}
+                  </span>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="font-medium text-default">
+                    {{ getItemName(item) }}
+                  </span>
+                  <UBadge
+                    v-if="item.is_system"
+                    variant="subtle"
+                    color="info"
+                    class="ml-2"
+                    size="xs"
+                  >
+                    {{ t('catalog.system') }}
+                  </UBadge>
+                  <UBadge
+                    v-if="!item.is_active"
+                    variant="subtle"
+                    color="error"
+                    class="ml-2"
+                    size="xs"
+                  >
+                    {{ t('common.inactive') }}
+                  </UBadge>
+                </td>
+                <td class="hidden md:table-cell py-3 px-4 text-muted dark:text-subtle">
+                  {{ getCategoryName(item.category_id) }}
+                </td>
+                <td class="py-3 px-4 text-right font-medium">
+                  {{ catalog.formatPrice(item.default_price) }}
+                </td>
+                <td class="hidden sm:table-cell py-3 px-4 text-center">
+                  <UBadge
+                    :color="getVatTypeBadgeColor(item.vat_type)"
+                    variant="subtle"
+                    size="xs"
+                  >
+                    {{ getVatTypeLabel(item.vat_type) }}
+                  </UBadge>
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <UCheckbox
+                    :model-value="item.is_visible !== false"
+                    :disabled="!isAdmin || isTogglingVisibility(item.id)"
+                    @update:model-value="toggleVisible(item)"
+                  />
+                </td>
+                <td class="hidden lg:table-cell py-3 px-4 text-center text-muted dark:text-subtle">
+                  {{ item.default_duration_minutes ? `${item.default_duration_minutes} min` : '-' }}
+                </td>
+                <td class="py-3 px-4 text-right">
+                  <div
+                    v-if="isAdmin"
+                    class="flex items-center justify-end gap-1"
+                  >
+                    <UButton
+                      icon="i-lucide-pencil"
+                      size="xs"
+                      variant="ghost"
+                      color="neutral"
+                      @click="openEditModal(item)"
+                    />
+                    <UButton
+                      v-if="!item.is_system"
+                      icon="i-lucide-trash-2"
+                      size="xs"
+                      variant="ghost"
+                      color="error"
+                      @click="confirmDelete(item)"
+                    />
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div
+          v-if="catalog.totalPages.value > 1"
+          class="flex justify-center pt-4 border-t border-default mt-4"
+        >
+          <UPagination
+            :page="catalog.currentPage.value"
+            :total="catalog.totalItems.value"
+            :items-per-page="catalog.pageSize.value"
+            @update:page="handlePageChange"
+          />
+        </div>
+      </UCard>
     </template>
 
     <!-- Create/Edit Modal -->

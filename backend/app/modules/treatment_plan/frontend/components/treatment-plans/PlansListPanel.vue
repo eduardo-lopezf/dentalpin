@@ -15,7 +15,7 @@ const {
   total,
   loading,
   fetchPlans,
-  deletePlan,
+  deletePlan
 } = useTreatmentPlans()
 
 const selectedStatuses = ref<TreatmentPlanStatus[]>([])
@@ -28,7 +28,7 @@ const statusOptions = computed(() => [
   { label: t('treatmentPlans.status.active'), value: 'active' as TreatmentPlanStatus },
   { label: t('treatmentPlans.status.completed'), value: 'completed' as TreatmentPlanStatus },
   { label: t('treatmentPlans.status.closed'), value: 'closed' as TreatmentPlanStatus },
-  { label: t('treatmentPlans.status.archived'), value: 'archived' as TreatmentPlanStatus },
+  { label: t('treatmentPlans.status.archived'), value: 'archived' as TreatmentPlanStatus }
 ])
 
 async function loadPlans() {
@@ -36,7 +36,7 @@ async function loadPlans() {
     page: currentPage.value,
     page_size: pageSize,
     search: props.q || undefined,
-    status: selectedStatuses.value.length > 0 ? selectedStatuses.value : undefined,
+    status: selectedStatuses.value.length > 0 ? selectedStatuses.value : undefined
   })
 }
 
@@ -71,13 +71,13 @@ async function handleDelete(plan: TreatmentPlan, event: Event) {
     toast.add({
       title: t('common.success'),
       description: t('treatmentPlans.messages.deleted'),
-      color: 'success',
+      color: 'success'
     })
   } catch {
     toast.add({
       title: t('common.error'),
       description: t('treatmentPlans.errors.delete'),
-      color: 'error',
+      color: 'error'
     })
   }
 }

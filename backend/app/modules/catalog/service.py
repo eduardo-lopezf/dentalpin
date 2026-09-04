@@ -576,6 +576,29 @@ class CatalogService:
         return result.unique().scalar_one_or_none()
 
     @staticmethod
+    async def _resolve_specialties(
+        db: AsyncSession, clinic_id: UUID, specialty_ids: list[UUID]
+    ) -> list[Specialty]:
+        """Load the clinic's specialties for the given ids.
+
+        Filtering by ``clinic_id`` is what stops an item from being linked to
+        another tenant's specialty through a guessed id.
+        """
+        if not specialty_ids:
+            return []
+        result = await db.execute(
+            select(Specialty).where(
+                Specialty.clinic_id == clinic_id,
+                Specialty.id.in_(specialty_ids),
+            )
+        )
+        found = list(result.scalars().all())
+        missing = set(specialty_ids) - {s.id for s in found}
+        if missing:
+            raise ValueError(f"Unknown specialty: {sorted(str(m) for m in missing)[0]}")
+        return found
+
+    @staticmethod
     async def create_item(
         db: AsyncSession,
         clinic_id: UUID,
@@ -585,6 +608,7 @@ class CatalogService:
         # Extract relations to handle separately
         odontogram_data = data.pop("odontogram_mapping", None)
         sessions_data = data.pop("sessions", None)
+        specialty_ids = data.pop("specialty_ids", None)
 
         # Validate session template against the item total
         validate_session_template(data.get("default_price"), sessions_data)
@@ -596,6 +620,10 @@ class CatalogService:
                 data["vat_type_id"] = default_vat.id
 
         item = TreatmentCatalogItem(clinic_id=clinic_id, **data)
+        if specialty_ids is not None:
+            item.specialties = await CatalogService._resolve_specialties(
+                db, clinic_id, specialty_ids
+            )
         db.add(item)
         await db.flush()
 
@@ -635,6 +663,7 @@ class CatalogService:
         """
         odontogram_data = data.pop("odontogram_mapping", None)
         sessions_data = data.pop("sessions", "__not_provided__")
+        specialty_ids = data.pop("specialty_ids", None)
 
         # Determine effective total for sessions validation
         new_total = data.get("default_price")
@@ -645,6 +674,11 @@ class CatalogService:
         for key, value in data.items():
             if value is not None:
                 setattr(item, key, value)
+
+        if specialty_ids is not None:
+            item.specialties = await CatalogService._resolve_specialties(
+                db, clinic_id, specialty_ids
+            )
 
         if odontogram_data:
             if item.odontogram_mapping:

@@ -92,6 +92,10 @@ class SpecialtyResponse(BaseModel):
 
     id: UUID
     clinic_id: UUID
+    # Stable identifier of a seeded specialty (``cirugia``, ``endodoncia``…),
+    # NULL for clinic-created ones. Exposed so the UI can match a specialty by
+    # meaning rather than by its display name, which a clinic may rename.
+    key: str | None = None
     names: dict[str, str]
     is_active: bool
     created_at: datetime
@@ -277,6 +281,12 @@ class CatalogItemCreate(BaseModel):
     # Session template (optional). Empty list and None both mean single-session.
     sessions: list[CatalogItemSessionInput] | None = None
 
+    # Disciplines that perform this treatment. Assignable from the item so the
+    # alta form can ask "who does it" in one step; the specialty-side endpoint
+    # (``PUT /specialties/{id}/items``) still exists for bulk reassignment and
+    # keeps requiring ``catalog.admin``.
+    specialty_ids: list[UUID] | None = None
+
 
 class CatalogItemUpdate(BaseModel):
     """Schema for updating a catalog item."""
@@ -323,6 +333,9 @@ class CatalogItemUpdate(BaseModel):
     # Session template. When provided (even as empty list) the server
     # atomically replaces the stored template.
     sessions: list[CatalogItemSessionInput] | None = None
+
+    # See CatalogItemCreate.specialty_ids. Omitted = leave assignments alone.
+    specialty_ids: list[UUID] | None = None
 
 
 class CatalogItemResponse(BaseModel):

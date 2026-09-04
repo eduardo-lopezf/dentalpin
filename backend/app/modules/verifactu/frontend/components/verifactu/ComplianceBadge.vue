@@ -17,7 +17,10 @@ const badge = useComplianceBadge(compliance)
 </script>
 
 <template>
-  <UTooltip v-if="badge" :text="badge.tooltip">
+  <UTooltip
+    v-if="badge"
+    :text="badge.tooltip"
+  >
     <UBadge
       :color="badge.color"
       variant="subtle"

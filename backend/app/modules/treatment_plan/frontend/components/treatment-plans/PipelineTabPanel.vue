@@ -17,7 +17,7 @@ const {
   pageSize,
   loading,
   filters,
-  fetchPipeline,
+  fetchPipeline
 } = usePipeline()
 
 watch(
@@ -56,7 +56,7 @@ function formatDate(iso: string | null): string {
   try {
     return new Date(iso).toLocaleDateString(locale.value, {
       day: '2-digit',
-      month: 'short',
+      month: 'short'
     })
   } catch {
     return iso

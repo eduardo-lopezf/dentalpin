@@ -502,6 +502,39 @@ export const TREATMENT_ICONS: Record<string, string> = {
   `,
 
   // ============================================================================
+  // PROCESO (visit-level acts)
+  // ============================================================================
+  // Rendered as chips in the "Boca completa" tab, where the catalog name does
+  // the talking; the glyph only has to read as "a visit, not a tooth".
+
+  // Consultation - clinician and patient, speech bubble
+  consultation: `
+    <circle cx="8" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M2.5 20C2.5 16.4 5 14 8 14C11 14 13.5 16.4 13.5 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M14 4H21.5V10.5H18L15.5 13V10.5H14V4Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+  `,
+
+  // Check-up - clipboard with a tick
+  checkup: `
+    <rect x="5" y="4" width="14" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M9 4V3C9 2.4 9.4 2 10 2H14C14.6 2 15 2.4 15 3V4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M8.5 13L11 15.5L15.5 10" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+
+  // Imaging - radiograph film with a tooth silhouette
+  imaging: `
+    <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M9.5 8C8.4 8 7.8 9 7.8 10.2C7.8 12.4 9 13.6 9.3 15.6C9.4 16.4 9.7 17 10.2 17C10.9 17 11 16 12 16C13 16 13.1 17 13.8 17C14.3 17 14.6 16.4 14.7 15.6C15 13.6 16.2 12.4 16.2 10.2C16.2 9 15.6 8 14.5 8C13.4 8 13 8.7 12 8.7C11 8.7 10.6 8 9.5 8Z" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+  `,
+
+  // Hygiene - scaler tip with polish sparkles
+  hygiene: `
+    <path d="M6 20L14 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M13 11L17.5 6.5C18.3 5.7 19.6 5.7 20.4 6.5C21.2 7.3 21.2 8.6 20.4 9.4L16 13.9L13 11Z" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M4.5 5.5L5.4 7.4L7.3 8.3L5.4 9.2L4.5 11L3.6 9.2L1.7 8.3L3.6 7.4L4.5 5.5Z" fill="currentColor"/>
+  `,
+
+  // ============================================================================
   // POSITION ACTIONS (legacy aliases)
   // ============================================================================
 

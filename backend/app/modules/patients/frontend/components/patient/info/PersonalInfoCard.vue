@@ -22,7 +22,7 @@ const initials = computed(() => {
 })
 
 const statusColor = computed<'success' | 'neutral'>(() =>
-  props.patient.status === 'active' ? 'success' : 'neutral',
+  props.patient.status === 'active' ? 'success' : 'neutral'
 )
 
 const birthDisplay = computed(() => {
