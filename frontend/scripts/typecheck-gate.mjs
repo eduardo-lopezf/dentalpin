@@ -13,9 +13,10 @@
  *   node scripts/typecheck-gate.mjs --update   # re-freeze the baseline
  *
  * Errors are keyed by file + code + message with line/column dropped, so
- * editing a file above an error does not churn the baseline. The count per
- * key is part of the baseline, so a *new occurrence* of an already-known
- * error still fails.
+ * editing a file above an error does not churn the baseline. The message is
+ * normalized first (see `normalizeMessage`) because parts of it move on
+ * their own. The count per key is part of the baseline, so a *new
+ * occurrence* of an already-known error still fails.
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
@@ -55,6 +56,34 @@ run('npx', ['nuxt', 'prepare'])
 // the config we just generated instead.
 const output = run('npx', ['vue-tsc', '-b', `${buildDir}/tsconfig.json`])
 
+/**
+ * Collapse the parts of a message that move while the error stays put.
+ *
+ * Two of them churned this baseline for real, and each cost a debugging
+ * session because the symptom is misleading: the gate reports the *same*
+ * error as one "new" and one "no longer occurring", so it reads like a
+ * regression next to an unrelated improvement.
+ *
+ *   1. The property count in an expanded object type. Adding a property
+ *      anywhere in a component turned `... 389 more ...` into
+ *      `... 390 more ...`.
+ *   2. The order of union members, which the compiler does not promise to
+ *      keep stable: `'"other" | "hygiene" | ...'` came back as
+ *      `'"checkup" | "hygiene" | ...'` for an untouched file.
+ *
+ * The result is a hash key, never the text shown for an error, so it does
+ * not need to remain valid TypeScript — only to be deterministic. That is
+ * what makes sorting the members of anything that merely *looks* like a
+ * union safe here: a mangled nested type still hashes consistently.
+ */
+function normalizeMessage(message) {
+  return message
+    .replace(/\.\.\. \d+ more \.\.\./g, '... N more ...')
+    .replace(/'([^']*)'/g, (quoted, inner) =>
+      inner.includes(' | ') ? `'${inner.split(' | ').sort().join(' | ')}'` : quoted
+    )
+}
+
 const errors = []
 for (const line of output.split('\n')) {
   const match = ERROR_RE.exec(line.trim())
@@ -63,7 +92,10 @@ for (const line of output.split('\n')) {
   // Paths differ between a checkout and CI only by prefix; keep the part
   // that identifies the source file.
   const normalizedFile = file.replace(/^.*?(app|backend)\//, '$1/')
-  errors.push({ key: `${normalizedFile}|${code}|${message}`, line: line.trim() })
+  errors.push({
+    key: `${normalizedFile}|${code}|${normalizeMessage(message)}`,
+    line: line.trim()
+  })
 }
 
 const counts = new Map()

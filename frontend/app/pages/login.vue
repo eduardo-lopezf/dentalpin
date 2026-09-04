@@ -76,19 +76,26 @@ async function onSubmit() {
       email: formState.email.trim(),
       password: formState.password
     })
-
-    toast.add({
-      title: t('auth.loginSuccess'),
-      color: 'success'
-    })
-
-    await navigateTo('/')
   } catch (error: unknown) {
     console.error('Login error:', error)
     errorMessage.value = mapError(error)
+    return
   } finally {
     isLoading.value = false
   }
+
+  // Only the credentials check is guarded above. Past this line the
+  // session exists, so a failure here is not a login failure: navigating
+  // fetches the app manifest, which 404s for a client still running the
+  // build a deploy replaced. Inside the `try` that surfaced as "unexpected
+  // error, try again" next to the success toast — telling an already
+  // authenticated user to retry, and hiding the real cause.
+  toast.add({
+    title: t('auth.loginSuccess'),
+    color: 'success'
+  })
+
+  await navigateTo('/')
 }
 
 watch(() => formState.email, () => {

@@ -19,7 +19,8 @@ import type {
   TreatmentCatalogCategory,
   TreatmentCatalogItem,
   TreatmentCatalogItemUpdate,
-  TreatmentCatalogItemCreate
+  TreatmentCatalogItemCreate,
+  TreatmentPhase
 } from '~~/app/types'
 import { VISUALIZATION_RULES } from '~~/app/config/odontogramConstants'
 import {
@@ -421,10 +422,23 @@ function setTierPrice(tier: string, value: number | string | undefined) {
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90] as const
 
+const PHASES: readonly TreatmentPhase[] = [
+  'diagnostico', 'urgencia', 'preventivo', 'estabilizacion', 'rehabilitacion', 'estetica', 'mantenimiento'
+]
+
 const phaseOptions = computed(() =>
-  ['diagnostico', 'urgencia', 'preventivo', 'estabilizacion', 'rehabilitacion', 'estetica', 'mantenimiento']
-    .map(p => ({ value: p, label: t(`catalog.phases.${p}`) }))
+  PHASES.map(p => ({ value: p, label: t(`catalog.phases.${p}`) }))
 )
+
+// `default_phase` is nullable in the API, and the select has no notion of
+// null — it clears to undefined. Bridge the two here rather than widening
+// the field, so clearing the phase still sends an explicit null.
+const defaultPhase = computed<TreatmentPhase | undefined>({
+  get: () => formData.value.default_phase ?? undefined,
+  set: (value) => {
+    formData.value.default_phase = value ?? null
+  }
+})
 
 // ---------------------------------------------------------------------------
 // Submit
@@ -825,7 +839,7 @@ function handleClose() {
 
                 <UFormField :label="t('catalog.phase')">
                   <USelect
-                    v-model="formData.default_phase"
+                    v-model="defaultPhase"
                     :items="phaseOptions"
                     value-key="value"
                     class="w-full"

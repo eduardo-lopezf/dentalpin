@@ -13,11 +13,13 @@
  * odontogram's clinical categories both use.
  */
 
+import type { TreatmentPhase } from '~~/app/types'
+
 export interface TypeDefaults {
   /** `key` of the specialty that usually performs it. */
   specialtyKey: string
   /** Stage of care, one of the backend's TREATMENT_PHASES. */
-  phase: string
+  phase: TreatmentPhase
   /** Tab of the odontogram bar — the mapping's `clinical_category`. */
   clinicalCategory: string
   /** Canonical odontogram type for a tooth-scoped item of this kind. */
