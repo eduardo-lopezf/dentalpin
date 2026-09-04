@@ -32,6 +32,23 @@
   record never migrates its scope — `Férula de descarga` is a real case, an
   arch-wide item filed under Restauradora.
 
+- fix(catalog UI): a per-tooth treatment could not be saved at all. The alta
+  form sent `odontogram_mapping.visualization_rules` as rule names
+  (`["lateral_icon"]`) where the column stores layer objects
+  (`[{"layer": "lateral_icon"}]`), so the API answered 422 and the toast said
+  only "Error al crear tratamiento". Whole-mouth items send an empty list and
+  were unaffected, which is why the first four fichas saved and MXF-CIR-01 did
+  not. The form had its own copy of the loop; both call sites now share
+  `getVisualizationRuleLayers`, and `OdontogramMapping` no longer types the
+  field as `string[]` — the wrong type is what let this compile.
+
+- fix(catalog UI): the form says why it cannot be saved. "Crear" was disabled
+  with no explanation anywhere, which is indistinguishable from a broken
+  button — and the session template makes it easy to hit, since every row has
+  to be named and the eight of them have to add up to the exact total before
+  anything happens. The reason now sits next to the button: which field is
+  missing, or "las sesiones suman 0,00 y el precio es 9.500,00".
+
 - fix(catalog UI): "Nuevo tratamiento" opens on a clean form again. The
   populate step watched `props.item`, which stays null across two creations in
   a row — null to null is not a change, so the second form opened still

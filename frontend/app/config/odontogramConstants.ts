@@ -5,7 +5,12 @@
  * All odontogram components should import from here instead of defining locally.
  */
 
-import type { MultiToothTreatmentConfig, TreatmentClinicalCategory } from '~/types'
+import type {
+  MultiToothTreatmentConfig,
+  TreatmentClinicalCategory,
+  VisualizationLayer,
+  VisualizationRuleLayer
+} from '~/types'
 
 // ============================================================================
 // Visualization Rules
@@ -273,6 +278,22 @@ export function getVisualizationRules(treatmentType: string): VisualizationRule[
     }
   }
   return rules
+}
+
+/**
+ * Same rules, in the shape the catalog's `odontogram_mapping` persists.
+ *
+ * `getVisualizationRules` returns bare rule names, which is what the chart
+ * renderer switches on; the API column is a list of layer objects and rejects
+ * strings with a 422. Keep the two conversions in one place — a second copy of
+ * this loop in the alta form is what made every per-tooth treatment
+ * unsaveable.
+ */
+export function getVisualizationRuleLayers(treatmentType: string): VisualizationRuleLayer[] {
+  return getVisualizationRules(treatmentType).map(rule => ({
+    // The rule predates the layer names; only this one was renamed.
+    layer: (rule === 'pattern_fill' ? 'cenital_pattern' : rule) as VisualizationLayer
+  }))
 }
 
 /**

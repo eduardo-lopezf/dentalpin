@@ -31,17 +31,46 @@ const ALLOWED = {
 
 const FAIL_AT = new Set(['high', 'critical'])
 
-const result = spawnSync('npm', ['audit', '--json'], {
-  encoding: 'utf-8',
-  maxBuffer: 64 * 1024 * 1024
-})
+// `npm audit` queries a registry endpoint, and that call fails often
+// enough to matter — a run of five here hung up four times.
+const ATTEMPTS = 3
 
 let report
-try {
-  report = JSON.parse(result.stdout)
-} catch {
-  console.error('audit-gate: could not parse `npm audit --json` output')
-  console.error(result.stdout?.slice(0, 2000) ?? '', result.stderr ?? '')
+let lastFailure = ''
+for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+  const result = spawnSync('npm', ['audit', '--json'], {
+    encoding: 'utf-8',
+    maxBuffer: 64 * 1024 * 1024
+  })
+
+  let parsed
+  try {
+    parsed = JSON.parse(result.stdout)
+  } catch {
+    lastFailure = `unparseable output: ${(result.stdout ?? '').slice(0, 500)}${result.stderr ?? ''}`
+    continue
+  }
+
+  // A failed audit still exits with *valid JSON* — `{ message, error }`
+  // where `{ vulnerabilities }` belongs. Taken at face value that reads
+  // as an audit that found nothing, which is the wrong answer twice
+  // over: every allowlist entry below looks stale and is demanded gone,
+  // and once the list is empty the gate goes green having checked
+  // nothing at all. "Did not run" must never collapse into "no
+  // findings", so the absence of `vulnerabilities` is a failure here.
+  if (parsed && parsed.vulnerabilities && typeof parsed.vulnerabilities === 'object') {
+    report = parsed
+    break
+  }
+  lastFailure = parsed?.message ?? 'report carried no `vulnerabilities` key'
+}
+
+if (!report) {
+  console.error(
+    `audit-gate: \`npm audit\` did not complete after ${ATTEMPTS} attempt(s), `
+    + 'so nothing was checked. This is not a clean audit.'
+  )
+  console.error(`Last failure: ${lastFailure}`)
   process.exit(2)
 }
 

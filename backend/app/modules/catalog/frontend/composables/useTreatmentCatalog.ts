@@ -5,11 +5,11 @@
  * with fallback to hardcoded constants if catalog is empty.
  */
 
-import type { ApiResponse, OdontogramTreatment, VisualizationRuleLayer } from '~~/app/types'
+import type { ApiResponse, OdontogramTreatment } from '~~/app/types'
 import {
   TREATMENT_CATEGORIES,
   TREATMENT_COLORS,
-  VISUALIZATION_RULES,
+  getVisualizationRuleLayers,
   DIAGNOSTIC_CATEGORIES,
   THERAPEUTIC_CATEGORIES,
   isSurfaceTreatment,
@@ -90,7 +90,7 @@ export function useTreatmentCatalog() {
         requires_surfaces: isSurfaceTreatment(treatmentType),
         is_diagnostic: category.key === 'diagnostico',
         odontogram_treatment_type: treatmentType as OdontogramTreatment['odontogram_treatment_type'],
-        visualization_rules: getVisualizationRulesForType(treatmentType),
+        visualization_rules: getVisualizationRuleLayers(treatmentType),
         visualization_config: {
           color: TREATMENT_COLORS[treatmentType] || { light: '#6B7280', dark: '#9CA3AF' }
         },
@@ -156,7 +156,7 @@ export function useTreatmentCatalog() {
         requires_surfaces: isSurfaceTreatment(treatmentType),
         is_diagnostic: categoryKey === 'diagnostico',
         odontogram_treatment_type: treatmentType as OdontogramTreatment['odontogram_treatment_type'],
-        visualization_rules: getVisualizationRulesForType(treatmentType),
+        visualization_rules: getVisualizationRuleLayers(treatmentType),
         visualization_config: {
           color: TREATMENT_COLORS[treatmentType] || { light: '#6B7280', dark: '#9CA3AF' }
         },
@@ -193,7 +193,7 @@ export function useTreatmentCatalog() {
           requires_surfaces: isSurfaceTreatment(normalized),
           is_diagnostic: category.key === 'diagnostico',
           odontogram_treatment_type: normalized as OdontogramTreatment['odontogram_treatment_type'],
-          visualization_rules: getVisualizationRulesForType(normalized),
+          visualization_rules: getVisualizationRuleLayers(normalized),
           visualization_config: {
             color: TREATMENT_COLORS[normalized] || { light: '#6B7280', dark: '#9CA3AF' }
           },
@@ -264,18 +264,6 @@ export function useTreatmentCatalog() {
   // ============================================================================
   // Helpers
   // ============================================================================
-
-  function getVisualizationRulesForType(treatmentType: string): VisualizationRuleLayer[] {
-    const layers: VisualizationRuleLayer[] = []
-    for (const [rule, treatments] of Object.entries(VISUALIZATION_RULES)) {
-      if (treatments.includes(treatmentType)) {
-        // Map legacy rule name (pattern_fill) to the new layer name (cenital_pattern).
-        const layer = rule === 'pattern_fill' ? 'cenital_pattern' : rule
-        layers.push({ layer: layer as VisualizationRuleLayer['layer'] })
-      }
-    }
-    return layers
-  }
 
   function getCategoryLabel(categoryKey: string, locale = 'es'): string {
     if (useCatalog.value) {

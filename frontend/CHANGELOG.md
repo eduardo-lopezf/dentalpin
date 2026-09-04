@@ -1,6 +1,11 @@
 # Changelog — frontend
 
 ## Unreleased
+- fix(odontogram config): `getVisualizationRuleLayers` converts a treatment
+  type's rules into the layer objects the catalog persists, in one place. The
+  two existing copies had already drifted — one emitted bare rule names, which
+  the API rejects.
+
 
 - fix(lint): ESLint now covers the module layers. Every module ships a Nuxt
   layer under `backend/app/modules/<name>/frontend/`, roughly half of the UI

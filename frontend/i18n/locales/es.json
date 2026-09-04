@@ -1591,7 +1591,16 @@
       "barTab": "Pestaña del odontograma",
       "chart": "Dibujo en el odontograma"
     },
-    "placementFixed": "Este tipo de tratamiento se aplica siempre así."
+    "placementFixed": "Este tipo de tratamiento se aplica siempre así.",
+    "blocked": {
+      "name": "Falta el nombre del tratamiento.",
+      "type": "Falta el tipo de tratamiento.",
+      "code": "Falta el código. Se genera solo al escribir el nombre.",
+      "sessionsEmpty": "Has activado el cobro por partes pero no hay ninguna sesión.",
+      "sessionLabel": "Alguna sesión se ha quedado sin nombre.",
+      "sessionNegative": "Alguna sesión tiene un importe negativo.",
+      "sessionSum": "Las sesiones suman {sum} y el precio es {total}. Deben coincidir."
+    }
   },
   "placeholders": {
     "selectRole": "Seleccionar rol..."

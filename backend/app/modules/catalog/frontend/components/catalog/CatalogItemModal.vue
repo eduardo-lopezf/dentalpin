@@ -22,7 +22,7 @@ import type {
   TreatmentCatalogItemCreate,
   TreatmentPhase
 } from '~~/app/types'
-import { VISUALIZATION_RULES } from '~~/app/config/odontogramConstants'
+import { getVisualizationRuleLayers } from '~~/app/config/odontogramConstants'
 import {
   DEFAULTS_BY_PLACEMENT,
   DEFAULTS_BY_TYPE,
@@ -444,23 +444,31 @@ const defaultPhase = computed<TreatmentPhase | undefined>({
 // Submit
 // ---------------------------------------------------------------------------
 
-const isValid = computed(() => {
-  if (!itemName.value || !formData.value.category_id || !formData.value.internal_code) return false
+/**
+ * Why the form cannot be saved yet, in the dentist's words, or null when it
+ * can. A disabled button with no explanation is indistinguishable from a
+ * broken one — and the session template makes that easy to hit, since eight
+ * rows have to add up to the exact total before anything happens.
+ */
+const blockingReason = computed<string | null>(() => {
+  if (!itemName.value) return t('catalog.blocked.name')
+  if (!formData.value.category_id) return t('catalog.blocked.type')
+  if (!formData.value.internal_code) return t('catalog.blocked.code')
   if (sessionsEnabled.value) {
-    if (sessions.value.length === 0) return false
-    if (sessions.value.some(s => !s.label || s.default_price < 0)) return false
-    if (!sessionsSumMatches.value) return false
+    if (sessions.value.length === 0) return t('catalog.blocked.sessionsEmpty')
+    if (sessions.value.some(s => !s.label)) return t('catalog.blocked.sessionLabel')
+    if (sessions.value.some(s => s.default_price < 0)) return t('catalog.blocked.sessionNegative')
+    if (!sessionsSumMatches.value) {
+      return t('catalog.blocked.sessionSum', {
+        sum: sessionsSum.value.toFixed(2),
+        total: Number(formData.value.default_price || 0).toFixed(2)
+      })
+    }
   }
-  return true
+  return null
 })
 
-function getVisualizationRules(treatmentType: string): string[] {
-  const rules: string[] = []
-  for (const [rule, treatments] of Object.entries(VISUALIZATION_RULES)) {
-    if (treatments.includes(treatmentType)) rules.push(rule)
-  }
-  return rules
-}
+const isValid = computed(() => blockingReason.value === null)
 
 function handleSubmit() {
   if (!isValid.value) return
@@ -477,7 +485,7 @@ function handleSubmit() {
   if (oType && typeDefaults.value) {
     cleanData.odontogram_mapping = {
       odontogram_treatment_type: oType,
-      visualization_rules: placementDefaults.value.isGlobal ? [] : getVisualizationRules(oType),
+      visualization_rules: placementDefaults.value.isGlobal ? [] : getVisualizationRuleLayers(oType),
       visualization_config: {},
       clinical_category: typeDefaults.value.clinicalCategory
     }
@@ -884,7 +892,13 @@ function handleClose() {
         </div>
 
         <!-- Footer -->
-        <div class="px-6 py-4 border-t border-default flex justify-end gap-2">
+        <div class="px-6 py-4 border-t border-default flex items-center justify-end gap-3">
+          <p
+            v-if="blockingReason"
+            class="text-caption text-warning mr-auto"
+          >
+            {{ blockingReason }}
+          </p>
           <UButton
             color="neutral"
             variant="ghost"

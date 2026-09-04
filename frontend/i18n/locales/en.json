@@ -1591,7 +1591,16 @@
       "barTab": "Odontogram tab",
       "chart": "Odontogram drawing"
     },
-    "placementFixed": "This kind of treatment always applies this way."
+    "placementFixed": "This kind of treatment always applies this way.",
+    "blocked": {
+      "name": "The treatment needs a name.",
+      "type": "The treatment needs a type.",
+      "code": "The code is missing. It is generated as soon as you type the name.",
+      "sessionsEmpty": "Staged billing is on but there are no sessions.",
+      "sessionLabel": "One of the sessions has no name.",
+      "sessionNegative": "One of the sessions has a negative amount.",
+      "sessionSum": "Sessions add up to {sum} and the price is {total}. They must match."
+    }
   },
   "placeholders": {
     "selectRole": "Select role..."
