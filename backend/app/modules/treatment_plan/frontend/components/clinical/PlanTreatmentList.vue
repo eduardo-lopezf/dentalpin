@@ -9,8 +9,9 @@
  * - Drag & drop reorder (mouse + keyboard Alt+↑/↓)
  */
 
-import type { PlannedTreatmentItem } from '~~/app/types'
+import type { PlannedTreatmentItem, TreatmentPhase } from '~~/app/types'
 import { VueDraggable } from 'vue-draggable-plus'
+import { phaseLabelKey, phaseRank } from '~~/app/config/treatmentPhases'
 import CompletionNudgeModal from './notes/CompletionNudgeModal.vue'
 import PlanItemDoctorChip from './PlanItemDoctorChip.vue'
 import PlanItemSessionRow from '../treatment-plans/PlanItemSessionRow.vue'
@@ -74,19 +75,63 @@ function cancelComplete() {
   itemToComplete.value = null
 }
 
-// Separate pending and completed items.
-// `localPending` is a writable copy so VueDraggable can mutate it during drag.
-// We sync it with props.items and flush a reorder event on drag end.
-const localPending = ref<PlannedTreatmentItem[]>([])
+// Pending items, grouped by stage of care.
+//
+// A course of care is phased, and reading it as one flat click-ordered list
+// is what made a plan hard to explain to a patient. Each group is its own
+// writable array so VueDraggable can mutate it during a drag; dragging stays
+// *within* a phase on purpose — moving a treatment to another stage is a
+// clinical decision (change its phase), not a drag.
+interface PendingGroup {
+  /** `null` for items whose catalog entry never declared a phase. */
+  phase: TreatmentPhase | null
+  items: PlannedTreatmentItem[]
+}
+
+const pendingGroups = ref<PendingGroup[]>([])
 
 function syncPendingFromProps() {
-  localPending.value = props.items
+  const pending = props.items
     .filter(i => i.status === 'pending')
     .slice()
     .sort((a, b) => a.sequence_order - b.sequence_order)
+
+  const byPhase = new Map<string, PlannedTreatmentItem[]>()
+  for (const item of pending) {
+    const key = item.phase ?? ''
+    const bucket = byPhase.get(key)
+    if (bucket) bucket.push(item)
+    else byPhase.set(key, [item])
+  }
+
+  pendingGroups.value = [...byPhase.entries()]
+    .sort(([a], [b]) => phaseRank(a || null) - phaseRank(b || null))
+    .map(([phase, items]) => ({ phase: (phase || null) as TreatmentPhase | null, items }))
 }
 
-watch(() => props.items, syncPendingFromProps, { immediate: true })
+watch(() => props.items, syncPendingFromProps, { immediate: true, deep: true })
+
+/** Flat pending list in display order — phase order first, manual order within. */
+const localPending = computed(() => pendingGroups.value.flatMap(g => g.items))
+
+/**
+ * A single unphased group is the pre-phase status quo: show no header, so
+ * plans built before any of this look exactly as they did.
+ */
+const showPhaseHeaders = computed(() =>
+  pendingGroups.value.length > 1 || pendingGroups.value[0]?.phase != null
+)
+
+/** Running 1..n numbering across groups, so the list reads as one sequence. */
+function groupOffset(groupIndex: number): number {
+  let offset = 0
+  for (let i = 0; i < groupIndex; i++) offset += pendingGroups.value[i]!.items.length
+  return offset
+}
+
+function phaseLabel(phase: TreatmentPhase | null): string {
+  return phase ? t(phaseLabelKey(phase)) : t('clinical.plans.phases.unassigned')
+}
 
 const completedItems = computed(() =>
   props.items
@@ -96,7 +141,8 @@ const completedItems = computed(() =>
 )
 
 function emitReorder() {
-  // Build full ordering: pending (reordered) first, completed last (original order).
+  // Build full ordering: pending (phase order, then manual order within each
+  // phase) first, completed last in their original order.
   const ids = [
     ...localPending.value.map(i => i.id),
     ...completedItems.value.map(i => i.id)
@@ -104,25 +150,28 @@ function emitReorder() {
   emit('reorder', ids)
 }
 
-function moveItem(index: number, delta: -1 | 1) {
+/** Alt+↑/↓ moves an item within its own phase, mirroring what a drag allows. */
+function moveItem(groupIndex: number, index: number, delta: -1 | 1) {
+  const group = pendingGroups.value[groupIndex]
+  if (!group) return
   const next = index + delta
-  if (next < 0 || next >= localPending.value.length) return
-  const arr = [...localPending.value]
+  if (next < 0 || next >= group.items.length) return
+  const arr = [...group.items]
   const tmp = arr[index]!
   arr[index] = arr[next]!
   arr[next] = tmp
-  localPending.value = arr
+  group.items = arr
   emitReorder()
 }
 
-function handleKeydown(e: KeyboardEvent, index: number) {
+function handleKeydown(e: KeyboardEvent, groupIndex: number, index: number) {
   if (!e.altKey) return
   if (e.key === 'ArrowUp') {
     e.preventDefault()
-    moveItem(index, -1)
+    moveItem(groupIndex, index, -1)
   } else if (e.key === 'ArrowDown') {
     e.preventDefault()
-    moveItem(index, 1)
+    moveItem(groupIndex, index, 1)
   }
 }
 
@@ -251,141 +300,156 @@ const { format: formatCurrency } = useCurrency()
       <p>{{ t('clinical.plans.noItems') }}</p>
     </div>
 
-    <!-- Pending items (draggable). Disabled when readonly or fewer than 2 items. -->
-    <VueDraggable
-      v-model="localPending"
-      :disabled="readonly || localPending.length < 2"
-      handle=".drag-handle"
-      :animation="180"
-      ghost-class="plan-item-ghost"
-      drag-class="plan-item-drag"
+    <!-- Pending items, one draggable list per stage of care. Dragging is
+         confined to a phase; disabled when readonly or fewer than 2 items. -->
+    <div
+      v-for="(group, groupIndex) in pendingGroups"
+      :key="group.phase ?? 'unphased'"
       class="space-y-[var(--density-gap,0.5rem)]"
-      @end="emitReorder"
     >
       <div
-        v-for="(item, index) in localPending"
-        :key="item.id"
-        tabindex="0"
-        class="plan-item p-[var(--density-card-padding-y,0.75rem)_var(--density-card-padding-x,0.75rem)] rounded-token-md border transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-        :class="{
-          'alert-surface-warning border-transparent': isHighlighted(item.id),
-          'bg-surface border-default': !isHighlighted(item.id)
-        }"
-        :aria-label="t('clinical.plans.reorderHint')"
-        @mouseenter="emit('item-hover', item.id)"
-        @mouseleave="emit('item-hover', null)"
-        @keydown="handleKeydown($event, index)"
+        v-if="showPhaseHeaders"
+        class="phase-header"
       >
-        <div class="space-y-1">
-          <!-- Row 1: nombre del tratamiento a ancho completo, fuera del grid
-               para que nunca se vea estrujado por el contenido lateral. -->
-          <div class="font-medium break-words">
-            {{ getItemName(item) }}
-          </div>
-
-          <!-- Row 2: metadatos + acciones. La columna izquierda sigue
-               siendo flexible; la derecha encaja los iconos sin pelearse
-               con el nombre. -->
-          <div class="grid grid-cols-[1fr_auto] items-center gap-2 w-full">
-            <div class="flex items-center gap-2 flex-wrap min-w-0">
-              <button
-                v-if="!readonly && localPending.length > 1"
-                type="button"
-                class="drag-handle shrink-0 text-subtle hover:text-default cursor-grab active:cursor-grabbing"
-                :title="t('clinical.plans.dragToReorder')"
-                :aria-label="t('clinical.plans.dragToReorder')"
-              >
-                <UIcon
-                  name="i-lucide-grip-vertical"
-                  class="w-4 h-4"
-                />
-              </button>
-              <span class="text-subtle text-caption tnum w-6 text-center shrink-0">
-                {{ index + 1 }}.
-              </span>
-              <!-- Doctor chip stays editable on pending items regardless of
-                   the plan-lock state — reassignment is operational and does
-                   not touch the patient-facing contract. -->
-              <PlanItemDoctorChip
-                :professional-id="item.assigned_professional_id ?? null"
-                :plan-professional-id="planProfessionalId"
-                :readonly="item.status !== 'pending'"
-                @change="(professionalId) => emit('item-doctor-change', item.id, professionalId)"
-              />
-              <span
-                v-if="hasToothInfo(item)"
-                class="text-sm text-muted"
-              >
-                {{ formatToothInfo(item) }}
-              </span>
-              <UBadge
-                v-if="isMultiSession(item)"
-                :color="sessionProgress(item).done > 0 ? 'primary' : 'neutral'"
-                variant="subtle"
-                size="xs"
-              >
-                {{ t('clinical.plans.sessions.progress', sessionProgress(item)) }}
-              </UBadge>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <span
-                v-if="getItemPrice(item) !== undefined"
-                class="font-medium text-sm"
-              >
-                {{ formatCurrency(getItemPrice(item)) }}
-              </span>
-              <!-- Per-treatment note button (clinical_notes module). Stays
-                 mounted regardless of plan-item status so notes can be
-                 added/read on every status (issue #60). -->
-              <ModuleSlot
-                name="odontogram.condition.actions"
-                :ctx="{
-                  treatmentId: item.treatment_id,
-                  toothNumber: itemTeeth(item)[0] ?? null,
-                  status: item.status
-                }"
-              />
-              <UButton
-                v-if="completeEnabled"
-                size="xs"
-                variant="ghost"
-                color="success"
-                icon="i-lucide-check"
-                :title="t('clinical.plans.markComplete')"
-                @click.stop="openConfirmModal(item)"
-              />
-              <UButton
-                v-if="!readonly"
-                size="xs"
-                variant="ghost"
-                color="error"
-                icon="i-lucide-trash-2"
-                :title="t('clinical.plans.removeItem')"
-                @click.stop="emit('item-remove', item.id)"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Multi-session billing breakdown.
-             Single-session items hide this entirely; the legacy "mark
-             complete" button still drives the lifecycle for those. -->
-        <div
-          v-if="isMultiSession(item)"
-          class="mt-2 pl-8 space-y-1"
-          @click.stop
-        >
-          <PlanItemSessionRow
-            v-for="session in item.sessions"
-            :key="session.id"
-            :session="session"
-            :can-complete="completeEnabled"
-            @complete="(sessionId) => emit('session-complete', item.id, sessionId)"
-            @cancel="(sessionId) => emit('session-cancel', item.id, sessionId)"
-          />
-        </div>
+        <span class="phase-header-label">{{ phaseLabel(group.phase) }}</span>
+        <span class="phase-header-count">{{ group.items.length }}</span>
       </div>
-    </VueDraggable>
+
+      <VueDraggable
+        v-model="group.items"
+        :disabled="readonly || group.items.length < 2"
+        handle=".drag-handle"
+        :animation="180"
+        ghost-class="plan-item-ghost"
+        drag-class="plan-item-drag"
+        class="space-y-[var(--density-gap,0.5rem)]"
+        @end="emitReorder"
+      >
+        <div
+          v-for="(item, index) in group.items"
+          :key="item.id"
+          tabindex="0"
+          class="plan-item p-[var(--density-card-padding-y,0.75rem)_var(--density-card-padding-x,0.75rem)] rounded-token-md border transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+          :class="{
+            'alert-surface-warning border-transparent': isHighlighted(item.id),
+            'bg-surface border-default': !isHighlighted(item.id)
+          }"
+          :aria-label="t('clinical.plans.reorderHint')"
+          @mouseenter="emit('item-hover', item.id)"
+          @mouseleave="emit('item-hover', null)"
+          @keydown="handleKeydown($event, groupIndex, index)"
+        >
+          <div class="space-y-1">
+            <!-- Row 1: nombre del tratamiento a ancho completo, fuera del grid
+                 para que nunca se vea estrujado por el contenido lateral. -->
+            <div class="font-medium break-words">
+              {{ getItemName(item) }}
+            </div>
+
+            <!-- Row 2: metadatos + acciones. La columna izquierda sigue
+                 siendo flexible; la derecha encaja los iconos sin pelearse
+                 con el nombre. -->
+            <div class="grid grid-cols-[1fr_auto] items-center gap-2 w-full">
+              <div class="flex items-center gap-2 flex-wrap min-w-0">
+                <button
+                  v-if="!readonly && group.items.length > 1"
+                  type="button"
+                  class="drag-handle shrink-0 text-subtle hover:text-default cursor-grab active:cursor-grabbing"
+                  :title="t('clinical.plans.dragToReorder')"
+                  :aria-label="t('clinical.plans.dragToReorder')"
+                >
+                  <UIcon
+                    name="i-lucide-grip-vertical"
+                    class="w-4 h-4"
+                  />
+                </button>
+                <span class="text-subtle text-caption tnum w-6 text-center shrink-0">
+                  {{ groupOffset(groupIndex) + index + 1 }}.
+                </span>
+                <!-- Doctor chip stays editable on pending items regardless of
+                     the plan-lock state — reassignment is operational and does
+                     not touch the patient-facing contract. -->
+                <PlanItemDoctorChip
+                  :professional-id="item.assigned_professional_id ?? null"
+                  :plan-professional-id="planProfessionalId"
+                  :readonly="item.status !== 'pending'"
+                  @change="(professionalId) => emit('item-doctor-change', item.id, professionalId)"
+                />
+                <span
+                  v-if="hasToothInfo(item)"
+                  class="text-sm text-muted"
+                >
+                  {{ formatToothInfo(item) }}
+                </span>
+                <UBadge
+                  v-if="isMultiSession(item)"
+                  :color="sessionProgress(item).done > 0 ? 'primary' : 'neutral'"
+                  variant="subtle"
+                  size="xs"
+                >
+                  {{ t('clinical.plans.sessions.progress', sessionProgress(item)) }}
+                </UBadge>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span
+                  v-if="getItemPrice(item) !== undefined"
+                  class="font-medium text-sm"
+                >
+                  {{ formatCurrency(getItemPrice(item)) }}
+                </span>
+                <!-- Per-treatment note button (clinical_notes module). Stays
+                   mounted regardless of plan-item status so notes can be
+                   added/read on every status (issue #60). -->
+                <ModuleSlot
+                  name="odontogram.condition.actions"
+                  :ctx="{
+                    treatmentId: item.treatment_id,
+                    toothNumber: itemTeeth(item)[0] ?? null,
+                    status: item.status
+                  }"
+                />
+                <UButton
+                  v-if="completeEnabled"
+                  size="xs"
+                  variant="ghost"
+                  color="success"
+                  icon="i-lucide-check"
+                  :title="t('clinical.plans.markComplete')"
+                  @click.stop="openConfirmModal(item)"
+                />
+                <UButton
+                  v-if="!readonly"
+                  size="xs"
+                  variant="ghost"
+                  color="error"
+                  icon="i-lucide-trash-2"
+                  :title="t('clinical.plans.removeItem')"
+                  @click.stop="emit('item-remove', item.id)"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Multi-session billing breakdown.
+               Single-session items hide this entirely; the legacy "mark
+               complete" button still drives the lifecycle for those. -->
+          <div
+            v-if="isMultiSession(item)"
+            class="mt-2 pl-8 space-y-1"
+            @click.stop
+          >
+            <PlanItemSessionRow
+              v-for="session in item.sessions"
+              :key="session.id"
+              :session="session"
+              :can-complete="completeEnabled"
+              @complete="(sessionId) => emit('session-complete', item.id, sessionId)"
+              @cancel="(sessionId) => emit('session-cancel', item.id, sessionId)"
+            />
+          </div>
+        </div>
+      </VueDraggable>
+    </div>
 
     <!-- Completed items (collapsible) -->
     <UAccordion
@@ -456,6 +520,31 @@ const { format: formatCurrency } = useCurrency()
 </template>
 
 <style scoped>
+/* Stage-of-care separator. Deliberately quiet — it orders the list, it is
+   not a section the eye should land on before the treatments themselves. */
+.phase-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 2px 4px;
+  margin-top: 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.phase-header-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.phase-header-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-subtle, #9CA3AF);
+}
+
 /* Onboarding empty state for a freshly created draft plan. */
 .empty-draft-guide {
   display: flex;

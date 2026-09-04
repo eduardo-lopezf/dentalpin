@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import type { VatType, VatTypeCreate, VatTypeUpdate } from '~~/app/types'
+import { PERMISSIONS } from '~~/app/config/permissions'
 
 const { t, locale } = useI18n()
-const { isAdmin } = usePermissions()
+const { can } = usePermissions()
+
+// VAT types are taxonomy: the API gates their writes on `catalog.admin`,
+// so the UI asks for the same grant instead of a role.
+const canManageTaxonomy = computed(() => can(PERMISSIONS.catalog.admin))
 const {
   vatTypes,
   isLoading,
@@ -179,7 +184,7 @@ function canEdit(_vatType: VatType): boolean {
 
         <!-- Create button -->
         <UButton
-          v-if="isAdmin"
+          v-if="canManageTaxonomy"
           icon="i-lucide-plus"
           @click="openCreateModal"
         >
@@ -252,7 +257,7 @@ function canEdit(_vatType: VatType): boolean {
 
             <!-- Actions -->
             <UButton
-              v-if="isAdmin && canEdit(vatType)"
+              v-if="canManageTaxonomy && canEdit(vatType)"
               icon="i-lucide-pencil"
               size="xs"
               variant="ghost"
@@ -260,7 +265,7 @@ function canEdit(_vatType: VatType): boolean {
               @click="openEditModal(vatType)"
             />
             <UButton
-              v-if="isAdmin && canDelete(vatType)"
+              v-if="canManageTaxonomy && canDelete(vatType)"
               icon="i-lucide-trash-2"
               size="xs"
               variant="ghost"

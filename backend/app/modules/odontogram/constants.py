@@ -242,6 +242,11 @@ class TreatmentType(StrEnum):
     CHECKUP = "checkup"  # Periodic review of a known patient.
     IMAGING = "imaging"  # Panoramic, periapical, CBCT, cephalometric, photos.
     HYGIENE = "hygiene"  # Scaling, prophylaxis, fluoride, hygiene instruction.
+    # Catch-all for a billable act the chart does not draw: a removable
+    # denture, an occlusal adjustment, an orthodontic appliance, a graft.
+    # Roughly half a dental catalog is like this, and refusing to plan those
+    # treatments was never the intent of requiring a chart mapping.
+    PROCEDURE = "procedure"
 
 
 class VisualizationRule(StrEnum):

@@ -33,7 +33,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/[id].vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 3568519
+last_verified_commit: e372dd4
 ---
 
 # Treatment plan detail

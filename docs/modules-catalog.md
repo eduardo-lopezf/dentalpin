@@ -553,6 +553,7 @@ Patient treatment plans with budget + odontogram sync.
   - `treatment_plan.plans.confirm`
   - `treatment_plan.plans.reactivate`
   - `treatment_plan.plans.read`
+  - `treatment_plan.plans.templates`
   - `treatment_plan.plans.write`
 - **Events emitted:**
   - `treatment_plan.budget_sync_requested`

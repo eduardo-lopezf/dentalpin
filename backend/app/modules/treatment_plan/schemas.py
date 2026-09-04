@@ -53,6 +53,9 @@ class CatalogItemBrief(BaseModel):
     internal_code: str
     names: dict
     default_price: float | None = None
+    # Needed by the template UI to decide whether the treatment is waiting
+    # for a tooth: tooth / multi_tooth do, global_mouth / global_arch do not.
+    treatment_scope: str | None = None
 
 
 class TreatmentBrief(BaseModel):
@@ -332,6 +335,101 @@ class LinkBudgetRequest(BaseModel):
 class GenerateBudgetResponse(BaseModel):
     budget_id: UUID
     budget_number: str
+
+
+# ---------------------------------------------------------------------------
+# Plan templates
+# ---------------------------------------------------------------------------
+
+
+class PlanTemplateItemInput(BaseModel):
+    """One line of a template: a catalog item and, optionally, its stage."""
+
+    catalog_item_id: UUID
+    # NULL means "use the catalog item's own default_phase".
+    phase: TreatmentPhase | None = None
+    notes: str | None = None
+
+
+class PlanTemplateItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    sequence: int
+    catalog_item_id: UUID
+    phase: str | None = None
+    notes: str | None = None
+    catalog_item: CatalogItemBrief | None = None
+
+
+class PlanTemplateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    key: str | None = None
+    name: str
+    description: str | None = None
+    is_active: bool
+    display_order: int
+    items: list[PlanTemplateItemResponse] = Field(default_factory=list)
+
+
+class PlanTemplateCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    description: str | None = None
+    display_order: int = 0
+    items: list[PlanTemplateItemInput] = Field(default_factory=list)
+
+
+class PlanTemplateUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = None
+    display_order: int | None = None
+    is_active: bool | None = None
+    # Omit to keep the current lines; send a list (even empty) to replace them.
+    items: list[PlanTemplateItemInput] | None = None
+
+
+class PlanTemplateFromPlanRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    description: str | None = None
+
+
+class ApplyTemplateRequest(BaseModel):
+    """Apply a template to a plan.
+
+    ``tooth_numbers`` is what the template itself cannot know. Every per-tooth
+    treatment in the template is created once per tooth listed; whole-mouth
+    ones are created once regardless. Leave it empty for a template that has
+    no per-tooth treatments at all.
+    """
+
+    template_id: UUID
+    tooth_numbers: list[int] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Proposals from the chart
+# ---------------------------------------------------------------------------
+
+
+class PlanProposal(BaseModel):
+    """A charted finding with the treatment proposed for it.
+
+    ``suggested_catalog_item`` is null when the clinic's catalog has nothing
+    matching — the finding is still listed, because the dentist may want to
+    know it is unaddressed even if the app cannot propose anything.
+    """
+
+    finding_id: UUID
+    clinical_type: str
+    tooth_number: int | None = None
+    surfaces: list[str] | None = None
+    suggested_catalog_item: CatalogItemBrief | None = None
+
+
+class AcceptProposalsRequest(BaseModel):
+    finding_ids: list[UUID] = Field(min_length=1)
 
 
 # Media attachment schemas live in the ``media`` module since issue #55 —

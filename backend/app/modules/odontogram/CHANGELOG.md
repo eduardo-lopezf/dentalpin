@@ -1,6 +1,30 @@
 # Changelog — odontogram module
 
 ## Unreleased
+- fix: un tratamiento del catálogo sin dibujo en el odontograma ya se puede
+  planificar. `clinical_type` se exigía siempre, y como se deducía del
+  mapeo de odontograma, cualquier ítem sin mapeo daba 400 al intentar
+  crearlo. Eso dejaba fuera **69 de los 136 tratamientos activos** del
+  catálogo sembrado: una limpieza, una revisión, una panorámica, una
+  prótesis removible o un ajuste oclusal no se podían añadir a un plan en
+  absoluto. Un acto facturable que no dibuja nada en un diente no es un
+  error, es la mitad de un catálogo dental real: ahora resuelve al tipo
+  `procedure` y sigue su curso.
+
+- feat(ui): el tratamiento elegido sigue armado después de aplicarlo. El
+  trabajo dental viene en tandas — cuatro selladores, un cuadrante de
+  raspado, composites en 16/26/36 — y soltarlo tras cada diente obligaba a
+  buscar el mismo chip en una lista de ~30 cada vez. La chapa de la
+  cabecera dice qué está armado y lo suelta; Esc también, y cada aplicación
+  sigue ofreciendo deshacer.
+
+- feat(ui): colocación por cuadrante. Con un tratamiento armado aparecen
+  los cuadrantes disponibles; elegir uno pide confirmación nombrando las
+  piezas antes de crear nada, porque ocho tratamientos creados por error no
+  tienen deshacer en bloque. Solo para tratamientos de diente completo: los
+  de superficie necesitan elegir caras pieza a pieza y los multi-diente son
+  una única decisión clínica.
+
 
 - feat(odontogram): the plan builder reaches every therapeutic category.
   `THERAPEUTIC_CATEGORIES` listed four of them, so the bar's planning mode

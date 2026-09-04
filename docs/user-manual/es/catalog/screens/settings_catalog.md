@@ -118,7 +118,10 @@ duración, IVA, categoría, especialidades y fase. También se pueden **desactiv
 si tu clínica no los ofrece, en vez de borrarlos — así el histórico de
 presupuestos y facturas que los referencian sigue intacto.
 
-Solo el perfil **administrador** puede crear o editar tratamientos. Los demás
+Crear, editar y borrar tratamientos requiere el permiso `catalog.write`, y
+gestionar categorías, tipos de IVA y especialidades requiere `catalog.admin`.
+**Por defecto solo el perfil administrador tiene ninguno de los dos**, así que
+en la práctica es el único que puede modificar el catálogo. Los demás
 perfiles ven el catálogo en modo lectura.
 
 El único campo bloqueado en un tratamiento del sistema es el **código interno**:

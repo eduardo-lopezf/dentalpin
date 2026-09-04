@@ -23,6 +23,7 @@ import type {
   TreatmentPhase
 } from '~~/app/types'
 import { getVisualizationRuleLayers } from '~~/app/config/odontogramConstants'
+import { PERMISSIONS } from '~~/app/config/permissions'
 import {
   DEFAULTS_BY_PLACEMENT,
   DEFAULTS_BY_TYPE,
@@ -45,6 +46,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
+const { can } = usePermissions()
 const { symbol: currencySymbol } = useCurrency()
 const { vatTypeOptions, defaultVatType, fetchVatTypes } = useVatTypes()
 const { activeSpecialties, fetchSpecialties } = useSpecialties()
@@ -450,7 +452,14 @@ const defaultPhase = computed<TreatmentPhase | undefined>({
  * broken one — and the session template makes that easy to hit, since eight
  * rows have to add up to the exact total before anything happens.
  */
+// Checked here rather than only where the modal is opened: the guard on a
+// trigger protects that one trigger, and a caller added later that forgets
+// it would hand the user a full form and a 403 on save. Reusing
+// `blockingReason` means the reason is shown, not merely enforced.
+const canWrite = computed(() => can(PERMISSIONS.catalog.write))
+
 const blockingReason = computed<string | null>(() => {
+  if (!canWrite.value) return t('catalog.blocked.permission')
   if (!itemName.value) return t('catalog.blocked.name')
   if (!formData.value.category_id) return t('catalog.blocked.type')
   if (!formData.value.internal_code) return t('catalog.blocked.code')
@@ -471,7 +480,7 @@ const blockingReason = computed<string | null>(() => {
 const isValid = computed(() => blockingReason.value === null)
 
 function handleSubmit() {
-  if (!isValid.value) return
+  if (!canWrite.value || !isValid.value) return
 
   const cleanData: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(formData.value)) {

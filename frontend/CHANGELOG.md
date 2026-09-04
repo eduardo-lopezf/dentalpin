@@ -1,6 +1,11 @@
 # Changelog — frontend
 
 ## Unreleased
+- feat(config): `treatmentPhases.ts` — el orden clínico de las fases, en un
+  solo sitio. Lo tenía el filtro del catálogo como constante local y ahora
+  lo necesita también la lista del plan; dos órdenes distintos habrían
+  puesto el mismo plan en dos secuencias según la pantalla.
+
 - fix(odontogram config): `getVisualizationRuleLayers` converts a treatment
   type's rules into the layer objects the catalog persists, in one place. The
   two existing copies had already drifted — one emitted bare rule names, which

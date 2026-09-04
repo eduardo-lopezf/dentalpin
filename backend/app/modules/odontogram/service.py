@@ -21,6 +21,7 @@ from .constants import (
     ATOMIC_MULTI_TOOTH_TYPES,
     ToothCondition,
     TreatmentStatus,
+    TreatmentType,
     get_tooth_type,
 )
 from .models import OdontogramHistory, ToothRecord, Treatment, TreatmentTooth
@@ -583,9 +584,14 @@ class TreatmentService:
                 )
             return mapping.odontogram_treatment_type
         if explicit is None:
-            raise ValueError(
-                "clinical_type is required when catalog item has no odontogram mapping"
-            )
+            if catalog_item is not None:
+                # A catalog item without a chart mapping is not an error: a
+                # cleaning, a radiograph, a denture and an occlusal adjustment
+                # legitimately draw nothing on a tooth chart, and that is over
+                # half of a real dental catalog. Refusing here made those
+                # treatments impossible to plan at all.
+                return TreatmentType.PROCEDURE.value
+            raise ValueError("clinical_type is required when no catalog item is given")
         return explicit
 
     @staticmethod

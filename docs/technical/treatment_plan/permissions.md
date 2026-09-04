@@ -17,6 +17,7 @@ Returned by `TreatmentPlanModule.get_permissions()`
 | `treatment_plan.plans.confirm` | _Describe what this allows._ | _List the endpoints._ |
 | `treatment_plan.plans.close` | _Describe what this allows._ | _List the endpoints._ |
 | `treatment_plan.plans.reactivate` | _Describe what this allows._ | _List the endpoints._ |
+| `treatment_plan.plans.templates` | Curate the clinic's plan templates: create, edit, hide, and save an existing plan as one. Reading them needs only `plans.read` — everyone who builds a plan picks from the list. | `POST /plan-templates`, `PUT /plan-templates/{id}`, `DELETE /plan-templates/{id}`, `POST /plan-templates/from-plan/{plan_id}` |
 
 ## Role assignment
 

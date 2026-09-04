@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import type { TreatmentCatalogItem, TreatmentCatalogItemUpdate, TreatmentCatalogItemCreate, TreatmentCatalogCategory, VatTypeBrief, Specialty, SpecialtyCreate, SpecialtyUpdate } from '~~/app/types'
+import { PERMISSIONS } from '~~/app/config/permissions'
 
 const { t, locale } = useI18n()
-const { isAdmin } = usePermissions()
+const { can } = usePermissions()
+
+// Ask the same question the API asks, rather than "is this an admin".
+// Treatment items are gated on `catalog.write`; the taxonomy around them
+// (categories, specialties, VAT types) on `catalog.admin`. Only the admin
+// role holds either today, so this changes nothing now — but the day a
+// dentist is given `catalog.write` to keep the price list, the buttons
+// follow the grant instead of staying hidden behind a role check.
+const canEditItems = computed(() => can(PERMISSIONS.catalog.write))
+const canManageTaxonomy = computed(() => can(PERMISSIONS.catalog.admin))
 const catalog = useCatalog()
 const specialtiesApi = useSpecialties()
 
@@ -475,14 +485,14 @@ const categoryOptions = computed(() => [
       </div>
       <div class="flex items-center gap-2">
         <UButton
-          v-if="isAdmin && activeView === 'type'"
+          v-if="canEditItems && activeView === 'type'"
           icon="i-lucide-plus"
           @click="openCreateModal"
         >
           {{ t('catalog.newItem') }}
         </UButton>
         <UButton
-          v-if="isAdmin && activeView === 'specialty'"
+          v-if="canManageTaxonomy && activeView === 'specialty'"
           icon="i-lucide-plus"
           @click="openSpecialtyCreateModal"
         >
@@ -581,7 +591,7 @@ const categoryOptions = computed(() => [
               </button>
 
               <div
-                v-if="isAdmin && group.specialty"
+                v-if="canManageTaxonomy && group.specialty"
                 class="flex items-center gap-1"
               >
                 <UButton
@@ -676,7 +686,7 @@ const categoryOptions = computed(() => [
                     <td class="py-2.5 px-4 text-center">
                       <UCheckbox
                         :model-value="item.is_visible !== false"
-                        :disabled="!isAdmin || isTogglingVisibility(item.id)"
+                        :disabled="!canEditItems || isTogglingVisibility(item.id)"
                         @update:model-value="toggleVisible(item)"
                       />
                     </td>
@@ -1108,7 +1118,7 @@ const categoryOptions = computed(() => [
                     <td class="py-2.5 px-4 text-center">
                       <UCheckbox
                         :model-value="item.is_visible !== false"
-                        :disabled="!isAdmin || isTogglingVisibility(item.id)"
+                        :disabled="!canEditItems || isTogglingVisibility(item.id)"
                         @update:model-value="toggleVisible(item)"
                       />
                     </td>
@@ -1117,7 +1127,7 @@ const categoryOptions = computed(() => [
                     </td>
                     <td class="py-2.5 px-4 text-right">
                       <div
-                        v-if="isAdmin"
+                        v-if="canEditItems"
                         class="flex items-center justify-end gap-1"
                       >
                         <UButton
@@ -1273,7 +1283,7 @@ const categoryOptions = computed(() => [
                 <td class="py-3 px-4 text-center">
                   <UCheckbox
                     :model-value="item.is_visible !== false"
-                    :disabled="!isAdmin || isTogglingVisibility(item.id)"
+                    :disabled="!canEditItems || isTogglingVisibility(item.id)"
                     @update:model-value="toggleVisible(item)"
                   />
                 </td>
@@ -1282,7 +1292,7 @@ const categoryOptions = computed(() => [
                 </td>
                 <td class="py-3 px-4 text-right">
                   <div
-                    v-if="isAdmin"
+                    v-if="canEditItems"
                     class="flex items-center justify-end gap-1"
                   >
                     <UButton

@@ -499,8 +499,7 @@ async function confirmMultiToothSelection(
   resetMultiToothSelection()
   emit('treatmentAdd', created)
   emit('treatmentsChanged')
-  selectedTreatmentType.value = null
-  selectedCatalogItemId.value = null
+  // Selection is deliberately kept — see `applyTreatment`.
 }
 
 function resetMultiToothSelection() {
@@ -554,8 +553,11 @@ async function applyTreatment(toothNumber: number, surfaces?: Surface[]) {
 
   emit('treatmentAdd', treatment)
   emit('treatmentsChanged')
-  selectedTreatmentType.value = null
-  selectedCatalogItemId.value = null
+  // The selection stays armed. Dental work comes in sets — four sealants,
+  // a quadrant of scaling, composites on 16/26/36 — and clearing after every
+  // tooth meant hunting the same chip out of a ~30-item list each time. The
+  // badge in the header shows what is armed and releases it; so does Esc,
+  // and every application still offers Undo in its toast.
 }
 
 function handleSurfaceConfirm(surfaces: Surface[]) {
@@ -571,6 +573,67 @@ async function handleUndo() {
   await deleteTreatment(lastAction.treatmentId)
   emit('treatmentsChanged')
   toast.add({ title: t('common.undone'), color: 'neutral' })
+}
+
+// ============================================================================
+// Batch placement by quadrant
+//
+// Periodontal work is charted by quadrant, always; sealants go on the four
+// first molars; cordales are four teeth. Placing those one tooth at a time
+// was the remaining repetition after the selection was made sticky.
+//
+// Deliberately quadrant-only, and always behind a confirmation that names
+// the teeth: eight treatments created by a mis-click have no bulk undo.
+// ============================================================================
+
+const batchQuadrant = ref<number | null>(null)
+const batchApplying = ref(false)
+
+/**
+ * All teeth of the current dentition, flat. `teethLayout` is keyed by
+ * quadrant for rendering; the batch maths wants the numbers.
+ */
+const allTeethFlat = computed(() => Object.values(teethLayout.value).flat() as number[])
+
+/** Quadrants present in the current dentition, in FDI order. */
+const availableQuadrants = computed(() => {
+  const seen = new Set<number>()
+  for (const n of allTeethFlat.value) seen.add(Math.floor(n / 10))
+  return [...seen].sort((a, b) => a - b)
+})
+
+/**
+ * Batch is offered only for a plain per-tooth treatment: a surface treatment
+ * would need surfaces chosen per tooth, and a multi-tooth act (bridge,
+ * splint) is one clinical decision spanning teeth, not many.
+ */
+const canBatchApply = computed(() =>
+  isClickToApplyMode.value
+  && !isMultiToothMode.value
+  && !isReadonly.value
+  && !isSurfaceTreatment(selectedTreatmentType.value!)
+)
+
+const batchTeeth = computed(() =>
+  batchQuadrant.value === null
+    ? []
+    : allTeethFlat.value.filter(n => Math.floor(n / 10) === batchQuadrant.value)
+)
+
+async function confirmBatchApply() {
+  const teeth = batchTeeth.value
+  if (teeth.length === 0) return
+  batchApplying.value = true
+  try {
+    // Sequential on purpose: each application creates a Treatment and a plan
+    // item, and the backend assigns sequence_order from the current maximum.
+    for (const toothNumber of teeth) {
+      await applyTreatment(toothNumber)
+    }
+  } finally {
+    batchApplying.value = false
+    batchQuadrant.value = null
+  }
 }
 
 function cancelClickToApplyMode() {
@@ -706,14 +769,48 @@ defineExpose({
           color="warning"
           variant="subtle"
         />
-        <UBadge
+        <!-- Armed treatment. It survives each application on purpose, so it
+             has to be obvious what is armed and how to put it down. -->
+        <div
           v-if="isClickToApplyMode"
-          :label="multiToothConfig
-            ? t(multiToothConfig.labelKey)
-            : t(`odontogram.treatments.types.${selectedTreatmentType}`)"
-          color="primary"
-          variant="solid"
-        />
+          class="armed-chip"
+        >
+          <UBadge
+            :label="multiToothConfig
+              ? t(multiToothConfig.labelKey)
+              : t(`odontogram.treatments.types.${selectedTreatmentType}`)"
+            color="primary"
+            variant="solid"
+          />
+          <UButton
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            icon="i-lucide-x"
+            :title="t('odontogram.releaseTreatment')"
+            :aria-label="t('odontogram.releaseTreatment')"
+            @click="cancelClickToApplyMode"
+          />
+        </div>
+
+        <!-- Whole-quadrant placement for the armed treatment. -->
+        <div
+          v-if="canBatchApply"
+          class="flex items-center gap-1"
+        >
+          <span class="text-caption text-subtle">{{ t('odontogram.batch.label') }}</span>
+          <UButton
+            v-for="quadrant in availableQuadrants"
+            :key="quadrant"
+            size="xs"
+            variant="outline"
+            color="neutral"
+            :title="t('odontogram.batch.quadrantTitle', { quadrant })"
+            @click="batchQuadrant = quadrant"
+          >
+            {{ quadrant }}
+          </UButton>
+        </div>
       </div>
 
       <!-- Dentition toggle -->
@@ -1010,10 +1107,66 @@ defineExpose({
         {{ t('common.confirm') }}
       </UButton>
     </div>
+
+    <!-- Confirm a whole-quadrant placement. Named teeth, not just a count:
+         eight treatments created by mistake have no bulk undo. -->
+    <UModal
+      :open="batchQuadrant !== null"
+      @update:open="(v) => { if (!v) batchQuadrant = null }"
+    >
+      <template #content>
+        <UCard>
+          <template #header>
+            <h3 class="text-h3">
+              {{ t('odontogram.batch.confirmTitle', { quadrant: batchQuadrant }) }}
+            </h3>
+          </template>
+
+          <p class="text-sm">
+            {{ t('odontogram.batch.confirmBody', {
+              treatment: selectedTreatmentType
+                ? t(`odontogram.treatments.types.${selectedTreatmentType}`)
+                : '',
+              count: batchTeeth.length,
+              teeth: batchTeeth.join(', ')
+            }) }}
+          </p>
+
+          <template #footer>
+            <div class="flex justify-end gap-2">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                @click="batchQuadrant = null"
+              >
+                {{ t('actions.cancel') }}
+              </UButton>
+              <UButton
+                :loading="batchApplying"
+                @click="confirmBatchApply"
+              >
+                {{ t('odontogram.batch.confirmAction') }}
+              </UButton>
+            </div>
+          </template>
+        </UCard>
+      </template>
+    </UModal>
   </div>
 </template>
 
 <style scoped>
+/* Armed-treatment chip: the badge plus its release button read as one
+   control, so the ✕ is unmistakably "put this down", not "delete something". */
+.armed-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 2px;
+  border-radius: 999px;
+  background: var(--color-primary-soft, rgba(59, 130, 246, 0.12));
+}
+
 .odontogram-wrapper {
   container-type: inline-size;
   overflow: hidden;

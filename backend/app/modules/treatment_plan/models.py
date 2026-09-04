@@ -29,6 +29,7 @@ from app.database import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.core.auth.models import Clinic, User
     from app.modules.budget.models import Budget
+    from app.modules.catalog.models import TreatmentCatalogItem
     from app.modules.odontogram.models import Treatment
     from app.modules.patients.models import Patient
     from app.modules.professionals.models import Professional
@@ -222,4 +223,87 @@ class PlannedTreatmentItemSession(Base, TimestampMixin):
         UniqueConstraint("plan_item_id", "sequence", name="uq_plan_item_session_sequence"),
         Index("idx_pti_session_plan_item", "plan_item_id"),
         Index("ix_pti_session_plan_item_status", "plan_item_id", "status"),
+    )
+
+
+class PlanTemplate(Base, TimestampMixin):
+    """A reusable shape of a treatment plan.
+
+    Clinical plans are not invented one by one — a practice runs a handful of
+    recurring shapes (primera visita, fase higiénica, endo + reconstrucción +
+    corona, implante unitario) and rebuilds them by hand every time. A template
+    is that shape: an ordered list of catalog items with their stage of care.
+
+    What a template deliberately does **not** carry is teeth. A template that
+    fixed tooth 16 would be useless on the next patient; the teeth are supplied
+    when the template is applied (see ``PlanTemplateService.apply``).
+
+    Templates are per-clinic. ``key`` is set only on the starter set shipped
+    with the module, so re-seeding can match an existing row instead of
+    duplicating it; templates a clinic creates itself leave it NULL.
+    """
+
+    __tablename__ = "plan_templates"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+
+    # Stable identifier for the shipped starter set; NULL for clinic-authored
+    # templates. Re-seeding matches on it, so it must never be reused.
+    key: Mapped[str | None] = mapped_column(String(50), default=None)
+
+    name: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str | None] = mapped_column(Text)
+
+    # Soft delete: a template that built existing plans stays referenced in
+    # nothing, but hiding beats deleting for something a clinic curates.
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    display_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
+
+    clinic: Mapped["Clinic"] = relationship()
+    items: Mapped[list["PlanTemplateItem"]] = relationship(
+        back_populates="template",
+        cascade="all, delete-orphan",
+        order_by="PlanTemplateItem.sequence",
+    )
+
+    __table_args__ = (
+        UniqueConstraint("clinic_id", "key", name="uq_plan_template_clinic_key"),
+        Index("idx_plan_templates_clinic_active", "clinic_id", "is_active"),
+    )
+
+
+class PlanTemplateItem(Base, TimestampMixin):
+    """One line of a ``PlanTemplate``: a catalog item and where it sits.
+
+    ``phase`` overrides the catalog item's ``default_phase`` for this template
+    only — the same crown is rehabilitation in one shape and an emergency
+    provisional in another. NULL means "whatever the catalog says".
+    """
+
+    __tablename__ = "plan_template_items"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+    template_id: Mapped[UUID] = mapped_column(
+        ForeignKey("plan_templates.id", ondelete="CASCADE"), index=True
+    )
+
+    sequence: Mapped[int] = mapped_column(Integer)
+    catalog_item_id: Mapped[UUID] = mapped_column(
+        ForeignKey("treatment_catalog_items.id", ondelete="CASCADE"), index=True
+    )
+
+    # See app.modules.catalog.models.TREATMENT_PHASES. NULL → catalog default.
+    phase: Mapped[str | None] = mapped_column(String(20), default=None)
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    template: Mapped["PlanTemplate"] = relationship(back_populates="items")
+    catalog_item: Mapped["TreatmentCatalogItem"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("template_id", "sequence", name="uq_plan_template_item_sequence"),
+        Index("idx_plan_template_items_template", "template_id"),
     )

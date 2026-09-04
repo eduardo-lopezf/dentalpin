@@ -16,31 +16,30 @@
  */
 import type { TreatmentCatalogItem, TreatmentPhase } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { TREATMENT_PHASE_ORDER } from '~~/app/config/treatmentPhases'
 
 definePageMeta({ middleware: ['auth'] })
 
 const { t, locale } = useI18n()
-const { can, isAdmin } = usePermissions()
+const { can, canAny } = usePermissions()
 const api = useApi()
 const catalog = useCatalog()
 const specialtiesApi = useSpecialties()
+
+// The management screen holds both surfaces, so either grant is enough
+// to make the link worth showing.
+const canManageCatalog = computed(() =>
+  canAny([PERMISSIONS.catalog.write, PERMISSIONS.catalog.admin])
+)
 
 if (!can(PERMISSIONS.catalog.read)) {
   await navigateTo('/')
 }
 
 // Display order for the stage-of-care filter: the sequence a course of care
-// usually follows, not alphabetical. Typed against the shared union so the
-// vocabulary cannot drift from the backend's TREATMENT_PHASES.
-const PHASES: TreatmentPhase[] = [
-  'diagnostico',
-  'urgencia',
-  'preventivo',
-  'estabilizacion',
-  'rehabilitacion',
-  'estetica',
-  'mantenimiento'
-]
+// usually follows, not alphabetical. Shared with the plan list so a plan does
+// not read in one order here and another there.
+const PHASES = TREATMENT_PHASE_ORDER
 
 const items = ref<TreatmentCatalogItem[]>([])
 const isLoading = ref(true)
@@ -198,7 +197,7 @@ function categoryName(categoryId: string): string {
         </p>
       </div>
       <NuxtLink
-        v-if="isAdmin"
+        v-if="canManageCatalog"
         to="/settings/catalog"
       >
         <UButton

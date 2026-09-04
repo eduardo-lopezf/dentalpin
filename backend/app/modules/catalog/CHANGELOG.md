@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- fix(permissions): the catalog UI asked `isAdmin` while the API asks
+  `catalog.write` / `catalog.admin`. Two different questions that happen
+  to coincide, because only the admin role holds either grant — so
+  granting `catalog.write` to a dentist would have let the API through
+  while the UI kept the buttons hidden. Every guard in
+  `settings/catalog`, `settings/vat-types` and `treatments/catalog` now
+  asks for the grant. **No behaviour change today**: the default is
+  unchanged and only `admin` can write.
+
+- fix(permissions): `CatalogItemModal` guards the action, not just the
+  trigger. It had no check of its own and relied on callers only opening
+  it for admins; a caller added later that forgot would hand the user a
+  full form and a 403 on save. The permission is now the first
+  `blockingReason`, so the reason is shown rather than merely enforced.
+
+- docs: filled in `docs/technical/catalog/permissions.md`, which was a
+  scaffolded stub — every endpoint is now listed under the grant that
+  gates it.
+
 - feat(catalog): the alta form asks four questions instead of fifteen.
   Name, treatment type, who performs it and where in the mouth it applies —
   everything else is deduced and shown in a reviewable panel. The tabs are

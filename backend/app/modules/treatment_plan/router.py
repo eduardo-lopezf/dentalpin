@@ -10,7 +10,10 @@ from app.core.auth.dependencies import ClinicContext, get_clinic_context, requir
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import get_db
 
+from .proposals import PlanProposalService
 from .schemas import (
+    AcceptProposalsRequest,
+    ApplyTemplateRequest,
     ClosePlanRequest,
     CompleteItemRequest,
     CompleteSessionRequest,
@@ -21,6 +24,11 @@ from .schemas import (
     PlannedTreatmentItemCreate,
     PlannedTreatmentItemResponse,
     PlannedTreatmentItemUpdate,
+    PlanProposal,
+    PlanTemplateCreate,
+    PlanTemplateFromPlanRequest,
+    PlanTemplateResponse,
+    PlanTemplateUpdate,
     ReorderItemsRequest,
     SessionInput,
     TreatmentPlanCreate,
@@ -31,6 +39,7 @@ from .schemas import (
     UpdateSessionRequest,
 )
 from .service import PlanLockedError, TreatmentPlanService
+from .templates_service import PlanTemplateService, TemplateNeedsTeethError
 
 router = APIRouter()
 
@@ -782,3 +791,200 @@ async def generate_budget_from_plan(
 #
 # Clinical-notes endpoints moved to the ``clinical_notes`` module since
 # issue #60 (``/api/v1/clinical_notes/*``).
+
+
+# -----------------------------------------------------------------------------
+# Plan templates
+#
+# Declared last, on their own ``/plan-templates`` prefix, so nothing here can
+# shadow a ``/treatment-plans/{plan_id}`` pattern above.
+# -----------------------------------------------------------------------------
+
+
+@router.get("/plan-templates", response_model=ApiResponse[list[PlanTemplateResponse]])
+async def list_plan_templates(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    include_inactive: bool = Query(default=False),
+) -> ApiResponse[list[PlanTemplateResponse]]:
+    """Templates available when starting a plan. Reading needs only plans.read."""
+    templates = await PlanTemplateService.list_templates(
+        db, ctx.clinic_id, include_inactive=include_inactive
+    )
+    return ApiResponse(data=[PlanTemplateResponse.model_validate(t) for t in templates])
+
+
+@router.post(
+    "/plan-templates",
+    response_model=ApiResponse[PlanTemplateResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_plan_template(
+    data: PlanTemplateCreate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.templates"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[PlanTemplateResponse]:
+    try:
+        template = await PlanTemplateService.create(
+            db, ctx.clinic_id, ctx.user_id, data.model_dump()
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await db.commit()
+    reloaded = await PlanTemplateService.get(db, ctx.clinic_id, template.id)
+    return ApiResponse(data=PlanTemplateResponse.model_validate(reloaded))
+
+
+@router.put("/plan-templates/{template_id}", response_model=ApiResponse[PlanTemplateResponse])
+async def update_plan_template(
+    template_id: UUID,
+    data: PlanTemplateUpdate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.templates"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[PlanTemplateResponse]:
+    try:
+        template = await PlanTemplateService.update(
+            db, ctx.clinic_id, template_id, data.model_dump(exclude_unset=True)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    await db.commit()
+    reloaded = await PlanTemplateService.get(db, ctx.clinic_id, template_id)
+    return ApiResponse(data=PlanTemplateResponse.model_validate(reloaded))
+
+
+@router.delete("/plan-templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_plan_template(
+    template_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.templates"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """Hide a template. Soft delete — a curated shape is never dropped."""
+    if not await PlanTemplateService.delete(db, ctx.clinic_id, template_id):
+        raise HTTPException(status_code=404, detail="Template not found")
+    await db.commit()
+
+
+@router.post(
+    "/plan-templates/from-plan/{plan_id}",
+    response_model=ApiResponse[PlanTemplateResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_template_from_plan(
+    plan_id: UUID,
+    data: PlanTemplateFromPlanRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.templates"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[PlanTemplateResponse]:
+    """Save an existing plan as a reusable template. Teeth are dropped."""
+    template = await PlanTemplateService.create_from_plan(
+        db, ctx.clinic_id, ctx.user_id, plan_id, data.name, data.description
+    )
+    if not template:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    await db.commit()
+    reloaded = await PlanTemplateService.get(db, ctx.clinic_id, template.id)
+    return ApiResponse(data=PlanTemplateResponse.model_validate(reloaded))
+
+
+@router.post(
+    "/treatment-plans/{plan_id}/apply-template",
+    response_model=ApiResponse[list[PlannedTreatmentItemResponse]],
+    status_code=status.HTTP_201_CREATED,
+)
+async def apply_plan_template(
+    plan_id: UUID,
+    data: ApplyTemplateRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[PlannedTreatmentItemResponse]]:
+    """Append a template's treatments to a plan.
+
+    422 when the template has per-tooth treatments and no teeth were given —
+    the detail names them, so the UI can ask for the right thing.
+    """
+    try:
+        items = await PlanTemplateService.apply(
+            db,
+            ctx.clinic_id,
+            ctx.user_id,
+            plan_id,
+            data.template_id,
+            data.tooth_numbers,
+        )
+    except TemplateNeedsTeethError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "template_needs_teeth", "treatments": exc.item_names},
+        ) from exc
+    except PlanLockedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    await db.commit()
+    return ApiResponse(data=[PlannedTreatmentItemResponse.model_validate(i) for i in items])
+
+
+# -----------------------------------------------------------------------------
+# Proposals from the chart
+#
+# The findings are already in the odontogram; retyping them as plan items is
+# the most repetitive step of building a plan. These two endpoints read them
+# and, on the dentist's word, turn the accepted ones into planned treatments.
+# -----------------------------------------------------------------------------
+
+
+@router.get(
+    "/treatment-plans/{plan_id}/proposals",
+    response_model=ApiResponse[list[PlanProposal]],
+)
+async def list_plan_proposals(
+    plan_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[PlanProposal]]:
+    """Charted findings on this patient that nothing is planned for yet."""
+    proposals = await PlanProposalService.list_proposals(db, ctx.clinic_id, plan_id)
+    if proposals is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return ApiResponse(data=[PlanProposal.model_validate(p) for p in proposals])
+
+
+@router.post(
+    "/treatment-plans/{plan_id}/proposals",
+    response_model=ApiResponse[list[PlannedTreatmentItemResponse]],
+    status_code=status.HTTP_201_CREATED,
+)
+async def accept_plan_proposals(
+    plan_id: UUID,
+    data: AcceptProposalsRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[PlannedTreatmentItemResponse]]:
+    """Add a planned treatment for each accepted finding.
+
+    The findings themselves are untouched — the chart keeps showing the caries
+    until it is actually treated.
+    """
+    try:
+        items = await PlanProposalService.accept(
+            db, ctx.clinic_id, ctx.user_id, plan_id, data.finding_ids
+        )
+    except PlanLockedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    await db.commit()
+    return ApiResponse(data=[PlannedTreatmentItemResponse.model_validate(i) for i in items])

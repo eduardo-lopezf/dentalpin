@@ -488,6 +488,10 @@ export type ClinicalType
     | 'checkup'
     | 'imaging'
     | 'hygiene'
+    // A billable act the chart does not draw: a denture, a graft, an
+    // occlusal adjustment. Assigned automatically to a catalog item that
+    // has no odontogram mapping.
+    | 'procedure'
 
 /** @deprecated — kept for gradual migration; prefer ClinicalType. */
 export type TreatmentType = ClinicalType
@@ -2229,6 +2233,11 @@ export interface PlannedTreatmentItem {
   treatment_plan_id: string
   treatment_id: string
   sequence_order: number
+  /**
+   * Stage of care, seeded from the catalog item's `default_phase` and
+   * overridable per patient. Drives the grouping of the plan list.
+   */
+  phase?: TreatmentPhase | null
   status: PlannedItemStatus
   completed_without_appointment: boolean
   completed_at?: string
@@ -2248,12 +2257,14 @@ export interface PlannedTreatmentItem {
 export interface PlannedTreatmentItemCreate {
   treatment_id: string
   sequence_order?: number
+  phase?: TreatmentPhase | null
   notes?: string
   assigned_professional_id?: string | null
 }
 
 export interface PlannedTreatmentItemUpdate {
   sequence_order?: number
+  phase?: TreatmentPhase | null
   notes?: string
   assigned_professional_id?: string | null
 }
@@ -2485,4 +2496,54 @@ export interface LinkBudgetRequest {
 export interface GenerateBudgetResponse {
   budget_id: string
   budget_number: string
+}
+
+/** One line of a plan template: a catalog item and, optionally, its stage. */
+export interface PlanTemplateItem {
+  id: string
+  sequence: number
+  catalog_item_id: string
+  phase?: TreatmentPhase | null
+  notes?: string | null
+  catalog_item?: {
+    id: string
+    internal_code: string
+    names: Record<string, string>
+    default_price?: number | null
+    /** tooth / multi_tooth need teeth; global_* do not. */
+    treatment_scope?: string | null
+  } | null
+}
+
+export interface PlanTemplate {
+  id: string
+  key?: string | null
+  name: string
+  description?: string | null
+  is_active: boolean
+  display_order: number
+  items: PlanTemplateItem[]
+}
+
+export interface PlanTemplateItemInput {
+  catalog_item_id: string
+  phase?: TreatmentPhase | null
+  notes?: string | null
+}
+
+export interface PlanTemplateCreate {
+  name: string
+  description?: string | null
+  display_order?: number
+  items: PlanTemplateItemInput[]
+}
+
+export interface ApplyTemplateRequest {
+  template_id: string
+  /**
+   * Every per-tooth treatment in the template is created once per tooth
+   * listed; whole-mouth ones once regardless. Empty for a template with no
+   * per-tooth treatments.
+   */
+  tooth_numbers: number[]
 }

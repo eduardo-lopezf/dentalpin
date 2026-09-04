@@ -36,6 +36,12 @@ Routes mounted at `/api/v1/treatment-plans/`.
 - `POST  /treatment-plans/{id}/reactivate`  — `plans.reactivate`; closed → draft
 - `POST  /treatment-plans/{id}/contact-log` — record reception touchpoint
 - `GET   /treatment-plans/pipeline`         — bandeja (5 tabs)
+- `POST  /treatment-plans/{id}/apply-template` — append a template; `plans.write`
+- `GET   /plan-templates`                   — list; `plans.read`
+- `POST  /plan-templates`                   — create; `plans.templates`
+- `PUT   /plan-templates/{id}`              — update; items are a full replace when sent
+- `DELETE /plan-templates/{id}`             — soft delete (`is_active=False`)
+- `POST  /plan-templates/from-plan/{id}`    — save an existing plan as a template
 
 > **Notes endpoints moved.** Since issue #60 the `clinical_notes` module
 > owns every clinical-note CRUD path (`/api/v1/clinical_notes/*`). The
@@ -58,8 +64,10 @@ attributed to.
 
 ## Permissions
 
-`treatment_plan.plans.{read,write}`. Clinical-note permissions live in
-the `clinical_notes` module since issue #60.
+`treatment_plan.plans.{read,write}`, plus `plans.{confirm,close,reactivate}`
+for the workflow transitions and `plans.templates` for curating the clinic's
+plan templates. Clinical-note permissions live in the `clinical_notes` module
+since issue #60.
 
 ## Events emitted
 
@@ -129,6 +137,25 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
 - **Don't import `clinical_notes`.** The dependency is one-way:
   `clinical_notes → treatment_plan`. The frontend calls both modules
   during completion; do not add a server-side cross-module import.
+- **A template carries treatments, never teeth.** `PlanTemplate` is an
+  ordered list of catalog items with a stage of care; the teeth arrive at
+  apply time. The apply rule is one sentence on purpose, because a dentist
+  has to be able to predict it: **every per-tooth item is created once per
+  tooth supplied, whole-mouth items once, and whole-arch items once per arch
+  the teeth belong to (both arches when no teeth were given).** A template
+  with per-tooth items and no teeth is refused with a 422 that names the
+  treatments waiting, so the UI can ask for the right thing.
+- **Templates are seeded from `clinic.created`, tolerantly.** The starter set
+  lives in `templates_seed.py` and references catalog items by
+  `internal_code`. Handler order against `catalog`'s own seeder is not a
+  contract, so `PlanTemplateService.seed` skips codes that are not there yet,
+  never overwrites a template the clinic edited, and fills in gaps on a
+  re-run. `scripts/backfill_plan_templates.py` is the repair and
+  existing-clinic path.
+- **`_replace_items` writes by statement, not through the relationship.**
+  It runs against templates that were just created and never loaded;
+  touching `template.items` there triggers a lazy load the async session
+  cannot service.
 - **Auto-close cron lives here** (`tasks.py:auto_close_expired_plans`),
   not in budget — closing a plan is a treatment_plan write and budget
   is in this module's depends, so the read of `budgets` from the

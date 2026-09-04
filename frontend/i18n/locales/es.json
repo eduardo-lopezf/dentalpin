@@ -603,7 +603,8 @@
         "consultation": "Consulta",
         "checkup": "Revisión",
         "imaging": "Radiología",
-        "hygiene": "Higiene"
+        "hygiene": "Higiene",
+        "procedure": "Procedimiento"
       },
       "treatmentAdded": "Tratamiento añadido",
       "treatmentPerformed": "Tratamiento marcado como realizado",
@@ -707,6 +708,14 @@
     },
     "confirms": {
       "deleteTreatment": "¿Eliminar este tratamiento? Si ya está facturado, la factura no se corrige sola."
+    },
+    "releaseTreatment": "Soltar el tratamiento (Esc)",
+    "batch": {
+      "label": "Cuadrante:",
+      "quadrantTitle": "Aplicar a todo el cuadrante {quadrant}",
+      "confirmTitle": "Aplicar al cuadrante {quadrant}",
+      "confirmBody": "Se añadirán {count} tratamientos «{treatment}», uno por cada pieza: {teeth}.",
+      "confirmAction": "Aplicar a todo el cuadrante"
     }
   },
   "clinical": {
@@ -794,6 +803,48 @@
       },
       "confirms": {
         "removeItem": "¿Quitar este tratamiento del plan? También desaparece del odontograma y de la línea de presupuesto asociada."
+      },
+      "phases": {
+        "unassigned": "Sin fase asignada"
+      },
+      "templates": {
+        "title": "Empezar desde una plantilla",
+        "subtitle": "Las formas que tu clínica repite. Puedes ajustar todo después.",
+        "blank": "En blanco",
+        "blankHint": "Construye el plan desde el odontograma",
+        "apply": "Aplicar plantilla",
+        "applyTitle": "Aplicar «{name}»",
+        "needsTeeth": "Necesita dientes",
+        "noTeethNeeded": "No requiere dientes",
+        "teethLabel": "Dientes (FDI, separados por comas)",
+        "teethPlaceholder": "Ej. 16, 26, 36, 46",
+        "teethHelp": "Cada tratamiento por diente se añade una vez por cada diente que indiques.",
+        "teethMissing": "Indica al menos un diente: {treatments}.",
+        "teethInvalid": "«{value}» no es un diente válido en notación FDI.",
+        "applied": "{count} tratamiento(s) añadidos al plan.",
+        "applyFailed": "No se ha podido aplicar la plantilla.",
+        "saveAs": "Guardar como plantilla",
+        "saveTitle": "Guardar este plan como plantilla",
+        "saveHint": "Se guardan los tratamientos y sus fases. Los dientes y los precios no.",
+        "saveName": "Nombre de la plantilla",
+        "saveNamePlaceholder": "Ej. Rehabilitación superior con implantes",
+        "saved": "Plantilla guardada.",
+        "saveFailed": "No se ha podido guardar la plantilla.",
+        "empty": "Todavía no hay plantillas.",
+        "itemsCount": "{count} tratamiento(s)"
+      },
+      "moreOptions": "Más opciones",
+      "blocked": {
+        "patient": "Selecciona un paciente."
+      },
+      "proposals": {
+        "open": "Proponer desde el odontograma ({count})",
+        "title": "Hallazgos sin tratamiento planificado",
+        "hint": "Ya están en el odontograma. Marca los que quieras llevar al plan; puedes ajustar cualquiera después.",
+        "noSuggestion": "Sin propuesta en tu catálogo",
+        "accept": "Añadir {count} al plan",
+        "accepted": "{count} tratamiento(s) añadidos al plan.",
+        "acceptFailed": "No se han podido añadir los tratamientos."
       }
     },
     "tooth": "Diente"
@@ -1593,6 +1644,7 @@
     },
     "placementFixed": "Este tipo de tratamiento se aplica siempre así.",
     "blocked": {
+      "permission": "No tienes permiso para editar el catálogo.",
       "name": "Falta el nombre del tratamiento.",
       "type": "Falta el tipo de tratamiento.",
       "code": "Falta el código. Se genera solo al escribir el nombre.",

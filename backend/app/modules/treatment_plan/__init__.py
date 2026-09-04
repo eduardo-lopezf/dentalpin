@@ -18,6 +18,8 @@ from app.core.scheduling import ScheduledJob
 
 from .models import (
     PlannedTreatmentItem,
+    PlanTemplate,
+    PlanTemplateItem,
     TreatmentPlan,
 )
 from .owner_resolvers import register as _register_attachment_owners
@@ -91,6 +93,8 @@ class TreatmentPlanModule(BaseModule):
         return [
             TreatmentPlan,
             PlannedTreatmentItem,
+            PlanTemplate,
+            PlanTemplateItem,
         ]
 
     def get_router(self) -> APIRouter:
@@ -122,6 +126,9 @@ class TreatmentPlanModule(BaseModule):
             "plans.confirm",
             "plans.close",
             "plans.reactivate",
+            # Curating the clinic's plan templates. Reading them only needs
+            # plans.read — everyone who builds a plan needs to see them.
+            "plans.templates",
         ]
 
     def get_event_handlers(self) -> dict[str, Any]:
@@ -130,10 +137,12 @@ class TreatmentPlanModule(BaseModule):
             on_budget_accepted,
             on_budget_rejected,
             on_budget_renegotiated,
+            on_clinic_created,
             on_treatment_performed,
         )
 
         return {
+            EventType.CLINIC_CREATED: on_clinic_created,
             EventType.APPOINTMENT_COMPLETED: on_appointment_completed,
             EventType.BUDGET_ACCEPTED: on_budget_accepted,
             EventType.BUDGET_REJECTED: on_budget_rejected,

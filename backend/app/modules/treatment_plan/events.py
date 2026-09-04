@@ -264,3 +264,44 @@ async def on_treatment_performed(data: dict[str, Any]) -> None:
         except Exception as e:
             logger.error("Error processing treatment performed: %s", e, exc_info=True)
             await db.rollback()
+
+
+async def on_clinic_created(data: dict[str, Any]) -> None:
+    """Install the starter plan templates for a freshly created clinic.
+
+    Templates reference catalog items, and the catalog is seeded by its own
+    handler on this same event. Handler order is not a contract, so this does
+    not assume the catalog is already there: ``PlanTemplateService.seed`` is
+    idempotent and skips items whose code is missing, and re-running it fills
+    in whatever was absent the first time. If the catalog lost the race, the
+    clinic ends up with no templates and
+    ``scripts/backfill_plan_templates.py`` installs them.
+    """
+    from .templates_service import PlanTemplateService
+
+    clinic_id_raw = data.get("clinic_id")
+    if not clinic_id_raw:
+        return
+
+    try:
+        clinic_id = UUID(str(clinic_id_raw))
+    except (ValueError, TypeError):
+        return
+
+    async with async_session_maker() as db:
+        try:
+            seeded = await PlanTemplateService.seed(db, clinic_id)
+            await db.commit()
+        except Exception as exc:  # pragma: no cover - defensive
+            # The bus swallows handler exceptions; without this the clinic
+            # would simply have no templates and no trace of why.
+            logger.error(
+                "treatment_plan.on_clinic_created failed for clinic %s: %s — "
+                "run scripts/backfill_plan_templates.py to recover",
+                clinic_id,
+                exc,
+                exc_info=True,
+            )
+            return
+
+    logger.info("treatment_plan: seeded %s plan templates for clinic %s", seeded, clinic_id)

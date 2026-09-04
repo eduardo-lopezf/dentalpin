@@ -1,6 +1,38 @@
 # Changelog — treatment_plan module
 
 ## Unreleased
+- feat(plantillas): un plan se puede empezar desde una plantilla. Una
+  plantilla es una forma recurrente — la secuencia de tratamientos con su
+  fase — y nunca lleva dientes: esos se dan al aplicarla. La regla de
+  aplicación es una sola frase, para que sea predecible: cada tratamiento
+  por diente se crea una vez por cada diente indicado, los de boca completa
+  una vez, y los de arcada una por arcada (las dos si no se indican
+  dientes). Se envían ocho plantillas de partida (primera visita, fase
+  higiénica, periodontal básico, endo + reconstrucción + corona, implante
+  unitario, cordales, ortodoncia, estética) y, lo que de verdad importa,
+  **cualquier plan se puede guardar como plantilla**: las formas buenas de
+  una clínica son las suyas. Nuevos endpoints bajo `/plan-templates` y
+  `POST /treatment-plans/{id}/apply-template`; permiso nuevo
+  `plans.templates` para curarlas (leerlas basta con `plans.read`).
+
+- feat(ui): la lista del plan se agrupa por fase del tratamiento. El dato
+  ya se guardaba en cada partida desde `tp_0008` y no se mostraba en
+  ninguna parte, así que un plan se leía como una lista plana en orden de
+  clic. Ahora se lee como lo que es — urgencia, estabilización,
+  rehabilitación — que es además como se le explica al paciente. Arrastrar
+  reordena dentro de una fase; cambiar de fase es una decisión clínica, no
+  un arrastre. Un plan sin fases se ve exactamente igual que antes.
+
+- feat(ui): el formulario de alta pregunta dos cosas — quién y qué forma de
+  plan — en lugar de cinco, cuatro de ellas opcionales y ninguna clínica.
+  El título lo pone la plantilla, las notas se pliegan bajo «Más opciones»
+  (se escriben después de ver al paciente, no al crear el plan) y el
+  profesional viene preseleccionado, como ya hacía el modal: la misma
+  acción daba dos planes distintos según por dónde entraras.
+
+- fix(ui): los campos del alta ocupaban ~110 px dentro de una tarjeta
+  ancha; les faltaba `w-full`.
+
 
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión

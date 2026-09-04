@@ -117,7 +117,10 @@ category, specialties and phase. They can also be **deactivated** when your
 clinic does not offer them, rather than deleted — which keeps the budget and
 invoice history that references them intact.
 
-Only the **admin** profile can create or edit treatments. Every other profile
+Creating, editing and deleting treatments requires the `catalog.write`
+permission; managing categories, VAT types and specialties requires
+`catalog.admin`. **By default only the admin profile holds either**, so in
+practice it is the only one that can change the catalog. Every other profile
 sees the catalog read-only.
 
 The one locked field on a system treatment is the **internal code**: it is the

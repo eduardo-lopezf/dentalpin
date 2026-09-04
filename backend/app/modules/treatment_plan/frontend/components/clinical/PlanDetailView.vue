@@ -410,8 +410,106 @@ function handleGenerateBudget() {
   emit('generate-budget')
 }
 
+// ============================================================================
+// Plan templates
+//
+// Two directions: pull a recurring shape into this plan, and push this plan
+// back out as a shape worth repeating. The second is what makes templates
+// stick — a clinic's real templates are its own, not the ones shipped.
+// ============================================================================
+
+const { applyTemplate, createFromPlan, loading: templatesLoading } = usePlanTemplates()
+
+// ============================================================================
+// Proposals from the chart
+//
+// The findings are already charted. Offering them as plan items is the one
+// step that removes duplicate entry of a clinical fact rather than just
+// speeding it up.
+// ============================================================================
+
+const { proposals, loading: proposalsLoading, fetchProposals, acceptProposals }
+  = usePlanProposals()
+
+const showProposals = ref(false)
+const acceptedFindings = ref<string[]>([])
+
+const proposableCount = computed(() => proposals.value.length)
+
+async function openProposals() {
+  await fetchProposals(props.plan.id)
+  // Everything with a suggestion is pre-ticked: the dentist is reviewing a
+  // list they already charted, not building one from scratch.
+  acceptedFindings.value = proposals.value
+    .filter(p => p.suggested_catalog_item !== null)
+    .map(p => p.finding_id)
+  showProposals.value = true
+}
+
+function toggleProposal(findingId: string) {
+  const index = acceptedFindings.value.indexOf(findingId)
+  if (index === -1) acceptedFindings.value.push(findingId)
+  else acceptedFindings.value.splice(index, 1)
+}
+
+async function confirmProposals() {
+  const items = await acceptProposals(props.plan.id, acceptedFindings.value)
+  showProposals.value = false
+  if (items) emit('updated')
+}
+
+// Loaded on mount for a draft plan so the button can say how many are waiting
+// — a button that has to be pressed to find out it does nothing is worse than
+// no button.
+onMounted(() => {
+  if (!effectiveReadonly.value && props.plan.status === 'draft') {
+    fetchProposals(props.plan.id)
+  }
+})
+
+const showApplyTemplate = ref(false)
+const showSaveTemplate = ref(false)
+const applyTemplateId = ref<string | null>(null)
+const applyTemplateTeeth = ref<number[]>([])
+const applyPicker = ref<{ blockingReason: string | null } | null>(null)
+const saveTemplateName = ref('')
+
+const canApplyTemplate = computed(() => !effectiveReadonly.value && isDraft.value)
+const canSaveAsTemplate = computed(() => props.plan.items.length > 0)
+
+function openApplyTemplate() {
+  applyTemplateId.value = null
+  applyTemplateTeeth.value = []
+  showApplyTemplate.value = true
+}
+
+async function confirmApplyTemplate() {
+  if (!applyTemplateId.value || applyPicker.value?.blockingReason) return
+  const items = await applyTemplate(props.plan.id, applyTemplateId.value, applyTemplateTeeth.value)
+  showApplyTemplate.value = false
+  if (items) emit('updated')
+}
+
+function openSaveTemplate() {
+  saveTemplateName.value = props.plan.title || ''
+  showSaveTemplate.value = true
+}
+
+async function confirmSaveTemplate() {
+  if (!saveTemplateName.value.trim()) return
+  await createFromPlan(props.plan.id, saveTemplateName.value.trim())
+  showSaveTemplate.value = false
+}
+
 const moreMenuItems = computed<DropdownMenuItem[]>(() => {
   const items: DropdownMenuItem[] = []
+  if (canSaveAsTemplate.value) {
+    items.push({
+      label: t('clinical.plans.templates.saveAs'),
+      icon: 'i-lucide-bookmark-plus',
+      onSelect: openSaveTemplate
+    })
+  }
   if (canCancelPlan.value) {
     items.push({
       label: t('clinical.plans.cancelPlan'),
@@ -672,6 +770,31 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
             #footer
           >
             <div class="confirm-cta">
+              <!-- A template is the fastest way out of an empty plan, so it
+                   sits where the dentist is already looking. -->
+              <UButton
+                v-if="canApplyTemplate"
+                variant="soft"
+                color="primary"
+                size="sm"
+                block
+                icon="i-lucide-layout-template"
+                @click="openApplyTemplate"
+              >
+                {{ t('clinical.plans.templates.apply') }}
+              </UButton>
+              <!-- Only when there is something to propose. -->
+              <UButton
+                v-if="canApplyTemplate && proposableCount > 0"
+                variant="soft"
+                color="warning"
+                size="sm"
+                block
+                icon="i-lucide-scan-search"
+                @click="openProposals"
+              >
+                {{ t('clinical.plans.proposals.open', { count: proposableCount }) }}
+              </UButton>
               <div
                 v-if="!canConfirm"
                 class="confirm-cta-empty"
@@ -770,6 +893,155 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
       @confirm="onLogContact"
       @cancel="showContactLogModal = false"
     />
+
+    <!-- Apply a template to this plan -->
+    <UModal v-model:open="showApplyTemplate">
+      <template #content>
+        <UCard>
+          <template #header>
+            <h3 class="text-h3">
+              {{ t('clinical.plans.templates.apply') }}
+            </h3>
+          </template>
+
+          <PlanTemplatePicker
+            ref="applyPicker"
+            v-model="applyTemplateId"
+            @change="(p) => { applyTemplateTeeth = p.toothNumbers }"
+          />
+
+          <template #footer>
+            <div class="flex justify-end gap-2">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                @click="showApplyTemplate = false"
+              >
+                {{ t('actions.cancel') }}
+              </UButton>
+              <UButton
+                :loading="templatesLoading"
+                :disabled="!applyTemplateId || !!applyPicker?.blockingReason"
+                @click="confirmApplyTemplate"
+              >
+                {{ t('clinical.plans.templates.apply') }}
+              </UButton>
+            </div>
+          </template>
+        </UCard>
+      </template>
+    </UModal>
+
+    <!-- Save this plan as a reusable template -->
+    <UModal v-model:open="showSaveTemplate">
+      <template #content>
+        <UCard>
+          <template #header>
+            <h3 class="text-h3">
+              {{ t('clinical.plans.templates.saveTitle') }}
+            </h3>
+          </template>
+
+          <div class="space-y-3">
+            <p class="text-caption text-muted">
+              {{ t('clinical.plans.templates.saveHint') }}
+            </p>
+            <UFormField :label="t('clinical.plans.templates.saveName')">
+              <UInput
+                v-model="saveTemplateName"
+                class="w-full"
+                :placeholder="t('clinical.plans.templates.saveNamePlaceholder')"
+              />
+            </UFormField>
+          </div>
+
+          <template #footer>
+            <div class="flex justify-end gap-2">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                @click="showSaveTemplate = false"
+              >
+                {{ t('actions.cancel') }}
+              </UButton>
+              <UButton
+                :loading="templatesLoading"
+                :disabled="!saveTemplateName.trim()"
+                @click="confirmSaveTemplate"
+              >
+                {{ t('actions.save') }}
+              </UButton>
+            </div>
+          </template>
+        </UCard>
+      </template>
+    </UModal>
+
+    <!-- Findings charted on this patient that nothing is planned for yet. -->
+    <UModal v-model:open="showProposals">
+      <template #content>
+        <UCard>
+          <template #header>
+            <h3 class="text-h3">
+              {{ t('clinical.plans.proposals.title') }}
+            </h3>
+            <p class="text-caption text-muted mt-1">
+              {{ t('clinical.plans.proposals.hint') }}
+            </p>
+          </template>
+
+          <div class="space-y-2">
+            <label
+              v-for="proposal in proposals"
+              :key="proposal.finding_id"
+              class="proposal-row"
+              :class="{ 'is-unmatched': !proposal.suggested_catalog_item }"
+            >
+              <UCheckbox
+                :model-value="acceptedFindings.includes(proposal.finding_id)"
+                :disabled="!proposal.suggested_catalog_item"
+                @update:model-value="toggleProposal(proposal.finding_id)"
+              />
+              <span class="proposal-finding">
+                {{ t(`odontogram.treatments.types.${proposal.clinical_type}`) }}
+                <template v-if="proposal.tooth_number">
+                  · {{ t('clinical.tooth') }} {{ proposal.tooth_number }}
+                </template>
+              </span>
+              <UIcon
+                name="i-lucide-arrow-right"
+                class="w-3.5 h-3.5 text-subtle shrink-0"
+              />
+              <span class="proposal-suggestion">
+                {{ proposal.suggested_catalog_item
+                  ? (proposal.suggested_catalog_item.names.es
+                    || proposal.suggested_catalog_item.internal_code)
+                  : t('clinical.plans.proposals.noSuggestion') }}
+              </span>
+            </label>
+          </div>
+
+          <template #footer>
+            <div class="flex justify-end gap-2">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                @click="showProposals = false"
+              >
+                {{ t('actions.cancel') }}
+              </UButton>
+              <UButton
+                :loading="proposalsLoading"
+                :disabled="acceptedFindings.length === 0"
+                @click="confirmProposals"
+              >
+                {{ t('clinical.plans.proposals.accept', { count: acceptedFindings.length }) }}
+              </UButton>
+            </div>
+          </template>
+        </UCard>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -929,6 +1201,36 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
 :root.dark .confirm-cta-empty {
   background: rgba(100, 116, 139, 0.15);
   color: #CBD5E1;
+}
+
+/* One charted finding and the treatment proposed for it. */
+.proposal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.proposal-row:hover {
+  background: var(--color-bg-muted, #F9FAFB);
+}
+
+.proposal-row.is-unmatched {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.proposal-finding {
+  min-width: 0;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.proposal-suggestion {
+  min-width: 0;
+  font-weight: 500;
 }
 
 /* First-item pulse on list card */
