@@ -417,8 +417,13 @@ async def list_items(
     treatment_scope: str | None = Query(default=None),
     has_odontogram_mapping: bool | None = Query(default=None),
     search: str | None = Query(default=None, max_length=100),
+    include_deleted: bool = Query(default=False),
 ) -> PaginatedApiResponse[CatalogItemResponse]:
-    """List catalog items with filtering and pagination."""
+    """List catalog items with filtering and pagination.
+
+    ``include_deleted`` surfaces removed treatments so an admin can restore
+    one — set ``is_active: true`` on it and it comes back.
+    """
     items, total = await CatalogService.list_items(
         db,
         ctx.clinic_id,
@@ -429,6 +434,7 @@ async def list_items(
         treatment_scope=treatment_scope,
         has_odontogram_mapping=has_odontogram_mapping,
         search_query=search,
+        include_deleted=include_deleted,
     )
     return PaginatedApiResponse(
         data=[CatalogItemResponse.model_validate(i) for i in items],
@@ -537,8 +543,11 @@ async def update_item(
     seed run recreate the original as a duplicate.
 
     Gated by ``catalog.write``, which only the admin role holds.
+
+    Loads deleted items too, because reactivating one is how a removal is
+    undone — see ``DELETE /items/{id}``.
     """
-    item = await CatalogService.get_item(db, ctx.clinic_id, item_id)
+    item = await CatalogService.get_item(db, ctx.clinic_id, item_id, include_deleted=True)
     if not item:
         raise HTTPException(status_code=404, detail="Catalog item not found")
 
@@ -590,16 +599,22 @@ async def delete_item(
     _: Annotated[None, Depends(require_permission("catalog.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> None:
-    """Soft-delete a catalog item."""
+    """Soft-delete a catalog item, seeded ones included.
+
+    A clinic does not offer everything the starter catalog ships, and being
+    unable to remove what it does not do left ~130 treatments cluttering every
+    picker for good. Gated by ``catalog.write``, which only admin holds.
+
+    The deletion is soft, and it is not a one-way door: the row survives
+    (performed treatments, budget lines and plan templates point at it),
+    ``GET /items?include_deleted=true`` finds it again, and updating it with
+    ``is_active: true`` brings it back. Re-seeding does not resurrect it —
+    the seeder matches on ``internal_code`` regardless of ``deleted_at`` and
+    leaves it alone.
+    """
     item = await CatalogService.get_item(db, ctx.clinic_id, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Catalog item not found")
-
-    if item.is_system:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cannot delete system catalog item",
-        )
 
     await CatalogService.delete_item(db, item, hard=False)
 

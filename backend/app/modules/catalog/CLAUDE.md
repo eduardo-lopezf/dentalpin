@@ -55,6 +55,22 @@ See `docs/technical/catalog/events.md`.
 
 ## Gotchas
 
+- **Seeded treatments can be removed, and the removal is reversible.** A
+  clinic does not offer everything the starter catalog ships; refusing to
+  delete `is_system` items left ~130 of them in every picker for good.
+  `DELETE /items/{id}` now accepts them (still gated by `catalog.write`, i.e.
+  admin). The delete is **soft** because performed treatments, budget lines
+  and plan-template lines all point at the row. `GET /items?include_deleted=true`
+  finds it again — that flag also drops the default `is_active=True` filter,
+  since a deleted item is inactive by construction — and `PUT` with
+  `is_active: true` clears `deleted_at` and restores it. `get_item` takes
+  `include_deleted` for exactly that path. Re-seeding does not resurrect a
+  deleted item: `seed_catalog` matches on `internal_code` **regardless of
+  `deleted_at`**, finds the row and skips it.
+- **`internal_code` stays locked on seeded items.** It is the key the seeder
+  matches on. Deleting is safe precisely because that match still finds the
+  row; renaming breaks it, and the next seed run recreates the original
+  alongside the renamed one.
 - **`seed_catalog` is the only code that creates baseline data**, and it is
   idempotent by design (matches on `key` / `internal_code`, backfills missing
   specialty links and `default_phase`, never overwrites clinic-edited prices

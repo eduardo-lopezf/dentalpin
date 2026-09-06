@@ -41,6 +41,7 @@ const showMore = ref(false)
 const templateId = ref<string | null>(null)
 const selectedTemplate = ref<PlanTemplate | null>(null)
 const templateTeeth = ref<number[]>([])
+const templateExcluded = ref<string[]>([])
 const templatePicker = ref<{ isReady: boolean, blockingReason: string | null } | null>(null)
 
 // The dentist creating the plan is usually the one doing the work. The modal
@@ -92,9 +93,14 @@ const professionalOptions = computed(() =>
   professionals.value.map(p => ({ label: `${p.first_name} ${p.last_name}`, value: p.id }))
 )
 
-function onTemplateChange(payload: { template: PlanTemplate | null, toothNumbers: number[] }) {
+function onTemplateChange(payload: {
+  template: PlanTemplate | null
+  toothNumbers: number[]
+  excludedItemIds: string[]
+}) {
   selectedTemplate.value = payload.template
   templateTeeth.value = payload.toothNumbers
+  templateExcluded.value = payload.excludedItemIds
   // The template names the plan. A dentist who types a title anyway keeps it.
   if (payload.template && !form.value.title) {
     form.value.title = payload.template.name
@@ -125,7 +131,7 @@ async function handleSubmit() {
   // already populated. A failure here is reported by the composable and leaves
   // an empty plan, which is still a usable starting point.
   if (templateId.value) {
-    await applyTemplate(plan.id, templateId.value, templateTeeth.value)
+    await applyTemplate(plan.id, templateId.value, templateTeeth.value, templateExcluded.value)
   }
 
   router.push(`/treatments/plans/${plan.id}`)

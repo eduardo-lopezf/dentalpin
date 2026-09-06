@@ -12,6 +12,7 @@
 import type { PlannedTreatmentItem, TreatmentPhase } from '~~/app/types'
 import { VueDraggable } from 'vue-draggable-plus'
 import { phaseLabelKey, phaseRank } from '~~/app/config/treatmentPhases'
+import type { CollectionState, CollectionStatus } from '../../composables/usePlanCollections'
 import CompletionNudgeModal from './notes/CompletionNudgeModal.vue'
 import PlanItemDoctorChip from './PlanItemDoctorChip.vue'
 import PlanItemSessionRow from '../treatment-plans/PlanItemSessionRow.vue'
@@ -30,6 +31,13 @@ const props = defineProps<{
   planStatus?: string
   /** Doctor of the parent plan. Drives "override" detection on each item chip. */
   planProfessionalId?: string | null
+  /**
+   * Collection state per session id, from `payments`. Passed down rather than
+   * fetched here: the parent makes one call for the whole plan.
+   */
+  collections?: Record<string, CollectionState>
+  /** Per-phase money totals, keyed by phase (empty string = unphased). */
+  phaseMoney?: Map<string, { planned: number, earned: number, collected: number, pending: number }>
 }>()
 
 const completeEnabled = computed(() => !props.readonly || props.allowComplete)
@@ -132,6 +140,30 @@ function groupOffset(groupIndex: number): number {
 function phaseLabel(phase: TreatmentPhase | null): string {
   return phase ? t(phaseLabelKey(phase)) : t('clinical.plans.phases.unassigned')
 }
+
+function sessionCollection(sessionId: string): CollectionState | undefined {
+  return props.collections?.[sessionId]
+}
+
+function sessionStatus(sessionId: string): CollectionStatus | undefined {
+  const state = props.collections?.[sessionId]
+  if (!props.collections) return undefined
+  if (!state) return 'not_earned'
+  if (Number(state.pending) <= 0) return 'collected'
+  return Number(state.collected) > 0 ? 'partial' : 'pending'
+}
+
+/**
+ * What the phase header shows on the money side. Only the part that is
+ * actually chargeable — pending — because that is the number a dentist acts
+ * on when the patient is leaving the box. The full price of the phase is
+ * already the sum of the rows below it.
+ */
+function phasePending(phase: TreatmentPhase | null): number {
+  return props.phaseMoney?.get(phase ?? '')?.pending ?? 0
+}
+
+const { format: formatCurrency } = useCurrency()
 
 const completedItems = computed(() =>
   props.items
@@ -247,9 +279,6 @@ function sessionProgress(item: PlannedTreatmentItem): { done: number, total: num
     total: sessions.length
   }
 }
-
-// Format currency — clinic-wide via useCurrency.
-const { format: formatCurrency } = useCurrency()
 </script>
 
 <template>
@@ -313,6 +342,16 @@ const { format: formatCurrency } = useCurrency()
       >
         <span class="phase-header-label">{{ phaseLabel(group.phase) }}</span>
         <span class="phase-header-count">{{ group.items.length }}</span>
+        <!-- What is chargeable in this phase right now. Absent when nothing
+             in it has been performed yet, or when the money view is off. -->
+        <span
+          v-if="phasePending(group.phase) > 0"
+          class="phase-header-pending"
+        >
+          {{ t('clinical.plans.collection.phasePending', {
+            amount: formatCurrency(phasePending(group.phase))
+          }) }}
+        </span>
       </div>
 
       <VueDraggable
@@ -443,6 +482,8 @@ const { format: formatCurrency } = useCurrency()
               :key="session.id"
               :session="session"
               :can-complete="completeEnabled"
+              :collection="sessionCollection(session.id)"
+              :collection-status="sessionStatus(session.id)"
               @complete="(sessionId) => emit('session-complete', item.id, sessionId)"
               @cancel="(sessionId) => emit('session-cancel', item.id, sessionId)"
             />
@@ -543,6 +584,20 @@ const { format: formatCurrency } = useCurrency()
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-subtle, #9CA3AF);
+}
+
+.phase-header-pending {
+  margin-left: auto;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #B45309;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+:root.dark .phase-header-pending {
+  color: #FBBF24;
 }
 
 /* Onboarding empty state for a freshly created draft plan. */

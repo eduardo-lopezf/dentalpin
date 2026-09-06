@@ -14,6 +14,7 @@ or a set of molars.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -32,6 +33,26 @@ logger = logging.getLogger(__name__)
 
 # Scopes that need at least one tooth before anything can be created.
 _TOOTH_SCOPES = ("tooth", "multi_tooth")
+
+
+@dataclass(frozen=True)
+class SkippedLine:
+    """A template line that could not be applied, and why.
+
+    ``not_in_catalog`` is the only reason today: the clinic never had that
+    treatment, or retired it. It is not an error — a clinic that refers its
+    orthodontics out still wants the rest of an orthognathic plan — but it
+    must not be silent.
+    """
+
+    name: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class ApplyResult:
+    items: list[PlannedTreatmentItem]
+    skipped: list[SkippedLine]
 
 
 class TemplateNeedsTeethError(ValueError):
@@ -81,10 +102,18 @@ class PlanTemplateService:
 
     @staticmethod
     async def get(db: AsyncSession, clinic_id: UUID, template_id: UUID) -> PlanTemplate | None:
+        """Load a template with its lines.
+
+        ``populate_existing`` because this is the read that runs straight
+        after a write: without it the identity map hands back the collection
+        as it was before ``_replace_items``, and a PUT answers with the old
+        line-up while the database holds the new one.
+        """
         result = await db.execute(
             select(PlanTemplate)
             .options(*_template_loader())
             .where(PlanTemplate.id == template_id, PlanTemplate.clinic_id == clinic_id)
+            .execution_options(populate_existing=True)
         )
         return result.scalars().unique().one_or_none()
 
@@ -173,6 +202,7 @@ class PlanTemplateService:
                     sequence=index,
                     catalog_item_id=UUID(str(raw["catalog_item_id"])),
                     phase=raw.get("phase"),
+                    is_optional=bool(raw.get("is_optional", False)),
                     notes=raw.get("notes"),
                 )
             )
@@ -206,6 +236,10 @@ class PlanTemplateService:
             if catalog_item_id is None or catalog_item_id in seen:
                 continue
             seen.add(catalog_item_id)
+            # Everything a real plan contained is recorded as required. Which
+            # of those lines is actually a decision is something only the
+            # author knows, so they mark them afterwards rather than the app
+            # guessing from one patient.
             specs.append({"catalog_item_id": catalog_item_id, "phase": item.phase})
 
         return await PlanTemplateService.create(
@@ -227,7 +261,8 @@ class PlanTemplateService:
         plan_id: UUID,
         template_id: UUID,
         tooth_numbers: list[int] | None = None,
-    ) -> list[PlannedTreatmentItem]:
+        excluded_item_ids: list[UUID] | None = None,
+    ) -> ApplyResult:
         """Append a template's treatments to a plan.
 
         Per-tooth items are created once per tooth in ``tooth_numbers``;
@@ -236,11 +271,21 @@ class PlanTemplateService:
         both arches when no teeth were supplied (a retainer after full
         orthodontics is exactly that case).
 
-        Returns the created plan items in order. Raises
-        ``TemplateNeedsTeethError`` when the template cannot be applied as
-        asked, so the caller can name the treatments that are waiting.
+        ``excluded_item_ids`` drops template lines the caller does not want.
+        Only lines the author marked ``is_optional`` can be dropped: a
+        template whose required steps can be silently skipped is not a shape
+        any more, it is a suggestion.
+
+        Returns what was created **and what was left out**. A line whose
+        catalog item the clinic has retired is skipped rather than failing the
+        whole application, and that has to be visible — a plan that quietly
+        comes out one treatment short is worse than one that says so.
+
+        Raises ``TemplateNeedsTeethError`` when the template cannot be applied
+        as asked, so the caller can name the treatments that are waiting.
         """
         teeth = sorted(set(tooth_numbers or []))
+        excluded = set(excluded_item_ids or [])
 
         template = await PlanTemplateService.get(db, clinic_id, template_id)
         if not template:
@@ -250,25 +295,39 @@ class PlanTemplateService:
         if not plan:
             raise ValueError("Plan not found")
 
+        required_excluded = [i for i in template.items if i.id in excluded and not i.is_optional]
+        if required_excluded:
+            raise ValueError(
+                "Cannot exclude required template lines: "
+                + ", ".join(_catalog_name(i.catalog_item) for i in required_excluded)
+            )
+
+        wanted = [i for i in template.items if i.id not in excluded]
+
         if not teeth:
             blocked = [
                 _catalog_name(i.catalog_item)
-                for i in template.items
+                for i in wanted
                 if i.catalog_item and i.catalog_item.treatment_scope in _TOOTH_SCOPES
             ]
             if blocked:
                 raise TemplateNeedsTeethError(blocked)
 
         created: list[PlannedTreatmentItem] = []
-        for template_item in sorted(template.items, key=lambda i: i.sequence):
+        skipped: list[SkippedLine] = []
+        for template_item in sorted(wanted, key=lambda i: i.sequence):
             catalog_item = template_item.catalog_item
             if catalog_item is None or not catalog_item.is_active:
-                # A treatment the clinic has since retired. Skipping beats
-                # failing the whole application over one stale line.
+                # A treatment this clinic does not offer (or no longer does).
+                # Skipping beats failing the whole application over one line,
+                # but the caller is told which one and why.
+                name = _catalog_name(catalog_item) if catalog_item else "—"
                 logger.warning(
-                    "Skipping inactive catalog item in template %s",
-                    template.id,  # noqa: G004
+                    "Template %s: skipping unavailable catalog item %s",
+                    template.id,
+                    name,
                 )
+                skipped.append(SkippedLine(name=name, reason="not_in_catalog"))
                 continue
 
             for treatment in await PlanTemplateService._create_treatments(
@@ -283,7 +342,7 @@ class PlanTemplateService:
                 if item is not None:
                     created.append(item)
 
-        return created
+        return ApplyResult(items=created, skipped=skipped)
 
     @staticmethod
     async def _create_treatments(

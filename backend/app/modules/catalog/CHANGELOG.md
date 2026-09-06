@@ -1,6 +1,24 @@
 # Changelog — catalog module
 
 ## Unreleased
+- feat(catálogo): un administrador ya puede **borrar tratamientos sembrados**.
+  Hasta ahora `DELETE /items/{id}` devolvía 403 sobre cualquier ítem
+  `is_system`, así que los ~130 del catálogo de partida se quedaban en todos
+  los selectores para siempre aunque la clínica no los ofreciera. Editarlos ya
+  se podía; borrarlos no.
+
+  La baja es lógica —los tratamientos ejecutados, las líneas de presupuesto y
+  las plantillas de plan apuntan a esa fila— y **no es un camino sin vuelta**:
+  `GET /items?include_deleted=true` lo encuentra otra vez y un `PUT` con
+  `is_active: true` lo restaura. Volver a sembrar no lo resucita: el sembrador
+  busca por `internal_code` sin mirar `deleted_at`, encuentra la fila y la deja
+  en paz.
+
+  El `internal_code` sigue bloqueado en los sembrados, y por la misma razón
+  que hace segura la baja: es la clave con la que casa el sembrador. Borrar
+  funciona porque esa búsqueda sigue encontrando la fila; renombrar la rompe y
+  el siguiente sembrado recrearía el original al lado del renombrado.
+
 
 - fix(permissions): the catalog UI asked `isAdmin` while the API asks
   `catalog.write` / `catalog.admin`. Two different questions that happen

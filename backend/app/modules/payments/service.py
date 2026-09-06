@@ -682,6 +682,77 @@ class LedgerService:
             )
         return pending
 
+    @staticmethod
+    async def collection_state_by_treatments(
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_id: UUID,
+        treatment_ids: list[UUID],
+    ) -> dict[str, dict[UUID, dict[str, Decimal]]]:
+        """Per-treatment and per-session collection state, FIFO.
+
+        Same walk as ``compute_pending_charges`` — payments cover the oldest
+        charges first — but projected onto the treatments the caller asked
+        about instead of flattened into a list. A treatment plan uses it to
+        say, per phase and per session, what is still to charge.
+
+        The walk deliberately runs over **all** the patient's earned entries,
+        not only the requested ones: a payment made for another plan has
+        already consumed part of what this patient handed over, and ignoring
+        it would report money as pending that is not.
+        """
+        wanted = set(treatment_ids)
+
+        total_paid_row = await db.execute(
+            select(func.coalesce(func.sum(Payment.amount), Decimal("0"))).where(
+                Payment.clinic_id == clinic_id, Payment.patient_id == patient_id
+            )
+        )
+        total_refunded_row = await db.execute(
+            select(func.coalesce(func.sum(Refund.amount), Decimal("0")))
+            .join(Payment, Payment.id == Refund.payment_id)
+            .where(Payment.clinic_id == clinic_id, Payment.patient_id == patient_id)
+        )
+        remaining = total_paid_row.scalar_one() - total_refunded_row.scalar_one()
+
+        result = await db.execute(
+            select(PatientEarnedEntry)
+            .where(
+                PatientEarnedEntry.clinic_id == clinic_id,
+                PatientEarnedEntry.patient_id == patient_id,
+            )
+            .order_by(PatientEarnedEntry.performed_at)
+        )
+
+        treatments: dict[UUID, dict[str, Decimal]] = {}
+        sessions: dict[UUID, dict[str, Decimal]] = {}
+
+        def _bucket(store: dict, key: UUID) -> dict[str, Decimal]:
+            return store.setdefault(
+                key,
+                {"earned": Decimal("0"), "collected": Decimal("0"), "pending": Decimal("0")},
+            )
+
+        for entry in result.scalars().all():
+            covered = min(remaining, entry.amount) if remaining > 0 else Decimal("0")
+            remaining -= covered
+            if entry.treatment_id not in wanted:
+                continue
+            uncovered = entry.amount - covered
+            for bucket in (
+                _bucket(treatments, entry.treatment_id),
+                *(
+                    [_bucket(sessions, entry.source_session_id)]
+                    if entry.source_session_id is not None
+                    else []
+                ),
+            ):
+                bucket["earned"] += entry.amount
+                bucket["collected"] += covered
+                bucket["pending"] += uncovered
+
+        return {"treatments": treatments, "sessions": sessions}
+
 
 # --- Reports ----------------------------------------------------------
 

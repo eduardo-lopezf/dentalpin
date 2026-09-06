@@ -6,7 +6,7 @@ per tooth supplied, and everything whole-mouth is created once.
 """
 
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -150,7 +150,7 @@ async def test_whole_mouth_template_needs_no_teeth(client, auth_headers, setup):
         json={"template_id": template_id, "tooth_numbers": []},
     )
     assert r.status_code == 201, r.text
-    items = r.json()["data"]
+    items = r.json()["data"]["items"]
     assert len(items) == 1
     assert items[0]["treatment"]["scope"] == "global_mouth"
     # Seeded from the catalog item's default_phase.
@@ -170,7 +170,7 @@ async def test_per_tooth_template_creates_one_item_per_tooth(client, auth_header
         json={"template_id": template_id, "tooth_numbers": [16, 26, 36]},
     )
     assert r.status_code == 201, r.text
-    items = r.json()["data"]
+    items = r.json()["data"]["items"]
     assert len(items) == 3
     teeth = sorted(i["treatment"]["teeth"][0]["tooth_number"] for i in items)
     assert teeth == [16, 26, 36]
@@ -207,7 +207,7 @@ async def test_arch_item_expands_to_both_arches_when_no_teeth(client, auth_heade
         json={"template_id": template_id, "tooth_numbers": []},
     )
     assert r.status_code == 201, r.text
-    arches = sorted(i["treatment"]["arch"] for i in r.json()["data"])
+    arches = sorted(i["treatment"]["arch"] for i in r.json()["data"]["items"])
     assert arches == ["lower", "upper"]
 
 
@@ -228,7 +228,7 @@ async def test_unmapped_catalog_item_is_plannable(client, auth_headers, setup):
         json={"template_id": template_id, "tooth_numbers": []},
     )
     assert r.status_code == 201, r.text
-    assert r.json()["data"][0]["treatment"]["clinical_type"] == "procedure"
+    assert r.json()["data"]["items"][0]["treatment"]["clinical_type"] == "procedure"
 
 
 @pytest.mark.asyncio
@@ -247,7 +247,7 @@ async def test_template_phase_overrides_the_catalog_default(client, auth_headers
     )
     assert r.status_code == 201, r.text
     # The catalog says rehabilitacion; this template says otherwise.
-    assert r.json()["data"][0]["phase"] == "urgencia"
+    assert r.json()["data"]["items"][0]["phase"] == "urgencia"
 
 
 @pytest.mark.asyncio
@@ -419,3 +419,162 @@ async def test_planned_work_is_not_a_finding(client, auth_headers, setup):
 
     r = await client.get(f"{BASE}/treatment-plans/{plan_id}/proposals", headers=auth_headers)
     assert r.json()["data"] == []
+
+
+# ---------------------------------------------------------------------------
+# Optional lines
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_optional_line_can_be_excluded(client, auth_headers, setup):
+    """The orthodontics of an orthognathic case: the clinic may refer it out."""
+    plan_id = await _plan(client, auth_headers, setup)
+    template_id = await _template(
+        client,
+        auth_headers,
+        [
+            {"catalog_item_id": setup["catalog"]["cleaning"]},
+            {"catalog_item_id": setup["catalog"]["retainer"], "is_optional": True},
+        ],
+    )
+    listed = await client.get(f"{BASE}/plan-templates", headers=auth_headers)
+    template = next(t for t in listed.json()["data"] if t["id"] == template_id)
+    optional = next(i for i in template["items"] if i["is_optional"])
+
+    r = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/apply-template",
+        headers=auth_headers,
+        json={
+            "template_id": template_id,
+            "tooth_numbers": [],
+            "excluded_template_item_ids": [optional["id"]],
+        },
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()["data"]
+    assert len(body["items"]) == 1
+    assert body["items"][0]["treatment"]["catalog_item"]["internal_code"] == "T-CLEAN"
+    assert body["skipped"] == []
+
+
+@pytest.mark.asyncio
+async def test_required_line_cannot_be_excluded(client, auth_headers, setup):
+    """A template whose required steps can be dropped is not a shape any more."""
+    plan_id = await _plan(client, auth_headers, setup)
+    template_id = await _template(
+        client, auth_headers, [{"catalog_item_id": setup["catalog"]["cleaning"]}]
+    )
+    listed = await client.get(f"{BASE}/plan-templates", headers=auth_headers)
+    template = next(t for t in listed.json()["data"] if t["id"] == template_id)
+
+    r = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/apply-template",
+        headers=auth_headers,
+        json={
+            "template_id": template_id,
+            "tooth_numbers": [],
+            "excluded_template_item_ids": [template["items"][0]["id"]],
+        },
+    )
+    assert r.status_code == 400
+    assert "T-CLEAN" in r.text
+
+
+@pytest.mark.asyncio
+async def test_excluding_the_only_per_tooth_line_stops_asking_for_teeth(
+    client, auth_headers, setup
+):
+    plan_id = await _plan(client, auth_headers, setup)
+    template_id = await _template(
+        client,
+        auth_headers,
+        [
+            {"catalog_item_id": setup["catalog"]["cleaning"]},
+            {"catalog_item_id": setup["catalog"]["crown"], "is_optional": True},
+        ],
+    )
+    listed = await client.get(f"{BASE}/plan-templates", headers=auth_headers)
+    template = next(t for t in listed.json()["data"] if t["id"] == template_id)
+    optional = next(i for i in template["items"] if i["is_optional"])
+
+    # With the crown in, no teeth is a 422; with it out, it applies cleanly.
+    blocked = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/apply-template",
+        headers=auth_headers,
+        json={"template_id": template_id, "tooth_numbers": []},
+    )
+    assert blocked.status_code == 422
+
+    ok = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/apply-template",
+        headers=auth_headers,
+        json={
+            "template_id": template_id,
+            "tooth_numbers": [],
+            "excluded_template_item_ids": [optional["id"]],
+        },
+    )
+    assert ok.status_code == 201, ok.text
+    assert len(ok.json()["data"]["items"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_retired_treatment_is_reported_not_swallowed(client, auth_headers, setup, db_session):
+    """A clinic that stops offering a treatment still gets the rest of the plan.
+
+    Silently one treatment short is worse than saying so.
+    """
+    plan_id = await _plan(client, auth_headers, setup)
+    template_id = await _template(
+        client,
+        auth_headers,
+        [
+            {"catalog_item_id": setup["catalog"]["cleaning"]},
+            {"catalog_item_id": setup["catalog"]["retainer"]},
+        ],
+    )
+
+    retainer = (
+        await db_session.execute(
+            select(TreatmentCatalogItem).where(
+                TreatmentCatalogItem.id == UUID(setup["catalog"]["retainer"])
+            )
+        )
+    ).scalar_one()
+    retainer.is_active = False
+    await db_session.commit()
+
+    r = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/apply-template",
+        headers=auth_headers,
+        json={"template_id": template_id, "tooth_numbers": []},
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()["data"]
+    assert len(body["items"]) == 1
+    assert len(body["skipped"]) == 1
+    assert body["skipped"][0]["name"] == "T-RETAINER"
+    assert body["skipped"][0]["reason"] == "not_in_catalog"
+
+
+@pytest.mark.asyncio
+async def test_update_answers_with_the_lines_it_just_wrote(client, auth_headers, setup):
+    """A PUT that reports the previous line-up is worse than no response."""
+    template_id = await _template(
+        client, auth_headers, [{"catalog_item_id": setup["catalog"]["cleaning"]}]
+    )
+    r = await client.put(
+        f"{BASE}/plan-templates/{template_id}",
+        headers=auth_headers,
+        json={
+            "items": [
+                {"catalog_item_id": setup["catalog"]["cleaning"]},
+                {"catalog_item_id": setup["catalog"]["retainer"], "is_optional": True},
+            ]
+        },
+    )
+    assert r.status_code == 200, r.text
+    items = r.json()["data"]["items"]
+    assert len(items) == 2
+    assert [i["is_optional"] for i in items] == [False, True]

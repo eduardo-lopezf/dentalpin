@@ -6,7 +6,7 @@
  * is waiting for teeth: `needsTeeth` answers that from the item scopes, so the
  * UI can ask for them instead of letting the request come back 422.
  */
-import type { ApiResponse, PlanTemplate, PlannedTreatmentItem } from '~~/app/types'
+import type { ApiResponse, ApplyTemplateResult, PlanTemplate } from '~~/app/types'
 
 /** Scopes that cannot be created without at least one tooth. */
 const TOOTH_SCOPES = ['tooth', 'multi_tooth']
@@ -41,17 +41,27 @@ export function usePlanTemplates() {
     return templates.value
   }
 
-  /** Treatments in the template that cannot be created without a tooth. */
-  function treatmentsNeedingTeeth(template: PlanTemplate, locale = 'es'): string[] {
+  /**
+   * Treatments in the template that cannot be created without a tooth.
+   * Excluded lines do not count — a template whose only per-tooth treatment
+   * was unticked no longer needs teeth.
+   */
+  function treatmentsNeedingTeeth(
+    template: PlanTemplate,
+    locale = 'es',
+    excludedIds: string[] = []
+  ): string[] {
     return template.items
+      .filter(i => !excludedIds.includes(i.id))
       .filter(i => TOOTH_SCOPES.includes(i.catalog_item?.treatment_scope ?? ''))
       .map(i => i.catalog_item?.names?.[locale] || i.catalog_item?.names?.es || '')
       .filter(Boolean)
   }
 
-  function needsTeeth(template: PlanTemplate): boolean {
+  function needsTeeth(template: PlanTemplate, excludedIds: string[] = []): boolean {
     return template.items.some(i =>
-      TOOTH_SCOPES.includes(i.catalog_item?.treatment_scope ?? '')
+      !excludedIds.includes(i.id)
+      && TOOTH_SCOPES.includes(i.catalog_item?.treatment_scope ?? '')
     )
   }
 
@@ -62,20 +72,32 @@ export function usePlanTemplates() {
   async function applyTemplate(
     planId: string,
     templateId: string,
-    toothNumbers: number[] = []
-  ): Promise<PlannedTreatmentItem[] | null> {
+    toothNumbers: number[] = [],
+    excludedItemIds: string[] = []
+  ): Promise<ApplyTemplateResult | null> {
     loading.value = true
     try {
-      const response = await api.post<ApiResponse<PlannedTreatmentItem[]>>(
+      const response = await api.post<ApiResponse<ApplyTemplateResult>>(
         `/api/v1/treatment_plan/treatment-plans/${planId}/apply-template`,
-        { template_id: templateId, tooth_numbers: toothNumbers }
+        {
+          template_id: templateId,
+          tooth_numbers: toothNumbers,
+          excluded_template_item_ids: excludedItemIds
+        }
       )
-      const items = response.data ?? []
+      const result = response.data ?? { items: [], skipped: [] }
       toast.add({
-        title: t('clinical.plans.templates.applied', { count: items.length }),
-        color: 'success'
+        title: t('clinical.plans.templates.applied', { count: result.items.length }),
+        // A line the clinic does not offer is dropped rather than failing the
+        // whole application, so the toast is where the dentist finds out.
+        description: result.skipped.length > 0
+          ? t('clinical.plans.templates.skipped', {
+              treatments: result.skipped.map(s => s.name).join(', ')
+            })
+          : undefined,
+        color: result.skipped.length > 0 ? 'warning' : 'success'
       })
-      return items
+      return result
     } catch (error) {
       console.error('Error applying plan template:', error)
       toast.add({ title: t('clinical.plans.templates.applyFailed'), color: 'error' })

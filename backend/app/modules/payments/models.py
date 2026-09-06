@@ -11,6 +11,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     Numeric,
     String,
     Text,
@@ -267,4 +268,84 @@ class PaymentHistory(Base):
     __table_args__ = (
         Index("idx_payment_history_payment", "payment_id"),
         Index("idx_payment_history_clinic_changed", "clinic_id", "changed_at"),
+    )
+
+
+class PaymentSchedule(Base, TimestampMixin):
+    """What the clinic and the patient agreed to pay, and when.
+
+    The earned ledger answers "what is owed for work already done". That is
+    the right question for a filling and the wrong one for a 19.000 €
+    orthognathic case, where the money is agreed up front — a deposit at
+    signing, an instalment before surgery, the rest afterwards — and collected
+    long before most of the work exists.
+
+    A schedule is **intent**, not a debt of its own. It never adds to what the
+    patient owes: both views settle against the same payments, and adding them
+    together would double the amount. Read one or the other, never the sum.
+
+    Attached to a budget when there is one — the budget is the document the
+    patient accepted (ADR 0006) — and always to a patient, because a schedule
+    outlives the budget it came from.
+    """
+
+    __tablename__ = "payment_schedules"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+    patient_id: Mapped[UUID] = mapped_column(ForeignKey("patients.id"), index=True)
+    budget_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("budgets.id"), index=True, default=None
+    )
+
+    # active | cancelled. Never deleted: an agreement that was superseded is
+    # part of what happened, and reception is asked about it later.
+    status: Mapped[str] = mapped_column(String(20), default="active")
+    notes: Mapped[str | None] = mapped_column(Text, default=None)
+
+    created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
+
+    clinic: Mapped["Clinic"] = relationship(foreign_keys=[clinic_id])
+    patient: Mapped["Patient"] = relationship()
+    instalments: Mapped[list["PaymentScheduleInstalment"]] = relationship(
+        back_populates="schedule",
+        cascade="all, delete-orphan",
+        order_by="PaymentScheduleInstalment.sequence",
+    )
+
+    __table_args__ = (
+        Index("idx_payment_schedules_clinic_patient", "clinic_id", "patient_id"),
+        Index("idx_payment_schedules_budget", "budget_id"),
+    )
+
+
+class PaymentScheduleInstalment(Base, TimestampMixin):
+    """One agreed payment: how much, when, and what it is for.
+
+    ``amount`` is what was agreed, and it never changes once money has been
+    settled against it — the same rule the session snapshot follows. Whether
+    it is paid is **derived**, not stored: payments settle the instalments in
+    order, exactly as they settle earned charges, so there is no status to
+    fall out of sync with the ledger.
+    """
+
+    __tablename__ = "payment_schedule_instalments"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+    schedule_id: Mapped[UUID] = mapped_column(
+        ForeignKey("payment_schedules.id", ondelete="CASCADE"), index=True
+    )
+
+    sequence: Mapped[int] = mapped_column(Integer)
+    label: Mapped[str | None] = mapped_column(String(120))
+    # Nullable: "before surgery" is a real milestone with no date yet.
+    due_date: Mapped[date | None] = mapped_column(Date, default=None)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+
+    schedule: Mapped["PaymentSchedule"] = relationship(back_populates="instalments")
+
+    __table_args__ = (
+        UniqueConstraint("schedule_id", "sequence", name="uq_schedule_instalment_sequence"),
+        Index("idx_schedule_instalments_schedule", "schedule_id"),
     )

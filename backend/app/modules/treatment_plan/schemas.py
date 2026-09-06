@@ -348,6 +348,9 @@ class PlanTemplateItemInput(BaseModel):
     catalog_item_id: UUID
     # NULL means "use the catalog item's own default_phase".
     phase: TreatmentPhase | None = None
+    # A line the clinic may not offer or the patient may not need. Offered
+    # ticked when the template is applied; only these can be excluded.
+    is_optional: bool = False
     notes: str | None = None
 
 
@@ -358,6 +361,7 @@ class PlanTemplateItemResponse(BaseModel):
     sequence: int
     catalog_item_id: UUID
     phase: str | None = None
+    is_optional: bool = False
     notes: str | None = None
     catalog_item: CatalogItemBrief | None = None
 
@@ -402,10 +406,32 @@ class ApplyTemplateRequest(BaseModel):
     treatment in the template is created once per tooth listed; whole-mouth
     ones are created once regardless. Leave it empty for a template that has
     no per-tooth treatments at all.
+
+    ``excluded_template_item_ids`` drops lines this patient does not need.
+    Only lines marked ``is_optional`` may be dropped; excluding a required one
+    is a 400.
     """
 
     template_id: UUID
     tooth_numbers: list[int] = Field(default_factory=list)
+    excluded_template_item_ids: list[UUID] = Field(default_factory=list)
+
+
+class SkippedTemplateLine(BaseModel):
+    """A template line that could not be applied.
+
+    ``reason`` is ``not_in_catalog``: the clinic does not offer that
+    treatment. Not an error — a clinic that refers its orthodontics out still
+    wants the rest of the plan — but never silent.
+    """
+
+    name: str
+    reason: str
+
+
+class ApplyTemplateResult(BaseModel):
+    items: list[PlannedTreatmentItemResponse] = Field(default_factory=list)
+    skipped: list[SkippedTemplateLine] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

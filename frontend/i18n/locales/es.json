@@ -831,7 +831,10 @@
         "saved": "Plantilla guardada.",
         "saveFailed": "No se ha podido guardar la plantilla.",
         "empty": "Todavía no hay plantillas.",
-        "itemsCount": "{count} tratamiento(s)"
+        "itemsCount": "{count} tratamiento(s)",
+        "optional": "Opcional",
+        "optionalHint": "Las líneas opcionales vienen marcadas. Desmarca las que tu clínica no ofrezca o este paciente no necesite.",
+        "skipped": "Omitido, no está en tu catálogo: {treatments}."
       },
       "moreOptions": "Más opciones",
       "blocked": {
@@ -845,6 +848,12 @@
         "accept": "Añadir {count} al plan",
         "accepted": "{count} tratamiento(s) añadidos al plan.",
         "acceptFailed": "No se han podido añadir los tratamientos."
+      },
+      "collection": {
+        "collected": "Cobrado",
+        "pending": "Por cobrar",
+        "partial": "Quedan {amount}",
+        "phasePending": "por cobrar {amount}"
       }
     },
     "tooth": "Diente"
@@ -3110,5 +3119,62 @@
     "confirmErasureBody": "La anonimización es irreversible y no tiene deshacer. Los datos identificativos se borran; el historial clínico y los documentos fiscales se conservan porque la ley lo exige.",
     "confirmErasureRetention": "Al terminar verás qué secciones se anonimizaron y cuáles se conservaron, con su motivo.",
     "confirmErasureAction": "Sí, suprimir"
+  },
+  "payments": {
+    "plan": {
+      "title": "Cobros del paciente",
+      "nothingPending": "No hay nada pendiente de cobrar.",
+      "pendingLabel": "Pendiente de cobrar",
+      "pendingHint": "{count} concepto(s) ejecutados y sin cobrar",
+      "charge": "Cobrar"
+    },
+    "schedule": {
+      "title": "Calendario de pagos",
+      "empty": "No hay calendario pactado. El cobro sigue el trabajo ejecutado.",
+      "setUp": "Pactar calendario",
+      "setUpTitle": "Pactar calendario de pagos",
+      "setUpHint": "Reparte el total del plan ({total}) en los plazos acordados.",
+      "preset": "Reparto",
+      "agreed": "Pactado",
+      "collectedOf": "{collected} de {total}",
+      "overdue": "{amount} vencido",
+      "unapplied": "{amount} pagados por adelantado, más allá del calendario.",
+      "mismatch": "Los plazos suman {sum} y el plan son {total}. Deben coincidir.",
+      "cancel": "Anular calendario",
+      "created": "Calendario pactado.",
+      "createFailed": "No se ha podido guardar el calendario.",
+      "cancelled": "Calendario anulado.",
+      "cancelFailed": "No se ha podido anular el calendario.",
+      "status": {
+        "pending": "Pendiente",
+        "partial": "Parcial",
+        "paid": "Pagado",
+        "overdue": "Vencido"
+      },
+      "presets": {
+        "byPhase": "Por fases",
+        "monthly": "Mensual",
+        "howMany": "Número de plazos",
+        "onSigning": "A la firma",
+        "beforeTreatment": "Antes del tratamiento",
+        "onCompletion": "Al finalizar",
+        "month": "Plazo {n}"
+      },
+      "labelPlaceholder": "Concepto del plazo",
+      "dueDate": "Fecha de vencimiento",
+      "dateOptional": "La fecha es opcional: un hito sin fecha (p. ej. «antes de la cirugía») nunca vence.",
+      "amount": "Importe",
+      "draftTotal": "Suman {sum}",
+      "blocked": {
+        "empty": "El calendario necesita al menos un plazo.",
+        "amount": "Cada plazo tiene que tener un importe mayor que cero."
+      },
+      "edit": "Editar calendario",
+      "editTitle": "Editar calendario de pagos",
+      "addInstalment": "Añadir un plazo debajo",
+      "removeInstalment": "Quitar plazo",
+      "updated": "Calendario actualizado.",
+      "updateFailed": "No se ha podido actualizar el calendario."
+    }
   }
 }

@@ -36,7 +36,8 @@ Routes mounted at `/api/v1/treatment-plans/`.
 - `POST  /treatment-plans/{id}/reactivate`  — `plans.reactivate`; closed → draft
 - `POST  /treatment-plans/{id}/contact-log` — record reception touchpoint
 - `GET   /treatment-plans/pipeline`         — bandeja (5 tabs)
-- `POST  /treatment-plans/{id}/apply-template` — append a template; `plans.write`
+- `POST  /treatment-plans/{id}/apply-template` — append a template; `plans.write`.
+  Body takes `excluded_template_item_ids`; returns `{items, skipped}`.
 - `GET   /plan-templates`                   — list; `plans.read`
 - `POST  /plan-templates`                   — create; `plans.templates`
 - `PUT   /plan-templates/{id}`              — update; items are a full replace when sent
@@ -70,6 +71,12 @@ attributed to.
 for the workflow transitions and `plans.templates` for curating the clinic's
 plan templates. Clinical-note permissions live in the `clinical_notes` module
 since issue #60.
+
+## Frontend slots exposed
+
+- `treatment_plan.detail.sidebar` — rendered by `PlanDetailView.vue` above
+  the treatment list. `payments` registers the collections card there. Slot
+  ctx: `{ planId, patientId, patientName, budgetId, planStatus }`.
 
 ## Events emitted
 
@@ -147,6 +154,21 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   the teeth belong to (both arches when no teeth were given).** A template
   with per-tooth items and no teeth is refused with a 422 that names the
   treatments waiting, so the UI can ask for the right thing.
+- **A template line is either a given or a decision.** `is_optional` marks the
+  ones a clinic may not offer or a patient may not need — the orthodontics of
+  an orthognathic case, a genioplasty. Optional lines are offered **ticked**
+  (the author put them there because they usually apply) and go out through
+  `excluded_template_item_ids`. Excluding a *required* line is a 400: a
+  template whose required steps can be dropped is not a shape any more.
+- **`apply` reports what it left out.** A line whose catalog item the clinic
+  never had or has retired is skipped instead of failing the whole
+  application, and comes back in `skipped` with `reason="not_in_catalog"`.
+  A plan that quietly arrives one treatment short is worse than one that says
+  so. This is why `apply` returns `ApplyResult`, not a bare list.
+- **`PlanTemplateService.get` uses `populate_existing`.** It is the read that
+  runs straight after a write; without it the identity map hands back the
+  collection as it was before `_replace_items`, and a PUT answers with the old
+  line-up while the database holds the new one.
 - **Templates are seeded from `clinic.created`, tolerantly.** The starter set
   lives in `templates_seed.py` and references catalog items by
   `internal_code`. Handler order against `catalog`'s own seeder is not a
@@ -173,6 +195,17 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   invasive option is proposed: upgrading a composite to a crown is a smaller
   correction than the reverse. Nothing is created until the dentist ticks the
   row.
+- **The plan shows money it does not own.** `usePlanCollections` calls
+  `POST /payments/summary/by-treatments` from the frontend layer — no backend
+  import, nothing added to `manifest.depends`. That is the sanctioned
+  cross-module read (`docs/technical/payments/cross-module-summaries.md`), the
+  same one the budget and patient lists use. One call per plan feeds both the
+  per-session chips and the per-phase totals; when it fails (payments not
+  installed, or no `payments.record.read`) the plan renders without the money
+  column, which is the correct degraded state.
+- **A chip only appears once a session is earned.** A pending session is not
+  "uncollected" — there is nothing to collect until the work is done, and
+  saying otherwise reads as a debt the patient does not have.
 - **Auto-close cron lives here** (`tasks.py:auto_close_expired_plans`),
   not in budget — closing a plan is a treatment_plan write and budget
   is in this module's depends, so the read of `budgets` from the

@@ -84,6 +84,39 @@ otra fase, cambia la fase del tratamiento.
 **Guardar como plantilla** está en el menú **···**: se guardan los
 tratamientos y sus fases, no los dientes ni los precios.
 
+## Calendario de pagos
+
+La tarjeta **Calendario de pagos** guarda lo que se pactó cobrar y
+cuándo, que es una pregunta distinta de «qué se debe por trabajo
+hecho» — esa la responde la tarjeta de cobros. En un caso grande el
+dinero se pacta por adelantado, así que es normal que una diga 0 y la
+otra vaya al día. **No se suman**: las dos se saldan contra los mismos
+pagos.
+
+**Pactar calendario** propone tres repartos del total del plan: por
+fases (cada fase, su precio), 30/40/30 y mensual. A partir de ahí cada
+plazo lleva su **etiqueta**, su **fecha** y su **importe**, los tres
+editables: el reparto sólo escribe el primer borrador. Así se pactan
+cosas como «5.000 a la firma y el resto en seis mensualidades» — elige
+el reparto mensual con siete plazos y ajusta los importes.
+
+Los plazos tienen que sumar el total del plan; mientras no cuadren, el
+aviso dice cuánto suman y el botón de guardar no deja continuar. La fecha puede quedarse en blanco — un hito
+como «antes de la cirugía» no tiene fecha hasta que se agenda, y sin
+fecha nunca aparece como vencido.
+
+Los plazos se cubren en orden con lo que el paciente va pagando, y cada
+uno muestra **Pendiente**, **Parcial**, **Pagado** o **Vencido**.
+
+**Editar** (el lápiz) abre el calendario tal como se pactó, no un
+reparto nuevo. Cada fila se puede quitar, o añadir otra justo debajo —
+que es lo que hace falta para partir un plazo en dos cuando el paciente
+no puede con uno. Se puede renegociar aunque ya se haya cobrado: lo
+pagado vuelve a cubrir los plazos nuevos en orden.
+
+Anular un calendario no lo borra: un acuerdo superado es parte de lo que
+pasó.
+
 ## De un vistazo
 
 - **Estado y chip.** El chip en la cabecera refleja el estado:

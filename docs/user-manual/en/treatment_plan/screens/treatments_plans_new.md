@@ -38,6 +38,11 @@ you can add items, confirm, and generate a budget.
   build-up + crown* and naming the tooth leaves the plan with its four
   treatments already in place and staged. **Blank** creates an empty
   plan to build from the chart.
+- **Optional lines.** The treatments the template carries are listed
+  under the cards. The ones marked *Optional* have a checkbox and come
+  ticked: untick the ones your clinic does not offer or this patient
+  does not need. Required ones cannot be dropped here; delete them from
+  the plan afterwards if one turns out to be unnecessary.
 - **Teeth.** Asked for only when the template needs them. Each
   per-tooth treatment is added once for every tooth you list, so
   *Third molar extraction* with `18, 28, 38, 48` gives you all four.
@@ -53,18 +58,24 @@ you can add items, confirm, and generate a budget.
 2. Choose the template, or **Blank** to build the plan from the
    chart. The treatments it carries are listed under the cards,
    flagging which ones are waiting for a tooth.
-3. If the template asks for them, type the teeth in FDI notation
+3. Review the treatment list and untick the optional ones that do not
+   apply. Unticking the only per-tooth line stops the teeth being asked
+   for at all.
+4. If the template asks for them, type the teeth in FDI notation
    separated by commas or spaces (`16, 26, 36, 46`). Until there is
    at least one, **Create** says which treatments are waiting.
-4. The professional is pre-selected when your user is a clinic
+5. The professional is pre-selected when your user is a clinic
    professional. The template names the plan; change that, and the
    notes, under **More options**.
-5. **Create**. `treatment_plan.created` is published, the template is
+6. **Create**. `treatment_plan.created` is published, the template is
    applied, and you land on the detail with the plan already built.
 
 > If applying the template fails, the plan is still created, empty:
 > that is a valid starting point and you can apply the template again
 > from the detail.
+>
+> If a treatment in the template is no longer in your catalog, that line
+> is skipped and the notice names it. The rest of the plan is created.
 
 ## Permissions
 

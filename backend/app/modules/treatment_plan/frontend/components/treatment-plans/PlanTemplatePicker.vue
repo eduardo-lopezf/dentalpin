@@ -23,8 +23,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [templateId: string | null]
-  /** Fired whenever the selection or the teeth change. */
-  'change': [payload: { template: PlanTemplate | null, toothNumbers: number[] }]
+  /** Fired whenever the selection, the teeth or the ticked lines change. */
+  'change': [payload: {
+    template: PlanTemplate | null
+    toothNumbers: number[]
+    excludedItemIds: string[]
+  }]
 }>()
 
 const { t, locale } = useI18n()
@@ -33,6 +37,13 @@ const { templates, loading, fetchTemplates, needsTeeth, treatmentsNeedingTeeth }
 
 const selectedId = ref<string | null>(props.modelValue ?? null)
 const teethInput = ref('')
+
+/**
+ * Optional lines the caller has unticked. Optional lines start ticked: the
+ * template author put them there because they usually apply, so the default
+ * is "yes" and removing one is a single click.
+ */
+const excludedItemIds = ref<string[]>([])
 
 onMounted(() => {
   fetchTemplates()
@@ -46,11 +57,30 @@ const selected = computed<PlanTemplate | null>(
   () => templates.value.find(x => x.id === selectedId.value) ?? null
 )
 
-const requiresTeeth = computed(() => (selected.value ? needsTeeth(selected.value) : false))
+const requiresTeeth = computed(() =>
+  selected.value ? needsTeeth(selected.value, excludedItemIds.value) : false
+)
 
 const pendingTreatments = computed(() =>
-  selected.value ? treatmentsNeedingTeeth(selected.value, locale.value) : []
+  selected.value
+    ? treatmentsNeedingTeeth(selected.value, locale.value, excludedItemIds.value)
+    : []
 )
+
+const hasOptionalLines = computed(() =>
+  (selected.value?.items ?? []).some(i => i.is_optional)
+)
+
+function isIncluded(itemId: string): boolean {
+  return !excludedItemIds.value.includes(itemId)
+}
+
+function toggleLine(itemId: string) {
+  const index = excludedItemIds.value.indexOf(itemId)
+  if (index === -1) excludedItemIds.value.push(itemId)
+  else excludedItemIds.value.splice(index, 1)
+  emitChange()
+}
 
 /**
  * Parse the free-text tooth list. Free text beats a 32-checkbox grid here: a
@@ -99,12 +129,19 @@ function itemName(names: Record<string, string> | undefined): string {
 function select(templateId: string | null) {
   selectedId.value = templateId
   if (templateId === null) teethInput.value = ''
+  // A different template has different lines; carrying the previous
+  // exclusions over would silently drop the wrong treatments.
+  excludedItemIds.value = []
   emit('update:modelValue', templateId)
   emitChange()
 }
 
 function emitChange() {
-  emit('change', { template: selected.value, toothNumbers: parsedTeeth.value.numbers })
+  emit('change', {
+    template: selected.value,
+    toothNumbers: parsedTeeth.value.numbers,
+    excludedItemIds: excludedItemIds.value
+  })
 }
 
 watch(teethInput, emitChange)
@@ -172,17 +209,48 @@ watch(teethInput, emitChange)
       </button>
     </div>
 
-    <!-- What the chosen template contains, so nothing is applied blind. -->
+    <!-- What the chosen template contains, so nothing is applied blind.
+         Optional lines carry a checkbox: the clinic may not offer that
+         treatment, or this patient may not need it. -->
     <div
       v-if="selected"
       class="template-preview"
     >
+      <p
+        v-if="hasOptionalLines"
+        class="preview-hint"
+      >
+        {{ t('clinical.plans.templates.optionalHint') }}
+      </p>
       <ol>
         <li
           v-for="item in selected.items"
           :key="item.id"
+          :class="{ 'is-excluded': !isIncluded(item.id) }"
         >
-          <span>{{ itemName(item.catalog_item?.names) }}</span>
+          <UCheckbox
+            v-if="item.is_optional"
+            :model-value="isIncluded(item.id)"
+            :disabled="disabled"
+            @update:model-value="toggleLine(item.id)"
+          />
+          <!-- A dot, not a number: numbering the required lines only would
+               show gaps where the optional ones sit, which reads as a bug.
+               The order is already the order. -->
+          <span
+            v-else
+            class="line-fixed"
+            aria-hidden="true"
+          >•</span>
+          <span class="line-name">{{ itemName(item.catalog_item?.names) }}</span>
+          <UBadge
+            v-if="item.is_optional"
+            color="neutral"
+            variant="subtle"
+            size="xs"
+          >
+            {{ t('clinical.plans.templates.optional') }}
+          </UBadge>
           <UBadge
             v-if="['tooth', 'multi_tooth'].includes(item.catalog_item?.treatment_scope ?? '')"
             color="warning"
@@ -272,19 +340,41 @@ watch(teethInput, emitChange)
   background: var(--color-bg-muted, #F9FAFB);
 }
 
+.preview-hint {
+  font-size: 11px;
+  color: var(--color-text-muted, #6B7280);
+  margin: 0 0 6px;
+}
+
 .template-preview ol {
   margin: 0;
-  padding-left: 18px;
-  list-style: decimal;
+  padding: 0;
+  list-style: none;
 }
 
 .template-preview li {
-  display: list-item;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
-  padding: 1px 0;
+  padding: 2px 0;
 }
 
-.template-preview li > span {
-  margin-right: 6px;
+/* Unticked lines stay visible: the dentist should see what the template
+   holds, not just what survived the ticking. */
+.template-preview li.is-excluded .line-name {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.line-fixed {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 16px;
+  color: var(--color-text-subtle, #9CA3AF);
+}
+
+.line-name {
+  min-width: 0;
 }
 </style>

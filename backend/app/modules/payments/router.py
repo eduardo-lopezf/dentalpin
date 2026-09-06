@@ -20,6 +20,7 @@ from app.core.auth.dependencies import ClinicContext, get_clinic_context, requir
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import get_db
 
+from .schedules import ScheduleService
 from .schemas import (
     AgingBuckets,
     AllocationResponse,
@@ -33,12 +34,17 @@ from .schemas import (
     PaymentCreate,
     PaymentReallocate,
     PaymentResponse,
+    PaymentScheduleCreate,
+    PaymentScheduleResponse,
+    PaymentScheduleUpdate,
     PaymentsSummary,
     PaymentsTrends,
     ProfessionalBreakdown,
     RefundCreate,
     RefundResponse,
     RefundsReport,
+    TreatmentCollectionSummary,
+    TreatmentIdsRequest,
 )
 from .service import (
     LedgerService,
@@ -87,6 +93,128 @@ def _bad_request(exc: Exception) -> HTTPException:
 
 
 # --- Payments ---------------------------------------------------------
+
+
+# --- Agreed payment schedules -----------------------------------------
+#
+# Declared BEFORE the ``/{payment_id}`` routes below: FastAPI resolves in
+# registration order, and "schedules" would otherwise be parsed as a
+# payment id and rejected as an invalid UUID.
+#
+# What the clinic and the patient agreed to pay, and when. Distinct from the
+# earned ledger: that answers "what is owed for work done", this answers "what
+# was agreed". Both settle against the same payments — never add them.
+
+
+@router.get("/schedules", response_model=ApiResponse[list[PaymentScheduleResponse]])
+async def list_payment_schedules(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.record.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    patient_id: UUID | None = Query(default=None),
+    budget_id: UUID | None = Query(default=None),
+    include_cancelled: bool = Query(default=False),
+) -> ApiResponse[list[PaymentScheduleResponse]]:
+    schedules = await ScheduleService.list_schedules(
+        db,
+        ctx.clinic_id,
+        patient_id=patient_id,
+        budget_id=budget_id,
+        include_cancelled=include_cancelled,
+    )
+    return ApiResponse(data=[await _schedule_response(db, ctx.clinic_id, s) for s in schedules])
+
+
+@router.post(
+    "/schedules",
+    response_model=ApiResponse[PaymentScheduleResponse],
+    status_code=201,
+)
+async def create_payment_schedule(
+    payload: PaymentScheduleCreate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.record.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[PaymentScheduleResponse]:
+    """Record an agreed schedule.
+
+    Amounts are taken as given: only the caller knows what the total is for,
+    and a plan knows its phases where payments does not.
+    """
+    await _ensure_patient(db, ctx.clinic_id, payload.patient_id)
+    try:
+        schedule = await ScheduleService.create(
+            db, ctx.clinic_id, ctx.user_id, payload.model_dump()
+        )
+    except ValueError as exc:
+        raise _bad_request(exc) from exc
+    await db.commit()
+    reloaded = await ScheduleService.get(db, ctx.clinic_id, schedule.id)
+    return ApiResponse(data=await _schedule_response(db, ctx.clinic_id, reloaded))
+
+
+@router.get("/schedules/{schedule_id}", response_model=ApiResponse[PaymentScheduleResponse])
+async def get_payment_schedule(
+    schedule_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.record.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[PaymentScheduleResponse]:
+    schedule = await ScheduleService.get(db, ctx.clinic_id, schedule_id)
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    return ApiResponse(data=await _schedule_response(db, ctx.clinic_id, schedule))
+
+
+@router.put("/schedules/{schedule_id}", response_model=ApiResponse[PaymentScheduleResponse])
+async def update_payment_schedule(
+    schedule_id: UUID,
+    payload: PaymentScheduleUpdate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.record.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[PaymentScheduleResponse]:
+    """Renegotiate a schedule.
+
+    Allowed after money has been collected: settlement is derived from the
+    payments, so the new instalments are simply re-covered in order.
+    """
+    try:
+        schedule = await ScheduleService.update(
+            db, ctx.clinic_id, schedule_id, payload.model_dump(exclude_unset=True)
+        )
+    except ValueError as exc:
+        raise _bad_request(exc) from exc
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    await db.commit()
+    reloaded = await ScheduleService.get(db, ctx.clinic_id, schedule_id)
+    return ApiResponse(data=await _schedule_response(db, ctx.clinic_id, reloaded))
+
+
+@router.delete("/schedules/{schedule_id}", status_code=204)
+async def cancel_payment_schedule(
+    schedule_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.record.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """Supersede an agreement. Never deleted — it is part of what happened."""
+    if not await ScheduleService.cancel(db, ctx.clinic_id, schedule_id):
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    await db.commit()
+
+
+async def _schedule_response(db, clinic_id: UUID, schedule) -> PaymentScheduleResponse:
+    settlement = await ScheduleService.settlement(db, clinic_id, schedule)
+    return PaymentScheduleResponse(
+        id=schedule.id,
+        patient_id=schedule.patient_id,
+        budget_id=schedule.budget_id,
+        status=schedule.status,
+        notes=schedule.notes,
+        **settlement,
+    )
 
 
 @router.get("", response_model=PaginatedApiResponse[PaymentResponse])
@@ -333,6 +461,31 @@ async def summary_by_patients(
         db, ctx.clinic_id, payload.patient_ids
     )
     return ApiResponse(data=PatientSummariesByIds(summaries=summaries))
+
+
+@router.post(
+    "/summary/by-treatments",
+    response_model=ApiResponse[TreatmentCollectionSummary],
+)
+async def summary_by_treatments(
+    payload: TreatmentIdsRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.record.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[TreatmentCollectionSummary]:
+    """Per-treatment and per-session collection state for one patient.
+
+    Powers the money view of a treatment plan without the plan importing
+    anything from payments. Cap 200 ids — a plan is a few dozen lines at
+    most. Off-books safe: pure earned-minus-collected, never invoiced.
+    """
+    await _ensure_patient(db, ctx.clinic_id, payload.patient_id)
+    state = await LedgerService.collection_state_by_treatments(
+        db, ctx.clinic_id, payload.patient_id, payload.treatment_ids
+    )
+    return ApiResponse(
+        data=TreatmentCollectionSummary(treatments=state["treatments"], sessions=state["sessions"])
+    )
 
 
 @router.get(

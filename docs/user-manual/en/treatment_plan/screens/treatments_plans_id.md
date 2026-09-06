@@ -81,6 +81,39 @@ to another stage, change the treatment's stage.
 **Save as template** lives in the **···** menu: treatments and their
 stages are saved, teeth and prices are not.
 
+## Payment schedule
+
+The **Payment schedule** card records what was agreed to be paid, and
+when — a different question from "what is owed for work already done",
+which the collections card answers. On a big case the money is agreed
+up front, so one reading zero while the other is on track is normal.
+**They are never added together**: both settle against the same
+payments.
+
+**Agree a schedule** offers three splits of the plan total: by phase
+(each phase at its own price), 30/40/30, and monthly. From there every
+instalment carries its own **label**, **date** and **amount**, all three
+editable — the split only writes the first draft. That is how you agree
+something like "5,000 on signing and the rest over six months": pick the
+monthly split with seven instalments and adjust the amounts.
+
+The instalments must add up to the plan total; until they do, the notice
+says what they add up to and the save button will not continue. The date may be left blank: a
+milestone like "before surgery" has no date until surgery is booked,
+and without one it never shows as overdue.
+
+Instalments are covered in order by what the patient pays, and each
+shows **Pending**, **Partial**, **Paid** or **Overdue**.
+
+**Edit** (the pencil) opens the schedule as it was agreed, not a fresh
+split. Any row can be removed, or another added directly below it —
+which is what you need to halve an instalment the patient cannot manage.
+It can be renegotiated after money has been collected: what was paid
+re-covers the new instalments in order.
+
+Cancelling a schedule does not erase it: a superseded agreement is part
+of what happened.
+
 ## At a glance
 
 - **Status chip.** The header chip reflects the state: `draft`,

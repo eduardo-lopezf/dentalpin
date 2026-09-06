@@ -2504,6 +2504,8 @@ export interface PlanTemplateItem {
   sequence: number
   catalog_item_id: string
   phase?: TreatmentPhase | null
+  /** A line the clinic may not offer or the patient may not need. */
+  is_optional: boolean
   notes?: string | null
   catalog_item?: {
     id: string
@@ -2528,6 +2530,7 @@ export interface PlanTemplate {
 export interface PlanTemplateItemInput {
   catalog_item_id: string
   phase?: TreatmentPhase | null
+  is_optional?: boolean
   notes?: string | null
 }
 
@@ -2546,4 +2549,17 @@ export interface ApplyTemplateRequest {
    * per-tooth treatments.
    */
   tooth_numbers: number[]
+  /** Optional lines this patient does not need. Required ones are refused. */
+  excluded_template_item_ids?: string[]
+}
+
+/** A template line that could not be applied — the clinic has no such treatment. */
+export interface SkippedTemplateLine {
+  name: string
+  reason: string
+}
+
+export interface ApplyTemplateResult {
+  items: PlannedTreatmentItem[]
+  skipped: SkippedTemplateLine[]
 }

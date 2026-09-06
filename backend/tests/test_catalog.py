@@ -1,13 +1,19 @@
 """Tests for the catalog module."""
 
-from uuid import uuid4
+from decimal import Decimal
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.models import Clinic, ClinicMembership
-from app.modules.catalog.models import VatType
+from app.modules.catalog.models import (
+    TreatmentCatalogItem,
+    TreatmentCategory,
+    VatType,
+)
 
 
 @pytest.fixture
@@ -1144,3 +1150,119 @@ async def test_update_item_sessions_omitted_preserves_template(
     )
     assert update.status_code == 200
     assert len(update.json()["data"]["sessions"]) == 2
+
+
+# ---------------------------------------------------------------------------
+# Removing seeded treatments
+# ---------------------------------------------------------------------------
+
+
+async def _seeded_item(db_session, setup: dict) -> TreatmentCatalogItem:
+    """A treatment as the seeder leaves it: ``is_system=True``."""
+    category = TreatmentCategory(
+        id=uuid4(),
+        clinic_id=UUID(setup["clinic_id"]),
+        key=f"cat-{uuid4().hex[:6]}",
+        names={"es": "Sembrada"},
+        is_system=True,
+    )
+    db_session.add(category)
+    await db_session.flush()
+    item = TreatmentCatalogItem(
+        id=uuid4(),
+        clinic_id=UUID(setup["clinic_id"]),
+        category_id=category.id,
+        vat_type_id=UUID(setup["vat_exempt_id"]),
+        internal_code=f"SEED-{uuid4().hex[:6].upper()}",
+        names={"es": "Obturación amalgama"},
+        default_price=Decimal("60.00"),
+        pricing_strategy="flat",
+        treatment_scope="tooth",
+        is_system=True,
+    )
+    db_session.add(item)
+    await db_session.commit()
+    return item
+
+
+@pytest.mark.asyncio
+async def test_admin_can_remove_a_seeded_treatment(client, auth_headers, catalog_clinic_setup, db_session):
+    """A clinic does not offer everything the starter catalog ships.
+
+    Refusing to remove seeded treatments left ~130 of them cluttering every
+    picker permanently.
+    """
+    item = await _seeded_item(db_session, catalog_clinic_setup)
+
+    r = await client.delete(f"/api/v1/catalog/items/{item.id}", headers=auth_headers)
+    assert r.status_code == 204, r.text
+
+    listed = await client.get(
+        f"/api/v1/catalog/items?search={item.internal_code}", headers=auth_headers
+    )
+    assert listed.json()["data"] == []
+
+    bar = await client.get("/api/v1/catalog/odontogram-treatments", headers=auth_headers)
+    assert all(t["internal_code"] != item.internal_code for t in bar.json()["data"])
+
+
+@pytest.mark.asyncio
+async def test_a_removed_treatment_can_be_found_and_restored(
+    client, auth_headers, catalog_clinic_setup, db_session
+):
+    """The deletion is soft, so it must not be a one-way door."""
+    item = await _seeded_item(db_session, catalog_clinic_setup)
+    await client.delete(f"/api/v1/catalog/items/{item.id}", headers=auth_headers)
+
+    found = await client.get(
+        f"/api/v1/catalog/items?search={item.internal_code}&include_deleted=true",
+        headers=auth_headers,
+    )
+    assert len(found.json()["data"]) == 1
+
+    restored = await client.put(
+        f"/api/v1/catalog/items/{item.id}",
+        headers=auth_headers,
+        json={"is_active": True},
+    )
+    assert restored.status_code == 200, restored.text
+
+    listed = await client.get(
+        f"/api/v1/catalog/items?search={item.internal_code}", headers=auth_headers
+    )
+    assert len(listed.json()["data"]) == 1
+    assert listed.json()["data"][0]["is_active"] is True
+
+
+@pytest.mark.asyncio
+async def test_removing_a_treatment_keeps_its_history(client, auth_headers, catalog_clinic_setup, db_session):
+    """The row survives: performed treatments and budget lines point at it."""
+    item = await _seeded_item(db_session, catalog_clinic_setup)
+    await client.delete(f"/api/v1/catalog/items/{item.id}", headers=auth_headers)
+
+    row = (
+        await db_session.execute(
+            select(TreatmentCatalogItem).where(TreatmentCatalogItem.id == item.id)
+        )
+    ).scalar_one()
+    assert row.deleted_at is not None
+    assert row.is_active is False
+
+
+@pytest.mark.asyncio
+async def test_the_internal_code_of_a_seeded_treatment_stays_locked(
+    client, auth_headers, catalog_clinic_setup, db_session
+):
+    """Renaming it would make the next seed run recreate the original.
+
+    Deleting is safe because the seeder matches on ``internal_code`` and
+    finds the soft-deleted row; renaming breaks exactly that match.
+    """
+    item = await _seeded_item(db_session, catalog_clinic_setup)
+
+    r = await client.put(
+        f"/api/v1/catalog/items/{item.id}",
+        headers=auth_headers,
+        json={"internal_code": "OTRO-CODIGO"},
+    )
+    assert r.status_code == 403

@@ -462,15 +462,25 @@ class CatalogService:
         treatment_scope: str | None = None,
         has_odontogram_mapping: bool | None = None,
         search_query: str | None = None,
+        include_deleted: bool = False,
     ) -> tuple[list[TreatmentCatalogItem], int]:
-        """List catalog items with filtering and pagination."""
+        """List catalog items with filtering and pagination.
+
+        ``include_deleted`` is the way back from a deletion: the row survives
+        (history references it), but nothing lists it, so without this an
+        admin who removed a treatment by mistake could not find it to restore.
+        """
         page_size = min(max(page_size, 1), 100)
         offset = (page - 1) * page_size
 
-        conditions = [
-            TreatmentCatalogItem.clinic_id == clinic_id,
-            TreatmentCatalogItem.deleted_at.is_(None),
-        ]
+        conditions = [TreatmentCatalogItem.clinic_id == clinic_id]
+        if include_deleted:
+            # A deleted item is inactive by construction, so leaving the
+            # default ``is_active=True`` filter on would make the flag return
+            # nothing — the one case it exists for.
+            is_active = None
+        else:
+            conditions.append(TreatmentCatalogItem.deleted_at.is_(None))
 
         if is_active is not None:
             conditions.append(TreatmentCatalogItem.is_active == is_active)
@@ -532,15 +542,24 @@ class CatalogService:
         db: AsyncSession,
         clinic_id: UUID,
         item_id: UUID,
+        include_deleted: bool = False,
     ) -> TreatmentCatalogItem | None:
-        """Get a catalog item by ID with related data."""
+        """Get a catalog item by ID with related data.
+
+        ``include_deleted`` is what makes a deletion reversible: the update
+        endpoint has to be able to load a removed item in order to reactivate
+        it. Every other caller wants the live catalog and leaves it false.
+        """
+        conditions = [
+            TreatmentCatalogItem.id == item_id,
+            TreatmentCatalogItem.clinic_id == clinic_id,
+        ]
+        if not include_deleted:
+            conditions.append(TreatmentCatalogItem.deleted_at.is_(None))
+
         result = await db.execute(
             select(TreatmentCatalogItem)
-            .where(
-                TreatmentCatalogItem.id == item_id,
-                TreatmentCatalogItem.clinic_id == clinic_id,
-                TreatmentCatalogItem.deleted_at.is_(None),
-            )
+            .where(*conditions)
             .options(
                 joinedload(TreatmentCatalogItem.category),
                 joinedload(TreatmentCatalogItem.odontogram_mapping),
@@ -675,6 +694,13 @@ class CatalogService:
             if value is not None:
                 setattr(item, key, value)
 
+        # Reactivating a deleted item restores it. The deletion is a soft one
+        # precisely so this is possible: the row never went away, only the
+        # listings did, and an admin who removed a treatment by mistake needs
+        # a way back that does not involve the database.
+        if data.get("is_active") is True and item.deleted_at is not None:
+            item.deleted_at = None
+
         if specialty_ids is not None:
             item.specialties = await CatalogService._resolve_specialties(
                 db, clinic_id, specialty_ids
@@ -716,7 +742,12 @@ class CatalogService:
         item: TreatmentCatalogItem,
         hard: bool = False,
     ) -> None:
-        """Delete a catalog item (soft delete by default)."""
+        """Delete a catalog item (soft delete by default).
+
+        Soft on purpose: treatments already performed, budget lines and plan
+        templates all point at this row. Hard-deleting it would take the
+        history with it, so the row stays and drops out of every listing.
+        """
         if hard:
             await db.delete(item)
         else:

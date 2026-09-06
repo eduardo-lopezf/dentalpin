@@ -14,6 +14,7 @@ from .proposals import PlanProposalService
 from .schemas import (
     AcceptProposalsRequest,
     ApplyTemplateRequest,
+    ApplyTemplateResult,
     ClosePlanRequest,
     CompleteItemRequest,
     CompleteSessionRequest,
@@ -896,7 +897,7 @@ async def create_template_from_plan(
 
 @router.post(
     "/treatment-plans/{plan_id}/apply-template",
-    response_model=ApiResponse[list[PlannedTreatmentItemResponse]],
+    response_model=ApiResponse[ApplyTemplateResult],
     status_code=status.HTTP_201_CREATED,
 )
 async def apply_plan_template(
@@ -905,20 +906,24 @@ async def apply_plan_template(
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
     _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> ApiResponse[list[PlannedTreatmentItemResponse]]:
+) -> ApiResponse[ApplyTemplateResult]:
     """Append a template's treatments to a plan.
+
+    Returns what was created and what was left out — a line whose treatment
+    the clinic does not offer is skipped, never silently.
 
     422 when the template has per-tooth treatments and no teeth were given —
     the detail names them, so the UI can ask for the right thing.
     """
     try:
-        items = await PlanTemplateService.apply(
+        result = await PlanTemplateService.apply(
             db,
             ctx.clinic_id,
             ctx.user_id,
             plan_id,
             data.template_id,
             data.tooth_numbers,
+            data.excluded_template_item_ids,
         )
     except TemplateNeedsTeethError as exc:
         raise HTTPException(
@@ -931,7 +936,12 @@ async def apply_plan_template(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     await db.commit()
-    return ApiResponse(data=[PlannedTreatmentItemResponse.model_validate(i) for i in items])
+    return ApiResponse(
+        data=ApplyTemplateResult(
+            items=[PlannedTreatmentItemResponse.model_validate(i) for i in result.items],
+            skipped=[{"name": s.name, "reason": s.reason} for s in result.skipped],
+        )
+    )
 
 
 # -----------------------------------------------------------------------------

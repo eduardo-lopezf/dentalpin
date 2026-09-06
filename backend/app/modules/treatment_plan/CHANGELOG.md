@@ -1,6 +1,38 @@
 # Changelog — treatment_plan module
 
 ## Unreleased
+- feat(cobros): el plan enseña el dinero. Cada sesión completada lleva su
+  chip — **Cobrado** o **Quedan X** — y cada cabecera de fase, lo que queda
+  por cobrar de esa fase. Antes el plan era la única pantalla de toda la
+  cadena que no decía nada de dinero: se completaba un tratamiento y había
+  que irse a la ficha del paciente para saber que ya se podía cobrar.
+
+- feat(cobros): nuevo slot `treatment_plan.detail.sidebar`, donde `payments`
+  pone su tarjeta con lo pendiente del paciente y el botón «Cobrar». El plan
+  no importa nada de payments: le pasa el paciente, el presupuesto y el
+  estado, y payments hace el resto.
+
+- feat(plantillas): líneas opcionales. Una forma de plan rara vez es todo o
+  nada: un caso ortognático necesita ortodoncia pre y postquirúrgica, pero la
+  clínica puede derivarla, y la mentoplastia depende del mentón. Meterlas a la
+  fuerza obligaba a aplicar la plantilla y borrar filas; dejarlas fuera,
+  a acordarse de añadirlas en casi todos los pacientes. Ahora `is_optional`
+  marca la línea como decisión: al aplicar la plantilla sale marcada —el autor
+  la puso por algo— y se quita con un clic. Las líneas fijas no se pueden
+  quitar; intentarlo es un 400.
+
+- feat(plantillas): aplicar una plantilla dice qué se ha quedado fuera. Si la
+  clínica no tiene (o ha retirado) el tratamiento de una línea, esa línea se
+  omite en vez de tumbar toda la aplicación, pero vuelve en `skipped` y el
+  aviso la nombra. Un plan que llega en silencio con un tratamiento de menos
+  es peor que uno que lo dice. `POST .../apply-template` pasa a devolver
+  `{items, skipped}`.
+
+- fix(plantillas): el `PUT` de una plantilla respondía con las líneas
+  anteriores aunque en base de datos quedaban las nuevas — el mapa de
+  identidad de la sesión devolvía la colección previa. `get` ahora usa
+  `populate_existing`.
+
 - fix(ui): las etiquetas de sesión se partían letra a letra («Ape / rtur /
   a y»). La fila metía siete elementos en una línea dentro de la columna
   estrecha del plan y todos menos la etiqueta eran `shrink-0`, así que la

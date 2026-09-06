@@ -10,6 +10,18 @@ const toast = useToast()
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const isLoading = ref(false)
+// Until Vue hydrates, the SSR markup is a plain HTML form and `@submit.prevent`
+// is not attached yet. Enter (or a password manager that autofills and submits)
+// would then run the browser's native submission. `method="post"` in the
+// template keeps the credentials out of the URL if that ever happens; this flag
+// stops it happening at all, because a form whose default button is disabled
+// does not implicit-submit. Otherwise the user was bounced by a stray request
+// and had to retype everything.
+const hydrated = ref(false)
+onMounted(() => {
+  hydrated.value = true
+})
+
 const formState = reactive({
   email: '',
   password: ''
@@ -129,6 +141,7 @@ watch(() => formState.password, () => {
 
     <UCard>
       <form
+        method="post"
         class="space-y-4"
         @submit.prevent="onSubmit"
       >
@@ -186,7 +199,7 @@ watch(() => formState.password, () => {
           variant="soft"
           block
           :loading="isLoading"
-          :disabled="isLoading"
+          :disabled="isLoading || !hydrated"
         >
           {{ t('auth.loginButton') }}
         </UButton>

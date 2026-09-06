@@ -324,6 +324,101 @@ class PatientSummariesByIds(BaseModel):
     summaries: dict[UUID, PatientSummaryByIds]
 
 
+class ScheduleInstalmentInput(BaseModel):
+    label: str | None = Field(default=None, max_length=120)
+    # Nullable on purpose: "before surgery" is a real milestone with no date.
+    due_date: date | None = None
+    amount: Decimal = Field(gt=0)
+
+
+class PaymentScheduleCreate(BaseModel):
+    patient_id: UUID
+    budget_id: UUID | None = None
+    notes: str | None = None
+    instalments: list[ScheduleInstalmentInput] = Field(min_length=1, max_length=60)
+
+
+class PaymentScheduleUpdate(BaseModel):
+    """Renegotiate a schedule.
+
+    ``instalments`` replaces the whole line-up when present and is left alone
+    when absent — the same contract the catalog session template uses.
+    """
+
+    notes: str | None = None
+    instalments: list[ScheduleInstalmentInput] | None = Field(default=None, max_length=60)
+
+
+class ScheduleInstalmentState(BaseModel):
+    """One agreed payment and how much of it the patient has covered.
+
+    ``status`` is derived, never stored — see `schedules.py`. ``overdue``
+    is about the date, not the amount: a partially paid instalment whose date
+    has passed is still late.
+    """
+
+    instalment_id: UUID
+    sequence: int
+    label: str | None = None
+    due_date: date | None = None
+    amount: Decimal
+    collected: Decimal
+    pending: Decimal
+    status: Literal["pending", "partial", "paid", "overdue"]
+
+
+class PaymentScheduleResponse(BaseModel):
+    id: UUID
+    patient_id: UUID
+    budget_id: UUID | None = None
+    status: str
+    notes: str | None = None
+    total: Decimal
+    collected: Decimal
+    pending: Decimal
+    overdue: Decimal
+    # Paid beyond the whole agreement. An advance, not an error.
+    unapplied: Decimal
+    instalments: list[ScheduleInstalmentState] = Field(default_factory=list)
+
+
+class TreatmentCollectionState(BaseModel):
+    """How much of one treatment (or one of its sessions) is still to charge.
+
+    ``earned`` is what has been booked — a treatment that has not been
+    performed yet is simply absent from the response, which is the honest
+    answer: nothing is owed for work not done.
+    """
+
+    earned: Decimal
+    collected: Decimal
+    pending: Decimal
+
+
+class TreatmentCollectionSummary(BaseModel):
+    """Collection state of a patient's treatments, and of their sessions.
+
+    Keyed separately because the two are read at different granularities: a
+    plan shows a per-phase total from ``treatments`` and a per-row chip from
+    ``sessions``.
+    """
+
+    treatments: dict[UUID, TreatmentCollectionState] = Field(default_factory=dict)
+    sessions: dict[UUID, TreatmentCollectionState] = Field(default_factory=dict)
+
+
+class TreatmentIdsRequest(BaseModel):
+    """FIFO is per patient, so the patient is required, not inferred.
+
+    A payment covers the patient's oldest charges whatever plan they came
+    from; asking for treatments without saying whose would give an answer
+    that ignores everything else they owe.
+    """
+
+    patient_id: UUID
+    treatment_ids: list[UUID] = Field(min_length=1, max_length=200)
+
+
 class BudgetIdsRequest(BaseModel):
     budget_ids: list[UUID] = Field(min_length=1, max_length=100)
 

@@ -1,6 +1,76 @@
 # payments — CHANGELOG
 
 ## Unreleased
+- feat(calendario): **editar un calendario ya pactado**, en vez de anularlo y
+  rehacerlo. `PUT /payments/schedules/{id}` reemplaza los plazos, y el
+  diálogo arranca de lo acordado —no de un reparto nuevo—, porque la razón
+  para tocarlo suele ser «la paciente no puede con diciembre» y el resto debe
+  sobrevivir. Se puede renegociar aunque ya se haya cobrado: el reparto se
+  calcula, así que el dinero cobrado vuelve a cubrir los plazos nuevos en
+  orden, y si el total baja por debajo de lo pagado el sobrante sale como
+  pagado por adelantado.
+
+  Cada fila puede quitarse o **añadir otra debajo** —no al final—, que es lo
+  que hace falta para partir un plazo en dos sin que las fechas queden
+  desordenadas.
+
+- feat(calendario): calendarios de pago pactados. El libro de devengos
+  responde «qué se debe por trabajo hecho», que es la pregunta correcta para
+  una obturación y la equivocada para una ortognática de 19.020 MXN, donde el
+  dinero se pacta por adelantado y se cobra mucho antes de que exista casi
+  nada del trabajo. Un calendario guarda ese acuerdo: plazos con importe,
+  etiqueta y fecha opcional — «antes de la cirugía» es un hito real sin fecha.
+  Nuevas tablas `payment_schedules` y `payment_schedule_instalments`
+  (`pay_0004`) y endpoints bajo `/payments/schedules`.
+
+  El estado de cada plazo **se calcula**, no se guarda: los pagos los cubren
+  en orden, igual que cubren los devengos, así que no hay columna que pueda
+  desincronizarse del libro. Las dos vistas se saldan contra los mismos pagos
+  y no deben sumarse nunca.
+
+- feat(calendario): cada plazo lleva **etiqueta, fecha e importe editables**.
+  El reparto elige cuántos plazos y propone un reparto; los importes se
+  ajustan a mano, que es lo que permite pactos reales como «5.000 a la firma y
+  el resto en seis mensualidades». El aviso de descuadre pasa así a servir
+  para algo: antes nunca saltaba porque los repartos siempre cuadraban, y
+  ahora bloquea guardar mientras los plazos no sumen el total del plan. Un
+  importe de cero o negativo también bloquea, con su motivo.
+
+- feat(calendario): cada plazo lleva **etiqueta y fecha editables**. El
+  reparto escribe el primer borrador y a partir de ahí las líneas son de la
+  clínica: «Anticipo a la firma», «Antes de la cirugía», «Al alta
+  quirúrgica». La fecha se puede dejar en blanco —un hito sin fecha es lo
+  normal, no un error de validación— y el campo vacío se envía como `null`,
+  no como cadena vacía.
+
+- feat(calendario): tarjeta en el plan con los repartos que sólo el plan puede
+  calcular — por fases (cada fase, su precio), 30/40/30 y mensual — y aviso si
+  los plazos no cuadran con el total del plan. El reparto redondea a la baja y
+  deja el céntimo sobrante en el primer plazo, para no descubrir una deuda de
+  0,01 al final de un caso de dos años.
+
+- feat(cobros): `POST /payments/summary/by-treatments` — estado de cobro por
+  tratamiento y por sesión para un paciente, con el mismo reparto FIFO que
+  «pendiente de cobrar». Permite que un plan de tratamiento enseñe el dinero
+  sin importar nada de payments, igual que ya hacían las listas de
+  presupuestos y pacientes.
+
+- feat(cobros): tarjeta en el slot `treatment_plan.detail.sidebar` — lo
+  pendiente de cobrar del paciente y el botón «Cobrar», que abre el modal ya
+  con el importe sugerido y el presupuesto del plan.
+
+- fix(devengo): **cada tratamiento completado desde un plan se registraba dos
+  veces, al doble de dinero.** Al terminar la última sesión se publica
+  `treatment_plan.item_session_completed`, y acto seguido la partida se
+  finaliza, ejecuta el `Treatment` y publica
+  `odontogram.treatment.performed`; los dos manejadores apuntaban el mismo
+  tratamiento y la restricción única no lo impedía, porque `NULL` y un
+  `session_id` son claves distintas. Una endodoncia de 380,00 aparecía como
+  760,00 en «pendiente de cobrar». Ahora manda el desglose por sesiones: la
+  fila de tratamiento completo solo existe para trabajo que nunca pasó por
+  sesiones, y si llega después de las sesiones se descarta (y si llegó antes,
+  se sustituye). Cubierto por `tests/modules/payments/test_earned_no_double_booking.py`.
+
 
 - fix(security): `GET /payments/patients/{patient_id}/ledger` and
   `.../pending-charges` accepted a `patient_id` from any clinic.

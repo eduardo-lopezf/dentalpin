@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- fix(budget): `BudgetVerifyForm` declares `method="post"`. It is public,
+  server-rendered markup, so a submit that lands before hydration runs the
+  browser's own navigation — and a form with no `method` is a GET carrying its
+  fields in the URL. The knowledge factor never actually reached it (the input
+  has no `name` to serialize, and the button is disabled until `value` is
+  valid, which only a hydrated v-model can make happen), but neither of those
+  is why the form is safe, and both are one refactor away from changing. Same
+  fix as `login.vue` / `setup.vue`; pinned by
+  `frontend/tests/pages/publicSsrForms.test.ts`.
+
 - fix(budget): "Válido desde / hasta" no longer shows the previous day.
   `valid_from` / `valid_until` are DATE columns; `new Date('2026-09-02')`
   parses as UTC midnight, so any negative-offset reader saw 1/9/2026 for

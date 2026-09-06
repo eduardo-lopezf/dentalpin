@@ -10,7 +10,8 @@
  */
 
 import type { DropdownMenuItem } from '@nuxt/ui'
-import type { TreatmentPlanDetail } from '~~/app/types'
+import type { TreatmentPhase, TreatmentPlanDetail } from '~~/app/types'
+import { phaseLabelKey, phaseRank } from '~~/app/config/treatmentPhases'
 
 import ConfirmPlanModal from './modals/ConfirmPlanModal.vue'
 import ReopenPlanModal from './modals/ReopenPlanModal.vue'
@@ -431,6 +432,60 @@ const { applyTemplate, createFromPlan, loading: templatesLoading } = usePlanTemp
 const { proposals, loading: proposalsLoading, fetchProposals, acceptProposals }
   = usePlanProposals()
 
+// ============================================================================
+// Money
+//
+// The plan owns none of it. `payments` answers
+// `POST /payments/summary/by-treatments`, and one call here feeds both the
+// per-session chips and the per-phase totals — see `usePlanCollections`.
+// ============================================================================
+
+const {
+  sessions: sessionCollections,
+  available: collectionsAvailable,
+  fetchFor: fetchCollections,
+  phaseTotals
+} = usePlanCollections()
+
+const phaseMoney = computed(() => phaseTotals(props.plan.items))
+
+/**
+ * What the plan is worth, and how that splits by stage of care. Handed to the
+ * schedule card in the slot ctx: only the plan knows its phases, and a
+ * payment schedule that does not add up to the treatment is how a clinic
+ * discovers two years in that it agreed to collect less than it is doing.
+ */
+const planTotal = computed(() =>
+  props.plan.items.reduce((sum, item) => {
+    const price = Number(item.treatment?.price_snapshot ?? 0)
+    return sum + (Number.isFinite(price) ? price : 0)
+  }, 0)
+)
+
+const phaseTotalsForSlot = computed(() =>
+  [...phaseMoney.value.entries()]
+    .sort(([a], [b]) => phaseRank(a || null) - phaseRank(b || null))
+    .map(([phase, totals]) => ({
+      phase: phase || null,
+      label: phase
+        ? t(phaseLabelKey(phase as TreatmentPhase))
+        : t('clinical.plans.phases.unassigned'),
+      amount: totals.planned
+    }))
+)
+
+async function refreshCollections() {
+  await fetchCollections(props.plan.patient_id, props.plan.items)
+}
+
+// Money follows the plan: completing a session earns it, so the numbers are
+// refetched whenever the item list changes rather than only on mount.
+watch(
+  () => props.plan.items.map(i => `${i.id}:${i.status}:${(i.sessions ?? []).map(s => s.status).join('')}`).join('|'),
+  refreshCollections,
+  { immediate: true }
+)
+
 const showProposals = ref(false)
 const acceptedFindings = ref<string[]>([])
 
@@ -471,6 +526,7 @@ const showApplyTemplate = ref(false)
 const showSaveTemplate = ref(false)
 const applyTemplateId = ref<string | null>(null)
 const applyTemplateTeeth = ref<number[]>([])
+const applyTemplateExcluded = ref<string[]>([])
 const applyPicker = ref<{ blockingReason: string | null } | null>(null)
 const saveTemplateName = ref('')
 
@@ -480,14 +536,20 @@ const canSaveAsTemplate = computed(() => props.plan.items.length > 0)
 function openApplyTemplate() {
   applyTemplateId.value = null
   applyTemplateTeeth.value = []
+  applyTemplateExcluded.value = []
   showApplyTemplate.value = true
 }
 
 async function confirmApplyTemplate() {
   if (!applyTemplateId.value || applyPicker.value?.blockingReason) return
-  const items = await applyTemplate(props.plan.id, applyTemplateId.value, applyTemplateTeeth.value)
+  const result = await applyTemplate(
+    props.plan.id,
+    applyTemplateId.value,
+    applyTemplateTeeth.value,
+    applyTemplateExcluded.value
+  )
   showApplyTemplate.value = false
-  if (items) emit('updated')
+  if (result) emit('updated')
 }
 
 function openSaveTemplate() {
@@ -725,6 +787,24 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
 
       <!-- Right column: Treatment list + clinical notes, stacked and auto-height. -->
       <div class="min-[960px]:col-span-2 flex flex-col gap-4 self-start">
+        <!-- Money surface owned by `payments`. The plan hands over what it
+             knows (which patient, which plan, which budget) and renders
+             nothing of its own here. -->
+        <ModuleSlot
+          name="treatment_plan.detail.sidebar"
+          :ctx="{
+            planId: plan.id,
+            patientId,
+            patientName: plan.patient
+              ? `${plan.patient.first_name} ${plan.patient.last_name}`.trim()
+              : null,
+            budgetId: plan.budget_id ?? null,
+            planStatus: plan.status,
+            planTotal,
+            phaseTotals: phaseTotalsForSlot
+          }"
+        />
+
         <UCard
           class="plan-list-card"
           :class="{ 'plan-list-pulse': listPulse }"
@@ -755,6 +835,8 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
             :allow-complete="isLocked && !readonly"
             :plan-status="plan.status"
             :plan-professional-id="plan.assigned_professional_id ?? null"
+            :collections="collectionsAvailable ? sessionCollections : undefined"
+            :phase-money="phaseMoney"
             @item-hover="hoveredItemId = $event"
             @item-complete="handleCompleteItem"
             @item-remove="handleRemoveItem"
@@ -907,7 +989,10 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
           <PlanTemplatePicker
             ref="applyPicker"
             v-model="applyTemplateId"
-            @change="(p) => { applyTemplateTeeth = p.toothNumbers }"
+            @change="(p) => {
+              applyTemplateTeeth = p.toothNumbers
+              applyTemplateExcluded = p.excludedItemIds
+            }"
           />
 
           <template #footer>

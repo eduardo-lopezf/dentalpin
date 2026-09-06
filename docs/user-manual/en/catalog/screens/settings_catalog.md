@@ -36,7 +36,7 @@ related_permissions:
   - catalog.admin
 related_paths:
   - backend/app/modules/catalog/frontend/pages/settings/catalog/index.vue
-last_verified_commit: 3568519
+last_verified_commit: a50d482
 ---
 
 # /settings/catalog
@@ -113,9 +113,20 @@ treatments beyond it existed with no way to get to them.
 ## Editing treatments
 
 Treatments shipped with the system are **editable**: price, name, duration, VAT,
-category, specialties and phase. They can also be **deactivated** when your
-clinic does not offer them, rather than deleted — which keeps the budget and
-invoice history that references them intact.
+category, specialties and phase. They can also be **deleted**, not merely
+deactivated: a clinic does not offer everything the starter catalog ships.
+
+The deletion is a soft one. The record is not destroyed — treatments already
+performed, budget lines and plan templates reference it — it simply disappears
+from every picker: the catalog search, the odontogram bar, budgets.
+
+**And it can be undone.** If you remove one by mistake, find it with the
+deleted filter (`include_deleted`) and mark it active again. Re-seeding the
+catalog does not resurrect it either: seeding sees the record is still there
+and leaves it alone.
+
+*Deactivating* remains the middle option: the treatment stops being offered
+but stays visible in the catalog.
 
 Creating, editing and deleting treatments requires the `catalog.write`
 permission; managing categories, VAT types and specialties requires

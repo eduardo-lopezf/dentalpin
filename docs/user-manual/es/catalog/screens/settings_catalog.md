@@ -36,7 +36,7 @@ related_permissions:
   - catalog.admin
 related_paths:
   - backend/app/modules/catalog/frontend/pages/settings/catalog/index.vue
-last_verified_commit: 3568519
+last_verified_commit: a50d482
 ---
 
 # /settings/catalog
@@ -114,9 +114,22 @@ llegar a ellos.
 ## Editar tratamientos
 
 Los tratamientos que vienen con el sistema son **editables**: precio, nombre,
-duración, IVA, categoría, especialidades y fase. También se pueden **desactivar**
-si tu clínica no los ofrece, en vez de borrarlos — así el histórico de
-presupuestos y facturas que los referencian sigue intacto.
+duración, IVA, categoría, especialidades y fase. Y también se pueden
+**borrar**, no solo desactivar: una clínica no ofrece todo lo que trae el
+catálogo de partida.
+
+La baja es lógica: la ficha no se destruye, porque los tratamientos ya
+ejecutados, las líneas de presupuesto y las plantillas de plan la referencian.
+Lo que hace es desaparecer de todos los selectores — buscador del catálogo,
+barra del odontograma, presupuestos.
+
+**Y se puede deshacer.** Si borras uno por error, búscalo con el filtro de
+borrados (`include_deleted`) y vuelve a marcarlo como activo. Volver a sembrar
+el catálogo tampoco lo resucita: la siembra reconoce que la ficha sigue ahí y
+no la toca.
+
+*Desactivar* sigue siendo la opción intermedia: el tratamiento deja de
+ofrecerse pero se mantiene a la vista en el catálogo.
 
 Crear, editar y borrar tratamientos requiere el permiso `catalog.write`, y
 gestionar categorías, tipos de IVA y especialidades requiere `catalog.admin`.

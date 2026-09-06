@@ -15,6 +15,12 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const step = ref<1 | 2>(1)
 const isLoading = ref(false)
 const errorMessage = ref('')
+// Step 1 is what the browser paints from the SSR markup, before Vue attaches
+// `@submit.prevent`. A native submit in that window would carry the new
+// admin's password, so the step's button stays disabled until we are live: a
+// form whose default button is disabled does not implicit-submit. Step 2 is
+// only reachable after step 1, so it is past this window by construction.
+const hydrated = ref(false)
 
 const form = reactive({
   firstName: '',
@@ -40,6 +46,9 @@ const tierOptions = computed(() =>
 )
 
 onMounted(async () => {
+  // Before the probe, not after: a slow or failing `/setup/status` must not
+  // leave the wizard's only button disabled.
+  hydrated.value = true
   try {
     const status = await api.get<ApiResponse<SetupStatus>>(
       '/api/v1/auth/setup/status',
@@ -175,6 +184,7 @@ async function onSubmit() {
       <!-- Step 1: admin account -->
       <form
         v-if="step === 1"
+        method="post"
         class="space-y-4"
         @submit.prevent="goNext"
       >
@@ -256,6 +266,7 @@ async function onSubmit() {
           color="primary"
           variant="soft"
           block
+          :disabled="!hydrated"
         >
           {{ t('setup.next') }}
         </UButton>
@@ -264,6 +275,7 @@ async function onSubmit() {
       <!-- Step 2: clinic details -->
       <form
         v-else
+        method="post"
         class="space-y-4"
         @submit.prevent="onSubmit"
       >

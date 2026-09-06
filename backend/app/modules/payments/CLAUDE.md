@@ -23,6 +23,12 @@ Routes mounted at `/api/v1/payments/`.
 | `/patients/{patient_id}/ledger` | GET | `payments.record.read` |
 | `/patients/{patient_id}/pending-charges` | GET | `payments.record.read` |
 | `/budgets/{budget_id}/allocations` | GET | `payments.record.read` |
+| `/summary/by-treatments` | POST | `payments.record.read` |
+| `/schedules` | GET | `payments.record.read` |
+| `/schedules` | POST | `payments.record.write` |
+| `/schedules/{id}` | GET | `payments.record.read` |
+| `/schedules/{id}` | PUT | `payments.record.write` |
+| `/schedules/{id}` | DELETE | `payments.record.write` |
 | `/reports/summary` | GET | `payments.reports.read` |
 | `/reports/trends` | GET | `payments.reports.read` |
 | `/reports/by-method` | GET | `payments.reports.read` |
@@ -87,6 +93,8 @@ gotchas below.
 | Slot | Component | Permission |
 |---|---|---|
 | `budget.detail.sidebar` | `BudgetPaymentsCard` (cobrado / pendiente / allocations + "Cobrar" CTA) | `payments.record.read` |
+| `treatment_plan.detail.sidebar` | `PlanCollectionsCard` (pendiente de cobrar del paciente + "Cobrar") | `payments.record.read` |
+| `treatment_plan.detail.sidebar` | `PaymentScheduleCard` (calendario pactado + plazos) | `payments.record.read` |
 | `reports.categories` | `PaymentsReportEntry` (card on `/reports` linking to `/reports/payments`) | `payments.reports.read` |
 | `patient.detail.administracion.payments` | `PatientPaymentsPanel` (patient ledger inside the Administración tab — KPIs + timeline + refund row menu + "Pendiente de cobrar" card) | `payments.record.read` |
 
@@ -103,6 +111,41 @@ the public endpoints.
 
 ## Gotchas
 
+- **Devengado y calendario son dos vistas del mismo dinero, y nunca se
+  suman.** El devengado responde «qué se debe por trabajo hecho»; el
+  calendario, «qué se pactó cobrar y cuándo». Un caso de 19.020 MXN cobra casi
+  todo antes de que exista casi nada del trabajo: la primera vista marca 0
+  mientras la clínica va perfectamente al día. Los dos se saldan contra los
+  mismos pagos, así que sumarlos duplica la factura del paciente.
+- **Un calendario se puede renegociar aunque ya se haya cobrado.** Es la razón
+  normal para tocarlo: «la paciente no puede con diciembre, párteselo». No
+  corrompe nada porque el reparto se calcula, nunca se guarda — los plazos
+  nuevos se vuelven a cubrir en orden con los mismos pagos. Si el total nuevo
+  queda por debajo de lo ya cobrado, el sobrante sale como `unapplied` en vez
+  de desaparecer. `instalments` es reemplazo completo cuando viene y no se
+  toca cuando falta, igual que la plantilla de sesiones del catálogo.
+- **El estado de un plazo se calcula, no se guarda.** Los pagos cubren los
+  plazos en orden, igual que cubren los devengos. No hay columna `paid` que
+  pueda desincronizarse del libro, y registrar un cobro actualiza las dos
+  vistas sin tocar ninguna. `overdue` es cuestión de fecha, no de importe: un
+  plazo medio pagado cuya fecha ya pasó sigue vencido.
+- **Las rutas `/schedules` van declaradas antes que `/{payment_id}`.** FastAPI
+  resuelve en orden de registro y «schedules» se parsearía como un id de pago.
+- **`summary/by-treatments` es la vista de dinero de un plan.** Proyecta el
+  mismo recorrido FIFO de `compute_pending_charges` sobre los tratamientos
+  que pide el llamante, y devuelve estado por tratamiento **y** por sesión.
+  El recorrido usa *todos* los devengos del paciente, no solo los pedidos: un
+  pago hecho por otro plan ya consumió parte de lo que entregó, e ignorarlo
+  daría por pendiente dinero que no lo está. Por eso `patient_id` es
+  obligatorio y no se deduce de los tratamientos.
+- **Los dos caminos de devengo nunca apuntan al mismo tratamiento.**
+  `odontogram.treatment.performed` (fila `source_session_id=NULL`) y
+  `treatment_plan.item_session_completed` (una fila por sesión) no chocan en
+  la restricción única, así que nada impedía que ambos anotasen el mismo
+  tratamiento — y completar una partida de plan dispara los dos. Regla, en
+  `_upsert_earned_entry`: **manda el desglose por sesiones**; la fila de
+  tratamiento completo es solo para trabajo que nunca pasó por sesiones, se
+  omite si ya hay filas de sesión y se borra si las sesiones llegan después.
 - **No `is_voided` flag.** Total reverso is `Refund(amount=Payment.amount)`.
   Don't reintroduce the legacy flag — the report stack relies on
   Refund rows being the only adjustment vector.

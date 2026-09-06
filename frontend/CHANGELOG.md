@@ -1,6 +1,20 @@
 # Changelog — frontend
 
 ## Unreleased
+- fix(auth): los formularios públicos con SSR — login y el asistente de
+  instalación — declaran `method="post"`, y su botón de envío queda
+  deshabilitado hasta que la página hidrata. Se renderizan en el servidor, así
+  que entre que se pinta el HTML y carga el bundle de Vue el `@submit.prevent`
+  todavía no está puesto: un Enter en ese hueco disparaba el envío nativo del
+  navegador, y un `<form>` sin `method` es un GET a la URL actual. Los campos
+  se llaman `email` y `password`, de modo que la contraseña acababa en la barra
+  de direcciones, en el historial y en el log de accesos — y el usuario, de
+  vuelta en el formulario vacío.
+
+  En `setup.vue` sólo el paso 1 necesita la guarda: al paso 2 no se llega sin
+  haber hidratado. `tests/pages/publicSsrForms.test.ts` fija la regla para los
+  tres formularios públicos del repo.
+
 - feat(config): `treatmentPhases.ts` — el orden clínico de las fases, en un
   solo sitio. Lo tenía el filtro del catálogo como constante local y ahora
   lo necesita también la lista del plan; dos órdenes distintos habrían

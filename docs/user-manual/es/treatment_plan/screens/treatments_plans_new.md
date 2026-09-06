@@ -40,6 +40,11 @@ generar presupuesto.
   reconstrucción + corona* e indicar la pieza deja el plan con sus
   cuatro tratamientos ya puestos y en su fase. **En blanco** crea el
   plan vacío para construirlo desde el odontograma.
+- **Líneas opcionales.** Bajo las tarjetas se listan los tratamientos
+  que trae la plantilla. Los marcados como *Opcional* llevan casilla y
+  vienen marcados: desmarca los que tu clínica no ofrezca o este
+  paciente no necesite. Los fijos no se pueden quitar desde aquí; si
+  sobra alguno, bórralo del plan después.
 - **Dientes.** Solo se piden cuando la plantilla los necesita. Cada
   tratamiento por diente se añade una vez por cada pieza que indiques,
   así que *Extracción de cordales* con `18, 28, 38, 48` deja las cuatro
@@ -57,19 +62,24 @@ generar presupuesto.
 2. Elige la plantilla, o **En blanco** si prefieres construir el plan
    desde el odontograma. Bajo las tarjetas se listan los tratamientos
    que trae, marcando cuáles esperan pieza.
-3. Si la plantilla los pide, escribe los dientes en notación FDI
+3. Repasa la lista de tratamientos y desmarca los opcionales que no
+   apliquen. Si desmarcas el único que pedía diente, deja de pedirlo.
+4. Si la plantilla los pide, escribe los dientes en notación FDI
    separados por comas o espacios (`16, 26, 36, 46`). Hasta que no
    haya al menos uno, el botón **Crear** dice qué tratamientos están
    esperando.
-4. El profesional viene preseleccionado si tu usuario es un
+5. El profesional viene preseleccionado si tu usuario es un
    profesional de la clínica. El título lo pone la plantilla; puedes
    cambiarlo, junto con las notas, en **Más opciones**.
-5. **Crear**. Se publica `treatment_plan.created`, se aplica la
+6. **Crear**. Se publica `treatment_plan.created`, se aplica la
    plantilla y entras al detalle con el plan ya montado.
 
 > Si la plantilla se queda a medias, el plan se crea igualmente y
 > vacío: es un punto de partida válido y puedes aplicarla de nuevo
 > desde el detalle.
+>
+> Si algún tratamiento de la plantilla ya no está en tu catálogo, esa
+> línea se omite y el aviso te dice cuál. El resto del plan se crea.
 
 ## Permisos
 

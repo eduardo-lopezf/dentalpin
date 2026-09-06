@@ -298,6 +298,13 @@ class PlanTemplateItem(Base, TimestampMixin):
 
     # See app.modules.catalog.models.TREATMENT_PHASES. NULL → catalog default.
     phase: Mapped[str | None] = mapped_column(String(20), default=None)
+
+    # A line the clinic may not offer, or the patient may not need — the
+    # orthodontics of an orthognathic case, a genioplasty. Offered ticked when
+    # the template is applied, because the author put it there for a reason;
+    # one click removes it.
+    is_optional: Mapped[bool] = mapped_column(Boolean, default=False)
+
     notes: Mapped[str | None] = mapped_column(Text)
 
     template: Mapped["PlanTemplate"] = relationship(back_populates="items")

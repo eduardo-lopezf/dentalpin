@@ -9,9 +9,18 @@ Earned entries are keyed on ``(treatment_id, source_session_id)``:
   session — multi-session treatments thus produce N rows whose
   amounts add up to the treatment price.
 
-The composite unique constraint makes every path idempotent: replaying
-the same event is a no-op; for the same treatment, single-session and
-multi-session paths cannot collide because their session_id differs.
+The composite unique constraint makes each path idempotent: replaying
+the same event is a no-op.
+
+**The two paths must never both book the same treatment.** They do not
+collide on the constraint — NULL and a session id are different keys — so
+nothing stopped them landing together, and completing a plan item does
+exactly that: the last session fires ``item_session_completed``, then the
+item finalizes, performs the Treatment and fires
+``odontogram.treatment.performed``. Every treatment completed through a plan
+was booked twice, at double the money. ``_upsert_earned_entry`` now enforces
+the rule the constraint cannot: **the per-session breakdown wins**, and a
+whole-treatment row is only for work that never went through sessions.
 """
 
 from __future__ import annotations
@@ -22,6 +31,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.database import async_session_maker
@@ -104,6 +114,17 @@ async def _upsert_earned_entry(
 
     async with async_session_maker() as db:
         try:
+            if source_session_id is None and await _has_session_rows(db, clinic_id, treatment_id):
+                # The sessions already booked this treatment, line by line.
+                # Booking the whole price on top would double the patient's
+                # bill — this is the guard the unique constraint cannot give.
+                logger.info(
+                    "%s: treatment %s already booked per session, skipping whole-treatment row",
+                    source_event,
+                    treatment_id,
+                )
+                return
+
             stmt = (
                 pg_insert(PatientEarnedEntry)
                 .values(
@@ -121,10 +142,36 @@ async def _upsert_earned_entry(
                 .on_conflict_do_nothing(constraint="uq_earned_treatment_session")
             )
             await db.execute(stmt)
+
+            if source_session_id is not None:
+                # Same rule, other arrival order: a whole-treatment row booked
+                # before the sessions came in is now superseded by them.
+                await db.execute(
+                    delete(PatientEarnedEntry).where(
+                        PatientEarnedEntry.clinic_id == clinic_id,
+                        PatientEarnedEntry.treatment_id == treatment_id,
+                        PatientEarnedEntry.source_session_id.is_(None),
+                    )
+                )
+
             await db.commit()
         except Exception as exc:  # pragma: no cover - defensive
             logger.error("Failed to upsert PatientEarnedEntry: %s", exc, exc_info=True)
             await db.rollback()
+
+
+async def _has_session_rows(db: Any, clinic_id: UUID, treatment_id: UUID) -> bool:
+    """Whether this treatment already has a per-session earned breakdown."""
+    result = await db.execute(
+        select(PatientEarnedEntry.id)
+        .where(
+            PatientEarnedEntry.clinic_id == clinic_id,
+            PatientEarnedEntry.treatment_id == treatment_id,
+            PatientEarnedEntry.source_session_id.is_not(None),
+        )
+        .limit(1)
+    )
+    return result.scalar_one_or_none() is not None
 
 
 async def on_treatment_performed(data: dict[str, Any]) -> None:

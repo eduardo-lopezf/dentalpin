@@ -831,7 +831,10 @@
         "saved": "Template saved.",
         "saveFailed": "Could not save the template.",
         "empty": "No templates yet.",
-        "itemsCount": "{count} treatment(s)"
+        "itemsCount": "{count} treatment(s)",
+        "optional": "Optional",
+        "optionalHint": "Optional lines come ticked. Untick the ones your clinic does not offer or this patient does not need.",
+        "skipped": "Skipped, not in your catalog: {treatments}."
       },
       "moreOptions": "More options",
       "blocked": {
@@ -845,6 +848,12 @@
         "accept": "Add {count} to the plan",
         "accepted": "{count} treatment(s) added to the plan.",
         "acceptFailed": "Could not add the treatments."
+      },
+      "collection": {
+        "collected": "Collected",
+        "pending": "To collect",
+        "partial": "{amount} left",
+        "phasePending": "{amount} to collect"
       }
     },
     "tooth": "Tooth"
@@ -3110,5 +3119,62 @@
     "confirmErasureBody": "Anonymization is irreversible and cannot be undone. Identifying data is removed; the clinical record and fiscal documents are retained because the law requires it.",
     "confirmErasureRetention": "When it finishes you will see which sections were anonymized and which were retained, with their reason.",
     "confirmErasureAction": "Yes, erase"
+  },
+  "payments": {
+    "plan": {
+      "title": "Patient collections",
+      "nothingPending": "Nothing pending to collect.",
+      "pendingLabel": "Pending to collect",
+      "pendingHint": "{count} item(s) performed and unpaid",
+      "charge": "Charge"
+    },
+    "schedule": {
+      "title": "Payment schedule",
+      "empty": "No schedule agreed. Charging follows the work performed.",
+      "setUp": "Agree a schedule",
+      "setUpTitle": "Agree a payment schedule",
+      "setUpHint": "Split the plan total ({total}) into the agreed instalments.",
+      "preset": "Split",
+      "agreed": "Agreed",
+      "collectedOf": "{collected} of {total}",
+      "overdue": "{amount} overdue",
+      "unapplied": "{amount} paid ahead of the schedule.",
+      "mismatch": "The instalments add up to {sum} and the plan is {total}. They must match.",
+      "cancel": "Cancel schedule",
+      "created": "Schedule agreed.",
+      "createFailed": "Could not save the schedule.",
+      "cancelled": "Schedule cancelled.",
+      "cancelFailed": "Could not cancel the schedule.",
+      "status": {
+        "pending": "Pending",
+        "partial": "Partial",
+        "paid": "Paid",
+        "overdue": "Overdue"
+      },
+      "presets": {
+        "byPhase": "By phase",
+        "monthly": "Monthly",
+        "howMany": "Number of instalments",
+        "onSigning": "On signing",
+        "beforeTreatment": "Before treatment",
+        "onCompletion": "On completion",
+        "month": "Instalment {n}"
+      },
+      "labelPlaceholder": "What this instalment is for",
+      "dueDate": "Due date",
+      "dateOptional": "The date is optional: a milestone with no date (e.g. “before surgery”) is never overdue.",
+      "amount": "Amount",
+      "draftTotal": "Adds up to {sum}",
+      "blocked": {
+        "empty": "A schedule needs at least one instalment.",
+        "amount": "Every instalment needs an amount greater than zero."
+      },
+      "edit": "Edit schedule",
+      "editTitle": "Edit payment schedule",
+      "addInstalment": "Add an instalment below",
+      "removeInstalment": "Remove instalment",
+      "updated": "Schedule updated.",
+      "updateFailed": "Could not update the schedule."
+    }
   }
 }

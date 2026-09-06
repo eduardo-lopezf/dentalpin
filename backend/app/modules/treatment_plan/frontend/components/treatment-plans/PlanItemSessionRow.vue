@@ -7,10 +7,18 @@
  * completing the last pending session finalizes the parent item.
  */
 import type { PlanItemSession } from '~~/app/types'
+import type { CollectionState, CollectionStatus } from '../../composables/usePlanCollections'
 
-defineProps<{
+const props = defineProps<{
   session: PlanItemSession
   canComplete?: boolean
+  /**
+   * Collection state of this session, from `payments`. Absent means the money
+   * view is unavailable (module not installed, or no `payments.record.read`)
+   * — the row simply shows no chip.
+   */
+  collection?: CollectionState
+  collectionStatus?: CollectionStatus
 }>()
 
 const emit = defineEmits<{
@@ -25,6 +33,29 @@ function amountValue(amount: number | string): number {
   const n = typeof amount === 'string' ? Number(amount) : amount
   return Number.isFinite(n) ? n : 0
 }
+
+/**
+ * The chip only appears once the session has been completed and therefore
+ * earned. A pending session is not "uncollected" — there is nothing to
+ * collect yet, and saying so would read as a debt the patient does not have.
+ */
+const showCollection = computed(() =>
+  props.collectionStatus !== undefined && props.collectionStatus !== 'not_earned'
+)
+
+const collectionColor = computed(() =>
+  props.collectionStatus === 'collected' ? 'success' : 'warning'
+)
+
+const collectionLabel = computed(() => {
+  if (props.collectionStatus === 'collected') return t('clinical.plans.collection.collected')
+  if (props.collectionStatus === 'partial') {
+    return t('clinical.plans.collection.partial', {
+      amount: formatCurrency(amountValue(props.collection?.pending ?? 0))
+    })
+  }
+  return t('clinical.plans.collection.pending')
+})
 </script>
 
 <template>
@@ -71,6 +102,14 @@ function amountValue(amount: number | string): number {
          to "how much, when, done?" and splitting them across lines reads as
          three unrelated fragments. -->
     <div class="flex items-center gap-2 shrink-0 ml-auto">
+      <UBadge
+        v-if="showCollection"
+        :color="collectionColor"
+        variant="subtle"
+        size="xs"
+      >
+        {{ collectionLabel }}
+      </UBadge>
       <span class="font-medium text-sm tnum">
         {{ formatCurrency(amountValue(session.amount)) }}
       </span>

@@ -21,6 +21,30 @@ export default defineNuxtPlugin(() => {
     order: 10
   })
 
+  // Money view of a treatment plan. The plan exposes the slot name and
+  // hands over `{ planId, patientId, budgetId, planStatus }`; it renders
+  // nothing of its own here and never imports payments code.
+  registerSlot('treatment_plan.detail.sidebar', {
+    id: 'payments.treatment_plan.detail.sidebar.collections',
+    component: defineAsyncComponent(
+      () => import('../components/PlanCollectionsCard.vue')
+    ),
+    permission: 'payments.record.read',
+    order: 10
+  })
+
+  // Agreed payment schedule of the plan. Sits beside the collections card
+  // and answers the other money question: not "what can we charge for work
+  // done" but "what did we agree to charge, and when".
+  registerSlot('treatment_plan.detail.sidebar', {
+    id: 'payments.treatment_plan.detail.sidebar.schedule',
+    component: defineAsyncComponent(
+      () => import('../components/PaymentScheduleCard.vue')
+    ),
+    permission: 'payments.record.read',
+    order: 20
+  })
+
   // Payments report card on /reports. Lets the reports module stay
   // unaware of payments while users still discover the dashboard from
   // the central reports landing.

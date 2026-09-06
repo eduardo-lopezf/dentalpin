@@ -104,7 +104,14 @@ function submit() {
       </h2>
     </template>
 
-    <form class="space-y-4" @submit.prevent="submit">
+    <!-- `method="post"`: this is public, server-rendered markup, so a submit
+         that lands before hydration runs the browser's own navigation, and a
+         form with no method is a GET carrying its fields in the URL. The
+         knowledge factor never actually reached it — the input has no `name`
+         to serialize, and the button is disabled until `value` is valid, which
+         only a hydrated v-model can make happen — but neither of those is why
+         this form is safe, and both are one refactor away from changing. -->
+    <form method="post" class="space-y-4" @submit.prevent="submit">
       <p class="text-sm text-[var(--ui-text-muted)]">
         {{ t('budget.public.verify.intro') }}
       </p>

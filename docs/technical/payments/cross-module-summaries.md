@@ -13,6 +13,38 @@ The `/patients` and `/budgets` list pages want to show debt and payment-progress
 
 ## Endpoint contracts
 
+### 0. `POST /api/v1/payments/summary/by-treatments`
+
+Per-treatment and per-session collection state for one patient. Powers the money view of a treatment plan — per-session chips and per-phase totals — without `treatment_plan` importing payments.
+
+**Permission**: `payments.record.read`.
+
+**Request body**:
+
+```json
+{ "patient_id": "uuid", "treatment_ids": ["uuid", "..."] }
+```
+
+Constraints:
+- 1 ≤ `len(treatment_ids)` ≤ 200. A plan is a few dozen lines at most.
+- `patient_id` is required and **not** inferred from the treatments. The FIFO settle is per patient: a payment covers their oldest charges whatever plan those came from, so the walk runs over every earned entry the patient has and only then projects onto the ids asked for. Answering per-treatment without the patient would report money as pending that is already covered.
+- A patient outside the caller's clinic is a 404.
+
+**Response** (`ApiResponse[TreatmentCollectionSummary]`):
+
+```ts
+{
+  data: {
+    treatments: { [treatment_id: string]: { earned, collected, pending } },  // Decimals as strings
+    sessions:   { [session_id: string]:   { earned, collected, pending } }
+  }
+}
+```
+
+A treatment that has not been performed is **absent** rather than zero — nothing is owed for work nobody has started, and the caller renders no chip for it.
+
+Off-books safe: pure earned-minus-collected. Never touches invoiced totals (ADR 0010).
+
 ### 1. `POST /api/v1/payments/summary/by-budgets`
 
 Bulk per-budget payment summary. Returns `collected`, `pending`, `payment_status` for each requested budget id.
