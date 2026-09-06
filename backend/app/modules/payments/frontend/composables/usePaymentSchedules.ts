@@ -111,7 +111,7 @@ export function usePaymentSchedules() {
 
   async function cancelSchedule(scheduleId: string): Promise<boolean> {
     try {
-      await api.delete(`/api/v1/payments/schedules/${scheduleId}`)
+      await api.del(`/api/v1/payments/schedules/${scheduleId}`)
       toast.add({ title: t('payments.schedule.cancelled'), color: 'success' })
       return true
     } catch {

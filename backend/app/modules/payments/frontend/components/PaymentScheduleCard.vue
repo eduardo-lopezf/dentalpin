@@ -176,6 +176,15 @@ function setDueDate(index: number, value: string) {
   if (row) row.due_date = value === '' ? null : value
 }
 
+// `label` is optional and nullable on the way to the API, which an input
+// cannot bind to directly. Same shape as `setDueDate` above, except an
+// empty label stays an empty string: the backend distinguishes "no label"
+// from "" only for `due_date`.
+function setLabel(index: number, value: string) {
+  const row = draft.value[index]
+  if (row) row.label = value
+}
+
 async function save() {
   if (blockingReason.value !== null) return
   const saved = editingId.value
@@ -393,10 +402,11 @@ function statusColor(status: string) {
               >
                 <span class="instalment-index tnum">{{ index + 1 }}.</span>
                 <UInput
-                  v-model="instalment.label"
+                  :model-value="instalment.label ?? ''"
                   class="instalment-label-input"
                   size="xs"
                   :placeholder="t('payments.schedule.labelPlaceholder')"
+                  @update:model-value="(v) => setLabel(index, String(v))"
                 />
                 <UInput
                   :model-value="instalment.due_date ?? ''"

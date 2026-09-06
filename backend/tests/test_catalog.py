@@ -1186,7 +1186,9 @@ async def _seeded_item(db_session, setup: dict) -> TreatmentCatalogItem:
 
 
 @pytest.mark.asyncio
-async def test_admin_can_remove_a_seeded_treatment(client, auth_headers, catalog_clinic_setup, db_session):
+async def test_admin_can_remove_a_seeded_treatment(
+    client, auth_headers, catalog_clinic_setup, db_session
+):
     """A clinic does not offer everything the starter catalog ships.
 
     Refusing to remove seeded treatments left ~130 of them cluttering every
@@ -1235,7 +1237,9 @@ async def test_a_removed_treatment_can_be_found_and_restored(
 
 
 @pytest.mark.asyncio
-async def test_removing_a_treatment_keeps_its_history(client, auth_headers, catalog_clinic_setup, db_session):
+async def test_removing_a_treatment_keeps_its_history(
+    client, auth_headers, catalog_clinic_setup, db_session
+):
     """The row survives: performed treatments and budget lines point at it."""
     item = await _seeded_item(db_session, catalog_clinic_setup)
     await client.delete(f"/api/v1/catalog/items/{item.id}", headers=auth_headers)
