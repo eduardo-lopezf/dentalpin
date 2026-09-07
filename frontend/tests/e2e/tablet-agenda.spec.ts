@@ -153,6 +153,29 @@ test.describe('agenda by touch', () => {
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
   })
 
+  test('the kanban lays out for the orientation it is held in', async ({ loggedIn: page }) => {
+    await openAgenda(page, `/appointments?date=${await dayWithAppointment(page)}`)
+    await page.getByRole('tab', { name: 'Kanban', exact: true }).click()
+    await page.waitForSelector('[data-kanban-column]', { timeout: 30_000 })
+    await page.waitForTimeout(1500)
+
+    const portrait = page.viewportSize()!.height > page.viewportSize()!.width
+    const board = page.locator('[data-kanban-column]').first().locator('..')
+
+    // Five columns need 1320 px. Landscape has it and scrolls sideways;
+    // portrait does not, and wraps into two so the height it does have
+    // is used instead.
+    const columns = await board.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)
+    expect(columns, portrait ? 'portrait should wrap to two columns' : 'landscape should keep five')
+      .toBe(portrait ? 2 : 5)
+
+    // Either way the page itself must not overflow sideways.
+    const overflow = await page.evaluate(() =>
+      document.documentElement.scrollWidth - document.documentElement.clientWidth
+    )
+    expect(overflow).toBeLessThanOrEqual(2)
+  })
+
   test('a kanban card follows the pointer after a long press', async ({ loggedIn: page }) => {
     await openAgenda(page, `/appointments?date=${await dayWithAppointment(page)}`)
     await page.getByRole('tab', { name: 'Kanban', exact: true }).click()
