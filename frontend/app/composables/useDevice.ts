@@ -47,6 +47,17 @@ export function useDevice() {
   const hover = useMediaQuery('(hover: hover)')
   const portrait = useMediaQuery('(orientation: portrait)')
 
+  // "Is the *shorter* side of the viewport small?" — `min(w, h) < 540`
+  // written as a media query. Deliberately not `max-width`: a tablet
+  // turned upright is narrower than 768 px and a width test reclassifies
+  // it as a phone mid-rotation, which is how the agenda came to serve a
+  // phone screen to a tablet held vertically. The shorter side does not
+  // change when the device rotates.
+  //
+  // 540 px sits in open space: phones top out around 430 px on their
+  // short side, tablets start around 600 px.
+  const shortSide = useMediaQuery('(max-width: 539px), (max-height: 539px)')
+
   const settled = useState('device:settled', () => false)
   const browser = useState<BrowserInfo | null>('device:browser', () => null)
 
@@ -61,6 +72,16 @@ export function useDevice() {
   // the previous session would be worse than one frame of landscape.
   const isPortrait = computed(() => settled.value && portrait.value)
   const isLandscape = computed(() => !isPortrait.value)
+
+  /**
+   * A handheld phone, as opposed to a tablet in either orientation.
+   *
+   * Use this to decide whether a screen should collapse to a
+   * single-column, phone-shaped layout. Do **not** use a width
+   * breakpoint for that: a tablet in portrait is narrower than most
+   * width thresholds while still being a tablet.
+   */
+  const isPhone = computed(() => settled.value && coarse.value && shortSide.value)
 
   /**
    * Read browser and platform from the UA-CH API, which Chromium exposes
@@ -134,5 +155,5 @@ export function useDevice() {
     })
   }
 
-  return { isTouch, hasHover, isPortrait, isLandscape, browser, init }
+  return { isTouch, hasHover, isPhone, isPortrait, isLandscape, browser, init }
 }

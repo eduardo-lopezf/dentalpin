@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, test } from './_fixtures'
+import { dayWithAppointment, expect, test } from './_fixtures'
 
 /**
  * The agenda's mouse gestures, on the desktop project.
@@ -22,10 +22,10 @@ import { expect, test } from './_fixtures'
  * same behaviour `nuxt.config.ts` calls out around `optimizeDeps.include`.
  * It can only happen once per dep, so a single retry settles it.
  */
-async function gotoAgenda(page: Page): Promise<void> {
+async function gotoAgenda(page: Page, path = '/appointments'): Promise<void> {
   for (const attempt of [1, 2]) {
     try {
-      await page.goto('/appointments', { waitUntil: 'domcontentloaded' })
+      await page.goto(path, { waitUntil: 'domcontentloaded' })
       return
     } catch (error) {
       if (attempt === 2 || !String(error).includes('ERR_ABORTED')) throw error
@@ -33,8 +33,8 @@ async function gotoAgenda(page: Page): Promise<void> {
   }
 }
 
-async function openAgenda(page: Page): Promise<void> {
-  await gotoAgenda(page)
+async function openAgenda(page: Page, path = '/appointments'): Promise<void> {
+  await gotoAgenda(page, path)
   await page.waitForSelector('html[data-ua]', { state: 'attached', timeout: 60_000 })
   await expect(page.locator('html')).toHaveAttribute('data-pointer', 'fine')
   // Wait for the grid itself, not for a duration: the view components are
@@ -68,7 +68,10 @@ test.describe('agenda by mouse', () => {
   })
 
   test('dragging an appointment reschedules it without a selection step', async ({ loggedIn: page }) => {
-    await openAgenda(page)
+    // The seeded week is not guaranteed to hold an appointment — today
+    // can be a Sunday with an empty week behind it — so land on a day
+    // that has one.
+    await openAgenda(page, `/appointments?date=${await dayWithAppointment(page)}`)
 
     const block = page.locator('[data-dense] .group.absolute').first()
     await expect(block).toBeVisible()
@@ -96,7 +99,7 @@ test.describe('agenda by mouse', () => {
   })
 
   test('clicking an appointment opens it', async ({ loggedIn: page }) => {
-    await openAgenda(page)
+    await openAgenda(page, `/appointments?date=${await dayWithAppointment(page)}`)
 
     const block = page.locator('[data-dense] .group.absolute').first()
     await expect(block).toBeVisible()

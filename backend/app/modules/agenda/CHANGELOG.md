@@ -44,6 +44,19 @@
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).
   Citas y su rastro (tratamientos aplicados, cambios de estado y de gabinete). Registro asistencial: se conservan.
 
+- fix(ui): a tablet held upright got the phone day-list instead of the
+  agenda. The view was picked with `isMobile` (`max-width: 767px`), and a
+  tablet in portrait is narrower than that while still being a tablet —
+  reported from a real device. It now uses `useDevice().isPhone`, which
+  tests the *shorter* side of the viewport (< 540 px) and so does not
+  change when the device is rotated. The same rule corrects the opposite
+  error: a phone in landscape is 915 px wide and the width test called it
+  a desktop.
+
+  Portrait now also opens on the day view rather than the week: seven
+  columns need 800 px and an upright tablet has less. An explicit choice
+  of view is never overridden, including by rotating.
+
 - feat(ui): one date navigator instead of three. The week, day and
   kanban views each rendered their own identical prev / today / next row
   plus date label, stacked under the page header and the filters; the

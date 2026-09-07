@@ -16,9 +16,21 @@ decides nothing.**
 |---|---|---|
 | Should targets be finger-sized? | `useDevice().isTouch` | viewport width |
 | Is a hover affordance reachable? | `useDevice().hasHover` | viewport width |
+| Is this a phone, not a tablet? | `useDevice().isPhone` | `useBreakpoint().isMobile` |
 | How many columns fit? | `useBreakpoint()`, container queries | pointer kind |
 | Should this board stack? | `useDevice().isPortrait` | pointer kind |
 | Which browser is this? | `useDevice().browser` — **diagnostics only** | — |
+
+**`isPhone`, not a width breakpoint.** A tablet held upright reports
+fewer than 768 CSS px, so a `max-width` test calls it a phone the moment
+it is rotated — which is exactly how the agenda came to serve its
+phone-shaped day list to a tablet in portrait, reported from a real
+device after the emulated 800 px portrait project had sailed over the
+threshold. `isPhone` asks whether the **shorter** side of the viewport is
+under 540 px, which does not change when the device rotates and leaves
+open space between phones (~430 px short side) and tablets (~600 px). It
+also fixes the other end: a phone in landscape is 915 px wide, and a
+width rule called that a desktop.
 
 `useDevice()` publishes its findings on the root element, so CSS and the
 E2E suite can read them without a JS bridge:
@@ -208,6 +220,11 @@ active view.
 `PageHeader` wraps, so landscape fits title, navigator, view tabs and the
 create button on one line, and portrait falls to two. That is the rule
 again: orientation changes the layout, never the interaction.
+
+The same rule picks the default view: portrait opens on the day, because
+a seven-day grid needs 800 px and an upright tablet has less, so the week
+would be nothing but sideways scrolling. Once the user picks a view that
+choice stands, and rotating never overrides it.
 
 ## Where it stands
 

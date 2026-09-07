@@ -182,12 +182,6 @@ const timeSlots = computed(() => {
   return slots
 })
 
-// Check if current date is today
-const isToday = computed(() => {
-  const today = new Date()
-  return props.currentDate.toDateString() === today.toDateString()
-})
-
 // Calculate slot index from time string
 function getSlotIndex(timeStr: string): number {
   const parts = timeStr.split(':').map(Number)

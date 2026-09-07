@@ -368,8 +368,6 @@ export function useSlotGridDrag(options: SlotGridDragOptions) {
     cancelLongPress()
     releasePointer()
 
-    const h = options.slotHeight()
-
     if (createDragState.value) {
       const { columnIndex, startSlot, currentSlot } = createDragState.value
       createDragState.value = null

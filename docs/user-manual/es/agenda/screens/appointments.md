@@ -56,9 +56,10 @@ flujo (programada → confirmada → en sala → completada → cobrada).
   duración se elige en el modal, no arrastrando. En kanban, mantén
   pulsada una tarjeta y arrástrala a otra columna.
 - **En tablet, la orientación cambia la disposición, no los gestos** —
-  en vertical el kanban reparte sus columnas en dos filas en lugar de
-  desplazarse en horizontal, y la cabecera pasa a dos líneas. Girar la
-  tablet nunca cambia cómo funciona un gesto.
+  en vertical se abre la vista de **Día** (una semana de siete columnas
+  no cabe a lo ancho), el kanban reparte sus columnas en dos filas y la
+  cabecera pasa a dos líneas. Si eliges tú una vista, girar la tablet ya
+  no te la cambia. Girar nunca cambia cómo funciona un gesto.
 - **Navegación de fechas en la cabecera** — los botones anterior / hoy /
   siguiente y la fecha viven junto al título, y avanzan de semana en
   semana o de día en día según la vista activa.

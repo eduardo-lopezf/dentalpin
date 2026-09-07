@@ -55,9 +55,10 @@ professionals and rooms, and walk them through their workflow
   slot to create there: the duration is set in the modal rather than by
   dragging. In kanban, long-press a card and drag it to another column.
 - **On a tablet, orientation changes the layout, not the gestures** —
-  held upright the kanban wraps its columns into two rows instead of
-  scrolling sideways, and the header falls to two lines. Rotating the
-  tablet never changes how a gesture behaves.
+  held upright it opens on the **Day** view (a seven-column week does not
+  fit across), the kanban wraps its columns into two rows, and the header
+  falls to two lines. Once you pick a view yourself, rotating no longer
+  changes it. Rotating never changes how a gesture behaves.
 - **Date navigation lives in the header** — previous / today / next and
   the date sit next to the title, and step by week or by day depending
   on the active view.

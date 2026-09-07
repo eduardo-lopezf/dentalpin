@@ -3,7 +3,7 @@ import type { Appointment } from '~~/app/types'
 import { defineAsyncComponent } from 'vue'
 import { formatLocalDate } from '../../utils/date'
 
-// Mode-specific scheduler views are heavy (drag grids, overlap math, mobile
+// Mode-specific scheduler views are heavy (drag grids, overlap math, day
 // timeline). Lazy-load each so the initial /agenda payload only ships the
 // active mode for the current viewport.
 const AppointmentCalendar = defineAsyncComponent(() => import('../../components/clinical/AppointmentCalendar.vue'))
@@ -18,7 +18,12 @@ const router = useRouter()
 const clinic = useClinic()
 const { appointments, isLoading, fetchAppointments, updateAppointment } = useAppointments()
 const { professionals, fetchProfessionals, getProfessionalColor } = useProfessionals()
-const { isMobile } = useBreakpoint()
+// `isPhone`, not a width breakpoint. The day-list is the phone screen,
+// and a tablet turned upright is narrower than 768 px while still being
+// a tablet: keying this off `isMobile` is exactly what served that phone
+// screen to a tablet held vertically, reported from a real device.
+// See docs/technical/touch-adaptation.md.
+const { isPhone, isPortrait } = useDevice()
 
 // Query params for pre-selecting patient from treatment plan flow
 const initialPatientId = ref<string | undefined>(
@@ -27,6 +32,24 @@ const initialPatientId = ref<string | undefined>(
 
 // View mode state
 const viewMode = ref<'week' | 'day' | 'kanban'>('week')
+
+/**
+ * Until the user picks a view, follow the space available: a seven-day
+ * grid needs 800 px and a tablet held upright has less, so the week
+ * would be nothing but sideways scrolling. One day of professional
+ * columns fits. An explicit choice is never overridden, including by
+ * rotating the device.
+ */
+const viewModeChosen = ref(false)
+watch(isPortrait, (portrait) => {
+  if (viewModeChosen.value) return
+  viewMode.value = portrait ? 'day' : 'week'
+}, { immediate: true })
+
+function chooseViewMode(mode: 'week' | 'day' | 'kanban') {
+  viewModeChosen.value = true
+  viewMode.value = mode
+}
 
 // Week state (for weekly view)
 const currentWeekStart = ref<Date>(getMonday(new Date()))
@@ -198,7 +221,7 @@ async function loadWeekAppointments() {
 // local mutations and when another surface (e.g. the copilot) signals it
 // changed agenda data.
 async function reloadActiveView() {
-  if (!isMobile.value && viewMode.value === 'week') {
+  if (!isPhone.value && viewMode.value === 'week') {
     await loadWeekAppointments()
   } else {
     await loadDayAppointments()
@@ -579,7 +602,7 @@ watch(viewMode, async (mode) => {
 // Load initial data
 onMounted(async () => {
   await Promise.all([
-    isMobile.value ? loadDayAppointments() : loadWeekAppointments(),
+    isPhone.value ? loadDayAppointments() : loadWeekAppointments(),
     fetchProfessionals()
   ])
   if (route.query.new === '1') {
@@ -589,7 +612,7 @@ onMounted(async () => {
 })
 
 // Reload on mobile/desktop toggle so we have the right data window
-watch(isMobile, async (mobile) => {
+watch(isPhone, async (mobile) => {
   if (mobile) {
     await loadDayAppointments()
   } else if (viewMode.value === 'week') {
@@ -612,7 +635,7 @@ watch(isMobile, async (mobile) => {
       -->
       <template #lead>
         <AppointmentDateNav
-          v-if="!isMobile"
+          v-if="!isPhone"
           :mode="viewMode === 'week' ? 'week' : 'day'"
           :week-start="currentWeekStart"
           :date="currentDate"
@@ -623,17 +646,17 @@ watch(isMobile, async (mobile) => {
 
       <template #actions>
         <SegmentedControl
-          v-if="!isMobile"
+          v-if="!isPhone"
           :model-value="viewMode"
           :options="[
             { value: 'week', label: t('appointments.weeklyView'), icon: 'i-lucide-calendar-days' },
             { value: 'day', label: t('appointments.dailyView'), icon: 'i-lucide-calendar' },
             { value: 'kanban', label: t('appointments.kanbanView'), icon: 'i-lucide-kanban-square' }
           ]"
-          @update:model-value="(v) => (viewMode = v as 'week' | 'day' | 'kanban')"
+          @update:model-value="(v) => chooseViewMode(v as 'week' | 'day' | 'kanban')"
         />
         <UButton
-          v-if="!isMobile"
+          v-if="!isPhone"
           color="primary"
           variant="soft"
           icon="i-lucide-plus"
@@ -646,7 +669,7 @@ watch(isMobile, async (mobile) => {
 
     <!-- Filters (hidden on mobile to save space; mobile uses simple day view) -->
     <div
-      v-if="!isMobile"
+      v-if="!isPhone"
       class="flex flex-wrap items-center gap-x-6 gap-y-[var(--density-gap,0.75rem)] mb-[var(--density-gap,1rem)] shrink-0"
     >
       <div
@@ -710,7 +733,7 @@ watch(isMobile, async (mobile) => {
     <div class="flex-1 min-h-0 min-w-0">
       <!-- Mobile day view (replaces all desktop views on <md) -->
       <AppointmentDayList
-        v-if="isMobile"
+        v-if="isPhone"
         :appointments="filteredAppointments"
         :professionals="professionalsWithColors"
         :cabinets="clinic.cabinets.value"
