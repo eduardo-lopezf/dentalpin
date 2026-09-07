@@ -24,7 +24,26 @@ import { expect, test } from './_fixtures'
  * only cost time.
  */
 
-/** Room, in px, between the last submit button and the end of the page. */
+/**
+ * Room, in px, deliberately placed below the last submit button: the bottom
+ * padding accumulated over its ancestors, which is what the guard adds.
+ *
+ * The obvious measurement — `scrollHeight - submitBottom` — is the one this
+ * replaces, and it cannot answer the question. `scrollHeight` never drops
+ * below the window height, so as soon as the form fits on screen that
+ * subtraction stops reporting padding and starts reporting leftover
+ * viewport: it *grows* with the screen. The tall-viewport case failed in CI
+ * for exactly that reason, reporting 390 px of "room" on a page whose guard
+ * contributed nothing, simply because the form came out shorter than the
+ * 900 px viewport there.
+ *
+ * Measured on the real form, the two agree wherever the old one was
+ * meaningful — 332 px at 600 px tall, where the content overflows — and
+ * disagree only where it was not: 44 px of real padding against 220 px of
+ * empty screen at 1200 px tall. Padding is also the safer of the two on the
+ * short viewport, where leftover viewport would have masked a missing guard
+ * rather than reported one.
+ */
 async function roomBelowSubmit(page: Page): Promise<number> {
   return page.evaluate(() => {
     const submits = Array.from(document.querySelectorAll('button'))
@@ -37,8 +56,11 @@ async function roomBelowSubmit(page: Page): Promise<number> {
         - (b.getBoundingClientRect().top + window.scrollY)
     }).pop()!
 
-    const bottomInDocument = last.getBoundingClientRect().bottom + window.scrollY
-    return Math.round(document.documentElement.scrollHeight - bottomInDocument)
+    let padding = 0
+    for (let el = last.parentElement; el; el = el.parentElement) {
+      padding += Number.parseFloat(window.getComputedStyle(el).paddingBottom) || 0
+    }
+    return Math.round(padding)
   })
 }
 
@@ -81,7 +103,10 @@ test.describe('page forms leave room for the keyboard', () => {
 
   test('the extra room is not paid for on tall viewports', async ({ loggedIn: page }) => {
     // The guard is a `max-height` query, so a desktop screen must not
-    // grow a band of dead space at the bottom of the form.
+    // grow a band of dead space at the bottom of the form. Note this
+    // asserts the padding the guard adds, not the space left on screen —
+    // see `roomBelowSubmit`; a tall viewport has plenty of the latter by
+    // definition, and reading it as room is what used to fail here.
     await page.setViewportSize({ width: 1280, height: 900 })
     await open(page, '/treatments/plans/new')
 
