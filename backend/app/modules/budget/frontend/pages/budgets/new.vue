@@ -80,7 +80,14 @@ async function handleCreate() {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto space-y-6">
+  <!--
+    Extra room on short viewports so the submit at the end of the form
+    can be scrolled clear of the on-screen keyboard. Same shape as the
+    new-plan form: primary action last, text fields immediately above,
+    document-scrolled page — on a landscape tablet the keyboard covers
+    it with nothing left to scroll. See docs/technical/touch-adaptation.md.
+  -->
+  <div class="max-w-2xl mx-auto space-y-6 [@media(max-height:700px)]:pb-72">
     <!-- Header -->
     <div class="flex items-center gap-4">
       <UButton

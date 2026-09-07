@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- fix(ui): the Create button of the new-budget form sat 44 px from the
+  end of a document-scrolled page, directly under its text fields, so on
+  a tablet in landscape the on-screen keyboard buried it with nothing
+  left to scroll. Short viewports now carry 332 px of room below it.
+  Same shape, and same fix, as the new-plan form. `budgets/[id]` was
+  checked and does not need it — its form is followed by the line items,
+  leaving 1206 px.
+
 - fix(budget): `BudgetVerifyForm` declares `method="post"`. It is public,
   server-rendered markup, so a submit that lands before hydration runs the
   browser's own navigation — and a form with no `method` is a GET carrying its

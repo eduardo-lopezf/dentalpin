@@ -243,6 +243,40 @@ tablet in hand: whether the 300 ms long press is the right delay, and
 whether the drag's scroll blocking holds when the finger was already
 moving.
 
+## Forms and the on-screen keyboard
+
+A submit button at the end of a **document-scrolled** page is
+unreachable on a short landscape viewport once the keyboard is up: it
+covers the lower half exactly while the fields above it are being typed
+in, and the page is already at its scroll end, so there is nothing left
+to scroll it clear of. Reported from a real device on the new-plan form.
+
+Such pages buy the room back with `[@media(max-height:700px)]:pb-72` on
+the page root — a height query, not a width one, because the constraint
+is height. Measured at 1024x600 that turns 44 px of room below the action
+into 332 px. Taller viewports are untouched.
+
+**Modals do not need this.** A `UModal` caps to the viewport and scrolls
+internally, so its footer always lands inside the visible dialog and
+there is always something left to scroll: verified at 1024x280, where the
+patient dialog shrinks to 216 px and its Save stays reachable.
+
+Swept at 1024x600 across the page-level forms and the patient tabs. Only
+two had the shape — `treatments/plans/new` and `budgets/new`, both with
+44 px of room — and both now carry the height query. Everything else
+either saves from a modal or leaves the action far from the end
+(`budgets/[id]` had 1206 px, the clinical tab 924 px).
+
+When you add a page-level form, the check is one line in the console
+with the page scrolled to its end:
+
+```js
+const b = [...document.querySelectorAll('button')].filter(x => x.type === 'submit').pop()
+document.documentElement.scrollHeight - (b.getBoundingClientRect().bottom + scrollY)
+```
+
+Under ~150 px on a short viewport means the keyboard will bury it.
+
 ## Known gaps
 
 These are not covered yet and are tracked as follow-up work, roughly in
@@ -288,15 +322,6 @@ the order worth doing them.
   itself never overflows, but ten `<table>`s and several wide grids rely
   on `overflow-x-auto` without a sticky first column or scroll shadows,
   so on touch there is nothing to say more content exists sideways.
-
-- **Other long forms may hide their primary action behind the
-  keyboard.** A submit button at the end of a document-scrolled form is
-  unreachable on a short landscape viewport once the on-screen keyboard
-  is up, because the page is already at its scroll end. The new-plan
-  form buys scroll room under
-  `[@media(max-height:700px)]:pb-72`; no one has swept the other forms
-  for the same shape. Emulation does not reproduce it — a real keyboard
-  is needed — so this is found by using the app, not by the suite.
 
 - **No WebKit coverage.** All three Playwright projects are Chromium.
   Capability detection means an iPad should need no new code, but nobody
