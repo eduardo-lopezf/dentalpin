@@ -143,7 +143,16 @@ function goBack() {
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto space-y-6">
+  <!--
+    The extra bottom room on short viewports is deliberate. Create sits
+    directly under two textareas at the very end of a document-scrolled
+    page, so on a tablet in landscape the on-screen keyboard covers it
+    exactly while the user is typing in them — and with the page already
+    at its scroll end there is nothing left to scroll it clear of.
+    Reported from a real device; only reproducible with a real keyboard,
+    so this buys the scroll room rather than betting on a diagnosis.
+  -->
+  <div class="max-w-3xl mx-auto space-y-6 [@media(max-height:700px)]:pb-72">
     <div class="flex items-center gap-4">
       <UButton
         variant="ghost"

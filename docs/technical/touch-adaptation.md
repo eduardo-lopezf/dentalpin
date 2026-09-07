@@ -289,6 +289,15 @@ the order worth doing them.
   on `overflow-x-auto` without a sticky first column or scroll shadows,
   so on touch there is nothing to say more content exists sideways.
 
+- **Other long forms may hide their primary action behind the
+  keyboard.** A submit button at the end of a document-scrolled form is
+  unreachable on a short landscape viewport once the on-screen keyboard
+  is up, because the page is already at its scroll end. The new-plan
+  form buys scroll room under
+  `[@media(max-height:700px)]:pb-72`; no one has swept the other forms
+  for the same shape. Emulation does not reproduce it — a real keyboard
+  is needed — so this is found by using the app, not by the suite.
+
 - **No WebKit coverage.** All three Playwright projects are Chromium.
   Capability detection means an iPad should need no new code, but nobody
   has confirmed it. Worth a WebKit project if iPads ever enter the mix.

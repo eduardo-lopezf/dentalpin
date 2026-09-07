@@ -1,6 +1,16 @@
 # Changelog — treatment_plan module
 
 ## Unreleased
+
+- fix(ui): on a tablet in landscape the Create button of the new-plan
+  form could not be reached, and the device had to be rotated to save.
+  It sits directly under two textareas at the very end of a
+  document-scrolled page, so the on-screen keyboard covers it exactly
+  while those fields are being typed in — and with the page already at
+  its scroll end there is nothing left to scroll it clear of. Short
+  viewports now carry enough room below the action row (332 px measured
+  at 1024x600) to scroll it above the keyboard. Taller viewports are
+  untouched.
 - feat(cobros): el plan enseña el dinero. Cada sesión completada lleva su
   chip — **Cobrado** o **Quedan X** — y cada cabecera de fase, lo que queda
   por cobrar de esa fase. Antes el plan era la única pantalla de toda la
