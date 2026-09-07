@@ -26,7 +26,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/agenda/frontend/pages/appointments/index.vue
   - backend/app/modules/agenda/router.py
-last_verified_commit: 92230e6
+last_verified_commit: 44b3f36
 ---
 
 # Citas
