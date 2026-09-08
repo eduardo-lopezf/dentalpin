@@ -1,7 +1,7 @@
 ---
 module: budget
 screen: list
-route: /budgets
+route: /finanzas?tab=budget
 related_endpoints:
   - DELETE /api/v1/budget/budgets/{budget_id}
   - DELETE /api/v1/budget/budgets/{budget_id}/items/{item_id}
@@ -42,6 +42,10 @@ last_verified_commit: b1b82f5
 
 # Listado de presupuestos
 
+
+> **Dónde está.** Esta pantalla es la pestaña **Presupuestos** de
+> **Finanzas**, en el menú lateral justo después de Profesionales.
+> La antigua dirección `/budgets` sigue funcionando y redirige aquí.
 Cola operativa de presupuestos de la clínica. Desde aquí buscas
 presupuestos por paciente o número, filtras por estado del flujo,
 estado de cobro, validez y profesional asignado, ordenas y abres el

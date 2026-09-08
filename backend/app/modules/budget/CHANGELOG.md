@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- feat(ui): Presupuestos no longer has a sidebar entry of its own. Cobros,
+  Presupuestos and Facturas are now the three tabs of a single
+  **Finanzas** entry, placed after Profesionales, in that order. This
+  module contributes its list through the `finance.tabs` slot and
+  declares the shared nav entry in its manifest, so the entry survives
+  while any of the three is installed and disappears with the last one —
+  no cross-module import, and the mount authority stays
+  `core_module.state` (ADR 0018). `/budgets` keeps working as a redirect.
+
 - fix(ui): the Create button of the new-budget form sat 44 px from the
   end of a document-scrolled page, directly under its text fields, so on
   a tablet in landscape the on-screen keyboard buried it with nothing

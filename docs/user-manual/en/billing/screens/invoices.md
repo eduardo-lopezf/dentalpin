@@ -1,7 +1,7 @@
 ---
 module: billing
 screen: list
-route: /invoices
+route: /finanzas?tab=billing
 related_endpoints:
   - DELETE /api/v1/billing/invoices/{invoice_id}
   - DELETE /api/v1/billing/invoices/{invoice_id}/items/{item_id}
@@ -41,6 +41,10 @@ last_verified_commit: 3568519
 
 # Invoice list
 
+
+> **Where it lives.** This screen is the **Invoices** tab of
+> **Finance**, in the sidebar right after Professionals. The old
+> `/invoices` address still works and redirects here.
 The operational invoice queue: drafts in progress, issued invoices,
 credit notes, voided documents. From here you search, filter, and
 open invoices to issue, email, or void them.

@@ -74,6 +74,7 @@ ADRs) for the full story.
 
 | EN (code) | ES (UI) | Definition |
 |---|---|---|
+| Finance | Finanzas | The sidebar section grouping Cobros, Presupuestos and Facturas as tabs. A navigation grouping, not a domain entity — the three remain distinct, and Factura stays a fiscal document under Veri*Factu. |
 | Budget | Presupuesto | A pre-invoice quote sent to the patient. Has its own workflow (`draft → sent → accepted → rejected`). |
 | Invoice | Factura | A fiscal document. Spanish clinics must comply with Veri\*Factu (see verifactu module). |
 | Credit note | Factura rectificativa | An invoice correction document. |

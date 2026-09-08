@@ -1,7 +1,7 @@
 ---
 module: budget
 screen: list
-route: /budgets
+route: /finanzas?tab=budget
 related_endpoints:
   - DELETE /api/v1/budget/budgets/{budget_id}
   - DELETE /api/v1/budget/budgets/{budget_id}/items/{item_id}
@@ -42,6 +42,10 @@ last_verified_commit: b1b82f5
 
 # Budget list
 
+
+> **Where it lives.** This screen is the **Budgets** tab of
+> **Finance**, in the sidebar right after Professionals. The old
+> `/budgets` address still works and redirects here.
 The clinic's operational queue of budgets. Search by patient or
 number, filter by workflow status, payment state, validity, and
 assigned professional, sort, and open the detail to work each

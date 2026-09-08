@@ -19,6 +19,12 @@ const LABELS = {
   // backend/app/modules/treatment_plan/__init__.py's frontend.navigation
   // comment ("One menu entry, two surfaces").
   treatments: /^(treatments|tratamientos)$/i,
+  // Budgets and invoices no longer have nav entries of their own: they
+  // are tabs of the host's Finanzas page, alongside payments. The nav
+  // check is therefore about Finanzas, and the per-module permission is
+  // asserted on the tabs themselves — which is where it now lives, on
+  // each module's `finance.tabs` slot registration.
+  finance: /finance|finanzas/i,
   quotes: /quotes|budgets|presupuestos/i,
   invoices: /invoices|facturas/i,
   reports: /reports|informes/i
@@ -43,7 +49,14 @@ test.describe('receptionist sees patients + schedule + invoices', () => {
     const nav = loggedIn.getByRole('navigation').first()
     await expect(nav.getByRole('link', { name: LABELS.patients })).toBeVisible()
     await expect(nav.getByRole('link', { name: LABELS.schedule })).toBeVisible()
-    await expect(nav.getByRole('link', { name: LABELS.invoices })).toBeVisible()
+    await expect(nav.getByRole('link', { name: LABELS.finance })).toBeVisible()
+  })
+
+  test('reaches invoices and budgets through the Finanzas tabs', async ({ loggedIn }) => {
+    await loggedIn.goto('/finanzas')
+    const tabs = loggedIn.getByRole('tab')
+    await expect(tabs.filter({ hasText: LABELS.invoices })).toBeVisible()
+    await expect(tabs.filter({ hasText: LABELS.quotes })).toBeVisible()
   })
 })
 
@@ -56,8 +69,7 @@ test.describe('dentist has full clinical access', () => {
       LABELS.patients,
       LABELS.schedule,
       LABELS.treatments,
-      LABELS.quotes,
-      LABELS.invoices
+      LABELS.finance
     ]) {
       await expect(nav.getByRole('link', { name: label })).toBeVisible()
     }

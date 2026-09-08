@@ -8,6 +8,17 @@ import { registerSlot } from '~~/app/composables/useModuleSlots'
  * only contract — the budget module never imports payments code.
  */
 export default defineNuxtPlugin(() => {
+  // Tab of the host's Finanzas page. The host owns the page and the
+  // sidebar entry; this module owns its own list and never learns about
+  // its sibling tabs. Uninstalling the module removes the tab.
+  registerSlot('finance.tabs', {
+    id: 'payments.finance.tabs',
+    component: defineAsyncComponent(() => import('../components/finance/PaymentsTab.vue')),
+    permission: 'payments.record.read',
+    labelKey: 'payments.nav.payments',
+    order: 10
+  })
+
   // Cobros vinculados al presupuesto. Renders inside the budget-detail
   // sidebar with `ctx = { budget }`. Shows total / cobrado / pendiente
   // plus the allocation history and a "Cobrar" CTA that opens the

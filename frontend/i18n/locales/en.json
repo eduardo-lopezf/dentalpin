@@ -18,8 +18,6 @@
     "appointments": "Schedule",
     "recalls": "Recalls",
     "treatmentPlans": "Treatment Plans",
-    "budgets": "Quotes",
-    "invoices": "Invoices",
     "reports": "Reports",
     "settings": "Settings",
     "catalog": "Catalog",
@@ -27,7 +25,10 @@
     "openMenu": "Open menu",
     "close": "Close",
     "toggleSidebar": "Toggle sidebar",
-    "treatments": "Treatments"
+    "treatments": "Treatments",
+    "finance": "Finance",
+    "budgets": "Budgets",
+    "invoices": "Invoices"
   },
   "auth": {
     "login": "Log in",
@@ -3176,5 +3177,8 @@
       "updated": "Schedule updated.",
       "updateFailed": "Could not update the schedule."
     }
+  },
+  "finance": {
+    "empty": "No finance module is installed."
   }
 }

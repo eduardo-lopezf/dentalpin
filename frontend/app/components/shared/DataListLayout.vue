@@ -24,12 +24,20 @@ interface Props {
   totalPages: number
   /** Skeleton row count while loading. */
   skeletonRows?: number
+  /**
+   * Rendered inside a tab rather than as a page of its own: drops the
+   * PageHeader, since the hosting page already carries the `<h1>` and
+   * the tab strip names the section. Header actions move above the
+   * toolbar so the list keeps its primary action.
+   */
+  embedded?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
   subtitle: undefined,
   error: null,
-  skeletonRows: 5
+  skeletonRows: 5,
+  embedded: false
 })
 
 const emit = defineEmits<{
@@ -46,6 +54,7 @@ function onPage(value: number) {
 <template>
   <div>
     <PageHeader
+      v-if="!embedded"
       :title="title"
       :subtitle="subtitle"
     >
@@ -56,6 +65,15 @@ function onPage(value: number) {
         <slot name="actions" />
       </template>
     </PageHeader>
+
+    <!-- Embedded: no page header to hang them off, so the actions get
+         their own row above the toolbar. -->
+    <div
+      v-else-if="$slots.actions"
+      class="mb-[var(--density-gap,1rem)] flex flex-wrap items-center justify-end gap-2"
+    >
+      <slot name="actions" />
+    </div>
 
     <!-- Toolbar (search + filters) -->
     <div

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- feat(ui): Facturas no longer has a sidebar entry of its own. Cobros,
+  Presupuestos and Facturas are now the three tabs of a single
+  **Finanzas** entry, placed after Profesionales, in that order. This
+  module contributes its list through the `finance.tabs` slot and
+  declares the shared nav entry in its manifest, so the entry survives
+  while any of the three is installed and disappears with the last one —
+  no cross-module import, and the mount authority stays
+  `core_module.state` (ADR 0018). `/invoices` keeps working as a redirect.
+
 - fix(security): `GET /billing/patients/{patient_id}/summary` accepted a `patient_id` from any clinic.
   The aggregation itself was correctly scoped by `clinic_id` — the
   response was all zeros, so nothing leaked — but the patient's ownership

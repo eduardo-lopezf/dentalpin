@@ -1,7 +1,7 @@
 ---
 module: payments
 screen: list
-route: /payments
+route: /finanzas?tab=payments
 related_endpoints:
   - GET /api/v1/payments
   - GET /api/v1/payments/budgets/{budget_id}/allocations
@@ -34,6 +34,10 @@ last_verified_commit: 3568519
 
 # Listado de cobros
 
+
+> **Dónde está.** Esta pantalla es la pestaña **Cobros** de
+> **Finanzas**, en el menú lateral justo después de Profesionales.
+> La antigua dirección `/payments` sigue funcionando y redirige aquí.
 Caja operativa de la clínica. Cada fila es un cobro recibido del
 paciente, con su importe bruto, las asignaciones a presupuestos o
 *a cuenta*, y el importe reembolsado si lo hay. Desde aquí se

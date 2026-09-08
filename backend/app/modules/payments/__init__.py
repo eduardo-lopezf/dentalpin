@@ -60,13 +60,21 @@ class PaymentsModule(BaseModule):
         },
         "frontend": {
             "layer_path": "frontend",
+            # Contributes the shared "Finanzas" entry rather than one of
+            # its own: Cobros, Presupuestos and Facturas are tabs of a
+            # single host page. All three modules declare the identical
+            # entry and the sidebar de-duplicates by `to`, so the entry
+            # survives while *any* of them is installed and disappears
+            # when the last one goes. Declared here, not in the host,
+            # because only the manifest is known during SSR — the tabs
+            # themselves register client-side through `finance.tabs`.
             "navigation": [
                 {
-                    "label": "payments.nav.payments",
-                    "icon": "i-lucide-wallet",
-                    "to": "/payments",
+                    "label": "nav.finance",
+                    "icon": "i-lucide-receipt",
+                    "to": "/finanzas",
                     "permission": "payments.record.read",
-                    "order": 55,
+                    "order": 46,
                 },
             ],
         },

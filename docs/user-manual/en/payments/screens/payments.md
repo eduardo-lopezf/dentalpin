@@ -1,7 +1,7 @@
 ---
 module: payments
 screen: list
-route: /payments
+route: /finanzas?tab=payments
 related_endpoints:
   - GET /api/v1/payments
   - GET /api/v1/payments/budgets/{budget_id}/allocations
@@ -34,6 +34,10 @@ last_verified_commit: 3568519
 
 # Payment list
 
+
+> **Where it lives.** This screen is the **Payments** tab of
+> **Finance**, in the sidebar right after Professionals. The old
+> `/payments` address still works and redirects here.
 The clinic's operational cash log. Each row is a payment received
 from a patient, with its gross amount, the allocations to budgets or
 *on-account*, and the refunded total if any. Record a new payment,

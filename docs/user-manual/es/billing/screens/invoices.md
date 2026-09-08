@@ -1,7 +1,7 @@
 ---
 module: billing
 screen: list
-route: /invoices
+route: /finanzas?tab=billing
 related_endpoints:
   - DELETE /api/v1/billing/invoices/{invoice_id}
   - DELETE /api/v1/billing/invoices/{invoice_id}/items/{item_id}
@@ -41,6 +41,10 @@ last_verified_commit: 3568519
 
 # Listado de facturas
 
+
+> **Dónde está.** Esta pantalla es la pestaña **Facturas** de
+> **Finanzas**, en el menú lateral justo después de Profesionales.
+> La antigua dirección `/invoices` sigue funcionando y redirige aquí.
 Cola operativa de facturas: borradores en preparación, facturas
 emitidas, abonos, anuladas. Desde aquí se buscan, filtran y abren
 para emitir, enviar por email o anular.

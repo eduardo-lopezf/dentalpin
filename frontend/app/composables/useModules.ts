@@ -87,10 +87,18 @@ export function useModules() {
       ? active.value.flatMap(m => m.navigation)
       : []
 
-    return [...HOST_NAV, ...moduleNav]
+    const visible = [...HOST_NAV, ...moduleNav]
       .filter(item => !item.permission || can(item.permission))
       .slice()
       .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
+
+    // Several modules may point at the same destination — Cobros,
+    // Presupuestos and Facturas all contribute the "Finanzas" entry, so
+    // that it survives while any one of them is installed. First wins,
+    // which after the sort is the lowest `order`.
+    const seen = new Set<string>()
+    return visible
+      .filter(item => !seen.has(item.to) && seen.add(item.to))
       .map(item => ({ ...item, label: t(item.label) }))
   })
 

@@ -18,8 +18,6 @@
     "appointments": "Agenda",
     "recalls": "Recordatorios",
     "treatmentPlans": "Planes de tratamiento",
-    "budgets": "Presupuestos",
-    "invoices": "Facturas",
     "reports": "Informes",
     "settings": "Configuración",
     "catalog": "Catálogo",
@@ -27,7 +25,10 @@
     "openMenu": "Abrir menú",
     "close": "Cerrar",
     "toggleSidebar": "Alternar barra lateral",
-    "treatments": "Tratamientos"
+    "treatments": "Tratamientos",
+    "finance": "Finanzas",
+    "budgets": "Presupuestos",
+    "invoices": "Facturas"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -3176,5 +3177,8 @@
       "updated": "Calendario actualizado.",
       "updateFailed": "No se ha podido actualizar el calendario."
     }
+  },
+  "finance": {
+    "empty": "Ningún módulo financiero está instalado."
   }
 }

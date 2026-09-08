@@ -14,8 +14,13 @@ const ADMIN_ROUTES = [
   { path: '/patients', selector: /patients|pacientes/i },
   { path: '/appointments', selector: /schedule|agenda|appointment|cita/i },
   { path: '/treatment-plans', selector: /plans|planes|treatment/i },
+  { path: '/finanzas', selector: /finance|finanzas/i },
+  // The old list routes redirect into the Finanzas tabs. Keeping them
+  // here is what proves the redirects still land on something that
+  // renders, rather than 404ing for anyone with an old bookmark.
   { path: '/budgets', selector: /quotes|budgets|presupuesto/i },
   { path: '/invoices', selector: /invoices|facturas/i },
+  { path: '/payments', selector: /payments|cobros/i },
   { path: '/reports', selector: /reports|informes|dashboard/i },
   { path: '/settings', selector: /settings|configuración|configuracion/i },
   { path: '/settings/catalog', selector: /catalog|catálogo|catalogo/i },
@@ -31,17 +36,21 @@ test.describe('admin navigation smoke', () => {
     test(`renders ${path}`, async ({ loggedIn }) => {
       const response = await loggedIn.goto(path, { waitUntil: 'domcontentloaded' })
       expect(response?.status() ?? 0).toBeLessThan(400)
-      // The route renders *something* matching its section — either a
-      // heading, a button, or a link. `toBeVisible` accepts the first
-      // hit so the assertion stays independent of component layout
-      // churn.
+      // The route renders *something* matching its section — a heading,
+      // a button, a link, or a tab. `toBeVisible` accepts the first hit
+      // so the assertion stays independent of component layout churn.
+      // Tabs are in the list because a section is no longer necessarily
+      // a page: the old /budgets, /invoices and /payments routes now
+      // redirect into tabs of Finanzas, where the section's name is the
+      // tab's.
       // Scope to the page main content so the sidebar links don't
       // fire false positives.
       const main = loggedIn.getByRole('main').first()
       const heading = main.getByRole('heading', { name: selector })
       const link = main.getByRole('link', { name: selector })
       const button = main.getByRole('button', { name: selector })
-      await expect(heading.or(link).or(button).first()).toBeVisible({ timeout: 8_000 })
+      const tab = main.getByRole('tab', { name: selector })
+      await expect(heading.or(link).or(button).or(tab).first()).toBeVisible({ timeout: 8_000 })
     })
   }
 })
