@@ -176,9 +176,7 @@ async def test_shared_destination_is_emitted_once(
     assert declared == {"payments", "budget", "billing"}
 
     # No destination at all is emitted twice.
-    destinations = [
-        item["to"] for module in payload for item in module["navigation"]
-    ]
+    destinations = [item["to"] for module in payload for item in module["navigation"]]
     assert len(destinations) == len(set(destinations)), (
         f"duplicate nav destinations: {destinations}"
     )
