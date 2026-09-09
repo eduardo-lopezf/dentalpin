@@ -86,6 +86,17 @@ async def active_modules(
     svc = ModuleService(db)
     active: list[dict[str, Any]] = []
 
+    # Several modules may contribute the *same* destination on purpose:
+    # payments, budget and billing each declare the "Finanzas" entry so
+    # that it survives while any one of them is installed and goes with
+    # the last. Collapsing them is this endpoint's job, not the client's
+    # — a sidebar built by an older frontend against this response would
+    # otherwise show the entry three times, which is exactly what one
+    # did. De-duplication happens *after* the permission filter below,
+    # so the entry still appears for a user who can see only one of the
+    # contributing modules.
+    seen_destinations: set[str] = set()
+
     for info in await svc.list_modules():
         if info.state != ModuleState.INSTALLED:
             continue
@@ -96,7 +107,15 @@ async def active_modules(
             continue
 
         nav = list(manifest.frontend.get("navigation") or [])
-        filtered_nav = [item for item in nav if _nav_visible(item, ctx.role)]
+        filtered_nav = []
+        for item in nav:
+            if not _nav_visible(item, ctx.role):
+                continue
+            destination = item.get("to")
+            if destination in seen_destinations:
+                continue
+            seen_destinations.add(destination)
+            filtered_nav.append(item)
 
         active.append(
             {

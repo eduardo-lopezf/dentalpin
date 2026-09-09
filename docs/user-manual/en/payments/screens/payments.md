@@ -1,7 +1,7 @@
 ---
 module: payments
 screen: list
-route: /finanzas?tab=payments
+route: /payments
 related_endpoints:
   - GET /api/v1/payments
   - GET /api/v1/payments/budgets/{budget_id}/allocations

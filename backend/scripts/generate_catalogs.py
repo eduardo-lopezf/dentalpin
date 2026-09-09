@@ -59,6 +59,22 @@ def _bootstrap_env() -> None:
 
     Mirrors the stubs the ``manifest-consistency`` CI job uses. Real
     deployments override these — this script is read-only.
+
+    Also runs from ``backend/``, which is what lets the script work when
+    invoked from the repo root — the way ``CLAUDE.md`` documents it.
+    ``Settings`` declares ``env_file=".env"``, and pydantic-settings
+    resolves that against the working directory: from the repo root it
+    finds the shared compose ``.env`` and hands *every* key in it to the
+    model, including ``POSTGRES_USER`` and ``API_BASE_URL``, which belong
+    to the db service and the frontend. ``Settings`` forbids extras, so
+    construction failed with four validation errors before a single
+    manifest was read.
+
+    Environment variables never had this problem — pydantic-settings only
+    collects the ones a field declares — which is why the container, where
+    the working directory is ``backend/`` and there is no ``.env``, was
+    always fine. Matching that working directory is the whole fix. Every
+    path this script touches is absolute, so nothing else shifts.
     """
     os.environ.setdefault(
         "DATABASE_URL",
@@ -68,6 +84,15 @@ def _bootstrap_env() -> None:
     os.environ.setdefault("ENVIRONMENT", "test")
     os.environ.setdefault("TESTING", "true")
     os.environ.setdefault("DENTALPIN_DEV_MODULE_SCAN", "true")
+    # Guarded because BACKEND_ROOT is derived from this file's location
+    # and only resolves inside a checkout. In the container the script
+    # lives at /app/scripts, so it computes a /backend that does not
+    # exist — harmless while the value only fed sys.path, fatal the
+    # moment something chdir'd to it. There the working directory is
+    # already backend's, which is why the container never had the
+    # problem this guard's chdir solves.
+    if BACKEND_ROOT.is_dir():
+        os.chdir(BACKEND_ROOT)
     sys.path.insert(0, str(BACKEND_ROOT))
 
 

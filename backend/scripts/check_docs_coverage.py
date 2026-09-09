@@ -91,6 +91,20 @@ def _bootstrap_env() -> None:
     os.environ.setdefault("ENVIRONMENT", "test")
     os.environ.setdefault("TESTING", "true")
     os.environ.setdefault("DENTALPIN_DEV_MODULE_SCAN", "true")
+    # Run from backend/, or `Settings` picks up the repo-root compose
+    # `.env` and rejects its POSTGRES_*/API_BASE_URL keys as extras. See
+    # generate_catalogs.py's `_bootstrap_env` for the full reasoning.
+    # `scaffold_module_docs` imports this module before touching `app`,
+    # so it inherits the fix.
+    # Guarded because BACKEND_ROOT is derived from this file's location
+    # and only resolves inside a checkout. In the container the script
+    # lives at /app/scripts, so it computes a /backend that does not
+    # exist — harmless while the value only fed sys.path, fatal the
+    # moment something chdir'd to it. There the working directory is
+    # already backend's, which is why the container never had the
+    # problem this guard's chdir solves.
+    if BACKEND_ROOT.is_dir():
+        os.chdir(BACKEND_ROOT)
     sys.path.insert(0, str(BACKEND_ROOT))
 
 

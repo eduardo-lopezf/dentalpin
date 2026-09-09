@@ -40,10 +40,10 @@ watch(
   }
 )
 
-// Sidebar state (desktop/tablet)
+// Sidebar state (everything but a phone)
 const isSidebarCollapsed = useState('sidebar:collapsed', () => false)
 
-// Mobile drawer state (ephemeral — does not persist)
+// Phone drawer state (ephemeral — does not persist)
 const mobileNavOpen = ref(false)
 
 // Persist sidebar + init density on client
@@ -107,9 +107,12 @@ function isActive(to: string): boolean {
 
 <template>
   <div class="min-h-screen flex bg-canvas">
-    <!-- Desktop/tablet sidebar (hidden on mobile) -->
+    <!-- Sidebar. Shown on anything but a phone, tablets included in
+         either orientation: the rule is the shorter viewport side, not
+         the width, so rotating a tablet no longer swaps it for the
+         phone drawer. See `hide-on-phone` in main.css. -->
     <aside
-      class="hidden md:flex fixed inset-y-0 left-0 z-50 flex-col bg-surface-muted transition-[width] duration-150 ease-out"
+      class="hide-on-phone flex fixed inset-y-0 left-0 z-50 flex-col bg-surface-muted transition-[width] duration-150 ease-out"
       :class="isSidebarCollapsed ? 'w-16' : 'w-60'"
     >
       <!-- Logo -->
@@ -205,7 +208,8 @@ function isActive(to: string): boolean {
       </div>
     </aside>
 
-    <!-- Mobile drawer nav -->
+    <!-- Phone drawer. Its trigger is `only-on-phone`, so this is dead
+         weight on a tablet rather than a second way to navigate. -->
     <USlideover
       v-model:open="mobileNavOpen"
       side="left"
@@ -307,7 +311,7 @@ function isActive(to: string): boolean {
     <!-- Main column -->
     <div
       class="flex-1 flex flex-col min-w-0 transition-[margin] duration-150 ease-out"
-      :class="isSidebarCollapsed ? 'md:ml-16' : 'md:ml-60'"
+      :class="isSidebarCollapsed ? 'sidebar-offset-collapsed' : 'sidebar-offset-expanded'"
     >
       <DemoBanner />
 
@@ -315,7 +319,7 @@ function isActive(to: string): boolean {
       <header class="sticky top-0 z-40 flex items-center min-h-14 py-1.5 px-3 sm:px-4 bg-surface border-b border-subtle">
         <!-- Mobile hamburger -->
         <UButton
-          class="md:hidden"
+          class="only-on-phone"
           variant="ghost"
           color="neutral"
           size="sm"
@@ -326,7 +330,7 @@ function isActive(to: string): boolean {
 
         <!-- Desktop sidebar toggle -->
         <UButton
-          class="hidden md:inline-flex"
+          class="hide-on-phone inline-flex"
           variant="ghost"
           color="neutral"
           size="sm"

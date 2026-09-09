@@ -1,7 +1,7 @@
 ---
 module: budget
 screen: list
-route: /finanzas?tab=budget
+route: /budgets
 related_endpoints:
   - DELETE /api/v1/budget/budgets/{budget_id}
   - DELETE /api/v1/budget/budgets/{budget_id}/items/{item_id}

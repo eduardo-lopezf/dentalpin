@@ -1,7 +1,7 @@
 ---
 module: billing
 screen: list
-route: /finanzas?tab=billing
+route: /invoices
 related_endpoints:
   - DELETE /api/v1/billing/invoices/{invoice_id}
   - DELETE /api/v1/billing/invoices/{invoice_id}/items/{item_id}

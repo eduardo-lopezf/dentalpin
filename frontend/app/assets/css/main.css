@@ -264,6 +264,42 @@ body {
 }
 
 /* ============================================================================
+   Phone vs tablet — the navigation pattern
+
+   The same rule `useDevice().isPhone` applies, written as a media query:
+   a phone is a viewport whose *shorter* side is under 540 px, which does
+   not change when the device rotates. The sidebar used to switch to the
+   hamburger drawer below `md` (768 px), so a tablet held upright dropped
+   its icon rail and picked up the phone's navigation — the same
+   width-breakpoint mistake that once handed the agenda its phone screen.
+
+   In CSS rather than in the composable on purpose: `isPhone` is false
+   during SSR and the hydrating render, so driving `v-if` off it would
+   show a phone the full 240 px sidebar until hydration finished. A media
+   query is right from the first paint.
+
+   Unlayered, so these beat the Tailwind display utilities they override.
+   Keep the 540 px in step with `useDevice.ts`.
+   ============================================================================ */
+
+/* Base first: the phone override below has the same specificity, so
+   source order is what decides it. Declared the other way round the
+   content kept a 64 px left margin on a phone, against a sidebar that
+   was not there. */
+.sidebar-offset-collapsed { margin-left: 4rem; }
+.sidebar-offset-expanded { margin-left: 15rem; }
+
+@media (max-width: 539px), (max-height: 539px) {
+  .hide-on-phone { display: none; }
+  .sidebar-offset-collapsed,
+  .sidebar-offset-expanded { margin-left: 0; }
+}
+
+@media (min-width: 540px) and (min-height: 540px) {
+  .only-on-phone { display: none; }
+}
+
+/* ============================================================================
    Touch adaptation
 
    Keyed on pointer capability, never on viewport width or user-agent: a

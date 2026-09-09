@@ -84,8 +84,10 @@ async def test_active_shape_for_admin(client: AsyncClient, db_session: AsyncSess
     assert billing["version"] == "0.1.0"
     assert billing["category"] == "official"
     assert billing["summary"] == "Invoices, payments, credit notes, PDF billing."
-    # Admin sees every nav item the billing manifest declares.
-    assert any(item["to"] == "/invoices" for item in billing["navigation"])
+    # Admin sees every nav item the billing manifest declares. Billing no
+    # longer owns an "/invoices" entry: its list is a tab of the shared
+    # Finanzas page, and the entry it declares points there.
+    assert any(item["to"] == "/finanzas" for item in billing["navigation"])
     assert "billing.read" in billing["permissions"]
 
 
@@ -128,6 +130,58 @@ async def test_active_navigation_filtered_for_hygienist(
     # Reports require reports.billing.read, which hygienist lacks.
     reports_paths = {item["to"] for item in by_name["reports"]["navigation"]}
     assert "/reports" not in reports_paths
+
+
+@pytest.mark.asyncio
+async def test_shared_destination_is_emitted_once(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """A destination several modules declare is collapsed to one entry.
+
+    `payments`, `budget` and `billing` each declare the "Finanzas" entry
+    so that it survives while any one of them is installed and goes with
+    the last. Collapsing them belongs to this endpoint: a sidebar built
+    by a frontend that does not de-duplicate would otherwise render the
+    entry three times, which is what one did before this.
+    """
+    token = await _register_and_assign(
+        client, db_session, email="dup-active@example.com", role="admin"
+    )
+    await _reconcile(db_session)
+
+    response = await client.get(
+        "/api/v1/modules/-/active",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    payload = response.json()["data"]
+
+    contributors = [
+        module["name"]
+        for module in payload
+        for item in module["navigation"]
+        if item["to"] == "/finanzas"
+    ]
+    assert len(contributors) == 1, (
+        f"/finanzas must be emitted once, got {len(contributors)}: {contributors}"
+    )
+
+    # And all three are installed and still declare it — otherwise this
+    # test would pass simply because two of them had gone away.
+    declared = {
+        name
+        for name in ("payments", "budget", "billing")
+        if any(m["name"] == name for m in payload)
+    }
+    assert declared == {"payments", "budget", "billing"}
+
+    # No destination at all is emitted twice.
+    destinations = [
+        item["to"] for module in payload for item in module["navigation"]
+    ]
+    assert len(destinations) == len(set(destinations)), (
+        f"duplicate nav destinations: {destinations}"
+    )
 
 
 @pytest.mark.asyncio
