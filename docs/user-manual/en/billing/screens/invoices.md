@@ -45,9 +45,14 @@ last_verified_commit: 3568519
 > **Where it lives.** This screen is the **Invoices** tab of
 > **Finance**, in the sidebar right after Professionals. The old
 > `/invoices` address still works and redirects here.
+
 The operational invoice queue: drafts in progress, issued invoices,
 credit notes, voided documents. From here you search, filter, and
 open invoices to issue, email, or void them.
+
+> **On a tablet.** The list keeps its row layout in both landscape and
+> portrait. Only phones stack it into cards, so rotating the tablet does
+> not reorganise the information.
 
 ## At a glance
 

@@ -46,10 +46,15 @@ last_verified_commit: b1b82f5
 > **Where it lives.** This screen is the **Budgets** tab of
 > **Finance**, in the sidebar right after Professionals. The old
 > `/budgets` address still works and redirects here.
+
 The clinic's operational queue of budgets. Search by patient or
 number, filter by workflow status, payment state, validity, and
 assigned professional, sort, and open the detail to work each
 budget.
+
+> **On a tablet.** The list keeps its row layout in both landscape and
+> portrait. Only phones stack it into cards, so rotating the tablet does
+> not reorganise the information.
 
 ## At a glance
 

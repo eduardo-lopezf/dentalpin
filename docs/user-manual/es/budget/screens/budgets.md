@@ -46,10 +46,15 @@ last_verified_commit: b1b82f5
 > **Dónde está.** Esta pantalla es la pestaña **Presupuestos** de
 > **Finanzas**, en el menú lateral justo después de Profesionales.
 > La antigua dirección `/budgets` sigue funcionando y redirige aquí.
+
 Cola operativa de presupuestos de la clínica. Desde aquí buscas
 presupuestos por paciente o número, filtras por estado del flujo,
 estado de cobro, validez y profesional asignado, ordenas y abres el
 detalle para trabajar sobre cada uno.
+
+> **En tablet.** El listado conserva la disposición en filas tanto en
+> horizontal como en vertical. Solo los teléfonos lo apilan en tarjetas,
+> así que girar la tablet no reorganiza la información.
 
 ## De un vistazo
 

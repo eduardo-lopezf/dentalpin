@@ -22,6 +22,10 @@ screenshots:
 Muestra todos los pacientes activos de la clínica. Desde aquí puedes
 buscar, filtrar, abrir la ficha de un paciente o crear uno nuevo.
 
+> **En tablet.** El listado conserva la disposición en filas tanto en
+> horizontal como en vertical. Solo los teléfonos lo apilan en tarjetas,
+> así que girar la tablet no reorganiza la información.
+
 ## De un vistazo
 
 - **Vista por defecto:** solo pacientes activos. Los archivados quedan

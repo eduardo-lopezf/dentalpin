@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import type { ApiResponse, PaginatedResponse } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
@@ -40,18 +40,6 @@ const { t, locale } = useI18n()
 const api = useApi()
 const toast = useToast()
 const { can } = usePermissions()
-const config = useRuntimeConfig()
-
-// photo_url from the backend is a relative path (/api/v1/...) — fine for
-// $fetch/useApi calls, which prepend their own baseURL, but <img src>
-// has no such context and resolves relative paths against the current
-// page's own origin. Prepend the real API origin explicitly here.
-function resolvePhotoUrl(url: string | null | undefined): string | undefined {
-  if (!url) return undefined
-  if (/^https?:\/\//.test(url)) return url
-  const base = import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
-  return `${base}${url}`
-}
 
 if (!can(PERMISSIONS.professionals.read)) {
   await navigateTo('/')
@@ -76,6 +64,17 @@ const photoFileInputRef = ref<HTMLInputElement | null>(null)
 // a plain <img src> can't load it (no auth header, wrong origin). We
 // fetch it as a blob ourselves and hand the <img> an object URL instead.
 const modalPhotoSrc = ref<string | undefined>(undefined)
+
+// Portraits for the list and the profile card, keyed by professional id.
+// The /photo endpoint is Bearer-protected, so every one of these is a
+// blob fetch — an <img> cannot authenticate itself. One cache serves
+// both surfaces; revoked wholesale when the page's results change.
+const photoSrcById = ref<Record<string, string>>({})
+
+// Profile card state. Reading a professional is the common intent, so
+// this is what a row opens; editing is a button inside it.
+const profileOpen = ref(false)
+const profileProfessional = ref<Professional | null>(null)
 
 const form = reactive<ProfessionalForm>({
   first_name: '',
@@ -192,11 +191,53 @@ async function load() {
     )
     professionals.value = response.data
     total.value = response.total
+    void loadListPhotos()
   } catch (err) {
     error.value = err instanceof Error ? err.message : t('professionals.errors.load')
   } finally {
     isLoading.value = false
   }
+}
+
+/**
+ * Fetch the portraits for the page just loaded.
+ *
+ * Deliberately not awaited by `load()`: the directory is useful the
+ * moment the names arrive, and a portrait appearing a beat later is a
+ * better trade than a list that waits on twenty image requests. Failures
+ * are silent by design — a missing portrait falls back to initials,
+ * which is not worth a toast.
+ */
+async function loadListPhotos() {
+  for (const url of Object.values(photoSrcById.value)) URL.revokeObjectURL(url)
+  photoSrcById.value = {}
+
+  const withPhoto = professionals.value.filter(pro => pro.photo_url)
+  const loaded = await Promise.all(
+    withPhoto.map(async (pro) => {
+      try {
+        return [pro.id, await resolvePhotoBlobUrl(pro.photo_url as string)] as const
+      } catch {
+        return null
+      }
+    })
+  )
+  photoSrcById.value = Object.fromEntries(loaded.filter(Boolean) as (readonly [string, string])[])
+}
+
+onBeforeUnmount(() => {
+  for (const url of Object.values(photoSrcById.value)) URL.revokeObjectURL(url)
+})
+
+function openProfile(professional: Professional) {
+  profileProfessional.value = professional
+  profileOpen.value = true
+}
+
+/** From the profile card into the edit form, without a second click. */
+function editFromProfile(professional: Professional) {
+  profileOpen.value = false
+  openEdit(professional)
 }
 
 function openCreate() {
@@ -415,47 +456,57 @@ onMounted(async () => {
         v-for="professional in professionals"
         :key="professional.id"
       >
+        <!-- The whole row is one button: opening the profile is what a
+             click here means, and a real <button> gets keyboard focus and
+             the 44 px touch minimum for free. It replaces a pencil that
+             offered the rarer intent — editing — as the only thing a row
+             could do. -->
         <template #row>
-          <UAvatar
-            :src="professional.photo_url || undefined"
-            :alt="professional.full_name"
-            size="sm"
-          />
-          <div class="flex-1 min-w-0">
-            <p class="text-ui text-default truncate">
-              {{ professional.full_name }}
-            </p>
-            <p class="text-caption text-subtle truncate">
-              {{ specialtyLabel(professional) || labelForType(professional.professional_type) }}
-              <span v-if="professional.license_number"> · {{ t('professionals.licenseShort') }} {{ professional.license_number }}</span>
-            </p>
-          </div>
-          <span class="hidden lg:block text-caption text-subtle truncate max-w-52">
-            {{ professional.email || professional.phone || '—' }}
-          </span>
-          <UBadge
-            :color="professional.is_active ? 'success' : 'neutral'"
-            variant="subtle"
+          <button
+            type="button"
+            class="flex flex-1 items-center gap-[var(--density-gap,0.75rem)] min-w-0 text-left"
+            @click="openProfile(professional)"
           >
-            {{ t(professional.is_active ? 'professionals.status.active' : 'professionals.status.inactive') }}
-          </UBadge>
-          <UButton
-            v-if="can(PERMISSIONS.professionals.write)"
-            icon="i-lucide-pencil"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            :aria-label="t('professionals.edit')"
-            @click="openEdit(professional)"
-          />
+            <UAvatar
+              :src="photoSrcById[professional.id]"
+              :alt="professional.full_name"
+              size="md"
+            />
+            <div class="flex-1 min-w-0">
+              <p class="text-ui text-default truncate">
+                {{ professional.full_name }}
+              </p>
+              <p class="text-caption text-subtle truncate">
+                {{ specialtyLabel(professional) || labelForType(professional.professional_type) }}
+                <span v-if="professional.license_number"> · {{ t('professionals.licenseShort') }} {{ professional.license_number }}</span>
+              </p>
+            </div>
+            <span class="hidden lg:block text-caption text-subtle truncate max-w-52">
+              {{ professional.email || professional.phone || '—' }}
+            </span>
+            <UBadge
+              :color="professional.is_active ? 'success' : 'neutral'"
+              variant="subtle"
+            >
+              {{ t(professional.is_active ? 'professionals.status.active' : 'professionals.status.inactive') }}
+            </UBadge>
+            <UIcon
+              name="i-lucide-chevron-right"
+              class="h-4 w-4 shrink-0 text-subtle"
+            />
+          </button>
         </template>
 
         <template #card>
-          <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 text-left"
+            @click="openProfile(professional)"
+          >
             <UAvatar
-              :src="professional.photo_url || undefined"
+              :src="photoSrcById[professional.id]"
               :alt="professional.full_name"
-              size="md"
+              size="lg"
             />
             <div class="flex-1 min-w-0">
               <p class="font-medium text-default truncate">
@@ -471,19 +522,10 @@ onMounted(async () => {
             >
               {{ t(professional.is_active ? 'professionals.status.active' : 'professionals.status.inactive') }}
             </UBadge>
-          </div>
-          <div class="flex items-center justify-between gap-3 text-caption text-subtle">
-            <span class="truncate">{{ professional.email || professional.phone || '—' }}</span>
-            <UButton
-              v-if="can(PERMISSIONS.professionals.write)"
-              icon="i-lucide-pencil"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              :aria-label="t('professionals.edit')"
-              @click="openEdit(professional)"
-            />
-          </div>
+          </button>
+          <p class="text-caption text-subtle truncate">
+            {{ professional.email || professional.phone || '—' }}
+          </p>
         </template>
       </DataListItem>
     </template>
@@ -656,4 +698,12 @@ onMounted(async () => {
       </UCard>
     </template>
   </UModal>
+
+  <ProfessionalProfileModal
+    v-model:open="profileOpen"
+    :professional="profileProfessional"
+    :photo-src="profileProfessional ? photoSrcById[profileProfessional.id] : undefined"
+    :can-edit="can(PERMISSIONS.professionals.write)"
+    @edit="editFromProfile"
+  />
 </template>

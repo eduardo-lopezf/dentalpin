@@ -42,6 +42,10 @@
       "save": "No se pudo guardar el perfil. Inténtalo de nuevo.",
       "photoUpload": "No se pudo subir la foto. Inténtalo de nuevo."
     },
-    "specialtyPlaceholder": "Selecciona una o varias"
+    "specialtyPlaceholder": "Selecciona una o varias",
+    "profile": {
+      "access": "Acceso al sistema",
+      "noAccess": "Sin acceso"
+    }
   }
 }

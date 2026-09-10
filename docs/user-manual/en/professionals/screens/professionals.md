@@ -22,11 +22,27 @@ The directory lists active dentists and collaborators by default. Search by
 name, specialty or professional-license number; select a profile type or show
 inactive profiles when needed.
 
+> **On a tablet.** The list keeps its row layout in both landscape and
+> portrait. Only phones stack it into cards, so rotating the tablet does
+> not reorganise the information.
+
+## View a profile
+
+Select any row to open the **professional's card**: the portrait at size, the
+profile type, the status and the disciplines they practise, and below them a
+mosaic of tiles with the licence number, email, phone and whether they have
+system access. Email and phone are links — selecting one opens the mail client
+or the dialler.
+
+The card answers the usual question, who is this person, without entering edit
+mode. To change anything, use **Edit profile** from inside the card.
+
 ## Add or edit a profile
 
 > Creating and editing requires `professionals.write`.
 
-1. Select **Add professional**, or use the pencil on an existing row.
+1. Select **Add professional**, or open an existing professional's card
+   and choose **Edit profile**.
 2. Enter name and profile type. Add specialty, professional license, photo URL
    and contact fields as needed.
 3. Use **Active** to retain a former collaborator in the directory without

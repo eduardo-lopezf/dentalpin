@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- feat(ui): a row opens the professional's card instead of the edit form.
+  The pencil is gone: the whole row is one button, so the common intent —
+  finding out who someone is — is what a click answers, and editing is a
+  deliberate step inside the card. Being a real `<button>` it also takes
+  keyboard focus and the 44 px touch minimum without extra markup.
+
+  The card is a read-first presentation: a 96 px portrait against a
+  tinted band, the profile type, status and disciplines as chips, and a
+  mosaic of tiles below with licence, email, phone and system access.
+  Email and phone are links. Tiles are only built for facts the profile
+  actually has, so a sparse record reads as a short card rather than a
+  grid of dashes.
+
+- fix(ui): portraits now appear in the directory. The list rendered
+  `photo_url` straight into `<img src>`, which can never work — the
+  `/photo` endpoint requires a Bearer header an `<img>` cannot send, so
+  every row fell back to initials. The list now fetches them as blobs
+  through the same helper the edit form already used, revoking the object
+  URLs when the results change or the page unmounts.
+
+  Removed `resolvePhotoUrl` with it: it prepended the API origin, which
+  does nothing about the missing header, and sat next to the loader that
+  works. Lint had been flagging it as unused since it was written.
+
 - fix(privacy): classified this module's personal columns with `pii()`
   so the copilot's PHI boundary derives them from the schema instead of a
   hand-kept list ([ADR 0025](../../../../docs/adr/0025-pii-is-classified-on-the-column.md)).

@@ -22,6 +22,10 @@ screenshots:
 Lists every active patient in the clinic. From here you can search,
 filter, open a patient's detail page, or create a new patient.
 
+> **On a tablet.** The list keeps its row layout in both landscape and
+> portrait. Only phones stack it into cards, so rotating the tablet does
+> not reorganise the information.
+
 ## At a glance
 
 - **Default view:** active patients only. Archived patients are hidden;

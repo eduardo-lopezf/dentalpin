@@ -21,6 +21,15 @@ decides nothing.**
 | Should this board stack? | `useDevice().isPortrait` | pointer kind |
 | Which browser is this? | `useDevice().browser` — **diagnostics only** | — |
 
+**Where the rule is applied.** Three places share it, and they must stay
+in step: `useDevice().isPhone` for anything a composable decides, and the
+`hide-on-phone` / `only-on-phone` pair in `main.css` for anything that
+must be right before hydration. The CSS pair drives the sidebar (rail vs
+drawer) and `DataListItem` (row vs card), which is what every list in the
+app renders through — patients, professionals, payments, budgets and
+invoices. Both used to split at `md` (768 px), so a tablet held upright
+lost the rail *and* reshaped all five lists at once.
+
 **`isPhone`, not a width breakpoint.** A tablet held upright reports
 fewer than 768 CSS px, so a `max-width` test calls it a phone the moment
 it is rotated — which is exactly how the agenda came to serve its

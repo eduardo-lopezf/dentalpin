@@ -22,11 +22,28 @@ El directorio muestra por defecto los dentistas y colaboradores activos.
 Puedes buscar por nombre, especialidad o cédula profesional, filtrar por tipo
 de perfil y mostrar también los inactivos.
 
+> **En tablet.** El listado conserva la disposición en filas tanto en
+> horizontal como en vertical. Solo los teléfonos lo apilan en tarjetas,
+> así que girar la tablet no reorganiza la información.
+
+## Ver un perfil
+
+Selecciona cualquier fila del listado para abrir la **ficha del profesional**:
+el retrato en grande, el tipo de perfil, el estado y las especialidades que
+ejerce, y debajo un mosaico con la cédula, el correo, el teléfono y si tiene
+acceso al sistema. El correo y el teléfono son enlaces: al pulsarlos se abre
+el cliente de correo o la marcación.
+
+La ficha responde a la pregunta habitual — quién es esta persona — sin entrar
+a modificar nada. Para cambiar los datos, usa **Editar perfil** dentro de la
+propia ficha.
+
 ## Crear o editar un perfil
 
 > Para crear y editar se requiere `professionals.write`.
 
-1. Selecciona **Añadir profesional** o el lápiz de una fila existente.
+1. Selecciona **Añadir profesional**, o abre la ficha de un profesional
+   existente y pulsa **Editar perfil**.
 2. Indica nombre y tipo de perfil. Completa especialidad, cédula, URL de la
    foto y datos de contacto según corresponda.
 3. Usa **Activo** para conservar un colaborador que ya no ejerce en la clínica

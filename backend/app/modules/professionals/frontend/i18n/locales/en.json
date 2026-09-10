@@ -42,6 +42,10 @@
       "save": "The profile could not be saved. Please try again.",
       "photoUpload": "The photo could not be uploaded. Please try again."
     },
-    "specialtyPlaceholder": "Select one or more"
+    "specialtyPlaceholder": "Select one or more",
+    "profile": {
+      "access": "System access",
+      "noAccess": "No access"
+    }
   }
 }

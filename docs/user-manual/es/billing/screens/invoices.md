@@ -45,9 +45,14 @@ last_verified_commit: 3568519
 > **Dónde está.** Esta pantalla es la pestaña **Facturas** de
 > **Finanzas**, en el menú lateral justo después de Profesionales.
 > La antigua dirección `/invoices` sigue funcionando y redirige aquí.
+
 Cola operativa de facturas: borradores en preparación, facturas
 emitidas, abonos, anuladas. Desde aquí se buscan, filtran y abren
 para emitir, enviar por email o anular.
+
+> **En tablet.** El listado conserva la disposición en filas tanto en
+> horizontal como en vertical. Solo los teléfonos lo apilan en tarjetas,
+> así que girar la tablet no reorganiza la información.
 
 ## De un vistazo
 

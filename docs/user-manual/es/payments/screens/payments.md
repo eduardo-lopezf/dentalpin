@@ -38,10 +38,15 @@ last_verified_commit: 3568519
 > **Dónde está.** Esta pantalla es la pestaña **Cobros** de
 > **Finanzas**, en el menú lateral justo después de Profesionales.
 > La antigua dirección `/payments` sigue funcionando y redirige aquí.
+
 Caja operativa de la clínica. Cada fila es un cobro recibido del
 paciente, con su importe bruto, las asignaciones a presupuestos o
 *a cuenta*, y el importe reembolsado si lo hay. Desde aquí se
 registra un cobro nuevo, se reasigna o se emite un reembolso.
+
+> **En tablet.** El listado conserva la disposición en filas tanto en
+> horizontal como en vertical. Solo los teléfonos lo apilan en tarjetas,
+> así que girar la tablet no reorganiza la información.
 
 ## De un vistazo
 
