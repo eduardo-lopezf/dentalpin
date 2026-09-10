@@ -1,25 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import type { ApiResponse, PaginatedResponse } from '~~/app/types'
+import type { ApiResponse, PaginatedResponse, Professional } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
-type ProfessionalType = 'dentist' | 'collaborator'
-
-interface Professional {
-  id: string
-  first_name: string
-  last_name: string
-  full_name: string
-  professional_type: ProfessionalType
-  specialties: { id: string, names: Record<string, string> }[]
-  license_number: string | null
-  email: string | null
-  phone: string | null
-  photo_url: string | null
-  notes: string | null
-  is_active: boolean
-  has_system_access: boolean
-}
+// The form offers exactly what the directory can hold, so this follows the
+// shared type rather than restating it: a local copy is what let the page
+// drift out of step with the backend's three values in the first place.
+type ProfessionalType = Professional['professional_type']
 
 interface ProfessionalForm {
   first_name: string
@@ -89,8 +76,12 @@ const form = reactive<ProfessionalForm>({
   is_active: true
 })
 
+// Clinical types first, then the non-clinical one — the order the backend's
+// `ProfessionalType` literal uses. These feed both the create/edit select and
+// the list filter.
 const typeOptions = computed(() => [
   { label: t('professionals.types.dentist'), value: 'dentist' },
+  { label: t('professionals.types.hygienist'), value: 'hygienist' },
   { label: t('professionals.types.collaborator'), value: 'collaborator' }
 ])
 
@@ -291,7 +282,10 @@ async function save() {
   }
 }
 
-function labelForType(type: ProfessionalType) {
+// Takes the directory's full set, not the form's: this labels rows that
+// come back from the API, and a hygienist created elsewhere is one of
+// them. Both locales already carry `professionals.types.hygienist`.
+function labelForType(type: Professional['professional_type']) {
   return t(`professionals.types.${type}`)
 }
 

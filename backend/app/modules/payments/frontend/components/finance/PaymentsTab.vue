@@ -158,6 +158,23 @@ const showCreate = ref(false)
 const showRefund = ref(false)
 const refundTarget = ref<PaymentRecord | null>(null)
 
+// A payment has no detail page to navigate to, so the row opens a card.
+// Four of the five money lists already opened something on tap; this one
+// answering nothing was only discoverable by trying.
+const detailOpen = ref(false)
+const detailPayment = ref<PaymentRecord | null>(null)
+
+function openDetail(p: PaymentRecord) {
+  detailPayment.value = p
+  detailOpen.value = true
+}
+
+/** From the card into the refund flow, without a second hunt for the row. */
+function refundFromDetail(p: PaymentRecord) {
+  detailOpen.value = false
+  openRefund(p)
+}
+
 function openRefund(p: PaymentRecord) {
   refundTarget.value = p
   showRefund.value = true
@@ -325,54 +342,63 @@ function formatDate(s: string | undefined): string {
         v-for="p in payments"
         :key="p.id"
       >
+        <!-- The informational part of the row is one button; the refund
+             action stays a sibling, since a button cannot nest inside a
+             button and the two intents are different. -->
         <template #row>
-          <div class="shrink-0">
-            <UAvatar
-              :alt="p.patient?.first_name ?? '?'"
-              size="sm"
-            />
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="text-ui text-default flex items-center gap-2 flex-wrap">
-              {{ patientName(p.patient) }}
+          <button
+            type="button"
+            class="flex flex-1 items-center gap-[var(--density-gap,0.75rem)] min-w-0 text-left"
+            @click="openDetail(p)"
+          >
+            <div class="shrink-0">
+              <UAvatar
+                :alt="p.patient?.first_name ?? '?'"
+                size="sm"
+              />
             </div>
-            <div class="text-caption text-subtle flex items-center gap-2 flex-wrap">
-              <span>{{ formatDate(p.payment_date) }}</span>
-              <span class="inline-flex items-center gap-1">
-                <UIcon
-                  :name="methodIcon(p.method)"
-                  class="w-3.5 h-3.5"
-                />
-                {{ t(`payments.methods.${p.method}`) }}
-              </span>
+            <div class="flex-1 min-w-0">
+              <div class="text-ui text-default flex items-center gap-2 flex-wrap">
+                {{ patientName(p.patient) }}
+              </div>
+              <div class="text-caption text-subtle flex items-center gap-2 flex-wrap">
+                <span>{{ formatDate(p.payment_date) }}</span>
+                <span class="inline-flex items-center gap-1">
+                  <UIcon
+                    :name="methodIcon(p.method)"
+                    class="w-3.5 h-3.5"
+                  />
+                  {{ t(`payments.methods.${p.method}`) }}
+                </span>
+                <span
+                  v-if="p.reference"
+                  class="truncate max-w-[160px]"
+                  :title="p.reference"
+                >· {{ p.reference }}</span>
+              </div>
+            </div>
+            <div class="shrink-0 hidden sm:flex flex-col items-end gap-0.5 max-w-[200px]">
               <span
-                v-if="p.reference"
-                class="truncate max-w-[160px]"
-                :title="p.reference"
-              >· {{ p.reference }}</span>
+                v-for="a in allocationBreakdown(p)"
+                :key="a.label"
+                class="text-caption text-subtle tnum"
+              >
+                {{ a.amount }} <span class="opacity-60">· {{ a.label }}</span>
+              </span>
             </div>
-          </div>
-          <div class="shrink-0 hidden sm:flex flex-col items-end gap-0.5 max-w-[200px]">
-            <span
-              v-for="a in allocationBreakdown(p)"
-              :key="a.label"
-              class="text-caption text-subtle tnum"
-            >
-              {{ a.amount }} <span class="opacity-60">· {{ a.label }}</span>
-            </span>
-          </div>
-          <div class="shrink-0 text-right min-w-[100px]">
-            <Money
-              :value="p.amount"
-              strong
-            />
-            <div
-              v-if="Number(p.refunded_total) > 0"
-              class="text-caption text-danger tnum"
-            >
-              − {{ formatCurrency(p.refunded_total) }}
+            <div class="shrink-0 text-right min-w-[100px]">
+              <Money
+                :value="p.amount"
+                strong
+              />
+              <div
+                v-if="Number(p.refunded_total) > 0"
+                class="text-caption text-danger tnum"
+              >
+                − {{ formatCurrency(p.refunded_total) }}
+              </div>
             </div>
-          </div>
+          </button>
           <UButton
             v-if="can(PERMISSIONS.payments.recordRefund) && Number(p.net_amount) > 0"
             variant="soft"
@@ -386,32 +412,38 @@ function formatDate(s: string | undefined): string {
         </template>
 
         <template #card>
-          <div class="flex items-center justify-between gap-2">
-            <div class="min-w-0 flex-1">
-              <div class="font-medium text-default truncate">
-                {{ patientName(p.patient) }}
+          <button
+            type="button"
+            class="w-full text-left"
+            @click="openDetail(p)"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="font-medium text-default truncate">
+                  {{ patientName(p.patient) }}
+                </div>
+                <div class="text-caption text-subtle truncate flex items-center gap-1">
+                  <UIcon
+                    :name="methodIcon(p.method)"
+                    class="w-3.5 h-3.5"
+                  />
+                  {{ formatDate(p.payment_date) }} · {{ t(`payments.methods.${p.method}`) }}
+                </div>
               </div>
-              <div class="text-caption text-subtle truncate flex items-center gap-1">
-                <UIcon
-                  :name="methodIcon(p.method)"
-                  class="w-3.5 h-3.5"
+              <div class="text-right shrink-0">
+                <Money
+                  :value="p.amount"
+                  strong
                 />
-                {{ formatDate(p.payment_date) }} · {{ t(`payments.methods.${p.method}`) }}
+                <div
+                  v-if="Number(p.refunded_total) > 0"
+                  class="text-caption text-danger tnum"
+                >
+                  − {{ formatCurrency(p.refunded_total) }}
+                </div>
               </div>
             </div>
-            <div class="text-right shrink-0">
-              <Money
-                :value="p.amount"
-                strong
-              />
-              <div
-                v-if="Number(p.refunded_total) > 0"
-                class="text-caption text-danger tnum"
-              >
-                − {{ formatCurrency(p.refunded_total) }}
-              </div>
-            </div>
-          </div>
+          </button>
           <div
             v-if="allocationBreakdown(p).length"
             class="flex flex-wrap gap-1"
@@ -448,6 +480,12 @@ function formatDate(s: string | undefined): string {
   <PaymentCreateModal
     v-model:open="showCreate"
     @created="handleCreated"
+  />
+
+  <PaymentDetailModal
+    v-model:open="detailOpen"
+    :payment="detailPayment"
+    @refund="refundFromDetail"
   />
 
   <RefundConfirmModal

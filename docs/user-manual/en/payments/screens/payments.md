@@ -48,6 +48,11 @@ reallocate it, or issue a refund from the same screen.
 > portrait. Only phones stack it into cards, so rotating the tablet does
 > not reorganise the information.
 
+
+> **Selecting a row** opens that payment's card: gross, refunded and net,
+> the allocations to a budget or *on account*, the method, date,
+> reference and who recorded it. Refunding is available from there too.
+
 ## At a glance
 
 - **Patient-centric, not invoice-centric.** Every payment belongs to

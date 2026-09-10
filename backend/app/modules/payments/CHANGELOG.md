@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- feat(ui): a row in the payments list opens a card for that payment.
+  Four of the five money lists already opened something on tap and this
+  one answered nothing, which on a tablet is only discoverable by
+  trying — there is no cursor to change shape over a dead row. A payment
+  has no detail page to navigate to, so the card is the answer: gross,
+  refunded and net, the allocations, the method, date, reference and who
+  recorded it. Refunding is a button inside it, and the row keeps its own
+  refund button for the one-click path.
+
+  Off-books boundary respected: gross, allocations and refunded total
+  only, never an invoiced-vs-paid diff (ADR 0010).
+
+  It renders the `payments.detail.*` keys, which were already in both
+  locale files and unused except for `refund` — this is the surface they
+  were written for.
+
 - feat(ui): Cobros no longer has a sidebar entry of its own. Cobros,
   Presupuestos and Facturas are now the three tabs of a single
   **Finanzas** entry, placed after Profesionales, in that order. This

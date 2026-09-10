@@ -48,6 +48,11 @@ registra un cobro nuevo, se reasigna o se emite un reembolso.
 > horizontal como en vertical. Solo los teléfonos lo apilan en tarjetas,
 > así que girar la tablet no reorganiza la información.
 
+
+> **Al tocar una fila** se abre la ficha del cobro: importe, devuelto y
+> neto, las asignaciones a presupuesto o *a cuenta*, el método, la fecha,
+> la referencia y quién lo registró. Desde ahí también se puede devolver.
+
 ## De un vistazo
 
 - **Visión por paciente, no por factura.** Cada cobro pertenece a

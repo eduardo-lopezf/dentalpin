@@ -13,23 +13,7 @@
  * with the Bearer header the endpoint requires — an `<img>` cannot send
  * one itself. Without it, initials.
  */
-interface Specialty {
-  id: string
-  names: Record<string, string>
-}
-
-interface Professional {
-  id: string
-  full_name: string
-  professional_type: 'dentist' | 'collaborator'
-  specialties: Specialty[]
-  license_number: string | null
-  email: string | null
-  phone: string | null
-  notes: string | null
-  is_active: boolean
-  has_system_access: boolean
-}
+import type { Professional } from '~~/app/types'
 
 const props = defineProps<{
   open: boolean
