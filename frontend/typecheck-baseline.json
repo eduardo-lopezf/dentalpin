@@ -1,5 +1,5 @@
 {
-  "total": 180,
+  "total": 173,
   "errors": {
     "app/components/shared/PatientSearch.vue|TS2345|Argument of type 'undefined | undefined; ... N more ...; updated_at: string; } | undefined; date_of_birth?: string | undefined; email?: string | undefined; notes?: string | { id: string; clinic_id: string; first_name: string; last_name: string; phone?: string' is not assignable to parameter of type 'Patient'.": 1,
     "app/components/shared/PlannedTreatmentSelector.vue|TS18048|'tooth' is possibly 'undefined'.": 3,
@@ -96,15 +96,9 @@
     "backend/app/modules/treatment_plan/frontend/components/clinical/modals/ContactLogModal.vue|TS2322|Type 'string' is not assignable to type '\"call\" | \"email\" | \"in_person\" | \"other\" | \"whatsapp\" | undefined'.": 1,
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue|TS2339|Property 'closed_at' does not exist on type 'TreatmentPlanDetail'.": 1,
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue|TS2339|Property 'closure_reason' does not exist on type 'TreatmentPlanDetail'.": 1,
-    "backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue|TS2367|This comparison appears to be unintentional because the types '\"archived\" | \"cancelled\" | \"completed\"' and '\"pending\"' have no overlap.": 1,
-    "backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue|TS2367|This comparison appears to be unintentional because the types 'TreatmentPlanStatus' and '\"closed\"' have no overlap.": 1,
-    "backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue|TS2367|This comparison appears to be unintentional because the types 'TreatmentPlanStatus' and '\"pending\"' have no overlap.": 2,
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlanItemDoctorChip.vue|TS2345|Argument of type '\"collaborator\"; ... N more ...; readonly has_system_access: boolean; } | \"hygienist\" | { readonly id: string; readonly first_name: string; readonly last_name: string; readonly full_name: string; readonly professional_type: \"dentist\"' is not assignable to parameter of type 'Professional'.": 4,
-    "backend/app/modules/treatment_plan/frontend/components/clinical/PlansListView.vue|TS2367|This comparison appears to be unintentional because the types 'TreatmentPlanStatus' and '\"closed\"' have no overlap.": 1,
-    "backend/app/modules/treatment_plan/frontend/components/clinical/PlansListView.vue|TS2367|This comparison appears to be unintentional because the types 'TreatmentPlanStatus' and '\"pending\"' have no overlap.": 1,
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue|TS2339|Property 'notes' does not exist on type 'TreatmentBrief'.": 2,
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue|TS2367|This comparison appears to be unintentional because the types 'ClinicalType | undefined' and '\"migrated\"' have no overlap.": 1,
-    "backend/app/modules/treatment_plan/frontend/components/summary/PlanCard.vue|TS2367|This comparison appears to be unintentional because the types 'TreatmentPlanStatus' and '\"pending\"' have no overlap.": 1,
     "backend/app/modules/treatment_plan/frontend/components/treatment-plans/PipelineTabPanel.vue|TS2322|Type 'string' is not assignable to type '\"error\" | \"info\" | \"neutral\" | \"primary\" | \"secondary\" | \"success\" | \"warning\" | undefined'.": 1,
     "backend/app/modules/treatment_plan/frontend/components/treatment-plans/TreatmentPlanDetail.vue|TS2322|Type 'string' is not assignable to type '\"error\" | \"info\" | \"neutral\" | \"primary\" | \"secondary\" | \"success\" | \"warning\" | undefined'.": 1,
     "backend/app/modules/treatment_plan/frontend/components/treatment-plans/TreatmentPlanModal.vue|TS2353|Object literal may only specify known properties, and 'width' does not exist in type '{ overlay?: SlotClass; content?: SlotClass; header?: SlotClass; wrapper?: SlotClass; body?: SlotClass; footer?: SlotClass; title?: SlotClass; description?: SlotClass; close?: SlotClass; }'.": 1,

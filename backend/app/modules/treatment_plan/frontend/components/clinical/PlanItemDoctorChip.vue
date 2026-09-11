@@ -268,6 +268,22 @@ function openPicker() {
   font-size: 12px;
 }
 
+/* The global 44 px minimum in `main.css` gives this chip its height but
+   not its width: the `min-width` half is scoped to icon-only controls,
+   tested as "no non-empty <span> child", and the initials live in
+   exactly such a span. So the chip came out 24x44 under a finger.
+   Sized here on the pointer rather than on `is-mobile`, which is a
+   width check (`innerWidth < 640`) and so misses a 1280 px tablet —
+   the axis ADR 0022 exists to correct. */
+@media (pointer: coarse) {
+  .plan-item-doctor-chip,
+  .plan-item-doctor-chip.is-mobile {
+    width: 44px;
+    height: 44px;
+    font-size: 13px;
+  }
+}
+
 .plan-item-doctor-chip.is-empty {
   background-color: var(--color-surface-muted, #f3f4f6);
   color: var(--color-warning-accent, #ca8a04);

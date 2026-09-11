@@ -25,15 +25,16 @@ async function awaitDetection(page: Page): Promise<void> {
 }
 
 /**
- * Count interactive controls that are visible, outside a `data-dense`
- * surface, and smaller than the 44 px the design system requires.
+ * Describe the interactive controls that are visible, outside a
+ * `data-dense` surface, and smaller than the 44 px the design system
+ * requires. Empty means the screen passes.
  *
  * Dense surfaces (calendar grids, the periodontal chart) are excluded
  * deliberately: they opt out of the touch minimums because their cells
  * are units of time or anatomy, not buttons, and they get purpose-built
  * touch interactions instead of bigger boxes.
  */
-async function countUndersizedTargets(page: Page): Promise<number> {
+async function countUndersizedTargets(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const selector = [
       'button',
@@ -47,7 +48,10 @@ async function countUndersizedTargets(page: Page): Promise<number> {
       '[role="slider"]'
     ].join(',')
 
-    let undersized = 0
+    // Named, not counted: "expected 0, received 1" says nothing about
+    // which control is small, and the whole point of a failure here is to
+    // go and resize that one control.
+    const undersized: string[] = []
     for (const el of document.querySelectorAll(selector)) {
       // The Nuxt devtools anchor is dev-server furniture, not our UI.
       if (el.closest('#nuxt-devtools-anchor,#nuxt-devtools-container')) continue
@@ -58,7 +62,16 @@ async function countUndersizedTargets(page: Page): Promise<number> {
       if (rect.bottom < 0 || rect.top > window.innerHeight) continue
       if (rect.right < 0 || rect.left > window.innerWidth) continue
 
-      if (rect.width < 44 || rect.height < 44) undersized++
+      if (rect.width < 44 || rect.height < 44) {
+        const label = el.getAttribute('aria-label')
+          || (el.textContent || '').trim().slice(0, 40)
+          || '(no label)'
+        undersized.push(
+          `${el.tagName.toLowerCase()} "${label}" `
+          + `${Math.round(rect.width)}x${Math.round(rect.height)} `
+          + `[${(el.getAttribute('class') || '').slice(0, 60)}]`
+        )
+      }
     }
     return undersized
   })
@@ -98,7 +111,7 @@ test.describe('touch adaptation', () => {
       await expect(page.locator('main')).toBeVisible()
       await page.waitForTimeout(2000)
 
-      expect(await countUndersizedTargets(page), `undersized targets on ${route}`).toBe(0)
+      expect(await countUndersizedTargets(page), `undersized targets on ${route}`).toEqual([])
     }
   })
 
@@ -178,7 +191,7 @@ test.describe('touch adaptation', () => {
     await expect(page.locator('main')).toBeVisible()
     await page.waitForTimeout(2000)
 
-    expect(await countUndersizedTargets(page), 'undersized targets on the plan detail').toBe(0)
+    expect(await countUndersizedTargets(page), 'undersized targets on the plan detail').toEqual([])
   })
 
   /**
@@ -221,7 +234,7 @@ test.describe('touch adaptation', () => {
     expect(
       await countUndersizedTargets(page),
       'undersized targets in the accept-in-clinic dialog'
-    ).toBe(0)
+    ).toEqual([])
   })
 
   /**

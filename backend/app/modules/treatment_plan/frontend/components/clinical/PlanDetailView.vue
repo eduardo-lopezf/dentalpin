@@ -9,7 +9,7 @@
  * - Two-column layout on larger screens
  */
 
-import type { DropdownMenuItem } from '@nuxt/ui'
+import type { BadgeProps, DropdownMenuItem } from '@nuxt/ui'
 import type { TreatmentPhase, TreatmentPlanDetail } from '~~/app/types'
 import { phaseLabelKey, phaseRank } from '~~/app/config/treatmentPhases'
 
@@ -190,7 +190,12 @@ const {
   fetchHistory
 } = usePlanHistory()
 
-const HISTORY_COLORS: Record<string, string> = {
+// Derived from the badge's own prop rather than restated as a string: the
+// palette is Nuxt UI's, and a plain `string` here is what let a typo reach
+// the template.
+type HistoryColor = BadgeProps['color']
+
+const HISTORY_COLORS: Record<string, HistoryColor> = {
   confirmed: 'info',
   started: 'success',
   completed: 'success',
@@ -202,7 +207,7 @@ const HISTORY_COLORS: Record<string, string> = {
   item_removed: 'neutral'
 }
 
-function historyColor(action: string): string {
+function historyColor(action: string): HistoryColor {
   return HISTORY_COLORS[action] || 'neutral'
 }
 
