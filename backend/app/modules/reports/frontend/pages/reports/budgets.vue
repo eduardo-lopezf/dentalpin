@@ -168,6 +168,7 @@ function goBack() {
         <UFormField :label="t('reports.billing.period')">
           <USelectMenu
             v-model="selectedRange"
+            :aria-label="t('reports.billing.period')"
             :items="dateRangeOptions"
             value-key="value"
             class="w-48"

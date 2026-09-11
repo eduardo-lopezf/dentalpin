@@ -786,7 +786,7 @@
       "steps": {
         "plan": "Planificar",
         "confirm": "Confirmar",
-        "inProgress": "En curso"
+        "inProgress": "En tratamiento"
       },
       "confirmCta": {
         "titleWithItems": "Confirmar plan",
@@ -1337,6 +1337,8 @@
     "save": "Guardar",
     "add": "Añadir",
     "cancel": "Cancelar",
+    "clear": "Borrar",
+    "clearSearch": "Limpiar búsqueda",
     "close": "Cerrar",
     "delete": "Eliminar",
     "comingSoon": "Próximamente",
@@ -1728,6 +1730,7 @@
     "view": "Ver plan",
     "delete": "Eliminar plan",
     "noItems": "Este plan no tiene tratamientos",
+    "noSearchResults": "Ningún plan coincide con la búsqueda",
     "noPlans": "Este paciente no tiene planes de tratamiento",
     "noPlansHint": "Marca tratamientos en el odontograma y crea un plan para organizarlos",
     "createFirst": "Crear primer plan",
@@ -1754,7 +1757,7 @@
     "scheduleAppointment": "Programar cita",
     "status": {
       "draft": "Borrador",
-      "pending": "Pendiente",
+      "pending": "En curso",
       "active": "Activo",
       "completed": "Completado",
       "closed": "Cerrado",
@@ -1943,18 +1946,35 @@
         "noteLabel": "Nota (opcional)",
         "submit": "Registrar"
       }
+    },
+    "history": {
+      "title": "Historial de cambios",
+      "empty": "Todavía no hay cambios registrados.",
+      "system": "Sistema",
+      "actions": {
+        "confirmed": "Confirmado",
+        "started": "En tratamiento",
+        "completed": "Completado",
+        "reopened": "Reabierto",
+        "reassigned": "Reasignado",
+        "closed": "Cerrado",
+        "reactivated": "Reactivado",
+        "item_added": "Tratamiento añadido",
+        "item_removed": "Tratamiento eliminado"
+      }
     }
   },
   "pipeline": {
     "title": "Bandeja de planes",
     "description": "Gestiona la pipeline comercial de tratamientos.",
     "tabs": {
+      "en_curso": "En curso",
       "por_presupuestar": "Por presupuestar",
       "esperando_paciente": "Esperando paciente",
       "sin_cita": "Sin cita",
       "sin_proxima_cita": "Sin próxima cita",
       "cerrados": "Cerrados",
-      "listado": "Listado"
+      "listado": "Todos"
     },
     "row": {
       "patient": "Paciente",

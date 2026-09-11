@@ -23,12 +23,15 @@ const progress = computed(() => {
   return Math.round((completedCount.value / totalCount.value) * 100)
 })
 
-// Status badge color mapping
+// Status badge color mapping. Kept in step with the backend state
+// machine: `pending` and `closed` were missing and `cancelled` — which
+// no plan row holds — was standing in for them.
 const statusColors: Record<TreatmentPlanStatus, 'success' | 'warning' | 'neutral' | 'info' | 'error'> = {
+  draft: 'neutral',
+  pending: 'info',
   active: 'success',
-  draft: 'warning',
   completed: 'info',
-  cancelled: 'error',
+  closed: 'error',
   archived: 'neutral'
 }
 

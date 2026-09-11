@@ -328,12 +328,22 @@ function collect() {
       />
 
       <main class="w-full min-w-0">
+        <!-- The strip scrolls sideways instead of squeezing. Six tabs
+             with icons do not fit across a tablet held upright: Nuxt UI
+             shares the width out and every label collapses to an
+             ellipsis ("Res…", "Admini…", "G…"), which is worse than
+             having to swipe. Only the list scrolls — the panels below
+             keep `overflow-visible`, which sticky children rely on. -->
         <UTabs
           v-model="activeTab"
           :items="tabs"
           default-value="summary"
           class="w-full"
-          :ui="{ content: 'overflow-visible' }"
+          :ui="{
+            content: 'overflow-visible',
+            list: 'overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            trigger: 'shrink-0'
+          }"
         >
           <!-- Resumen — smart-card grid + clinical-notes feed.
                The whole Resumen body is slot-driven; modules register

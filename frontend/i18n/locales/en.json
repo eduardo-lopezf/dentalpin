@@ -786,7 +786,7 @@
       "steps": {
         "plan": "Plan",
         "confirm": "Confirm",
-        "inProgress": "In progress"
+        "inProgress": "In treatment"
       },
       "confirmCta": {
         "titleWithItems": "Confirm plan",
@@ -1336,6 +1336,8 @@
     "save": "Save",
     "add": "Add",
     "cancel": "Cancel",
+    "clear": "Clear",
+    "clearSearch": "Clear search",
     "close": "Close",
     "delete": "Delete",
     "comingSoon": "Coming soon",
@@ -1728,6 +1730,7 @@
     "view": "View plan",
     "delete": "Delete plan",
     "noItems": "This plan has no treatments",
+    "noSearchResults": "No plans match your search",
     "noPlans": "This patient has no treatment plans",
     "noPlansHint": "Mark treatments on the dental chart and create a plan to organize them",
     "createFirst": "Create first plan",
@@ -1754,7 +1757,7 @@
     "scheduleAppointment": "Schedule appointment",
     "status": {
       "draft": "Draft",
-      "pending": "Pending",
+      "pending": "In progress",
       "active": "Active",
       "completed": "Completed",
       "closed": "Closed",
@@ -1943,18 +1946,35 @@
         "noteLabel": "Note (optional)",
         "submit": "Log"
       }
+    },
+    "history": {
+      "title": "Change log",
+      "empty": "No changes recorded yet.",
+      "system": "System",
+      "actions": {
+        "confirmed": "Confirmed",
+        "started": "In treatment",
+        "completed": "Completed",
+        "reopened": "Reopened",
+        "reassigned": "Reassigned",
+        "closed": "Closed",
+        "reactivated": "Reactivated",
+        "item_added": "Treatment added",
+        "item_removed": "Treatment removed"
+      }
     }
   },
   "pipeline": {
     "title": "Plans pipeline",
     "description": "Manage the treatment pipeline.",
     "tabs": {
+      "en_curso": "In progress",
       "por_presupuestar": "To quote",
       "esperando_paciente": "Awaiting patient",
       "sin_cita": "No appointment",
       "sin_proxima_cita": "No next appointment",
       "cerrados": "Closed",
-      "listado": "List"
+      "listado": "All"
     },
     "row": {
       "patient": "Patient",

@@ -21,6 +21,7 @@ from .models import (
     PlanTemplate,
     PlanTemplateItem,
     TreatmentPlan,
+    TreatmentPlanHistory,
 )
 from .owner_resolvers import register as _register_attachment_owners
 from .router import router
@@ -95,6 +96,7 @@ class TreatmentPlanModule(BaseModule):
             PlannedTreatmentItem,
             PlanTemplate,
             PlanTemplateItem,
+            TreatmentPlanHistory,
         ]
 
     def get_router(self) -> APIRouter:

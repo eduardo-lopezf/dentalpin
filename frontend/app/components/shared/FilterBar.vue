@@ -21,6 +21,17 @@
  *
  * Mobile (<md): chips region is hidden via CSS, the mobile button is
  * always shown alongside the right slot.
+ *
+ * The squeeze that catches this component out is a *narrow canvas at a
+ * wide viewport* — a tablet held upright with the rail expanded leaves
+ * ~555px while `md:` still applies, so the chips region exists and has
+ * almost no room. Two things have to hold there: the search must give
+ * way (it used to be `shrink-0`), and the region must not shrink under
+ * the button it is showing (`min-w-fit` once collapsed, because the
+ * button is its only in-flow child). Without both, the button spilled
+ * over the sort control — the exact thing the collapse exists to stop.
+ * Covered by "the … toolbar never overlaps its own controls" in
+ * `tablet-touch.spec.ts`, which expands the rail to reproduce it.
  */
 interface Props {
   /** Number of active filters (excluding search). Drives the button labels. */
@@ -100,19 +111,31 @@ function onReset() {
     :class="sticky && 'sticky top-0 z-10 bg-[var(--color-surface)] py-2'"
   >
     <!-- Search (always left) -->
+    <!-- Prefers 320px and gives way when the row is tight. It used to be
+         `shrink-0`, which on a narrow toolbar left too little for the
+         chips and the sort to share — the search kept its full width
+         while the other two fought over the remainder. -->
     <div
       v-if="$slots.search"
-      class="shrink-0 w-full max-w-xs"
+      class="w-full max-w-xs min-w-0"
     >
       <slot name="search" />
     </div>
 
     <!-- Desktop chips region: chips always rendered for measurement;
          visually hidden when overflow detected, replaced by "Filtros (N)". -->
+    <!-- `min-w-0` lets this collapse so the chips can be measured against
+         a real width, but once it is showing the "Filtros" button it must
+         be at least as wide as that button: the button is the region's
+         only in-flow child, so `min-w-fit` pins it. Without that the
+         region shrank to ~8px while the button stayed 78px wide and spilled
+         over the sort control to its right — the very thing the collapse
+         exists to prevent. -->
     <div
       v-if="$slots.default"
       ref="chipsRegion"
-      class="hidden md:block flex-1 min-w-0 relative h-9"
+      class="hidden md:flex md:items-center flex-1 relative h-9"
+      :class="hasOverflow ? 'min-w-fit' : 'min-w-0'"
     >
       <div
         ref="chipsInner"
@@ -128,7 +151,7 @@ function onReset() {
         color="neutral"
         icon="i-lucide-sliders-horizontal"
         size="sm"
-        class="absolute inset-y-0 left-0 my-auto h-fit"
+        class="shrink-0"
         @click="isOpen = true"
       >
         {{ activeCount ? t('lists.filter.moreCount', { count: activeCount }) : t('lists.filter.more') }}

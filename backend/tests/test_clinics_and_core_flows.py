@@ -206,6 +206,44 @@ async def test_search_patients(
 
 
 @pytest.mark.asyncio
+async def test_search_patients_ignores_accents(
+    client: AsyncClient, auth_headers: dict[str, str], clinic_setup: dict
+) -> None:
+    """Typing without accents has to find the patient anyway.
+
+    ``ILIKE`` ignores case but not diacritics, so "Fernandez" matched
+    nobody. The gap was masked wherever an email spelled the name without
+    accents — that patient came back and looked like proof the search
+    worked, while the one with no email was simply invisible. This
+    patient deliberately has no email.
+    """
+    await client.post(
+        "/api/v1/patients",
+        headers=auth_headers,
+        json={"first_name": "Begoña", "last_name": "Fernández Ávila"},
+    )
+
+    async def total(query: str) -> int:
+        response = await client.get(
+            "/api/v1/patients", headers=auth_headers, params={"search": query}
+        )
+        assert response.status_code == 200, response.text
+        return response.json()["total"]
+
+    assert await total("Fernández") == 1
+    assert await total("Fernandez") == 1
+    assert await total("Begoña") == 1
+    assert await total("Begona") == 1
+    assert await total("Ávila") == 1
+    assert await total("Avila") == 1
+    # Across the name boundary, unaccented, in either order.
+    assert await total("Begona Fernandez") == 1
+    assert await total("Fernandez Begona") == 1
+    # Folding must not turn every word into a match.
+    assert await total("Begona Zzzz") == 0
+
+
+@pytest.mark.asyncio
 async def test_get_patient_not_found(
     client: AsyncClient, auth_headers: dict[str, str], clinic_setup: dict
 ) -> None:

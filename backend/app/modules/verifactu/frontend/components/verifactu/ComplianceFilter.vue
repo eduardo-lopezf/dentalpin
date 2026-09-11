@@ -59,6 +59,7 @@ const filterLabel = computed(() => {
   <div class="flex flex-wrap items-center gap-2">
     <USelectMenu
       v-model="selected"
+      :aria-label="filterLabel"
       :items="options"
       value-key="value"
       multiple

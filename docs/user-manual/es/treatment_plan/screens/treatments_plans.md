@@ -39,18 +39,51 @@ last_verified_commit: 3568519
 # Bandeja de planes
 
 Bandeja de planes de tratamiento de la clínica. Se organiza en
-**cinco pestañas** alineadas con la máquina de estados del plan,
-más una vista de pipeline con la cola de seguimiento.
+**siete pestañas**: seis colas de seguimiento servidas por
+`GET /pipeline` y un *Listado* final con todos los planes.
 
 ## De un vistazo
 
-- **Pestañas por estado.** *Borradores* (sin confirmar), *Pendientes*
-  (esperando aceptación del paciente), *Activos* (con tratamiento
-  en curso), *Completados*, *Cerrados* (rechazado, expirado,
-  cancelado, abandono u *otro*).
-- **Pipeline.** Vista de bandeja agregada (`GET /pipeline`) con
-  totales por columna y los planes que necesitan acción de recepción
-  (pendientes sin contacto reciente, presupuesto sin enviar, etc.).
+- **En curso** *(primera pestaña, la que se abre por defecto)*. Todo
+  plan en marcha, sin importar en qué punto del circuito esté:
+  `pending` (el doctor lo confirmó y espera al paciente) y `active`
+  (presupuesto aceptado, tratamiento en ejecución). Recepción los ve
+  igual — el plan echa a andar cuando el paciente acude a la consulta
+  de diagnóstico, mucho antes de que se firme el presupuesto — así que
+  repartirlos entre pestañas escondía trabajo que estaba vivo. Ordena
+  por movimiento más reciente primero: responde «qué hay en marcha
+  ahora», no es una cola que haya que vaciar.
+- **Colas de acción.** *Por presupuestar* (confirmado, presupuesto en
+  borrador), *Esperando paciente* (presupuesto enviado o caducado),
+  *Sin cita* y *Sin próxima cita* (activos con tratamientos
+  pendientes y agenda vacía), *Cerrados* (últimos 90 días).
+- **Filas que se adaptan a su ancho.** Cada tarjeta decide cómo colocarse
+  midiéndose a sí misma, no a la ventana: en cuanto la tarjeta baja de 56rem
+  —tablet en vertical, con o sin raíl— el paciente pasa arriba y
+  *Tratamientos*, *Presupuesto* y *días en estado* se reparten en una línea
+  debajo. No se oculta nada; antes esas columnas se solapaban con el número
+  de plan.
+- **Cuándo se pone «En tratamiento».** El plan pasa a *En tratamiento*
+  (`active`) por dos caminos, y basta con uno: cuando se **acepta el
+  presupuesto**, o cuando el paciente **acude a la primera consulta** ligada
+  al plan. La consulta cuenta aunque no se marque ningún tratamiento como
+  ejecutado — una primera visita de diagnóstico rara vez marca alguno. Un
+  plan en *Borrador* no se activa por asistir: primero hay que confirmarlo.
+- **Aceptar en clínica.** Cuando el paciente dice que sí estando delante,
+  el botón de la fila abre un diálogo que recoge su nombre y, si quieres,
+  su firma manuscrita en la tablet. Aparece solo cuando el presupuesto
+  está en *borrador* o *enviado*. Queda registrada una firma real —nombre,
+  trazo, IP, fecha y método—, y aceptar el presupuesto arrastra el plan a
+  *En tratamiento* por el camino de siempre.
+- **Buscar por nombre.** El cuadro acepta el número de plan o el nombre del
+  paciente, en cualquier orden y con o sin acentos: «Juan Pérez», «Pérez
+  Juan» y «juan perez» llegan al mismo sitio. Cada palabra tiene que casar
+  con algo, así que añadir una segunda acota en vez de ampliar.
+- **Todos** *(última pestaña)*. Todos los planes de la clínica
+  ordenados por fecha de creación, del más reciente al más antiguo,
+  con filtro por estado. Es la vista de catálogo: aquí aparece
+  cualquier plan, incluidos borradores y archivados que no entran en
+  ninguna cola.
 - **Paginación del pipeline.** Las columnas paginan de verdad: el
    paginador ignoraba los clics porque usaba la API antigua del
    componente, así que solo se veía la primera página.

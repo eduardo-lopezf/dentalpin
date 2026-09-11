@@ -77,7 +77,7 @@ function goToday() {
             size="xs"
             variant="ghost"
             color="neutral"
-            :aria-label="'Previous year'"
+            :aria-label="$t('recalls.filters.previousYear')"
             @click="shiftYear(-1)"
           />
           <span class="font-medium tnum">{{ viewYear }}</span>
@@ -86,7 +86,7 @@ function goToday() {
             size="xs"
             variant="ghost"
             color="neutral"
-            :aria-label="'Next year'"
+            :aria-label="$t('recalls.filters.nextYear')"
             @click="shiftYear(1)"
           />
         </div>

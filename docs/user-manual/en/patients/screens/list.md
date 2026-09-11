@@ -40,7 +40,11 @@ filter, open a patient's detail page, or create a new patient.
 
 1. Type a name, surname, or ID number into the search box at the top
    of the list. The query filters by exact and partial matches across
-   identity fields.
+   identity fields. **Accents and word order do not matter**:
+   "Fernandez", "Fernández", "rosa martinez" and "Martínez Rosa" all
+   land on the same person. Every word has to match something — name,
+   surname, phone, email or ID — so a second word narrows the results
+   rather than widening them.
 2. Press **Enter** or wait for debounce — results refresh in place.
 3. Click any row to open the
    [patient detail](./detail.md) screen.

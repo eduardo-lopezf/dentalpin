@@ -1,6 +1,37 @@
 # Changelog — frontend
 
 ## Unreleased
+- fix(a11y): la interfaz hablaba en inglés a los lectores de pantalla. Eran
+  **dos** problemas distintos, con arreglos distintos:
+  - **Mensajes de Nuxt UI** (el botón de tema anunciaba «Switch to dark
+    mode»). `UApp` no recibía idioma, así que usaba el inglés interno; ahora
+    se le pasa el locale español de Nuxt UI, atado al idioma de la app para
+    que un cambio mueva los dos a la vez.
+  - **Etiquetas fijas de Reka UI**: el disparador de `USelectMenu` lleva
+    `aria-label="Show popup"` escrito a fuego y **nunca** consulta el locale,
+    ni el de Nuxt UI ni el suyo. Como ese botón *es* el control del select y
+    está en el orden de tabulación (`tabindex="0"`), los 27 selects de la app
+    se anunciaban como «Show popup» en vez de por su propósito. Se sobrescribe
+    con un `aria-label` explícito por control: el del campo cuando hay
+    `UFormField`, el `placeholder` cuando no, y uno elegido en los tres que no
+    tenían ninguno. Mejor que una traducción genérica: cada select dice qué es.
+- fix(i18n): la × de `SearchBar` y las flechas de año de `MonthPickerDropdown`
+  tenían el `aria-label` en inglés a pelo. Traducidas
+  (`common.clearSearch`, `recalls.filters.previousYear` / `nextYear`).
+  No queda ningún `aria-label` sin traducir en el frontend ni en los módulos.
+- fix(listas): en tablet vertical con el raíl desplegado, el botón **Filtros**
+  se dibujaba encima del control de orden, que quedaba recortado a un trozo
+  ilegible. Afectaba a Pacientes, Cobros, Presupuestos y Facturas —las cuatro
+  listas con orden—; Profesionales se libraba por no tenerlo. `FilterBar`
+  colapsa los chips a un botón precisamente para no tapar el orden, y hacía
+  lo contrario: la zona de chips es `flex-1 min-w-0` y se encogía a ~8 px
+  mientras el botón, posicionado en absoluto, seguía midiendo 78 px y se
+  salía. Ahora el botón va en el flujo y la zona usa `min-w-fit` mientras lo
+  muestra, y la búsqueda deja de ser `shrink-0` para que los tres controles
+  quepan. En horizontal la barra no cambia.
+  El aprieto real es *lienzo estrecho con viewport ancho*: por debajo de `md`
+  la zona de chips ni se renderiza, así que estrechar la ventana no reproduce
+  nada — hay que desplegar el raíl, que es lo que hace el test.
 - fix(auth): los formularios públicos con SSR — login y el asistente de
   instalación — declaran `method="post"`, y su botón de envío queda
   deshabilitado hasta que la página hidrata. Se renderizan en el servidor, así

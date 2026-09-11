@@ -143,6 +143,7 @@ async function save() {
           >
             <USelectMenu
               v-model="settings.digest_recipient_user_ids"
+              :aria-label="t('copilot.settings.digest.recipients')"
               :items="recipientOptions"
               value-key="value"
               multiple

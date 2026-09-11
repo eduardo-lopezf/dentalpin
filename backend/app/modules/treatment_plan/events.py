@@ -59,6 +59,30 @@ async def on_appointment_completed(data: dict[str, Any]) -> None:
             # Import here to avoid circular imports
             from app.modules.agenda.models import AppointmentTreatment
 
+            from .service import TreatmentPlanService
+
+            # Attendance first, and on a *wider* query than the loop
+            # below: the plans this appointment belongs to are all the
+            # ones it links to, whether or not any treatment was ticked
+            # off in it. A first diagnostic consultation usually ticks
+            # nothing — the dentist looks, measures and books the real
+            # work — and that visit is exactly the one the clinic counts
+            # as the plan getting under way.
+            linked = await db.execute(
+                select(PlannedTreatmentItem.treatment_plan_id)
+                .join(
+                    AppointmentTreatment,
+                    AppointmentTreatment.planned_treatment_item_id == PlannedTreatmentItem.id,
+                )
+                .where(
+                    AppointmentTreatment.appointment_id == UUID(appointment_id),
+                    PlannedTreatmentItem.clinic_id == UUID(clinic_id),
+                )
+                .distinct()
+            )
+            for (plan_id,) in linked.all():
+                await TreatmentPlanService.activate_from_attendance(db, UUID(clinic_id), plan_id)
+
             # Get completed treatments from the appointment
             result = await db.execute(
                 select(AppointmentTreatment).where(
@@ -99,9 +123,7 @@ async def on_appointment_completed(data: dict[str, Any]) -> None:
                         )
 
                         # Check if plan should auto-complete
-                        from .service import TreatmentPlanService
-
-                        await TreatmentPlanService._check_and_complete_plan(
+                        await TreatmentPlanService._sync_plan_lifecycle(
                             db, UUID(clinic_id), item.treatment_plan_id
                         )
 
@@ -254,7 +276,7 @@ async def on_treatment_performed(data: dict[str, Any]) -> None:
 
                 from .service import TreatmentPlanService
 
-                await TreatmentPlanService._check_and_complete_plan(
+                await TreatmentPlanService._sync_plan_lifecycle(
                     db, UUID(clinic_id), item.treatment_plan_id
                 )
 

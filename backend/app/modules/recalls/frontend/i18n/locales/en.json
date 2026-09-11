@@ -11,7 +11,9 @@
       "priority": "Priority",
       "overdue": "Show overdue",
       "any": "Any",
-      "thisMonth": "This month"
+      "thisMonth": "This month",
+      "previousYear": "Previous year",
+      "nextYear": "Next year"
     },
     "counters": {
       "due_this_week": "Due this week",

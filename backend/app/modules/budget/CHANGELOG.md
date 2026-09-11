@@ -1,6 +1,18 @@
 # Changelog — budget module
 
 ## Unreleased
+- feat(presupuestos): **Aceptar en clínica** llega a la bandeja de planes.
+  El flujo estaba entero —endpoint `POST /budgets/{id}/accept-in-clinic`
+  con `accepted_via='in_clinic'`, permiso `budget.accept_in_clinic`,
+  `AcceptInClinicModal.vue` con su canvas de firma y sus traducciones— pero
+  no lo referenciaba ninguna pantalla: para aceptar había que salir de la
+  bandeja, abrir el presupuesto y usar su modal de firma. El botón aparece
+  en las filas cuyo presupuesto está en `draft` o `sent`, que es justo lo
+  que el backend admite, así que nunca se ofrece sobre algo que la API
+  rechazaría. Deja firma real (nombre, trazo opcional, IP, fecha y método),
+  no un consentimiento inventado.
+- fix(i18n): faltaba `common.clear`; el botón de borrar la firma mostraba
+  literalmente «common.clear».
 
 - feat(ui): Presupuestos no longer has a sidebar entry of its own. Cobros,
   Presupuestos and Facturas are now the three tabs of a single

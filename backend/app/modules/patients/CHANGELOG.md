@@ -1,6 +1,22 @@
 # Changelog — patients module
 
 ## Unreleased
+- fix(buscador): buscar sin acentos no encontraba a los pacientes. `ILIKE`
+  ignora mayúsculas pero **no** las tildes, así que «Fernandez» no devolvía
+  nada y «Garcia» solo encontraba a quien tenía el email escrito sin tilde
+  —por casualidad—, mientras que el paciente sin email era invisible. Ese
+  acierto accidental es lo que hacía el fallo difícil de ver: parecía que el
+  buscador funcionaba. Ahora ambos lados se pliegan con `translate()`.
+  El resto de la búsqueda ya estaba bien (por palabras, con nombre completo,
+  teléfono, email y documento) y no se toca.
+  El plegado vive en `app/core/utils/search.py` porque `treatment_plan` lo
+  necesita igual y no puede importar de `patients` — ni al revés.
+- fix(ui): en tablet vertical, las seis pestañas de la ficha del paciente
+  quedaban en puntos suspensivos («Res…», «Admini…», «G…») porque Nuxt UI
+  reparte el ancho entre ellas. Ahora la tira conserva su ancho natural y
+  se desplaza en horizontal. Se aplica solo a la lista (`ui.list`), no al
+  componente entero: los paneles conservan `overflow-visible`, del que
+  dependen los hijos fijos. Mismo criterio que en la bandeja de planes.
 
 - feat(privacy): `get_subject_contributors()` — this module now answers
   for its own data when a patient exercises portability or erasure

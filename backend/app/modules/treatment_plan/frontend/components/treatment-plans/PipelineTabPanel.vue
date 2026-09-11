@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PipelineRow, PipelineTab } from '../../composables/usePipeline'
+import { PERMISSIONS } from '~~/app/config/permissions'
 
 const props = defineProps<{
   tab: PipelineTab
@@ -9,7 +10,13 @@ const props = defineProps<{
 const { t, locale } = useI18n()
 const router = useRouter()
 const toast = useToast()
+const { can } = usePermissions()
 const { format: formatCurrency } = useCurrency()
+
+// Reading the budget module from this layer is the sanctioned
+// cross-module frontend call — `budget` is in treatment_plan's
+// manifest.depends and nothing is imported server-side.
+const { acceptBudgetInClinic } = useBudgets()
 const {
   rows,
   total,
@@ -99,6 +106,61 @@ function whatsappPatient(row: PipelineRow) {
   const phone = row.patient.phone.replace(/\D/g, '')
   window.open(`https://wa.me/${phone}`, '_blank', 'noopener')
 }
+
+// -----------------------------------------------------------------------
+// Accept at the desk
+// -----------------------------------------------------------------------
+
+/**
+ * The patient says yes while standing there. Everything for this already
+ * existed — endpoint, permission, modal, translations — except the
+ * button that reaches it, so the only way to accept was to leave the
+ * bandeja, open the budget and use its signature modal.
+ *
+ * Offered exactly where the backend allows it (`draft` or `sent`), so the
+ * button never appears on a budget the API would refuse.
+ */
+const ACCEPTABLE_BUDGET_STATUSES = new Set(['draft', 'sent'])
+
+const acceptOpen = ref(false)
+const acceptRow = ref<PipelineRow | null>(null)
+const acceptLoading = ref(false)
+
+function canAcceptInClinic(row: PipelineRow): boolean {
+  return (
+    can(PERMISSIONS.budget.acceptInClinic)
+    && !!row.budget
+    && ACCEPTABLE_BUDGET_STATUSES.has(row.budget.status)
+  )
+}
+
+function openAccept(row: PipelineRow) {
+  acceptRow.value = row
+  acceptOpen.value = true
+}
+
+async function confirmAccept(payload: {
+  signer_name: string
+  signature_data?: { png?: string }
+}) {
+  const row = acceptRow.value
+  if (!row?.budget) return
+
+  acceptLoading.value = true
+  try {
+    await acceptBudgetInClinic(row.budget.id, payload)
+    acceptOpen.value = false
+    acceptRow.value = null
+    toast.add({ title: t('budget.messages.accepted'), color: 'success' })
+    // The acceptance moves the plan to `active`, so the row usually
+    // belongs to a different tab now — refetch rather than patch it.
+    await fetchPipeline({ tab: props.tab, page: page.value, q: props.q || undefined })
+  } catch {
+    toast.add({ title: t('budget.errors.accept'), color: 'error' })
+  } finally {
+    acceptLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -121,14 +183,29 @@ function whatsappPatient(row: PipelineRow) {
       v-else
       class="space-y-2"
     >
+      <!-- The card is the measuring stick, not the window. `md:` asks
+           the viewport, and on a tablet held upright the viewport is
+           800 px while this card is barely 500 — so the row switched to
+           columns that could not fit and the plan number, the badge and
+           "Tratamientos" were painted on top of each other. A container
+           query asks the card how wide *it* is, which is the only width
+           that decides whether a row fits. The threshold is 56rem rather
+           than something tighter because with the rail collapsed the card
+           is ~688 px on an upright tablet, and a row that forms there is
+           still too cramped to hold a long name beside four columns. -->
       <UCard
         v-for="row in rows"
         :key="row.plan_id"
-        class="hover:border-[var(--ui-primary)] transition-colors"
+        class="@container hover:border-[var(--ui-primary)] transition-colors"
       >
-        <div class="flex flex-col md:flex-row md:items-center md:gap-4">
+        <div class="flex flex-col gap-3 @4xl:flex-row @4xl:items-center @4xl:gap-4">
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-3">
+            <!-- `min-w-0` has to repeat on every flex link down to the
+                 truncating name: a flex item defaults to `min-width:auto`,
+                 so one link without it refuses to shrink past its content
+                 and the name spills over the next column instead of
+                 ellipsing. -->
+            <div class="flex min-w-0 items-center gap-3">
               <UAvatar
                 :alt="patientName(row)"
                 :text="patientName(row).slice(0, 2).toUpperCase()"
@@ -142,8 +219,8 @@ function whatsappPatient(row: PipelineRow) {
                 >
                   {{ patientName(row) }}
                 </button>
-                <div class="text-xs text-[var(--ui-text-muted)] flex items-center gap-2">
-                  <span>{{ row.plan_number }}</span>
+                <div class="text-xs text-[var(--ui-text-muted)] flex min-w-0 flex-wrap items-center gap-2">
+                  <span class="truncate">{{ row.plan_number }}</span>
                   <UBadge
                     :color="statusBadgeColor(row.plan_status)"
                     variant="soft"
@@ -159,60 +236,68 @@ function whatsappPatient(row: PipelineRow) {
             </div>
           </div>
 
-          <div class="hidden md:block text-xs text-[var(--ui-text-muted)] min-w-24">
-            <div>{{ t('pipeline.row.items') }}</div>
-            <div class="text-sm text-[var(--ui-text-toned)]">
-              {{ row.items_completed }} / {{ row.items_total }}
+          <!-- Narrow, these three sit on their own wrapped line under the
+               patient instead of vanishing: they are the numbers reception
+               scans, and hiding them was the other half of the old
+               breakpoint's bad guess. `contents` dissolves this wrapper
+               once the card is wide, so the children become columns of the
+               row again exactly as before. -->
+          <div class="flex flex-wrap gap-x-6 gap-y-2 @4xl:contents">
+            <div class="text-xs text-[var(--ui-text-muted)] @4xl:min-w-24">
+              <div>{{ t('pipeline.row.items') }}</div>
+              <div class="text-sm text-[var(--ui-text-toned)]">
+                {{ row.items_completed }} / {{ row.items_total }}
+              </div>
             </div>
-          </div>
 
-          <div class="hidden md:block min-w-32 text-xs">
-            <div class="text-[var(--ui-text-muted)]">
-              {{ t('pipeline.row.budget') }}
-            </div>
-            <div
-              v-if="row.budget"
-              class="text-sm"
-            >
-              <UBadge
-                :color="row.budget.status === 'expired' ? 'error' : 'neutral'"
-                variant="soft"
-                size="xs"
+            <div class="text-xs @4xl:min-w-32">
+              <div class="text-[var(--ui-text-muted)]">
+                {{ t('pipeline.row.budget') }}
+              </div>
+              <div
+                v-if="row.budget"
+                class="text-sm"
               >
-                {{ row.budget.status }}
-              </UBadge>
-              <span
-                v-if="row.budget.total !== null"
-                class="ml-2"
+                <UBadge
+                  :color="row.budget.status === 'expired' ? 'error' : 'neutral'"
+                  variant="soft"
+                  size="xs"
+                >
+                  {{ row.budget.status }}
+                </UBadge>
+                <span
+                  v-if="row.budget.total !== null"
+                  class="ml-2"
+                >
+                  {{ formatCurrency(row.budget.total) }}
+                </span>
+              </div>
+              <div
+                v-else
+                class="text-sm text-[var(--ui-text-muted)]"
               >
-                {{ formatCurrency(row.budget.total) }}
-              </span>
+                {{ t('pipeline.row.noBudget') }}
+              </div>
             </div>
-            <div
-              v-else
-              class="text-sm text-[var(--ui-text-muted)]"
-            >
-              {{ t('pipeline.row.noBudget') }}
+
+            <div class="text-xs text-[var(--ui-text-muted)] @4xl:min-w-24">
+              <div>{{ t('pipeline.row.daysIn', { n: row.days_in_status }) }}</div>
+              <div
+                v-if="row.next_appointment"
+                class="text-sm"
+              >
+                {{ t('pipeline.row.nextAppt') }}: {{ formatDate(row.next_appointment.start_at) }}
+              </div>
+              <div
+                v-else
+                class="text-sm text-[var(--ui-text-muted)]"
+              >
+                {{ t('pipeline.row.noNextAppt') }}
+              </div>
             </div>
           </div>
 
-          <div class="hidden md:block text-xs text-[var(--ui-text-muted)] min-w-24">
-            <div>{{ t('pipeline.row.daysIn', { n: row.days_in_status }) }}</div>
-            <div
-              v-if="row.next_appointment"
-              class="text-sm"
-            >
-              {{ t('pipeline.row.nextAppt') }}: {{ formatDate(row.next_appointment.start_at) }}
-            </div>
-            <div
-              v-else
-              class="text-sm text-[var(--ui-text-muted)]"
-            >
-              {{ t('pipeline.row.noNextAppt') }}
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2 mt-3 md:mt-0">
+          <div class="flex items-center gap-2">
             <UButton
               v-if="row.patient.phone"
               icon="i-lucide-phone"
@@ -232,6 +317,16 @@ function whatsappPatient(row: PipelineRow) {
               @click="whatsappPatient(row)"
             />
             <UButton
+              v-if="canAcceptInClinic(row)"
+              color="success"
+              variant="soft"
+              size="sm"
+              icon="i-lucide-pen-line"
+              @click="openAccept(row)"
+            >
+              {{ t('pipeline.actions.acceptInClinic') }}
+            </UButton>
+            <UButton
               color="primary"
               variant="solid"
               size="sm"
@@ -243,6 +338,13 @@ function whatsappPatient(row: PipelineRow) {
         </div>
       </UCard>
     </div>
+
+    <AcceptInClinicModal
+      v-model:open="acceptOpen"
+      :loading="acceptLoading"
+      @confirm="confirmAccept"
+      @cancel="acceptOpen = false"
+    />
 
     <div
       v-if="total > pageSize"

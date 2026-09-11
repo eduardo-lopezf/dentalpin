@@ -1,6 +1,145 @@
 # Changelog — treatment_plan module
 
 ## Unreleased
+- fix(buscador): buscar por nombre no funcionaba, por tres motivos distintos.
+  1. En la pestaña **Todos** no filtraba **nada**: el cliente enviaba
+     `search=`, pero ni el endpoint ni `TreatmentPlanService.list` tenían ese
+     parámetro y FastAPI descarta los desconocidos en silencio, así que la
+     lista volvía entera y parecía rota en vez de vacía.
+  2. **El nombre completo no encontraba a nadie.** La bandeja comparaba la
+     cadena entera contra cada columna por separado, y ninguna contiene
+     «Juan» y «Pérez» a la vez. Ahora se parte en palabras: cada una debe
+     casar con algo (AND entre palabras, OR entre columnas), así que «Juan
+     Pérez» y «Pérez Juan» llegan al mismo paciente y «Juan» solo sigue
+     listando a todos los Juanes.
+  3. **Los acentos rompían la búsqueda.** `ILIKE` entre «Perez» y «Pérez» no
+     casa. Ambos lados se pliegan con `translate()` — no con la extensión
+     `unaccent`, que exige `CREATE EXTENSION` y en Postgres gestionado suele
+     estar vetada.
+- feat(ui): la pestaña «Listado» pasa a llamarse **Todos**.
+- fix(ui): una búsqueda sin resultados decía «Este plan no tiene
+  tratamientos» —el mensaje de un plan vacío, no el de una búsqueda—.
+  Nadie lo había visto porque, mientras la búsqueda no filtraba, la lista
+  nunca se quedaba vacía; arreglarla lo destapó. Clave propia:
+  `treatmentPlans.noSearchResults`.
+- feat(planes): **historial de cambios** al pie de la ficha. Nueva tabla
+  `treatment_plan_history` (migración `tp_0011`), escrita en cada transición,
+  alta/baja de tratamiento y reasignación. La fila entra en la **misma
+  transacción** que el cambio que describe: un historial que sobreviva a un
+  cambio revertido es peor que no tenerlo. Endpoint
+  `GET /treatment-plans/{id}/history`.
+- feat(planes): **Reabrir** se limita a un administrador o a un profesional
+  asignado al caso — el del plan o el de cualquiera de sus tratamientos, así
+  que un plan con varios especialistas los admite a todos. Los derechos se
+  derivan de quién está asignado *ahora*, de modo que reasignar el plan
+  traspasa el permiso sin más bookkeeping. Si el profesional asignado no tiene
+  cuenta, solo el administrador puede.
+  El puente entre cuenta y ficha de directorio es el número de colegiado
+  (`users.professional_id` ↔ `professionals.license_number`): `Professional`
+  no tiene `user_id` a propósito. Es blando, y por eso la regla vive en el
+  servidor y el cliente pregunta en vez de imitarla.
+- feat(planes): `reopen` acepta `active` además de `pending`. Con la
+  activación por asistencia, la regla anterior dejaba sin reabrir justo los
+  planes recién arrancados — los que más se editan, porque esa primera visita
+  es donde se decide el tratamiento real.
+- feat(planes): completar un tratamiento también arranca el plan. La regla
+  de asistencia escuchaba solo `appointment.completed`, así que marcar un
+  tratamiento directamente sobre el plan —sin cita, que es como se registra
+  a menudo una primera consulta— dejaba el plan en `pending` con trabajo ya
+  hecho contra él. Los tres caminos que terminan un tratamiento
+  (`_finalize_item`, `on_appointment_completed`, `on_treatment_performed`)
+  pasan ahora por `_sync_plan_lifecycle`, que ejecuta el arranque y después
+  el cierre. El orden importa: `_check_and_complete_plan` solo cierra planes
+  `active`, de modo que un plan de un solo tratamiento confirmado y ejecutado
+  del tirón se quedaba encallado en `pending` con todo completado; ahora
+  cruza las dos transiciones y acaba en `completed`.
+- feat(scripts): `backfill_started_plans.py` arranca los planes cuyo paciente
+  **ya vino** antes de que la asistencia moviera el estado. La regla en
+  caliente escucha `appointment.completed`, así que solo sirve para visitas
+  futuras; esto es la pasada única sobre las que ya ocurrieron. Cuenta como
+  «el paciente vino» cualquiera de las dos cosas: una cita completada ligada
+  al plan, **o** un tratamiento del plan marcado como realizado. Lo segundo
+  no sobra: una clínica puede marcar un tratamiento directamente sobre el
+  plan (`completed_without_appointment`) —así se registra a menudo una
+  primera consulta— y entonces no existe ninguna cita. Un backfill atado solo
+  a citas pasaría de largo justo por esos. Solo mueve planes en `pending`.
+  Va en seco por defecto; escribe con `--apply`.
+- fix(ui): en la ficha del paciente, la sección que agrupa los planes por
+  estado decía PENDIENTES sobre tarjetas con el badge «En curso». Usaba
+  `clinical.plans.pending`, que es la palabra del **contador de
+  tratamientos** («8 pendientes») y no del estado del plan — renombrar esa
+  clave habría roto el contador. La sección apunta ahora a
+  `treatmentPlans.status.pending`, el mismo vocabulario que el badge, así
+  que los dos quedan sincronizados por construcción.
+
+- feat(planes): la primera consulta a la que acude el paciente pone el plan
+  **En tratamiento**. Hasta ahora `pending → active` solo ocurría al aceptarse
+  el presupuesto, de modo que un plan con el paciente ya sentado en el sillón
+  seguía figurando en «Confirmar». Ahora `appointment.completed` activa todo
+  plan al que esa cita esté ligada. La consulta que activa **no** necesita
+  llevar tratamientos marcados como ejecutados: una primera visita de
+  diagnóstico normalmente no marca ninguna, y es justo la que arranca el plan,
+  así que la consulta de activación es más amplia que el bucle de completado.
+  Sigue siendo idempotente y solo mueve planes en `pending`: un `draft` no se
+  salta la confirmación.
+- fix(bandeja): «Por presupuestar» y «Esperando paciente» pasan a admitir
+  `pending` **y** `active`. Ambas colas hablan del presupuesto, no del plan;
+  atadas a `pending` habrían dejado escapar justo los planes recién activados
+  por asistencia, y el presupuesto sin firmar habría dejado de perseguirse en
+  cuanto el paciente pisara la clínica.
+
+- fix(bandeja): un plan reabierto y vuelto a confirmar desaparecía de la
+  bandeja. `reopen` cancela el presupuesto enlazado pero deja el enlace
+  puesto; al volver a confirmar, `create_from_plan_snapshot` creaba un
+  presupuesto nuevo — su comprobación de idempotencia ignora los
+  cancelados — y `confirm` lo tiraba, porque solo guardaba el enlace
+  cuando `budget_id` era NULL. El plan se quedaba en `pending` apuntando
+  a un presupuesto cancelado, combinación que no cumple el `tab_where` de
+  ninguna pestaña, así que solo se le veía en *Listado*; el presupuesto
+  bueno quedaba huérfano. Ahora `confirm` adopta siempre el presupuesto
+  que se le devuelve. El efecto en cadena era peor de lo que parecía:
+  `budget` localiza el plan a activar buscando hacia atrás por
+  `treatment_plans.budget_id`, así que con el presupuesto huérfano la
+  búsqueda devolvía nada, el handler de «presupuesto aceptado» se salía por
+  su rama de huérfano y aceptar el presupuesto **no** llevaba el plan a
+  `active`; el presupuesto enlazado ni siquiera se podía enviar, porque
+  estaba cancelado.
+- feat(bandeja): nueva primera pestaña **En curso** — los planes en marcha
+  (`pending` + `active`), del movimiento más reciente al más antiguo. Es la
+  pestaña por defecto. Recepción da un plan por arrancado cuando el paciente
+  acude a la consulta de diagnóstico, antes de que se acepte el presupuesto,
+  de modo que una pestaña limitada a `active` escondía justo lo que estaban
+  siguiendo.
+- fix(ui): el paso 3 del stepper de la ficha del plan pasa a llamarse
+  **En tratamiento** (antes «En curso»). Al renombrar el estado `pending`
+  a «En curso» quedaba una contradicción visible: el listado decía que el
+  plan estaba «En curso» mientras la ficha mostraba «En curso» como paso 3
+  todavía sin alcanzar, con el plan parado en «Confirmar». «En curso» queda
+  como el término paraguas de lo que está en marcha (pestaña y badge de
+  `pending`), y el paso 3 nombra lo que de verdad describe: presupuesto
+  aceptado y tratamiento en ejecución.
+- fix(bandeja): las filas se solapaban en tablet vertical — el número de
+  plan, el badge y «Tratamientos» se pisaban. El diseño decidía si la fila
+  cabía en horizontal con un breakpoint de *viewport* (`md:`), y en vertical
+  el viewport mide 800 px mientras la tarjeta apenas llega a 500: la fila se
+  ponía horizontal en una caja que no la aguantaba. Ahora la decisión la toma
+  una *container query* sobre la propia tarjeta (56rem), que es la única
+  anchura que importa. Dos efectos secundarios que también se arreglan: el
+  nombre largo no recortaba con puntos suspensivos porque a un flex
+  intermedio le faltaba `min-w-0`, y las columnas «Tratamientos»,
+  «Presupuesto» y «días en estado» ya no desaparecen en vertical — se
+  reparten en una línea envuelta bajo el paciente. Cubierto por
+  «bandeja rows never overlap their own text» en `tablet-touch.spec.ts`.
+- fix(ui): con siete pestañas, en tablet vertical Nuxt UI repartía el ancho
+  y dejaba todas las etiquetas en puntos suspensivos («En…», «Por pre…»,
+  «Ce…»). Ahora la tira conserva su ancho natural y se desplaza en
+  horizontal. `TreatmentPlanMiniCard` tenía el mismo mapa de colores
+  desactualizado que el badge y se ha alineado también.
+- fix(ui): el estado `pending` se lee **En curso** (antes «Pendiente»,
+  que no decía pendiente de qué). Además `TreatmentPlanStatusBadge` no
+  tenía color para `pending` ni `closed` —y sí para un `cancelled` que
+  ningún plan usa—, así que un plan confirmado salía del mismo gris que
+  un borrador y parecía sin tocar.
 
 - fix(ui): on a tablet in landscape the Create button of the new-plan
   form could not be reached, and the device had to be rotated to save.

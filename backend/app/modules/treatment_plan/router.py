@@ -22,9 +22,11 @@ from .schemas import (
     GenerateBudgetResponse,
     LinkBudgetRequest,
     PipelineRow,
+    PlanHistoryEntryResponse,
     PlannedTreatmentItemCreate,
     PlannedTreatmentItemResponse,
     PlannedTreatmentItemUpdate,
+    PlanPermissionsResponse,
     PlanProposal,
     PlanTemplateCreate,
     PlanTemplateFromPlanRequest,
@@ -39,7 +41,7 @@ from .schemas import (
     TreatmentPlanUpdate,
     UpdateSessionRequest,
 )
-from .service import PlanLockedError, TreatmentPlanService
+from .service import PlanLockedError, TreatmentPlanService, stewards_of
 from .templates_service import PlanTemplateService, TemplateNeedsTeethError
 
 router = APIRouter()
@@ -53,6 +55,7 @@ router = APIRouter()
 
 
 PIPELINE_TABS = {
+    "en_curso",
     "por_presupuestar",
     "esperando_paciente",
     "sin_cita",
@@ -115,10 +118,22 @@ async def list_treatment_plans(
     page_size: int = Query(default=20, ge=1, le=100),
     patient_id: UUID | None = None,
     status: list[str] | None = Query(default=None),
+    search: str | None = Query(default=None, description="Plan number or patient name"),
 ) -> PaginatedApiResponse[TreatmentPlanResponse]:
-    """List treatment plans with pagination and filters."""
+    """List treatment plans with pagination and filters.
+
+    ``search`` was being sent by the "Todos" tab long before it existed
+    here; FastAPI drops unknown query parameters silently, so the box
+    filtered nothing and the bug looked like a front-end one.
+    """
     plans, total = await TreatmentPlanService.list(
-        db, ctx.clinic_id, page, page_size, patient_id=patient_id, status=status
+        db,
+        ctx.clinic_id,
+        page,
+        page_size,
+        patient_id=patient_id,
+        status=status,
+        search=search,
     )
     # Compute counts and totals from loaded items
     for p in plans:
@@ -220,7 +235,11 @@ async def update_treatment_plan(
     """Update a treatment plan."""
     try:
         plan = await TreatmentPlanService.update(
-            db, ctx.clinic_id, plan_id, data.model_dump(exclude_unset=True)
+            db,
+            ctx.clinic_id,
+            plan_id,
+            data.model_dump(exclude_unset=True),
+            user_id=ctx.user_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -278,6 +297,57 @@ async def confirm_treatment_plan(
     return ApiResponse(data=TreatmentPlanResponse.model_validate(plan))
 
 
+@router.get(
+    "/treatment-plans/{plan_id}/history",
+    response_model=ApiResponse[dict],
+)
+async def get_plan_history(
+    plan_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[dict]:
+    """The plan's change log, newest first, plus what the caller may do.
+
+    Permissions ride along because the "administrator or assigned
+    professional" rule turns on a licence-number match between accounts
+    and directory profiles that the client cannot evaluate on its own.
+    """
+    plan = await TreatmentPlanService.get(db, ctx.clinic_id, plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Treatment plan not found")
+
+    entries = await TreatmentPlanService.history(db, ctx.clinic_id, plan_id)
+
+    is_admin = ctx.role == "admin"
+    is_steward = is_admin or ctx.user_id in await stewards_of(db, ctx.clinic_id, plan)
+
+    return ApiResponse(
+        data={
+            "entries": [
+                PlanHistoryEntryResponse(
+                    id=entry.id,
+                    action=entry.action,
+                    from_status=entry.from_status,
+                    to_status=entry.to_status,
+                    payload=entry.payload,
+                    actor_name=(
+                        f"{entry.actor.first_name} {entry.actor.last_name}".strip()
+                        if entry.actor
+                        else None
+                    ),
+                    created_at=entry.created_at,
+                ).model_dump(mode="json")
+                for entry in entries
+            ],
+            "permissions": PlanPermissionsResponse(
+                can_reopen=is_steward and plan.status in ("pending", "active"),
+                can_edit=is_steward,
+            ).model_dump(),
+        }
+    )
+
+
 @router.post(
     "/treatment-plans/{plan_id}/reopen",
     response_model=ApiResponse[TreatmentPlanResponse],
@@ -288,7 +358,27 @@ async def reopen_treatment_plan(
     _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[TreatmentPlanResponse]:
-    """Reopen a confirmed plan back to ``draft`` and cancel its budget."""
+    """Reopen a plan back to ``draft`` and cancel its budget.
+
+    Narrower than the permission alone: reopening throws away a budget
+    the patient may already have seen, so it is limited to an
+    administrator or a professional the case is actually assigned to —
+    the plan's doctor or any of the specialists on its items. Rights
+    follow the assignment, so handing the plan to someone else hands
+    them over too.
+    """
+    plan = await TreatmentPlanService.get(db, ctx.clinic_id, plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Treatment plan not found")
+
+    if ctx.role != "admin":
+        stewards = await stewards_of(db, ctx.clinic_id, plan)
+        if ctx.user_id not in stewards:
+            raise HTTPException(
+                status_code=403,
+                detail="Only an administrator or an assigned professional can reopen this plan",
+            )
+
     try:
         plan = await TreatmentPlanService.reopen(db, ctx.clinic_id, plan_id, ctx.user_id)
     except ValueError as e:
@@ -403,7 +493,9 @@ async def add_plan_item(
 ) -> ApiResponse[PlannedTreatmentItemResponse]:
     """Add a treatment item to the plan."""
     try:
-        item = await TreatmentPlanService.add_item(db, ctx.clinic_id, plan_id, data.model_dump())
+        item = await TreatmentPlanService.add_item(
+            db, ctx.clinic_id, plan_id, data.model_dump(), user_id=ctx.user_id
+        )
         return ApiResponse(data=PlannedTreatmentItemResponse.model_validate(item))
     except PlanLockedError as e:
         raise HTTPException(status_code=409, detail=str(e))

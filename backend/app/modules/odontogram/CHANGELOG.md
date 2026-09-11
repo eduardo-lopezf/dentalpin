@@ -1,6 +1,25 @@
 # Changelog — odontogram module
 
 ## Unreleased
+- fix(odontograma): en tablet vertical se perdían los cordales. La escalera
+  de `zoom` se quedaba en 0.5, y a ese paso las arcadas siguen pidiendo
+  ~491 px; dentro de la ficha del plan el contenedor mide 472, así que
+  `overflow: hidden` amputaba el último molar de cada cuadrante — 18, 28,
+  48 y 38 — sin manera de llegar a ellos. Tres cambios:
+  - `overflow-x: auto` en `.odontogram-wrapper`, para que nada quede fuera
+    de alcance a cualquier ancho. Es el suelo del arreglo, no encoger más:
+    son celdas de anatomía que se tocan con el dedo.
+  - Dos escalones nuevos (0.45 y 0.4) por debajo de 520 px, de modo que los
+    anchos habituales de tablet siguen cabiendo **sin** desplazar.
+  - `width: max-content` + `margin-inline: auto` en `.odontogram-grid`. Una
+    fila centrada que desborda se sale por los **dos** lados y `scrollLeft`
+    no puede ser negativo, así que el desborde izquierdo (18/17/16…) era
+    inalcanzable por mucho que se desplazara.
+  De paso, la escalera arranca en 1060 px en vez de 1000: sin zoom las
+  arcadas miden ~1047, así que entre ambas cifras no cabían y ningún escalón
+  había entrado todavía — con el `overflow: hidden` anterior eso recortaba
+  molares también en un escritorio normal.
+  Comprobado de 232 a 1312 px de contenedor: 32 dientes, ninguno inalcanzable.
 - fix: un tratamiento del catálogo sin dibujo en el odontograma ya se puede
   planificar. `clinical_type` se exigía siempre, y como se deducía del
   mapeo de odontograma, cualquier ítem sin mapeo daba 400 al intentar

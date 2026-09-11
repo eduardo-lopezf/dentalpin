@@ -189,6 +189,7 @@ onMounted(refresh)
           <div class="lg:col-span-5">
             <USelectMenu
               v-model="row.selected"
+              :aria-label="t('verifactu.vatMapping.title')"
               :items="[
                 { value: AUTO_VALUE, label: t('verifactu.vatMapping.autoOption', { code: row.data.inferred_classification }) },
                 ...CLASSIFICATIONS

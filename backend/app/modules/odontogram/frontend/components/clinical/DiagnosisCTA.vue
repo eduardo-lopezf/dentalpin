@@ -76,6 +76,7 @@ function handleContinue() {
       >
         <USelectMenu
           v-model="selectedDraftId"
+          :aria-label="t('clinical.diagnosis.selectPlan')"
           :options="draftOptions"
           option-attribute="label"
           value-attribute="value"

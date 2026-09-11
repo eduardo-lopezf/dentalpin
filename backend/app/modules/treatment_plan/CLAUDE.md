@@ -7,13 +7,32 @@ this file before changing any cross-module flow.
 ## State machine
 
 ```
-draft ──confirm──► pending ──accept──► active ──complete──► completed
-  ▲                  │                    │
-  │                  │ rejected/expired   │ cancelled by clinic
-  │                  ▼                    ▼
-  └─── reactivate ◄──────  closed  ◄─────┘
-                       (closure_reason)
+                    ┌── budget accepted ──┐
+draft ──confirm──► pending ───────────────┼──► active ──complete──► completed
+  ▲                  │   └─ visit attended ┘      │
+  │                  │ rejected/expired           │ cancelled by clinic
+  │                  ▼                            ▼
+  └─── reactivate ◄──────       closed      ◄─────┘
+                            (closure_reason)
 ```
+
+`pending → active` has **two** doors, and either is enough:
+
+- `accept_from_budget`, on `budget.accepted`; and
+- `activate_from_attendance`, whenever work is recorded against the plan
+  — the clinic counts a plan as under way from the first consultation the
+  patient attends, which is normally well before anything is signed.
+
+Both are idempotent and both refuse anything that is not `pending`, so a
+`draft` plan never skips confirmation.
+
+**Every completion path calls `_sync_plan_lifecycle`**, which runs the
+start and then the finish. Do not call `_check_and_complete_plan`
+directly from a new path: on its own it only ever finishes an `active`
+plan, so a plan carried out in one go would stall in `pending` with every
+item done. The three paths that finish a treatment — `_finalize_item`,
+`on_appointment_completed` and `on_treatment_performed` — all route
+through the hook.
 
 `closure_reason` ∈ `{rejected_by_patient, expired,
 cancelled_by_clinic, patient_abandoned, other}`. See ADR 0006 and
@@ -31,11 +50,12 @@ Routes mounted at `/api/v1/treatment-plans/`.
 - `PUT   /treatment-plans/{id}/items/reorder`
 - `POST  /treatment-plans/{id}/items/{item_id}/complete`
 - `POST  /treatment-plans/{id}/confirm`     — `plans.confirm`; draft → pending
-- `POST  /treatment-plans/{id}/reopen`      — pending → draft, cancels linked budget
+- `POST  /treatment-plans/{id}/reopen`      — pending|active → draft, cancels linked budget; admin or an assigned professional only
 - `POST  /treatment-plans/{id}/close`       — `plans.close`; any → closed
 - `POST  /treatment-plans/{id}/reactivate`  — `plans.reactivate`; closed → draft
 - `POST  /treatment-plans/{id}/contact-log` — record reception touchpoint
-- `GET   /treatment-plans/pipeline`         — bandeja (5 tabs)
+- `GET   /treatment-plans/pipeline`         — bandeja (6 tabs; `en_curso` leads)
+- `GET   /treatment-plans/{id}/history`     — change log + the caller's rights
 - `POST  /treatment-plans/{id}/apply-template` — append a template; `plans.write`.
   Body takes `excluded_template_item_ids`; returns `{items, skipped}`.
 - `GET   /plan-templates`                   — list; `plans.read`
@@ -104,7 +124,7 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
 
 | Event | Handler | Effect |
 |---|---|---|
-| `appointment.completed`         | `on_appointment_completed`  | mark planned items as performed if linked |
+| `appointment.completed`         | `on_appointment_completed`  | start the plan (`pending` → `active`) for every plan the appointment links to, then mark planned items as performed. The activation query is deliberately wider than the completion loop: it does not require `completed_in_appointment`, because a diagnostic first visit usually ticks nothing off and is exactly the visit that starts the plan. |
 | `budget.accepted`               | `on_budget_accepted`        | pending → active (idempotent) |
 | `budget.rejected`               | `on_budget_rejected`        | pending → closed (closure_reason=rejected_by_patient) |
 | `budget.renegotiated`           | `on_budget_renegotiated`    | pending → draft (budget already cancelled by publisher) |
@@ -117,6 +137,26 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
 
 ## Gotchas
 
+- **`confirm` must always adopt the budget it was handed.** `reopen`
+  cancels the linked budget but leaves `plan.budget_id` pointing at it.
+  `create_from_plan_snapshot` is idempotent only against *non-cancelled*
+  budgets, so a re-confirmation mints a fresh draft — and `confirm` has
+  to store it. Guarding the assignment on `budget_id is None` (as it did
+  until the reopen→re-confirm bug) stranded the plan in `pending` against
+  a cancelled budget, which satisfies no bandeja `tab_where`, so the plan
+  disappeared from the pipeline while the new budget floated unreferenced.
+  Pinned by `test_reconfirm_after_reopen_links_the_fresh_budget`.
+  The cascade is worse than the missing link suggests: `budget` finds the
+  plan to activate with a reverse lookup on `treatment_plans.budget_id`
+  (`BudgetWorkflowService._lookup_plan_id`), so an orphaned budget resolves
+  to `plan_id: None`, `on_budget_accepted` takes its "orphan budget" early
+  return, and accepting the budget never carries the plan to `active`. The
+  budget could not even be *sent* — it was cancelled. Pinned end to end by
+  `test_accepting_the_budget_after_a_reopen_still_activates_the_plan`.
+- **`en_curso` spans two statuses on purpose.** The leading bandeja tab is
+  `p.status IN ('pending', 'active')`. Reception counts a plan as under way
+  from the diagnostic visit, which happens before the budget is accepted, so
+  a tab keyed to `active` alone would hide exactly the plans they are chasing.
 - **Plan → budget direct call is the carve-out.** `confirm()` calls
   `BudgetService.create_from_plan_snapshot` synchronously to keep the
   draft-budget creation transactional with the state transition.
@@ -206,6 +246,28 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
 - **A chip only appears once a session is earned.** A pending session is not
   "uncollected" — there is nothing to collect until the work is done, and
   saying otherwise reads as a debt the patient does not have.
+- **A plan can start without an appointment ever existing.** Ticking a
+  treatment off directly on the plan sets `completed_without_appointment`
+  and creates no `appointment_treatments` row, so anything reasoning about
+  "did the patient come" from appointments alone misses that path — it is
+  how a first consultation often gets recorded.
+  `scripts/backfill_started_plans.py` counts either signal and is the
+  one-off pass for visits that predate the attendance rule; it is dry-run
+  by default. The live path covers both since completion routes through
+  `_sync_plan_lifecycle`.
+- **Reopening is narrower than `plans.write`.** It throws away a budget the
+  patient may already have seen, so the endpoint also asks `stewards_of`:
+  an administrator, or a professional assigned to the plan or to any of its
+  items. The account↔professional bridge is the licence number
+  (`users.professional_id` ↔ `professionals.license_number`) because
+  `Professional` deliberately has no `user_id`; a professional with no
+  account resolves to nobody and the plan stays admin-only. Rights are
+  derived from the current assignment, so reassignment transfers them with
+  no extra bookkeeping. The client never reproduces this rule — it reads
+  `permissions` off the history endpoint.
+- **History rows share the caller's transaction.** `record_history` is not a
+  coroutine and does not flush: a log line that outlives a rolled-back edit
+  describes something that never happened.
 - **Auto-close cron lives here** (`tasks.py:auto_close_expired_plans`),
   not in budget — closing a plan is a treatment_plan write and budget
   is in this module's depends, so the read of `budgets` from the

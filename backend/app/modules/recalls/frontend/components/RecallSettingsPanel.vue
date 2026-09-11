@@ -151,6 +151,7 @@ function removeCategory(key: string) {
           />
           <USelectMenu
             v-model="newCategoryReason"
+            :aria-label="t('recalls.filters.reason')"
             :items="reasons.map(r => ({ value: r, label: t(`recalls.reasons.${r}`) }))"
             value-key="value"
             label-key="label"

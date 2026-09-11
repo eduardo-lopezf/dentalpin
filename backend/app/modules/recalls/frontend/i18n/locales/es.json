@@ -11,7 +11,9 @@
       "priority": "Prioridad",
       "overdue": "Mostrar atrasados",
       "any": "Todos",
-      "thisMonth": "Mes actual"
+      "thisMonth": "Mes actual",
+      "previousYear": "Año anterior",
+      "nextYear": "Año siguiente"
     },
     "counters": {
       "due_this_week": "Vencen esta semana",

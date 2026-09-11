@@ -1169,7 +1169,19 @@ defineExpose({
 
 .odontogram-wrapper {
   container-type: inline-size;
-  overflow: hidden;
+  /* Was `overflow: hidden`, which silently amputated the chart. The zoom
+     ladder below bottoms out at 0.5, and even there the arches need
+     ~491px; a tablet held upright gives this wrapper ~472px inside the
+     plan detail, so the last molar of each quadrant — 18, 28, 48, 38 —
+     was cut off with no way to reach it.
+
+     Scrolling sideways is the floor of the fix rather than shrinking
+     further: these are anatomy cells being tapped with a finger, and
+     making them smaller to dodge a scrollbar trades a real problem for
+     a worse one. The extra zoom steps below mean the common tablet
+     widths still fit without scrolling at all. */
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 /* Arch halo: highlights the upper or lower arch when the user hovers a global_arch
@@ -1191,10 +1203,24 @@ defineExpose({
 
 .odontogram-grid {
   zoom: 1;
+  /* Centred *and* scrollable. The arches are centred, and a centred flex
+     row that outgrows its container spills equally off both sides — but
+     `scrollLeft` cannot go negative, so the left spill (the upper-right
+     and lower-right quadrants, 18/17/16…) becomes unreachable no matter
+     how far you pan. Sizing the grid to its content and centring it with
+     auto margins instead keeps it centred while there is room and
+     collapses the margins to zero once there is not, so everything the
+     chart draws stays inside the scrollable area. */
+  width: max-content;
+  margin-inline: auto;
 }
 
-/* Container queries - respond to actual container width, not viewport */
-@container (max-width: 1000px) {
+/* Container queries - respond to actual container width, not viewport.
+   The ladder starts at 1060px, not 1000: unzoomed the arches measure
+   ~1047px, so a container between those two figures could not fit the
+   chart and no step had kicked in yet — which under the old
+   `overflow: hidden` clipped the outer molars on a plain desktop too. */
+@container (max-width: 1060px) {
   .odontogram-grid {
     zoom: 0.9;
   }
@@ -1221,6 +1247,21 @@ defineExpose({
 @container (max-width: 600px) {
   .odontogram-grid {
     zoom: 0.5;
+  }
+}
+
+/* Below 520px the 0.5 step no longer fits — the arches want ~491px — so
+   the ladder has to keep going or the outer molars fall off the edge.
+   A tablet in portrait lands in the first of these. */
+@container (max-width: 520px) {
+  .odontogram-grid {
+    zoom: 0.45;
+  }
+}
+
+@container (max-width: 460px) {
+  .odontogram-grid {
+    zoom: 0.4;
   }
 }
 

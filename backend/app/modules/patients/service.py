@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.events import EventType, event_bus
 from app.core.list_query import parse_sort
+from app.core.utils.search import FOLD_FROM, FOLD_TO, search_tokens
 
 from .models import Patient
 
@@ -56,6 +57,11 @@ _SEARCH_FIELDS = (
 _FULL_NAME = func.concat(Patient.first_name, " ", Patient.last_name)
 
 
+def _folded(expression):
+    """Strip accents from a column so it can be compared with a folded term."""
+    return func.translate(expression, FOLD_FROM, FOLD_TO)
+
+
 def _search_condition(search: str | None):
     """Build the WHERE clause for a free-text patient search.
 
@@ -64,17 +70,23 @@ def _search_condition(search: str | None):
     fields). This makes "first last" — and the reversed "last first" —
     find a patient whose name is split across ``first_name`` and
     ``last_name``, which a single substring ILIKE could never do.
+
+    Both sides are accent-folded, because ``ILIKE`` ignores case but not
+    diacritics: "Fernandez" found nobody at all, and "Garcia" found only
+    the patient whose *email* happened to spell it without the accent —
+    the one with no email was simply invisible. Reception types without
+    accents, and the misses were silent.
     """
-    if not search or not search.strip():
+    tokens = search_tokens(search)
+    if not tokens:
         return None
-    terms = search.split()
     per_term = []
-    for term in terms:
+    for term in tokens:
         like = f"%{term}%"
         per_term.append(
             or_(
-                *(field.ilike(like) for field in _SEARCH_FIELDS),
-                _FULL_NAME.ilike(like),
+                *(_folded(field).ilike(like) for field in _SEARCH_FIELDS),
+                _folded(_FULL_NAME).ilike(like),
             )
         )
     return and_(*per_term)

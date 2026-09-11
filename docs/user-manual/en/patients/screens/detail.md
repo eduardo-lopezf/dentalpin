@@ -32,6 +32,12 @@ one click reaches the detail.
   allergy chips (allergy, pregnancy, anticoagulant…) and *Edit* +
   *Actions ▾* buttons (Appointment, Collect, Note, Archive). Stays
   visible while scrolling and across tabs.
+- **The tab strip scrolls rather than squeezing.** Six tabs with icons
+  do not fit across a tablet held upright: Nuxt UI shared the width out
+  and every label collapsed to an ellipsis ("Sum…", "Admin…", "G…").
+  They now keep their natural width and the strip slides sideways. Only
+  the strip scrolls — the panels below keep `overflow-visible`, which
+  sticky children rely on.
 - **Summary (dashboard)** — smart-cards contributed by each owning
   module via the `patient.summary.cards` slot:
   - **Active plan** *(treatment_plan)* — title, progress bar, n/m

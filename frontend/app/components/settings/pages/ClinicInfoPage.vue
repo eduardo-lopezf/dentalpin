@@ -293,6 +293,7 @@ function formatAddress(address?: Record<string, string>): string {
         <UFormField :label="t('settings.country')">
           <USelectMenu
             v-model="form.country"
+            :aria-label="t('settings.country')"
             :items="countryOptions"
             value-key="value"
             label-key="label"

@@ -15,6 +15,7 @@ import { phaseLabelKey, phaseRank } from '~~/app/config/treatmentPhases'
 
 import ConfirmPlanModal from './modals/ConfirmPlanModal.vue'
 import ReopenPlanModal from './modals/ReopenPlanModal.vue'
+import type { PlanHistoryEntry } from '../../composables/usePlanHistory'
 import ClosePlanModal from './modals/ClosePlanModal.vue'
 import ReactivatePlanModal from './modals/ReactivatePlanModal.vue'
 import ContactLogModal from './modals/ContactLogModal.vue'
@@ -36,7 +37,7 @@ const emit = defineEmits<{
   'cancelled': []
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 
 const {
@@ -179,6 +180,69 @@ const isLocked = computed(() => {
 const effectiveReadonly = computed(() => props.readonly || isLocked.value)
 
 // ============================================================================
+// ============================================================================
+// Change log
+// ============================================================================
+
+const {
+  entries: historyEntries,
+  permissions: planPermissions,
+  fetchHistory
+} = usePlanHistory()
+
+const HISTORY_COLORS: Record<string, string> = {
+  confirmed: 'info',
+  started: 'success',
+  completed: 'success',
+  reopened: 'warning',
+  reassigned: 'warning',
+  closed: 'error',
+  reactivated: 'info',
+  item_added: 'neutral',
+  item_removed: 'neutral'
+}
+
+function historyColor(action: string): string {
+  return HISTORY_COLORS[action] || 'neutral'
+}
+
+/** The one detail that makes an entry worth reading, if it has one. */
+function historyDetail(entry: PlanHistoryEntry): string {
+  const p = entry.payload || {}
+  if (entry.action === 'reassigned') {
+    return [p.from, p.to].filter(Boolean).join(' → ')
+  }
+  if (entry.action === 'reopened' && p.cancelled_budget) {
+    return String(p.cancelled_budget)
+  }
+  if (entry.action === 'closed') {
+    return [p.reason, p.note].filter(Boolean).join(' · ')
+  }
+  return String(p.treatment || p.budget || '')
+}
+
+function formatHistoryDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString(locale.value, {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return iso
+  }
+}
+
+// Reloaded on every transition, not just on mount: the actions on this
+// page are exactly the ones that write to the log, so a stale panel
+// would be missing the entry the user just caused.
+watch(
+  () => [props.plan.id, props.plan.status],
+  () => fetchHistory(props.plan.id),
+  { immediate: true }
+)
+
 // Cancel plan — delegated to the parent's ClosePlanModal. The legacy in-line
 // modal kept for status-only cancellation (without closure_reason); the new
 // flow surfaces ``request-close`` so the page collects a reason.
@@ -680,8 +744,13 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
         <!-- Workflow transitions for plans past draft. The big CTA in
              the body owns the draft → pending action so it's not
              duplicated up here. -->
+        <!-- Shown for `active` as well as `pending` since attendance
+             started moving plans on, and gated on the server's answer
+             rather than a role check here: reopening throws away a
+             budget the patient may have seen, so it is for an
+             administrator or a professional the case is assigned to. -->
         <UButton
-          v-if="plan.status === 'pending'"
+          v-if="planPermissions.can_reopen"
           variant="soft"
           color="warning"
           size="sm"
@@ -945,6 +1014,54 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
       @confirm="onConfirmPlan"
       @cancel="showConfirmModal = false"
     />
+    <!-- The change log closes the page: a plan is a contract whose price
+         moves with it, so "who changed this, and when" has to be
+         answerable without reading the database. -->
+    <UCard class="mt-6">
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon
+            name="i-lucide-history"
+            class="w-4 h-4 text-[var(--ui-text-muted)]"
+          />
+          <h3 class="font-medium">
+            {{ t('treatmentPlans.history.title') }}
+          </h3>
+        </div>
+      </template>
+
+      <p
+        v-if="!historyEntries.length"
+        class="text-sm text-[var(--ui-text-muted)]"
+      >
+        {{ t('treatmentPlans.history.empty') }}
+      </p>
+
+      <ol
+        v-else
+        class="space-y-3"
+      >
+        <li
+          v-for="entry in historyEntries"
+          :key="entry.id"
+          class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm"
+        >
+          <UBadge
+            :color="historyColor(entry.action)"
+            variant="subtle"
+            size="xs"
+          >
+            {{ t(`treatmentPlans.history.actions.${entry.action}`, entry.action) }}
+          </UBadge>
+          <span class="text-[var(--ui-text-toned)]">{{ historyDetail(entry) }}</span>
+          <span class="text-xs text-[var(--ui-text-muted)] tnum">
+            {{ entry.actor_name || t('treatmentPlans.history.system') }}
+            · {{ formatHistoryDate(entry.created_at) }}
+          </span>
+        </li>
+      </ol>
+    </UCard>
+
     <ReopenPlanModal
       :open="showReopenModal"
       :loading="transitioning"

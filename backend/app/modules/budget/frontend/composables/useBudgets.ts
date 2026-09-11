@@ -257,6 +257,30 @@ export function useBudgets() {
     return response.data
   }
 
+  /**
+   * Acceptance captured at the desk, with the patient present.
+   *
+   * Its own endpoint rather than a flag on ``acceptBudget``: the backend
+   * stamps ``accepted_via='in_clinic'`` and derives the signature method
+   * from whether anything was drawn, so reception can later tell a
+   * signature taken on the tablet from one collected through the public
+   * link. Gated by ``budget.accept_in_clinic``, which reception and
+   * assistants hold but the plain read role does not.
+   */
+  async function acceptBudgetInClinic(
+    id: string,
+    payload: { signer_name: string, signature_data?: { png?: string } }
+  ): Promise<Budget> {
+    const response = await api.post<ApiResponse<Budget>>(
+      `/api/v1/budget/budgets/${id}/accept-in-clinic`,
+      payload
+    )
+
+    updateBudgetStatus(id, response.data.status)
+
+    return response.data
+  }
+
   async function rejectBudget(id: string, data: BudgetRejectRequest = {}): Promise<Budget> {
     const response = await api.post<ApiResponse<Budget>>(
       `/api/v1/budget/budgets/${id}/reject`,
@@ -449,6 +473,7 @@ export function useBudgets() {
     // Workflow
     sendBudget,
     acceptBudget,
+    acceptBudgetInClinic,
     rejectBudget,
     cancelBudget,
     duplicateBudget,

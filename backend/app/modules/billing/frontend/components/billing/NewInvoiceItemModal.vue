@@ -263,6 +263,7 @@ watch(() => props.open, async (isOpen) => {
             <UFormField :label="t('invoice.vat')">
               <USelectMenu
                 v-model="form.vat_type_id"
+                :aria-label="t('invoice.vat')"
                 :items="vatTypeOptions"
                 :placeholder="t('invoice.selectVatType')"
                 :loading="isLoadingVat"
@@ -275,6 +276,7 @@ watch(() => props.open, async (isOpen) => {
               <UFormField :label="t('budget.discountType')">
                 <USelectMenu
                   v-model="form.discount_type"
+                  :aria-label="t('budget.discountType')"
                   :items="[
                     { label: '-', value: '' },
                     { label: t('budget.percentage'), value: 'percentage' },

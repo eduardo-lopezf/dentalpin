@@ -20,8 +20,9 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base, TimestampMixin
@@ -314,3 +315,49 @@ class PlanTemplateItem(Base, TimestampMixin):
         UniqueConstraint("template_id", "sequence", name="uq_plan_template_item_sequence"),
         Index("idx_plan_template_items_template", "template_id"),
     )
+
+
+class TreatmentPlanHistory(Base):
+    """Who changed a plan, what they changed, and when.
+
+    A plan is a contract with the patient and its price moves with it, so
+    "the budget says something different from what I remember agreeing"
+    has to be answerable. The budget already keeps ``budget_history``;
+    this is the plan side of the same idea.
+
+    Append-only by convention: rows are written by the service on every
+    transition, item mutation and reassignment, and nothing updates or
+    deletes them. ``actor_user_id`` is the account that acted — the
+    professional the work is attributed to lives in ``payload`` when it
+    is part of what changed, because the two are not the same thing
+    (see the module CLAUDE.md on directory profiles vs accounts).
+    """
+
+    __tablename__ = "treatment_plan_history"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), nullable=False, index=True)
+    treatment_plan_id: Mapped[UUID] = mapped_column(
+        ForeignKey("treatment_plans.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    # Short verb: confirmed | reopened | closed | reactivated | item_added |
+    # item_removed | item_completed | reassigned | budget_synced
+    action: Mapped[str] = mapped_column(String(40), nullable=False)
+
+    from_status: Mapped[str | None] = mapped_column(String(20))
+    to_status: Mapped[str | None] = mapped_column(String(20))
+
+    # Free-shaped detail for the action: the treatment that moved, the
+    # professional a plan was handed to, the budget that was cancelled.
+    # Read for display only — never branched on.
+    payload: Mapped[dict | None] = mapped_column(JSONB)
+
+    actor_user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    actor: Mapped["User | None"] = relationship(foreign_keys=[actor_user_id])
+
+    __table_args__ = (Index("idx_tp_history_plan_created", "treatment_plan_id", "created_at"),)

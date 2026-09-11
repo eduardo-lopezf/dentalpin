@@ -4,7 +4,11 @@ import { PERMISSIONS } from '~~/app/config/permissions'
 
 type ActiveTab = PipelineTab | 'listado'
 
+// Order matters: "En curso" leads because it answers the question
+// reception opens this screen with — what is live right now — and
+// "Listado" closes it as the catch-all, every plan by date.
 const PIPELINE_TABS: PipelineTab[] = [
+  'en_curso',
   'por_presupuestar',
   'esperando_paciente',
   'sin_cita',
@@ -25,7 +29,7 @@ const { can } = usePermissions()
 
 const initialTab: ActiveTab = isValidTab(route.query.tab as string)
   ? (route.query.tab as ActiveTab)
-  : 'por_presupuestar'
+  : 'en_curso'
 
 const activeTab = ref<ActiveTab>(initialTab)
 const searchQuery = ref('')
@@ -79,11 +83,20 @@ function createPlan() {
         </UButton>
       </template>
       <template #tabs>
-        <UTabs
-          v-model="activeTab"
-          :items="tabItems"
-          class="w-full"
-        />
+        <!-- Seven tabs do not fit across a tablet held upright: Nuxt UI
+             shares the width out and every label collapses to an
+             ellipsis ("En…", "Por pre…", "Ce…"), which is worse than
+             not seeing a tab at all. Let the strip keep its natural
+             width and scroll sideways instead — the scrollbar is
+             hidden because on a touch screen the strip is dragged, and
+             on a desktop every tab already fits. -->
+        <div class="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <UTabs
+            v-model="activeTab"
+            :items="tabItems"
+            class="w-full min-w-max"
+          />
+        </div>
       </template>
     </PageHeader>
 

@@ -40,6 +40,10 @@ buscar, filtrar, abrir la ficha de un paciente o crear uno nuevo.
 
 1. Escribe nombre, apellido o número de documento en la caja de
    búsqueda. La consulta filtra por coincidencias exactas y parciales.
+   **Los acentos y el orden dan igual**: «Fernandez», «Fernández», «rosa
+   martinez» y «Martínez Rosa» llegan al mismo sitio. Cada palabra tiene
+   que casar con algo —nombre, apellidos, teléfono, email o documento—,
+   así que añadir una segunda acota en vez de ampliar.
 2. Pulsa **Enter** o espera al debounce — los resultados se actualizan
    en sitio.
 3. Haz clic en una fila para abrir la

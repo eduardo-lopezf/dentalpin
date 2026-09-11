@@ -83,6 +83,7 @@ const hasActiveFilters = computed(() => {
       <!-- Status filter -->
       <USelectMenu
         v-model="localFilters.statuses"
+        :aria-label="t('budget.filters.allStatuses')"
         :items="statusOptions"
         value-key="value"
         multiple

@@ -38,19 +38,50 @@ last_verified_commit: 3568519
 
 # Plans inbox
 
-Inbox of the clinic's treatment plans. Organized into **five tabs**
-aligned with the plan state machine, plus a pipeline view that
-surfaces the follow-up queue.
+Inbox of the clinic's treatment plans. Organized into **seven tabs**:
+six follow-up queues served by `GET /pipeline`, and a closing *List*
+of every plan.
 
 ## At a glance
 
-- **Tabs by state.** *Drafts* (not confirmed), *Pending* (waiting
-  for patient acceptance), *Active* (treatment in progress),
-  *Completed*, *Closed* (rejected, expired, cancelled, abandoned,
-  or *other*).
-- **Pipeline.** Aggregate inbox view (`GET /pipeline`) with totals
-  per column and plans that need front-desk action (pending with no
-  recent contact, unsent budget, etc.).
+- **In progress** *(first tab, the one that opens by default)*. Every
+  plan in flight, wherever it sits in the circuit: `pending` (the
+  dentist confirmed it and is waiting on the patient) and `active`
+  (budget accepted, treatment under way). Reception treats both the
+  same — a plan starts moving when the patient turns up for the
+  diagnostic visit, long before the budget is signed — so splitting
+  them across tabs hid work that was live. Sorted by most recent
+  movement first: it answers "what is going on right now" rather than
+  being a queue to work through.
+- **Action queues.** *To quote* (confirmed, budget still draft),
+  *Awaiting patient* (budget sent or expired), *No appointment* and
+  *No next appointment* (active plans with pending treatments and an
+  empty diary), *Closed* (last 90 days).
+- **Rows that fit their own width.** Each card decides its layout by
+  measuring itself rather than the window: once the card drops below 56rem
+  — an upright tablet, rail open or collapsed — the patient moves to the top
+  and *Treatments*, *Budget* and *days in status* share a wrapped line
+  beneath. Nothing is hidden; those columns used to overlap the plan number.
+- **When a plan becomes *In treatment*.** A plan reaches `active` by
+  either of two routes, and one is enough: the **budget is accepted**, or
+  the patient **attends the first appointment** linked to the plan. The
+  visit counts even when no treatment is ticked off — a diagnostic first
+  visit rarely ticks any. A *Draft* plan is never started by attendance:
+  it has to be confirmed first.
+- **Accept in clinic.** When the patient says yes while standing there,
+  the button on the row opens a dialog that takes their name and,
+  optionally, a signature drawn on the tablet. It shows only while the
+  budget is *draft* or *sent*. A real signature is recorded — name,
+  stroke, IP, timestamp and method — and accepting carries the plan to
+  *In treatment* through the usual route.
+- **Searching by name.** The box takes a plan number or the patient's name,
+  in any order, accented or not: "Juan Pérez", "Pérez Juan" and "juan perez"
+  all land on the same person. Every word has to match something, so adding
+  a second one narrows the results rather than widening them.
+- **All** *(last tab)*. Every plan in the clinic ordered by creation
+  date, newest first, with a status filter. This is the catalogue
+  view: any plan shows up here, including drafts and archived ones
+  that belong to no queue.
 - **Pipeline pagination.** The columns paginate for real: the pager
    ignored clicks because it used the component's old API, so only the
    first page was ever reachable.

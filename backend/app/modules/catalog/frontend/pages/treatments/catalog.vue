@@ -220,6 +220,7 @@ function categoryName(categoryId: string): string {
           />
           <USelectMenu
             v-model="selectedCategories"
+            :aria-label="t('treatments.filterCategory')"
             :items="categoryOptions"
             value-key="value"
             label-key="label"
@@ -229,6 +230,7 @@ function categoryName(categoryId: string): string {
           />
           <USelectMenu
             v-model="selectedSpecialties"
+            :aria-label="t('treatments.filterSpecialty')"
             :items="specialtyOptions"
             value-key="value"
             label-key="label"
@@ -238,6 +240,7 @@ function categoryName(categoryId: string): string {
           />
           <USelectMenu
             v-model="selectedPhases"
+            :aria-label="t('treatments.filterPhase')"
             :items="phaseOptions"
             value-key="value"
             label-key="label"

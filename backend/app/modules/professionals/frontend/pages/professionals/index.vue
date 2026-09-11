@@ -620,6 +620,7 @@ onMounted(async () => {
           >
             <USelectMenu
               v-model="form.specialty_ids"
+              :aria-label="t('professionals.specialty')"
               :items="specialtyOptions"
               value-key="value"
               label-key="label"

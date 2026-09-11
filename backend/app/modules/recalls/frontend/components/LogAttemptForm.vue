@@ -68,6 +68,7 @@ async function submit() {
     <UFormField :label="t('recalls.logAttempt.channel')">
       <USelectMenu
         v-model="channel"
+        :aria-label="t('recalls.logAttempt.channel')"
         :items="channelOptions"
         value-key="value"
         label-key="label"
@@ -76,6 +77,7 @@ async function submit() {
     <UFormField :label="t('recalls.logAttempt.outcome')">
       <USelectMenu
         v-model="outcome"
+        :aria-label="t('recalls.logAttempt.outcome')"
         :items="outcomeOptions"
         value-key="value"
         label-key="label"

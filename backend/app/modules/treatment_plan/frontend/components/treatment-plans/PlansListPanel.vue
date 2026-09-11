@@ -101,6 +101,7 @@ function getItemCount(plan: TreatmentPlan): number {
     <div class="flex flex-wrap gap-[var(--density-gap,0.75rem)] mb-[var(--density-gap,1rem)]">
       <USelectMenu
         v-model="selectedStatuses"
+        :aria-label="t('treatmentPlans.filters.allStatuses')"
         :items="statusOptions"
         value-key="value"
         multiple
@@ -121,10 +122,15 @@ function getItemCount(plan: TreatmentPlan): number {
         />
       </div>
 
+      <!-- `noItems` is the message for a plan with no treatments in it,
+           not for a search that matched nothing. Nobody saw the
+           difference while the search filtered nothing at all. -->
       <EmptyState
         v-else-if="plans.length === 0"
         icon="i-lucide-clipboard-list"
-        :title="props.q || selectedStatuses.length > 0 ? t('treatmentPlans.noItems') : t('treatmentPlans.empty')"
+        :title="props.q || selectedStatuses.length > 0
+          ? t('treatmentPlans.noSearchResults')
+          : t('treatmentPlans.empty')"
       >
         <template
           v-if="!props.q && selectedStatuses.length === 0 && can(PERMISSIONS.treatmentPlans.write)"

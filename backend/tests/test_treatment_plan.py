@@ -1,7 +1,7 @@
 """Smoke tests for the treatment plan module after the Treatment refactor."""
 
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -34,7 +34,11 @@ async def _ensure_clinic_and_patient(
     await db_session.flush()
 
     db_session.add(
-        ClinicMembership(id=uuid4(), user_id=user_id, clinic_id=clinic.id, role="dentist")
+        # Admin, matching conftest's own clinic: these tests exercise plan
+        # mechanics, not RBAC, and reopening is now limited to an
+        # administrator or a professional the plan is assigned to. The
+        # rule itself is covered by the reopen-authorisation tests below.
+        ClinicMembership(id=uuid4(), user_id=user_id, clinic_id=clinic.id, role="admin")
     )
     await db_session.commit()
 
@@ -1270,3 +1274,702 @@ async def test_plan_item_phase_can_override_the_catalog(
     )
     assert r.status_code == 201, r.text
     assert r.json()["data"]["phase"] == "urgencia"
+
+
+# -----------------------------------------------------------------------------
+# Reopen → re-confirm relinks the plan to a live budget
+# -----------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_reconfirm_after_reopen_links_the_fresh_budget(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """A reopened plan that is confirmed again points at a *draft* budget.
+
+    Reopening cancels the linked budget but leaves ``budget_id`` set.
+    ``confirm`` then provisioned a new draft budget (its idempotency
+    check ignores cancelled ones) and used to discard it, because it
+    only assigned the link when ``budget_id`` was NULL. The plan was
+    left in ``pending`` pointing at a cancelled budget, which matches
+    no bandeja tab, so it vanished from the pipeline while the fresh
+    budget floated unreferenced.
+    """
+    plan_id, _ = await _create_plan_with_items(client, auth_headers, setup, [16])
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    first_budget_id = r.json()["data"]["budget_id"]
+    assert first_budget_id is not None
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/reopen",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "draft"
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    plan = r.json()["data"]
+    assert plan["status"] == "pending"
+
+    second_budget_id = plan["budget_id"]
+    assert second_budget_id is not None
+    assert second_budget_id != first_budget_id, (
+        "re-confirmation must adopt the new budget, not keep the cancelled one"
+    )
+
+    # The budget the plan points at has to be workable, otherwise the
+    # plan shows up in no pipeline tab.
+    r = await client.get(
+        f"/api/v1/budget/budgets/{second_budget_id}",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "draft"
+
+
+@pytest.mark.asyncio
+async def test_pipeline_en_curso_holds_pending_and_active(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """The leading tab carries every plan in flight, both statuses."""
+    plan_id, _ = await _create_plan_with_items(client, auth_headers, setup, [16])
+
+    # A draft plan is not yet in flight.
+    r = await client.get(
+        "/api/v1/treatment_plan/treatment-plans/pipeline?tab=en_curso",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert plan_id not in [row["plan_id"] for row in r.json()["data"]]
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    # `pending` counts — this is the case reception reported.
+    r = await client.get(
+        "/api/v1/treatment_plan/treatment-plans/pipeline?tab=en_curso",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert plan_id in [row["plan_id"] for row in r.json()["data"]]
+
+    r = await client.patch(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/status",
+        headers=auth_headers,
+        json={"status": "active"},
+    )
+    assert r.status_code == 200, r.text
+
+    # ...and so does `active`.
+    r = await client.get(
+        "/api/v1/treatment_plan/treatment-plans/pipeline?tab=en_curso",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert plan_id in [row["plan_id"] for row in r.json()["data"]]
+
+
+@pytest.mark.asyncio
+async def test_accepting_the_budget_after_a_reopen_still_activates_the_plan(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """The plan reaches ``active`` even when a reopen came first.
+
+    This is the cascade the reopen→re-confirm bug caused. ``budget``
+    resolves the plan to activate with a reverse lookup on
+    ``treatment_plans.budget_id``; while the re-confirmed budget was
+    orphaned that lookup returned NULL, the accepted-budget handler took
+    its "orphan budget" early return, and the plan sat in ``pending``
+    with an accepted budget nobody had connected to it.
+    """
+    plan_id, _ = await _create_plan_with_items(client, auth_headers, setup, [16])
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/reopen",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    budget_id = r.json()["data"]["budget_id"]
+
+    r = await client.post(
+        f"/api/v1/budget/budgets/{budget_id}/send",
+        json={},
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.post(
+        f"/api/v1/budget/budgets/{budget_id}/accept",
+        json={
+            "signature": {
+                "signed_by_name": "Test Patient",
+                "relationship_to_patient": "patient",
+            }
+        },
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.get(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "active", (
+        "an accepted budget must still carry the plan to active after a reopen"
+    )
+
+
+@pytest.mark.asyncio
+async def test_attending_an_appointment_moves_the_plan_to_active(
+    client: AsyncClient, auth_headers: dict, setup: dict, db_session: AsyncSession
+) -> None:
+    """The first consultation the patient attends starts the plan.
+
+    The clinic counts a plan as under way from the moment the patient
+    turns up, which is well before the budget is signed. Note the
+    appointment here completes without ticking any treatment off — a
+    diagnostic visit usually does — so this also pins that attendance,
+    not completion, is the trigger.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from app.modules.agenda.models import Appointment, AppointmentTreatment
+    from app.modules.professionals.models import Professional
+    from app.modules.treatment_plan import events as tp_events
+
+    plan_id, item_ids = await _create_plan_with_items(client, auth_headers, setup, [16])
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "pending"
+
+    professional = Professional(
+        id=uuid4(),
+        clinic_id=setup["clinic_id"],
+        first_name="Ada",
+        last_name="Lovelace",
+        professional_type="dentist",
+    )
+    db_session.add(professional)
+    await db_session.flush()
+
+    started = datetime.now(UTC) - timedelta(hours=2)
+    appointment = Appointment(
+        id=uuid4(),
+        clinic_id=setup["clinic_id"],
+        patient_id=setup["patient_id"],
+        professional_id=professional.id,
+        start_time=started,
+        end_time=started + timedelta(minutes=30),
+        status="completed",
+    )
+    db_session.add(appointment)
+    await db_session.flush()
+
+    db_session.add(
+        AppointmentTreatment(
+            id=uuid4(),
+            appointment_id=appointment.id,
+            planned_treatment_item_id=item_ids[0],
+            # Nothing ticked off: the dentist looked, measured and booked.
+            completed_in_appointment=False,
+        )
+    )
+    await db_session.commit()
+
+    await tp_events.on_appointment_completed(
+        {
+            "appointment_id": str(appointment.id),
+            "clinic_id": str(setup["clinic_id"]),
+            "patient_id": str(setup["patient_id"]),
+        }
+    )
+
+    r = await client.get(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    plan = r.json()["data"]
+    assert plan["status"] == "active", "attending the consultation must start the plan"
+    # The budget is untouched — attendance does not sign anything.
+    assert plan["budget_id"] is not None
+
+
+@pytest.mark.asyncio
+async def test_attendance_does_not_start_an_unconfirmed_plan(
+    client: AsyncClient, auth_headers: dict, setup: dict, db_session: AsyncSession
+) -> None:
+    """A `draft` plan must not skip confirmation just because a visit happened."""
+    from datetime import UTC, datetime, timedelta
+
+    from app.modules.agenda.models import Appointment, AppointmentTreatment
+    from app.modules.professionals.models import Professional
+    from app.modules.treatment_plan import events as tp_events
+
+    plan_id, item_ids = await _create_plan_with_items(client, auth_headers, setup, [16])
+
+    professional = Professional(
+        id=uuid4(),
+        clinic_id=setup["clinic_id"],
+        first_name="Grace",
+        last_name="Hopper",
+        professional_type="dentist",
+    )
+    db_session.add(professional)
+    await db_session.flush()
+
+    started = datetime.now(UTC) - timedelta(hours=1)
+    appointment = Appointment(
+        id=uuid4(),
+        clinic_id=setup["clinic_id"],
+        patient_id=setup["patient_id"],
+        professional_id=professional.id,
+        start_time=started,
+        end_time=started + timedelta(minutes=30),
+        status="completed",
+    )
+    db_session.add(appointment)
+    await db_session.flush()
+    db_session.add(
+        AppointmentTreatment(
+            id=uuid4(),
+            appointment_id=appointment.id,
+            planned_treatment_item_id=item_ids[0],
+            completed_in_appointment=False,
+        )
+    )
+    await db_session.commit()
+
+    await tp_events.on_appointment_completed(
+        {
+            "appointment_id": str(appointment.id),
+            "clinic_id": str(setup["clinic_id"]),
+            "patient_id": str(setup["patient_id"]),
+        }
+    )
+
+    r = await client.get(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "draft"
+
+
+@pytest.mark.asyncio
+async def test_completing_a_treatment_starts_the_plan(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """Work recorded against a plan starts it, with no appointment involved.
+
+    Ticking a treatment off straight on the plan is how a first
+    consultation is usually recorded: it sets
+    ``completed_without_appointment`` and creates no appointment row, so
+    the attendance rule keyed to ``appointment.completed`` never saw it
+    and the plan sat in ``pending`` with work already done against it.
+    """
+    plan_id, item_ids = await _create_plan_with_items(client, auth_headers, setup, [16, 15])
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "pending"
+
+    r = await client.patch(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_ids[0]}/complete",
+        headers=auth_headers,
+        json={},
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.get(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "active", (
+        "a completed treatment must start the plan even without an appointment"
+    )
+
+
+@pytest.mark.asyncio
+async def test_completing_the_last_treatment_crosses_both_transitions(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """One completion can both start and finish a plan.
+
+    A single-item plan that is confirmed and then carried out has no
+    moment in between. Starting before checking for completion is what
+    lets it land on ``completed`` rather than stalling in ``pending``
+    with every item done — ``_check_and_complete_plan`` only ever
+    finishes an ``active`` plan.
+    """
+    plan_id, item_ids = await _create_plan_with_items(client, auth_headers, setup, [16])
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.patch(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_ids[0]}/complete",
+        headers=auth_headers,
+        json={},
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.get(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_completing_a_treatment_does_not_start_a_draft_plan(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """An unconfirmed plan still has to be confirmed, work or no work."""
+    plan_id, item_ids = await _create_plan_with_items(client, auth_headers, setup, [16, 15])
+
+    r = await client.patch(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_ids[0]}/complete",
+        headers=auth_headers,
+        json={},
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.get(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "draft"
+
+
+# -----------------------------------------------------------------------------
+# Who may reopen a plan
+# -----------------------------------------------------------------------------
+
+
+async def _make_dentist_membership(
+    db_session: AsyncSession, client: AsyncClient, auth_headers: dict, clinic_id: str
+) -> None:
+    """Demote the acting user to dentist in this clinic."""
+    from sqlalchemy import update as sa_update
+
+    me = await client.get("/api/v1/auth/me", headers=auth_headers)
+    user_id = me.json()["data"]["user"]["id"]
+    await db_session.execute(
+        sa_update(ClinicMembership)
+        .where(
+            ClinicMembership.user_id == UUID(user_id),
+            ClinicMembership.clinic_id == UUID(clinic_id),
+        )
+        .values(role="dentist")
+    )
+    await db_session.commit()
+
+
+@pytest.mark.asyncio
+async def test_a_dentist_cannot_reopen_a_plan_that_is_not_theirs(
+    client: AsyncClient, auth_headers: dict, setup: dict, db_session: AsyncSession
+) -> None:
+    """Reopening throws away a budget, so it is not open to any dentist.
+
+    The plan here is assigned to nobody, which by the rule leaves it to
+    an administrator alone.
+    """
+    plan_id, _ = await _create_plan_with_items(client, auth_headers, setup, [16])
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    await _make_dentist_membership(db_session, client, auth_headers, setup["clinic_id"])
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/reopen",
+        headers=auth_headers,
+    )
+    assert r.status_code == 403, r.text
+
+
+@pytest.mark.asyncio
+async def test_the_assigned_professional_may_reopen_their_own_plan(
+    client: AsyncClient, auth_headers: dict, setup: dict, db_session: AsyncSession
+) -> None:
+    """Assignment carries the right with it, without an admin role.
+
+    The bridge between an account and a directory profile is the licence
+    number — ``users.professional_id`` against
+    ``professionals.license_number`` — so the professional is only
+    recognised once both carry the same one.
+    """
+    from sqlalchemy import update as sa_update
+
+    from app.core.auth.models import User
+    from app.modules.professionals.models import Professional
+    from app.modules.treatment_plan.models import TreatmentPlan
+
+    plan_id, _ = await _create_plan_with_items(client, auth_headers, setup, [16])
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    me = await client.get("/api/v1/auth/me", headers=auth_headers)
+    user_id = me.json()["data"]["user"]["id"]
+
+    licence = "TEST/9001"
+    professional = Professional(
+        id=uuid4(),
+        clinic_id=UUID(setup["clinic_id"]),
+        first_name="Ada",
+        last_name="Lovelace",
+        professional_type="dentist",
+        license_number=licence,
+    )
+    db_session.add(professional)
+    await db_session.execute(
+        sa_update(User).where(User.id == UUID(user_id)).values(professional_id=licence)
+    )
+    await db_session.execute(
+        sa_update(TreatmentPlan)
+        .where(TreatmentPlan.id == UUID(plan_id))
+        .values(assigned_professional_id=professional.id)
+    )
+    await db_session.commit()
+
+    await _make_dentist_membership(db_session, client, auth_headers, setup["clinic_id"])
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/reopen",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "draft"
+
+
+@pytest.mark.asyncio
+async def test_reopening_is_written_to_the_plan_history(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """Every reopen leaves a line naming who did it and what it cancelled."""
+    plan_id, _ = await _create_plan_with_items(client, auth_headers, setup, [16])
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/reopen",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.get(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/history",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()["data"]
+
+    actions = [entry["action"] for entry in data["entries"]]
+    assert "reopened" in actions
+    assert "confirmed" in actions
+
+    reopened = next(e for e in data["entries"] if e["action"] == "reopened")
+    assert reopened["from_status"] == "pending"
+    assert reopened["to_status"] == "draft"
+    assert reopened["actor_name"]
+    assert reopened["payload"]["cancelled_budget"]
+
+
+# -----------------------------------------------------------------------------
+# Searching by name
+# -----------------------------------------------------------------------------
+
+
+async def _patient_named(client: AsyncClient, auth_headers: dict, first: str, last: str) -> str:
+    r = await client.post(
+        "/api/v1/patients",
+        headers=auth_headers,
+        json={"first_name": first, "last_name": last, "phone": "+34600111222"},
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["data"]["id"]
+
+
+@pytest.mark.asyncio
+async def test_plan_search_matches_full_name_and_ignores_accents(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """The two ways reception actually types a name.
+
+    Matching the whole query against one column at a time meant "Juan
+    Pérez" found nobody — no column holds both words — and an ILIKE
+    between "Perez" and "Pérez" matches nothing either, which in Spanish
+    is most of what "the search doesn't work" means.
+    """
+    patient_id = await _patient_named(client, auth_headers, "Begoña", "Ñuño Peña")
+    r = await client.post(
+        "/api/v1/treatment_plan/treatment-plans",
+        headers=auth_headers,
+        json={"patient_id": patient_id, "title": "Buscador"},
+    )
+    assert r.status_code == 201, r.text
+    plan_id = r.json()["data"]["id"]
+
+    async def found(query: str) -> list[str]:
+        resp = await client.get(
+            "/api/v1/treatment_plan/treatment-plans",
+            headers=auth_headers,
+            params={"search": query, "page_size": 100},
+        )
+        assert resp.status_code == 200, resp.text
+        return [p["id"] for p in resp.json()["data"]]
+
+    # Either half, in either order, accented or not.
+    assert plan_id in await found("Begoña")
+    assert plan_id in await found("Begona")
+    assert plan_id in await found("Ñuño")
+    assert plan_id in await found("Nuno")
+    assert plan_id in await found("Begona Nuno")
+    assert plan_id in await found("Nuno Begona")
+    # Case is handled by ILIKE and always was.
+    assert plan_id in await found("BEGONA")
+
+    # Every word has to match something, or a two-word query would widen
+    # the results instead of narrowing them.
+    assert plan_id not in await found("Begona Zzzz")
+    assert await found("zzzznotapatient") == []
+
+
+@pytest.mark.asyncio
+async def test_plan_search_is_applied_at_all(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """The "Todos" tab sent `search` into a parameter that did not exist.
+
+    FastAPI drops unknown query parameters without complaining, so the
+    box filtered nothing and every plan came back — the list looked
+    broken rather than empty.
+    """
+    mine = await _patient_named(client, auth_headers, "Zenobia", "Quintanilla")
+    r = await client.post(
+        "/api/v1/treatment_plan/treatment-plans",
+        headers=auth_headers,
+        json={"patient_id": mine, "title": "Buscador"},
+    )
+    assert r.status_code == 201, r.text
+
+    other = await _patient_named(client, auth_headers, "Wenceslao", "Barrenechea")
+    r = await client.post(
+        "/api/v1/treatment_plan/treatment-plans",
+        headers=auth_headers,
+        json={"patient_id": other, "title": "Buscador"},
+    )
+    assert r.status_code == 201, r.text
+
+    unfiltered = await client.get(
+        "/api/v1/treatment_plan/treatment-plans",
+        headers=auth_headers,
+        params={"page_size": 100},
+    )
+    filtered = await client.get(
+        "/api/v1/treatment_plan/treatment-plans",
+        headers=auth_headers,
+        params={"search": "Zenobia", "page_size": 100},
+    )
+    assert filtered.status_code == 200, filtered.text
+    assert filtered.json()["total"] < unfiltered.json()["total"]
+    assert filtered.json()["total"] == 1
+
+
+@pytest.mark.asyncio
+async def test_pipeline_search_matches_full_name_and_ignores_accents(
+    client: AsyncClient, auth_headers: dict, setup: dict
+) -> None:
+    """Same rules on the bandeja, which has its own hand-written SQL."""
+    patient_id = await _patient_named(client, auth_headers, "Begoña", "Ñuño Peña")
+    # The treatment has to belong to this patient, not the fixture's, or
+    # the plan refuses it.
+    r = await client.post(
+        f"/api/v1/odontogram/patients/{patient_id}/treatments",
+        headers=auth_headers,
+        json={
+            "catalog_item_id": setup["crown_id"],
+            "tooth_numbers": [16],
+            "status": "planned",
+        },
+    )
+    assert r.status_code == 201, r.text
+    treatment_id = r.json()["data"]["id"]
+
+    r = await client.post(
+        "/api/v1/treatment_plan/treatment-plans",
+        headers=auth_headers,
+        json={"patient_id": patient_id, "title": "Buscador"},
+    )
+    plan_id = r.json()["data"]["id"]
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/items",
+        headers=auth_headers,
+        json={"treatment_id": treatment_id},
+    )
+    assert r.status_code == 201, r.text
+    r = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/confirm",
+        headers=auth_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    async def found(query: str) -> list[str]:
+        resp = await client.get(
+            "/api/v1/treatment_plan/treatment-plans/pipeline",
+            headers=auth_headers,
+            params={"tab": "por_presupuestar", "q": query, "page_size": 100},
+        )
+        assert resp.status_code == 200, resp.text
+        return [row["plan_id"] for row in resp.json()["data"]]
+
+    assert plan_id in await found("Begona Nuno")
+    assert plan_id in await found("Nuno")
+    assert plan_id not in await found("Begona Zzzz")

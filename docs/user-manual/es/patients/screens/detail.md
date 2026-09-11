@@ -32,6 +32,12 @@ también deep-links — un click llega al detalle.
   alergias críticas (alergia, embarazo, anticoagulante…) y botones
   *Editar* + *Acciones ▾* (Cita, Cobrar, Nota, Archivar).
   Permanece visible al hacer scroll y entre pestañas.
+- **La tira de pestañas se desplaza, no se aprieta.** Las seis pestañas
+  con icono no caben a lo ancho de una tablet en vertical: Nuxt UI
+  repartía el ancho y dejaba todas las etiquetas en puntos suspensivos
+  («Res…», «Admini…», «G…»). Ahora conservan su ancho y la tira se
+  desliza en horizontal. Solo se desplaza la tira: los paneles de abajo
+  mantienen `overflow-visible`, del que dependen los elementos fijos.
 - **Resumen (dashboard)** — grid de smart-cards aportadas por cada
   módulo dueño vía el slot `patient.summary.cards`:
   - **Plan activo** *(treatment_plan)* — nombre, progreso, n/m

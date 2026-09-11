@@ -1,5 +1,5 @@
 /**
- * Pipeline composable — drives the bandeja de planes (5 tabs).
+ * Pipeline composable — drives the bandeja de planes (6 tabs).
  *
  * Backend: GET /api/v1/treatment_plan/treatment-plans/pipeline
  * Returns shaped PipelineRow with patient + budget + next_appointment
@@ -9,7 +9,8 @@
 import type { PaginatedResponse } from '~~/app/types'
 
 export type PipelineTab
-  = | 'por_presupuestar'
+  = | 'en_curso'
+    | 'por_presupuestar'
     | 'esperando_paciente'
     | 'sin_cita'
     | 'sin_proxima_cita'

@@ -213,6 +213,7 @@ watch(() => props.open, (isOpen) => {
             <UFormField :label="t('budget.discountType')">
               <USelectMenu
                 v-model="form.discount_type"
+                :aria-label="t('budget.discountType')"
                 :items="[
                   { label: '-', value: '' },
                   { label: t('budget.percentage'), value: 'percentage' },

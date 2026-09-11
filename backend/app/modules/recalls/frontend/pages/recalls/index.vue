@@ -230,6 +230,7 @@ async function downloadCsv() {
       <UFormField :label="t('recalls.filters.reason')">
         <USelectMenu
           v-model="reason"
+          :aria-label="t('recalls.filters.reason')"
           :items="reasonOptions"
           value-key="value"
           label-key="label"
@@ -238,6 +239,7 @@ async function downloadCsv() {
       <UFormField :label="t('recalls.filters.status')">
         <USelectMenu
           v-model="status"
+          :aria-label="t('recalls.filters.status')"
           :items="statusOptions"
           value-key="value"
           label-key="label"
@@ -246,6 +248,7 @@ async function downloadCsv() {
       <UFormField :label="t('recalls.filters.priority')">
         <USelectMenu
           v-model="priority"
+          :aria-label="t('recalls.filters.priority')"
           :items="priorityOptions"
           value-key="value"
           label-key="label"

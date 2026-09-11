@@ -18,6 +18,8 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false
 })
 
+const { t } = useI18n()
+
 const emit = defineEmits<{
   'update:modelValue': [value: string]
   'update:debounced': [value: string]
@@ -66,7 +68,7 @@ function clear() {
           color="neutral"
           size="xs"
           icon="i-lucide-x"
-          :aria-label="'Clear'"
+          :aria-label="t('common.clearSearch')"
           @click="clear"
         />
       </template>

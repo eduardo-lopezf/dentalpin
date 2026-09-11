@@ -154,6 +154,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize))
         <!-- Type filter -->
         <USelectMenu
           v-model="selectedType"
+          :aria-label="t('documents.fields.type', 'Type')"
           :items="typeFilterOptions"
           value-key="value"
           size="sm"
@@ -324,6 +325,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize))
             <UFormField :label="t('documents.fields.type', 'Type')">
               <USelectMenu
                 v-model="editDocumentType"
+                :aria-label="t('documents.fields.type', 'Type')"
                 :items="editTypeOptions"
                 value-key="value"
               />

@@ -464,4 +464,32 @@ class AcceptProposalsRequest(BaseModel):
 #
 # Clinical-note schemas moved to the ``clinical_notes`` module — see issue #60.
 
+
+class PlanHistoryEntryResponse(BaseModel):
+    """One line of the plan's history, shaped for the panel that shows it."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    action: str
+    from_status: str | None = None
+    to_status: str | None = None
+    payload: dict | None = None
+    actor_name: str | None = None
+    created_at: datetime
+
+
+class PlanPermissionsResponse(BaseModel):
+    """What the caller may do with this plan.
+
+    Sent alongside the history so the client does not have to reproduce
+    the "administrator or assigned professional" rule — which depends on
+    a licence-number match it cannot see — to decide whether to draw the
+    Reopen button.
+    """
+
+    can_reopen: bool
+    can_edit: bool
+
+
 TreatmentPlanDetailResponse.model_rebuild()

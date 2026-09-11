@@ -2184,7 +2184,13 @@ export interface AttachmentCreate {
 // Treatment Plan Types
 // ============================================================================
 
-export type TreatmentPlanStatus = 'draft' | 'active' | 'completed' | 'archived' | 'cancelled'
+// Mirrors the backend state machine (treatment_plan/CLAUDE.md): draft →
+// pending → active → completed, with `closed` as the terminal
+// non-completed state. `pending` and `closed` were absent and
+// `cancelled` — which no plan row ever holds — stood in for them, so
+// callers filtering on the real statuses had to cast.
+export type TreatmentPlanStatus
+  = 'draft' | 'pending' | 'active' | 'completed' | 'closed' | 'archived'
 
 export type PlannedItemStatus = 'pending' | 'completed' | 'cancelled'
 

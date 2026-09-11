@@ -7,17 +7,24 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
+from sqlalchemy import text as sa_text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.events import event_bus
 from app.core.events.types import EventType
+from app.core.utils.search import FOLD_FROM, FOLD_TO, search_tokens
 from app.modules.odontogram.models import Treatment
 from app.modules.patients.models import Patient
 from app.modules.professionals.models import Professional
 
-from .models import PlannedTreatmentItem, PlannedTreatmentItemSession, TreatmentPlan
+from .models import (
+    PlannedTreatmentItem,
+    PlannedTreatmentItemSession,
+    TreatmentPlan,
+    TreatmentPlanHistory,
+)
 
 
 async def _validate_professional_in_clinic(
@@ -166,6 +173,72 @@ class PlanLockedError(ValueError):
     """Raised when a mutation is attempted on a plan locked by an active budget."""
 
 
+def _item_label(item: PlannedTreatmentItem) -> str | None:
+    """Human name of the treatment behind a plan item, for the history.
+
+    Best-effort: the history is read by people, so a missing catalogue
+    name is better recorded as nothing than as a UUID nobody can place.
+    Never raises — a lazy relationship that is not loaded simply yields
+    ``None`` rather than taking the surrounding write down with it.
+    """
+    try:
+        treatment = item.treatment
+        catalog_item = treatment.catalog_item if treatment else None
+        if catalog_item is None:
+            return None
+        names = catalog_item.names or {}
+        return names.get("es") or names.get("en")
+    except Exception:  # pragma: no cover - defensive, see docstring
+        return None
+
+
+async def stewards_of(db: AsyncSession, clinic_id: UUID, plan: TreatmentPlan) -> set[UUID]:
+    """User ids allowed to edit this plan besides an administrator.
+
+    A plan can have several specialists — one on the plan and one on each
+    item, since a case is often split between an orthodontist, a surgeon
+    and whoever does the restorative work — so the set is built from all
+    of them, not just the plan header.
+
+    Resolving a professional to an account is the soft part. A
+    ``Professional`` is a directory profile with no ``user_id``: the
+    module keeps it independent of any product account on purpose (see
+    the module CLAUDE.md). The only bridge that exists is the licence
+    number — ``users.professional_id`` is free text holding a colegiado
+    number, and it happens to match ``professionals.license_number``. So
+    a professional who has no account, or whose licence is blank on
+    either side, simply resolves to nobody and the plan stays
+    administrator-only, which is the rule reception asked for.
+
+    Reassignment needs no bookkeeping: the set is derived from whoever is
+    assigned *now*, so handing the plan to another professional hands
+    over the rights with it.
+    """
+    professional_ids = {
+        pid
+        for pid in (
+            plan.assigned_professional_id,
+            *(item.assigned_professional_id for item in plan.items),
+        )
+        if pid is not None
+    }
+    if not professional_ids:
+        return set()
+
+    rows = await db.execute(
+        sa_text(
+            "SELECT u.id FROM users u "
+            "JOIN professionals p ON p.license_number = u.professional_id "
+            "WHERE p.id = ANY(:professional_ids) "
+            "  AND p.clinic_id = :clinic_id "
+            "  AND COALESCE(u.professional_id, '') <> '' "
+            "  AND COALESCE(p.license_number, '') <> ''"
+        ),
+        {"professional_ids": list(professional_ids), "clinic_id": clinic_id},
+    )
+    return {row.id for row in rows}
+
+
 def _is_plan_locked(plan: TreatmentPlan) -> bool:
     """A plan is locked once it has a non-cancelled budget attached.
 
@@ -214,8 +287,16 @@ class TreatmentPlanService:
         page_size: int = 20,
         patient_id: UUID | None = None,
         status: str | list[str] | None = None,
+        search: str | None = None,
     ) -> tuple[list[TreatmentPlan], int]:
-        """List treatment plans with pagination and filters."""
+        """List treatment plans with pagination and filters.
+
+        ``search`` matches the plan number, the patient's name, or any
+        combination of words from it, ignoring accents. It did not exist
+        until now: the "Todos" tab sent a ``search`` parameter that
+        FastAPI silently dropped, so typing in that box filtered nothing
+        at all and the list looked broken rather than empty.
+        """
         page_size = min(max(page_size, 1), 100)
         page = max(page, 1)
         offset = (page - 1) * page_size
@@ -235,6 +316,26 @@ class TreatmentPlanService:
                 base_where.append(TreatmentPlan.status == statuses[0])
             else:
                 base_where.append(TreatmentPlan.status.in_(statuses))
+
+        if search and (tokens := search_tokens(search)):
+            # Both sides folded, so "Perez" finds "Pérez". The patient
+            # join is a correlated EXISTS rather than a join on the main
+            # query so the eager loads below keep their shape.
+            folded_first = func.translate(Patient.first_name, FOLD_FROM, FOLD_TO)
+            folded_last = func.translate(Patient.last_name, FOLD_FROM, FOLD_TO)
+            for token in tokens:
+                like = f"%{token}%"
+                base_where.append(
+                    or_(
+                        func.translate(TreatmentPlan.plan_number, FOLD_FROM, FOLD_TO).ilike(like),
+                        select(Patient.id)
+                        .where(
+                            Patient.id == TreatmentPlan.patient_id,
+                            or_(folded_first.ilike(like), folded_last.ilike(like)),
+                        )
+                        .exists(),
+                    )
+                )
 
         # Count
         count_result = await db.execute(select(func.count(TreatmentPlan.id)).where(*base_where))
@@ -355,8 +456,13 @@ class TreatmentPlanService:
         clinic_id: UUID,
         plan_id: UUID,
         data: dict,
+        user_id: UUID | None = None,
     ) -> TreatmentPlan | None:
-        """Update a treatment plan."""
+        """Update a treatment plan.
+
+        ``user_id`` only names the actor when a reassignment is recorded
+        in the plan history.
+        """
         plan = await TreatmentPlanService.get(db, clinic_id, plan_id)
         if not plan:
             return None
@@ -392,6 +498,36 @@ class TreatmentPlanService:
                     PlannedTreatmentItem.assigned_professional_id == old_professional_id,
                 )
                 .values(assigned_professional_id=new_professional_id)
+            )
+
+        # Reassignment hands the plan's edit rights to whoever holds it
+        # now — `stewards_of` derives them from the current assignment —
+        # so it is worth a line of its own in the history rather than
+        # disappearing into a generic "updated".
+        if new_professional_id != old_professional_id:
+            names = await db.execute(
+                sa_text(
+                    "SELECT id, first_name || ' ' || last_name AS full_name "
+                    "FROM professionals WHERE id = ANY(:ids)"
+                ),
+                {
+                    "ids": [
+                        pid for pid in (old_professional_id, new_professional_id) if pid is not None
+                    ]
+                },
+            )
+            by_id = {row.id: row.full_name for row in names}
+            TreatmentPlanService.record_history(
+                db,
+                clinic_id=clinic_id,
+                plan_id=plan_id,
+                action="reassigned",
+                actor_user_id=user_id,
+                payload={
+                    "from": by_id.get(old_professional_id),
+                    "to": by_id.get(new_professional_id),
+                    "cascaded_to_items": reassign_pending,
+                },
             )
 
         return plan
@@ -519,8 +655,15 @@ class TreatmentPlanService:
         clinic_id: UUID,
         plan_id: UUID,
         data: dict,
+        user_id: UUID | None = None,
     ) -> PlannedTreatmentItem:
-        """Add a Treatment to the plan as a new item."""
+        """Add a Treatment to the plan as a new item.
+
+        ``user_id`` only names the actor in the plan history. Optional so
+        the internal callers that add items on the clinic's behalf —
+        applying a template, accepting a charted proposal — keep working
+        without inventing an author for the row.
+        """
         plan = await TreatmentPlanService.get(db, clinic_id, plan_id)
         if not plan:
             raise ValueError("Treatment plan not found")
@@ -617,6 +760,20 @@ class TreatmentPlanService:
         treatment = item.treatment
         primary_tooth = treatment.teeth[0].tooth_number if treatment and treatment.teeth else None
         primary_surfaces = treatment.teeth[0].surfaces if treatment and treatment.teeth else None
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan_id,
+            action="item_added",
+            actor_user_id=user_id,
+            payload={
+                "treatment": _item_label(item),
+                "tooth": primary_tooth,
+                "budget_id": str(plan.budget_id) if plan.budget_id else None,
+            },
+        )
+
         event_bus.publish_after_commit(
             db,
             "treatment_plan.treatment_added",
@@ -799,6 +956,7 @@ class TreatmentPlanService:
             return False
 
         treatment_id = item.treatment_id
+        removed_label = _item_label(item)
         await db.delete(item)
         await db.flush()
 
@@ -816,6 +974,15 @@ class TreatmentPlanService:
                 from app.modules.odontogram.service import TreatmentService
 
                 await TreatmentService.delete(db, clinic_id, treatment_id, user_id)
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan_id,
+            action="item_removed",
+            actor_user_id=user_id,
+            payload={"treatment": removed_label},
+        )
 
         # Snapshot payload — budget needs ``budget_id`` to find the
         # matching line without importing treatment_plan models.
@@ -1001,7 +1168,7 @@ class TreatmentPlanService:
             },
         )
 
-        await TreatmentPlanService._check_and_complete_plan(db, clinic_id, plan_id)
+        await TreatmentPlanService._sync_plan_lifecycle(db, clinic_id, plan_id)
 
     @staticmethod
     async def complete_item(
@@ -1168,6 +1335,80 @@ class TreatmentPlanService:
         return item
 
     @staticmethod
+    def record_history(
+        db: AsyncSession,
+        *,
+        clinic_id: UUID,
+        plan_id: UUID,
+        action: str,
+        actor_user_id: UUID | None = None,
+        from_status: str | None = None,
+        to_status: str | None = None,
+        payload: dict | None = None,
+    ) -> None:
+        """Append one line to the plan's history.
+
+        Not a coroutine and it does not flush: the row joins whatever
+        transaction the caller is already in, so a change and its record
+        of that change land together or not at all. A history that can
+        outlive a rolled-back edit is worse than none.
+        """
+        db.add(
+            TreatmentPlanHistory(
+                clinic_id=clinic_id,
+                treatment_plan_id=plan_id,
+                action=action,
+                from_status=from_status,
+                to_status=to_status,
+                payload=payload,
+                actor_user_id=actor_user_id,
+            )
+        )
+
+    @staticmethod
+    async def history(
+        db: AsyncSession,
+        clinic_id: UUID,
+        plan_id: UUID,
+        limit: int = 100,
+    ) -> list[TreatmentPlanHistory]:
+        """The plan's history, newest first."""
+        result = await db.execute(
+            select(TreatmentPlanHistory)
+            .where(
+                TreatmentPlanHistory.clinic_id == clinic_id,
+                TreatmentPlanHistory.treatment_plan_id == plan_id,
+            )
+            .options(selectinload(TreatmentPlanHistory.actor))
+            .order_by(TreatmentPlanHistory.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def _sync_plan_lifecycle(
+        db: AsyncSession,
+        clinic_id: UUID,
+        plan_id: UUID,
+    ) -> None:
+        """Move the plan to wherever its items now say it is.
+
+        Called from every path that finishes a treatment. Both ends of the
+        lifecycle are checked, in order, because a single completion can
+        legitimately cross both: work recorded on a plan nobody had
+        started proves the patient came (``pending`` → ``active``), and
+        if it was the last outstanding treatment the plan is finished too
+        (``active`` → ``completed``). Running the start first is what
+        lets that plan land on ``completed`` instead of stalling in
+        ``pending`` with every item done.
+
+        Both steps are idempotent and both refuse a status they do not
+        apply to, so calling this after any completion is safe.
+        """
+        await TreatmentPlanService.activate_from_attendance(db, clinic_id, plan_id)
+        await TreatmentPlanService._check_and_complete_plan(db, clinic_id, plan_id)
+
+    @staticmethod
     async def _check_and_complete_plan(
         db: AsyncSession,
         clinic_id: UUID,
@@ -1186,6 +1427,15 @@ class TreatmentPlanService:
         # All items completed - auto-complete the plan
         old_status = plan.status
         plan.status = "completed"
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan.id,
+            action="completed",
+            from_status=old_status,
+            to_status="completed",
+        )
 
         event_bus.publish_after_commit(
             db,
@@ -1316,15 +1566,32 @@ class TreatmentPlanService:
         round-trips would be N+1; doing it in one statement is fastest
         and pageable.
         """
-        from sqlalchemy import text as sa_text
-
         # ----- per-tab WHERE clause ------------------------------------
         # Five tabs documented in docs/workflows/plan-budget-flow.md §5.
-        if tab == "por_presupuestar":
-            tab_where = "p.status = 'pending' AND b.status = 'draft'"
+        if tab == "en_curso":
+            # "En curso" = every plan actually in flight, which spans two
+            # statuses: `pending` (doctor confirmed, waiting on the
+            # patient to accept the budget) and `active` (accepted,
+            # treatment underway). Reception thinks of both as "en
+            # marcha" — the plan starts moving once the patient turns up
+            # for the diagnostic visit, well before the budget is signed
+            # — so splitting them across tabs hid work that was live.
+            # Most recently moved first: this is the "what is going on
+            # right now" tab, not a queue to work through.
+            tab_where = "p.status IN ('pending', 'active')"
+            order_by = "GREATEST(p.updated_at, COALESCE(p.confirmed_at, p.created_at)) DESC"
+        elif tab == "por_presupuestar":
+            # These two queues are about the *budget*, so they follow the
+            # budget's state and accept either live plan status. Since
+            # attending the first consultation moves a plan to `active`
+            # before anything is signed, keying them to `pending` alone
+            # would drop exactly those plans out of the commercial queue
+            # — the unsigned budget would stop being chased the moment
+            # the patient walked in.
+            tab_where = "p.status IN ('pending', 'active') AND b.status = 'draft'"
             order_by = "COALESCE(p.confirmed_at, p.created_at) DESC"
         elif tab == "esperando_paciente":
-            tab_where = "p.status = 'pending' AND b.status IN ('sent', 'expired')"
+            tab_where = "p.status IN ('pending', 'active') AND b.status IN ('sent', 'expired')"
             order_by = "COALESCE(p.confirmed_at, p.created_at) ASC"  # oldest first
         elif tab == "sin_cita":
             tab_where = (
@@ -1353,10 +1620,22 @@ class TreatmentPlanService:
             extra_where += " AND p.assigned_professional_id = :doctor_id"
             params["doctor_id"] = doctor_id
         if search:
-            extra_where += (
-                " AND (p.plan_number ILIKE :q OR pat.first_name ILIKE :q OR pat.last_name ILIKE :q)"
-            )
-            params["q"] = f"%{search}%"
+            # One clause per word, ANDed: matching the whole string against
+            # a single column meant "Juan Pérez" found nobody, because no
+            # column holds both words. Both sides are accent-folded so
+            # "Perez" finds "Pérez" — between them these were most of what
+            # "the search doesn't work by name" meant.
+            for index, token in enumerate(search_tokens(search)):
+                key = f"q{index}"
+                extra_where += (
+                    f" AND (translate(p.plan_number, :fold_from, :fold_to) ILIKE :{key}"
+                    f" OR translate(pat.first_name, :fold_from, :fold_to) ILIKE :{key}"
+                    f" OR translate(pat.last_name, :fold_from, :fold_to) ILIKE :{key})"
+                )
+                params[key] = f"%{token}%"
+            if "q0" in params:
+                params["fold_from"] = FOLD_FROM
+                params["fold_to"] = FOLD_TO
 
         # ----- shared SELECT --------------------------------------------
         base_sql = f"""
@@ -1613,10 +1892,30 @@ class TreatmentPlanService:
             user_id=user_id,
             snapshot=snapshot,
         )
-        if budget is not None and plan.budget_id is None:
+        # Relink whenever the provisioning call handed us a budget, not
+        # only on the first confirmation. ``create_from_plan_snapshot``
+        # is idempotent against *non-cancelled* budgets, so on a
+        # re-confirmation after a reopen it returns a brand-new draft —
+        # and the old guard (`plan.budget_id is None`) dropped it on the
+        # floor, because reopen cancels the budget without clearing the
+        # link. The plan then sat in `pending` pointing at a cancelled
+        # budget, which matches no bandeja tab, while the fresh budget
+        # was orphaned. When nothing changed this is a no-op assignment.
+        if budget is not None:
             plan.budget_id = budget.id
 
         await db.flush()
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan.id,
+            action="confirmed",
+            actor_user_id=user_id,
+            from_status="draft",
+            to_status="pending",
+            payload={"budget": budget.budget_number} if budget is not None else None,
+        )
 
         event_bus.publish_after_commit(db, EventType.TREATMENT_PLAN_CONFIRMED, snapshot)
         event_bus.publish_after_commit(
@@ -1638,17 +1937,27 @@ class TreatmentPlanService:
         plan_id: UUID,
         user_id: UUID,
     ) -> TreatmentPlan:
-        """Reopen a confirmed plan back to ``draft``.
+        """Reopen a plan that is under way back to ``draft``.
 
-        Cancels the linked budget if there is one (so reception can
-        edit items again). The companion budget event is published by
+        Cancels the linked budget if there is one (so reception can edit
+        items again). The companion budget event is published by
         ``BudgetWorkflowService.cancel_budget``.
+
+        Accepts ``active`` as well as ``pending``. It used to take only
+        ``pending``, which was fine while acceptance was the sole way in;
+        now that attending the first consultation moves a plan to
+        ``active``, keeping the old rule would have made every plan
+        unreopenable the moment the patient walked in — the case most in
+        need of editing, because that visit is usually where the real
+        treatment gets decided. ``completed`` and ``closed`` stay out:
+        those are finished, and reactivation is their door.
         """
         plan = await TreatmentPlanService.get(db, clinic_id, plan_id)
         if not plan:
             raise ValueError("Plan not found")
-        if plan.status != "pending":
+        if plan.status not in ("pending", "active"):
             raise ValueError(f"Cannot reopen plan in status '{plan.status}'")
+        previous_status = plan.status
 
         # Cancel linked budget if one exists. The plan ↔ budget unlock
         # is the established carve-out (treatment_plan depends on
@@ -1663,8 +1972,22 @@ class TreatmentPlanService:
                 reason="Plan reopened for editing",
             )
 
+        cancelled_budget = plan.budget.budget_number if plan.budget is not None else None
+
         plan.status = "draft"
         plan.confirmed_at = None
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan.id,
+            action="reopened",
+            actor_user_id=user_id,
+            from_status=previous_status,
+            to_status="draft",
+            payload={"cancelled_budget": cancelled_budget} if cancelled_budget else None,
+        )
+
         await db.flush()
 
         event_bus.publish_after_commit(
@@ -1672,7 +1995,7 @@ class TreatmentPlanService:
             EventType.TREATMENT_PLAN_STATUS_CHANGED,
             {
                 "plan_id": str(plan.id),
-                "old_status": "pending",
+                "old_status": previous_status,
                 "new_status": "draft",
                 "clinic_id": str(clinic_id),
             },
@@ -1708,6 +2031,17 @@ class TreatmentPlanService:
         plan.closure_reason = closure_reason
         plan.closure_note = closure_note
         plan.closed_at = datetime.now(UTC)
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan.id,
+            action="closed",
+            actor_user_id=user_id,
+            from_status=previous_status,
+            to_status="closed",
+            payload={"reason": closure_reason, "note": closure_note},
+        )
 
         # Drop the plan's hold on its planned Treatments.
         await TreatmentPlanService._cleanup_orphan_planned_treatments(db, clinic_id, plan, user_id)
@@ -1759,6 +2093,18 @@ class TreatmentPlanService:
         plan.closure_note = None
         plan.closed_at = None
         plan.confirmed_at = None
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan.id,
+            action="reactivated",
+            actor_user_id=user_id,
+            from_status="closed",
+            to_status="draft",
+            payload={"previous_reason": previous_reason},
+        )
+
         await db.flush()
 
         event_bus.publish_after_commit(
@@ -1781,6 +2127,66 @@ class TreatmentPlanService:
                 "old_status": "closed",
                 "new_status": "draft",
                 "clinic_id": str(clinic_id),
+            },
+        )
+        return plan
+
+    @staticmethod
+    async def activate_from_attendance(
+        db: AsyncSession,
+        clinic_id: UUID,
+        plan_id: UUID,
+    ) -> TreatmentPlan | None:
+        """``pending`` → ``active`` because the patient turned up.
+
+        The clinic counts a plan as under way from the first consultation
+        the patient actually attends, which happens well before the
+        budget is signed — so attendance is a second, independent road
+        into ``active`` alongside ``accept_from_budget``.
+
+        "Attended" is read from the work, not only from the diary: a
+        completed appointment says so, and so does a finished treatment,
+        including one ticked off straight on the plan with no appointment
+        behind it (``completed_without_appointment``) — which is how a
+        first consultation is often recorded. Keying this to appointments
+        alone left those plans stranded in ``pending`` with work already
+        done against them. Every completion path reaches this through
+        ``_sync_plan_lifecycle``.
+
+        Idempotent and deliberately narrow: only a ``pending`` plan
+        moves. A ``draft`` plan is one nobody has confirmed yet and must
+        not skip the confirmation step, and ``active`` / ``completed`` /
+        ``closed`` are left exactly as they are.
+        """
+        plan = await TreatmentPlanService.get(db, clinic_id, plan_id)
+        if not plan:
+            return None
+        if plan.status != "pending":
+            return plan
+
+        plan.status = "active"
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan.id,
+            action="started",
+            from_status="pending",
+            to_status="active",
+            payload={"trigger": "work_recorded"},
+        )
+
+        await db.flush()
+
+        event_bus.publish_after_commit(
+            db,
+            EventType.TREATMENT_PLAN_STATUS_CHANGED,
+            {
+                "plan_id": str(plan.id),
+                "old_status": "pending",
+                "new_status": "active",
+                "clinic_id": str(clinic_id),
+                "triggered_by": "appointment_attended",
             },
         )
         return plan
@@ -1810,6 +2216,17 @@ class TreatmentPlanService:
             return plan
 
         plan.status = "active"
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan.id,
+            action="started",
+            from_status="pending",
+            to_status="active",
+            payload={"trigger": "budget_accepted"},
+        )
+
         await db.flush()
 
         event_bus.publish_after_commit(

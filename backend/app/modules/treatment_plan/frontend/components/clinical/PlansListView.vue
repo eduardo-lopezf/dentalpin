@@ -132,7 +132,12 @@ const hasPlans = computed(() => props.plans.length > 0)
             name="i-lucide-clock"
             class="w-4 h-4 text-info-accent"
           />
-          {{ t('clinical.plans.pending') }}
+          <!-- The plan *status*, not a count of pending treatments —
+               `clinical.plans.pending` is the word for the latter ("8
+               pendientes") and reading it here left this heading saying
+               PENDIENTES over cards badged "En curso". Borrowing the
+               badge's own key keeps the two in step by construction. -->
+          {{ t('treatmentPlans.status.pending') }}
         </h4>
         <div class="grid gap-[var(--density-gap,0.75rem)]">
           <TreatmentPlanMiniCard
