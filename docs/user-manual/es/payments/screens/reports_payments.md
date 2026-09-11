@@ -77,6 +77,10 @@ La pantalla se lee de arriba abajo:
 - Periodo: `FilterDateRange` con presets rápidos (Hoy / 7d / 30d /
   Este mes / Trimestre / Año). Por defecto, últimos 90 días.
 - Granularidad: solo afecta al gráfico de tendencia.
+- El periodo son **días de la clínica**, no de UTC. «1 al 30 de septiembre»
+  va de la medianoche del 1 a la medianoche del 1 de octubre en la zona
+  horaria de la clínica, así que un cobro o una devolución de madrugada
+  cuenta en el día en que ocurrió para quien estaba en la consulta.
 
 ## Estados vacíos
 

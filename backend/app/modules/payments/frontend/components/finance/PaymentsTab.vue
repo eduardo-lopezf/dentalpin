@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PaymentMethod, PaymentRecord, PaginatedResponse } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { formatDateOnly } from '~~/app/utils/date'
 
 /**
  * /payments — list page.
@@ -229,9 +230,12 @@ function allocationBreakdown(p: PaymentRecord): Array<{ label: string, amount: s
   return out
 }
 
+// `payment_date` is a DATE column: `new Date()` reads it as UTC midnight
+// and prints the day before west of Greenwich. Genuine timestamps still
+// go through `new Date()` — see `~~/app/utils/date`.
 function formatDate(s: string | undefined): string {
   if (!s) return '—'
-  return new Date(s).toLocaleDateString(locale.value)
+  return formatDateOnly(s, locale.value) || '—'
 }
 </script>
 

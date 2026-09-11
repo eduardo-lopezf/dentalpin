@@ -1,6 +1,33 @@
 # Changelog — treatment_plan module
 
 ## Unreleased
+
+- change(treatment_plan): la lista de planes de la pestaña *Clínico* deja
+  de mostrar los borradores. Esa vista responde a «en qué punto está el
+  tratamiento de este paciente», y un plan a medio escribir no es una
+  respuesta: ocupaba sitio y empujaba hacia abajo los planes que sí
+  importan. Siguen listados, editables y borrables en *Tratamientos →
+  Planes → Todos*, cuyo filtro por estado incluye *Borrador*, así que no
+  queda trabajo inalcanzable. Los planes anteriores (completados y
+  cerrados) se mantienen plegados al final de la lista.
+
+  Filtrado por exclusión y no por lista blanca, para que el grupo
+  `otherPlans` siga cazando cualquier estado que este fichero aún no
+  conozca. `hasPlans` cuenta ahora sobre lo visible: un paciente cuyos
+  únicos planes sean borradores ve el estado vacío, no un encabezado sin
+  nada debajo. `clinical.plans.drafts` queda sin uso — señalada, no
+  borrada.
+
+- change(treatment_plan): *Completados* y *Cerrados* se funden en una sola
+  sección plegable, **Planes anteriores**. Para quien lee el historial son
+  la misma cosa —tratamiento terminado— y tenerlos separados dejaba el
+  pasado del paciente detrás de dos paneles colapsados distintos. Se
+  mantiene el orden que envía el servidor, así que lo más reciente queda
+  arriba, y la etiqueta de estado de cada tarjeta sigue diciendo cuál de
+  los dos es. Nueva clave `clinical.plans.previous` (es y en);
+  `clinical.plans.completed` y `clinical.plans.closed` quedan sin uso —
+  señaladas, no borradas.
+
 - fix(buscador): buscar por nombre no funcionaba, por tres motivos distintos.
   1. En la pestaña **Todos** no filtraba **nada**: el cliente enviaba
      `search=`, pero ni el endpoint ni `TreatmentPlanService.list` tenían ese

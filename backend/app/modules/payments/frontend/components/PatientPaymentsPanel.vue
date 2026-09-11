@@ -17,6 +17,7 @@ import type { PatientExtended, PatientLedger, PatientLedgerEntry, PaymentMethod 
 import type { TotalLine } from '~~/app/components/shared/EntityTotalsCard.vue'
 import type { SemanticRole } from '~~/app/config/severity'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { formatInstant } from '~~/app/utils/date'
 import PendingChargesCard from './payments/PendingChargesCard.vue'
 
 interface PendingCharge {
@@ -36,6 +37,7 @@ interface PatientPaymentsCtx {
 const props = defineProps<{ ctx: PatientPaymentsCtx }>()
 
 const { t, locale } = useI18n()
+const { clinicTimezone } = useAuth()
 const { can } = usePermissions()
 const { format: formatCurrency } = useCurrency()
 const { fetchPatientLedger, fetchPendingCharges } = usePayments()
@@ -151,12 +153,26 @@ function entryAmountSign(entry: PatientLedgerEntry): string {
   return formatted
 }
 
+/**
+ * Rendered in the **clinic's** zone, not the reader's.
+ *
+ * Every entry here is a true instant — the ledger builds a payment's from
+ * `payment_date` at the clinic's own midnight (`service.py`) — but the day
+ * it denotes belongs to the clinic's calendar, not to whoever happens to
+ * be looking. A Madrid clinic's takings on the 10th are `09-09T22:00Z`;
+ * read on a Mexico City desk that is still the 9th, and the ledger would
+ * disagree with the receipt the patient is holding.
+ *
+ * `formatInstant` handles the fallback when the zone is not known yet.
+ */
+const DATE_OPTS: Intl.DateTimeFormatOptions = {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric'
+}
+
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(locale.value, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
+  return formatInstant(iso, locale.value, DATE_OPTS, clinicTimezone.value)
 }
 
 function entryDescription(entry: PatientLedgerEntry): string {

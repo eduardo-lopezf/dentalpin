@@ -74,6 +74,10 @@ The dashboard reads top-down:
 - Period: `FilterDateRange` with quick presets (Today / 7d / 30d /
   This month / Quarter / Year). Default is the last 90 days.
 - Granularity: only affects the trend chart.
+- The period is measured in **clinic days**, not UTC ones. "1–30 September"
+  runs from midnight on the 1st to midnight on 1 October in the clinic's own
+  timezone, so a payment or refund taken in the small hours counts on the day
+  it happened for whoever was at the practice.
 
 ## Empty states
 

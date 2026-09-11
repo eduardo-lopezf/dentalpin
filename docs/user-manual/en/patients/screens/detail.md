@@ -85,8 +85,15 @@ same safety rules:
 
 > Requires `patients.write`.
 
-1. Click the pencil icon in the summary hero, or the **Edit** button on
-   the *Identity* sub-tab.
+The identity card on **Info** is laid out as a profile: a tinted band,
+the portrait (or initials) sitting on its edge, the name as the heading,
+and the facts as a mosaic of tiles — the same visual language as the
+professional profile card. Only tiles with content are drawn, except the
+date of birth, which always shows because its absence is itself
+clinically relevant.
+
+1. Click the pencil icon in the summary hero, or the **Edit general
+   details** button on the identity card.
 2. Update name, contact, ID document, demographics. Extended demographics
    live behind the *Identity → Extended* tab and are persisted via the
    `/extended` endpoint.
@@ -113,9 +120,13 @@ a **Pending to charge** card at the top.
 
 - The card lists the recently completed sessions that net payments
   haven't covered yet (FIFO).
+- Each session's date and time are the **clinic's**, not those of the
+  reader's browser: reception is matching them against an appointment, and
+  that appointment happened at the practice. Opening the record from another
+  country does not change the time shown here.
 - Total equals `clinic_receivable = earned − net_paid`.
-- The **Collect X €** button opens the payment modal with the amount
-  pre-filled; reception just picks the method and confirms.
+- The **Collect** button opens the payment modal with the amount pre-filled
+  in the clinic's currency; reception just picks the method and confirms.
 - After the payment is recorded, the card disappears (or shrinks)
   depending on how much was collected.
 

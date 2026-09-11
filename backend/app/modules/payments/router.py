@@ -217,6 +217,94 @@ async def _schedule_response(db, clinic_id: UUID, schedule) -> PaymentScheduleRe
     )
 
 
+# --- Reports ----------------------------------------------------------
+#
+# Declared before `/{payment_id}` for the same reason `/schedules` is:
+# FastAPI resolves in registration order, so with these last
+# `GET /reports/refunds` was swallowed by `GET /{payment_id}/refunds`
+# and answered 422 "reports is not a valid UUID" — the refunds report
+# was unreachable.
+
+
+@router.get("/reports/summary", response_model=ApiResponse[PaymentsSummary])
+async def reports_summary(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    date_from: date = Query(...),
+    date_to: date = Query(...),
+) -> ApiResponse[PaymentsSummary]:
+    data = await PaymentReportsService.summary(
+        db, ctx.clinic_id, ctx.clinic.currency, date_from, date_to, ctx.clinic.timezone
+    )
+    return ApiResponse(data=data)
+
+
+@router.get("/reports/by-method", response_model=ApiResponse[list[MethodBreakdown]])
+async def reports_by_method(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    date_from: date = Query(...),
+    date_to: date = Query(...),
+) -> ApiResponse[list[MethodBreakdown]]:
+    data = await PaymentReportsService.by_method(db, ctx.clinic_id, date_from, date_to)
+    return ApiResponse(data=data)
+
+
+@router.get("/reports/by-professional", response_model=ApiResponse[list[ProfessionalBreakdown]])
+async def reports_by_professional(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    date_from: date = Query(...),
+    date_to: date = Query(...),
+) -> ApiResponse[list[ProfessionalBreakdown]]:
+    data = await PaymentReportsService.by_professional(
+        db, ctx.clinic_id, date_from, date_to, ctx.clinic.timezone
+    )
+    return ApiResponse(data=data)
+
+
+@router.get("/reports/aging-receivables", response_model=ApiResponse[AgingBuckets])
+async def reports_aging(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[AgingBuckets]:
+    data = await PaymentReportsService.aging_receivables(db, ctx.clinic_id, ctx.clinic.currency)
+    return ApiResponse(data=data)
+
+
+@router.get("/reports/refunds", response_model=ApiResponse[RefundsReport])
+async def reports_refunds(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    date_from: date = Query(...),
+    date_to: date = Query(...),
+) -> ApiResponse[RefundsReport]:
+    data = await PaymentReportsService.refunds_report(
+        db, ctx.clinic_id, ctx.clinic.currency, date_from, date_to, ctx.clinic.timezone
+    )
+    return ApiResponse(data=data)
+
+
+@router.get("/reports/trends", response_model=ApiResponse[PaymentsTrends])
+async def reports_trends(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    date_from: date = Query(...),
+    date_to: date = Query(...),
+    granularity: Literal["day", "week", "month", "year"] = "month",
+) -> ApiResponse[PaymentsTrends]:
+    data = await PaymentReportsService.trends(
+        db, ctx.clinic_id, ctx.clinic.currency, date_from, date_to, granularity, ctx.clinic.timezone
+    )
+    return ApiResponse(data=data)
+
+
 @router.get("", response_model=PaginatedApiResponse[PaymentResponse])
 async def list_payments(
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
@@ -381,7 +469,13 @@ async def patient_ledger(
 ) -> ApiResponse[PatientLedger]:
     await _ensure_patient(db, ctx.clinic_id, patient_id)
     ledger = await LedgerService.get_patient_ledger(
-        db, ctx.clinic_id, patient_id, currency=ctx.clinic.currency
+        db,
+        ctx.clinic_id,
+        patient_id,
+        currency=ctx.clinic.currency,
+        # Payment dates are calendar days; the timeline needs the clinic's
+        # own midnight to place them, not UTC's.
+        timezone=ctx.clinic.timezone,
     )
     return ApiResponse(data=ledger)
 
@@ -535,83 +629,3 @@ async def filter_patients_with_debt(
         db, ctx.clinic_id, min_debt=min_debt
     )
     return ApiResponse(data=FilterIdsResponse(patient_ids=ids, truncated=truncated))
-
-
-# --- Reports ----------------------------------------------------------
-
-
-@router.get("/reports/summary", response_model=ApiResponse[PaymentsSummary])
-async def reports_summary(
-    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
-    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
-    date_from: date = Query(...),
-    date_to: date = Query(...),
-) -> ApiResponse[PaymentsSummary]:
-    data = await PaymentReportsService.summary(
-        db, ctx.clinic_id, ctx.clinic.currency, date_from, date_to
-    )
-    return ApiResponse(data=data)
-
-
-@router.get("/reports/by-method", response_model=ApiResponse[list[MethodBreakdown]])
-async def reports_by_method(
-    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
-    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
-    date_from: date = Query(...),
-    date_to: date = Query(...),
-) -> ApiResponse[list[MethodBreakdown]]:
-    data = await PaymentReportsService.by_method(db, ctx.clinic_id, date_from, date_to)
-    return ApiResponse(data=data)
-
-
-@router.get("/reports/by-professional", response_model=ApiResponse[list[ProfessionalBreakdown]])
-async def reports_by_professional(
-    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
-    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
-    date_from: date = Query(...),
-    date_to: date = Query(...),
-) -> ApiResponse[list[ProfessionalBreakdown]]:
-    data = await PaymentReportsService.by_professional(db, ctx.clinic_id, date_from, date_to)
-    return ApiResponse(data=data)
-
-
-@router.get("/reports/aging-receivables", response_model=ApiResponse[AgingBuckets])
-async def reports_aging(
-    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
-    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> ApiResponse[AgingBuckets]:
-    data = await PaymentReportsService.aging_receivables(db, ctx.clinic_id, ctx.clinic.currency)
-    return ApiResponse(data=data)
-
-
-@router.get("/reports/refunds", response_model=ApiResponse[RefundsReport])
-async def reports_refunds(
-    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
-    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
-    date_from: date = Query(...),
-    date_to: date = Query(...),
-) -> ApiResponse[RefundsReport]:
-    data = await PaymentReportsService.refunds_report(
-        db, ctx.clinic_id, ctx.clinic.currency, date_from, date_to
-    )
-    return ApiResponse(data=data)
-
-
-@router.get("/reports/trends", response_model=ApiResponse[PaymentsTrends])
-async def reports_trends(
-    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
-    _: Annotated[None, Depends(require_permission("payments.reports.read"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
-    date_from: date = Query(...),
-    date_to: date = Query(...),
-    granularity: Literal["day", "week", "month", "year"] = "month",
-) -> ApiResponse[PaymentsTrends]:
-    data = await PaymentReportsService.trends(
-        db, ctx.clinic_id, ctx.clinic.currency, date_from, date_to, granularity
-    )
-    return ApiResponse(data=data)

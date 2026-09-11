@@ -82,6 +82,17 @@ of every plan.
   date, newest first, with a status filter. This is the catalogue
   view: any plan shows up here, including drafts and archived ones
   that belong to no queue.
+- **Drafts live only here.** The patient record's *Clinical* tab does
+  not list them: that view answers "where does this patient's treatment
+  stand", and a half-written plan is not an answer — it also pushed the
+  plans that matter further down the page. They stay visible, editable
+  and deletable under *All*, whose status filter includes *Draft*.
+  Previous plans do remain on the record, collapsed at the end of the
+  list under **Previous plans**: completed and closed sit together,
+  because to whoever is reading the history they are the same thing —
+  treatment that is over — and splitting them put the patient's past
+  behind two separate panels. Each card's badge still says which of the
+  two it is.
 - **Pipeline pagination.** The columns paginate for real: the pager
    ignored clicks because it used the component's old API, so only the
    first page was ever reachable.

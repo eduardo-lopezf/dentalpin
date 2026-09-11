@@ -64,10 +64,15 @@ async def _currency(ctx: AgentContext) -> str:
     return (await ctx.db.scalar(select(Clinic.currency).where(Clinic.id == ctx.clinic_id))) or "EUR"
 
 
+async def _timezone(ctx: AgentContext) -> str:
+    """The clinic's zone — the ledger places payment dates on its midnight."""
+    return (await ctx.db.scalar(select(Clinic.timezone).where(Clinic.id == ctx.clinic_id))) or "UTC"
+
+
 async def _payments_summary(ctx: AgentContext, params: PeriodArgs) -> dict:
     currency = await _currency(ctx)
     s = await PaymentReportsService.summary(
-        ctx.db, ctx.clinic_id, currency, params.date_from, params.date_to
+        ctx.db, ctx.clinic_id, currency, params.date_from, params.date_to, await _timezone(ctx)
     )
     # Collection axis only — drop patient_credit_total / clinic_receivable_total.
     return {
@@ -119,7 +124,7 @@ async def _record_payment(ctx: AgentContext, params: RecordPaymentArgs) -> dict:
 async def _patient_payment_history(ctx: AgentContext, params: PatientPaymentHistoryArgs) -> dict:
     currency = await _currency(ctx)
     ledger = await LedgerService.get_patient_ledger(
-        ctx.db, ctx.clinic_id, params.patient_id, currency
+        ctx.db, ctx.clinic_id, params.patient_id, currency, await _timezone(ctx)
     )
     # Collection axis only: payments + refunds. The ledger's earned /
     # patient_credit / clinic_receivable figures are the paid-vs-earned

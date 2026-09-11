@@ -345,7 +345,7 @@
       "title": "{count} alerta | {count} alertas",
       "label": "Alertas clínicas"
     },
-    "editDemographics": "Editar datos demográficos",
+    "editDemographics": "Editar datos generales",
     "editEmergencyContact": "Editar contacto de emergencia",
     "editLegalGuardian": "Editar tutor legal",
     "editBilling": "Editar datos de facturación",
@@ -760,6 +760,7 @@
       "drafts": "Borradores",
       "completed": "Completados",
       "closed": "Cerrados",
+      "previous": "Planes anteriores",
       "other": "Otros",
       "noItems": "Sin tratamientos en el plan",
       "markComplete": "Marcar como completado",

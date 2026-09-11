@@ -17,6 +17,7 @@
  */
 import type { PatientExtended, ApiResponse } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { isMinorPatient } from '../../utils/medicalSnapshot'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -237,16 +238,10 @@ async function archivePatient() {
   }
 }
 
-// Check if patient is a minor (under 18)
-const isMinor = computed(() => {
-  if (!patient.value?.date_of_birth) return false
-  const today = new Date()
-  const birth = new Date(patient.value.date_of_birth)
-  let years = today.getFullYear() - birth.getFullYear()
-  const m = today.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) years--
-  return years < 18
-})
+// Whether the patient is a minor — which decides if the legal-guardian
+// card shows. Was its own copy of the age arithmetic, UTC-midnight bug
+// included: a patient turning 18 stopped being a minor a day early.
+const isMinor = computed(() => isMinorPatient(patient.value?.date_of_birth))
 
 // Header action handlers — delegate to existing flows. New-appointment
 // and new-note land on dedicated pages we already have.

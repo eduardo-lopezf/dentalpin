@@ -10,11 +10,13 @@ module hosts:
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -465,6 +467,64 @@ class PaymentReadService:
         return ids, truncated
 
 
+logger = logging.getLogger(__name__)
+
+
+# --- Clinic calendar --------------------------------------------------
+#
+# A clinic keeps its books on its own calendar. Every date in this module
+# is a day in *that* calendar — the day money was taken, the day a report
+# covers — while ``refunded_at`` and ``performed_at`` are true instants.
+# Wherever the two meet, the day boundary has to be the clinic's.
+#
+# Using UTC's instead, which is what this module did throughout, shifted
+# every boundary by the clinic's offset: payments read a day early west of
+# Greenwich, and a report "1–30 September" ran from 1 Sept 02:00 to 1 Oct
+# 02:00 in Madrid, quietly swapping each end's small hours.
+
+
+def _clinic_zone(tz_name: str) -> ZoneInfo:
+    """The clinic's zone, falling back to UTC on an unusable id.
+
+    Degrades rather than raising: a wrong day boundary is a nuisance, a
+    ledger or a report that will not load is not.
+    """
+    try:
+        return ZoneInfo(tz_name) if tz_name else UTC
+    except (ZoneInfoNotFoundError, ValueError):
+        logger.warning("Unusable clinic timezone %r; falling back to UTC", tz_name)
+        return UTC
+
+
+def _clinic_midnight(day: date, tz_name: str) -> datetime:
+    """A calendar day as the instant it began in the clinic's zone.
+
+    ``payments.payment_date`` is a DATE: the clinic took the money on a
+    day, not at a moment. To sit on a timeline beside real instants it has
+    to become one, and the start of that day where the clinic keeps its
+    books is the only defensible choice.
+    """
+    return datetime.combine(day, datetime.min.time(), tzinfo=_clinic_zone(tz_name)).astimezone(UTC)
+
+
+def _clinic_day_window(date_from: date, date_to: date, tz_name: str) -> tuple[datetime, datetime]:
+    """Half-open ``[start, end)`` in UTC covering those clinic days, inclusive.
+
+    Half-open on purpose: the old form compared against ``datetime.max``,
+    which is 23:59:59.999999 and drops anything landing in the last
+    microsecond of the day. The next day's midnight has no such gap.
+    """
+    return (
+        _clinic_midnight(date_from, tz_name),
+        _clinic_midnight(date_to + timedelta(days=1), tz_name),
+    )
+
+
+def _clinic_date(moment: datetime, tz_name: str) -> date:
+    """Which day an instant fell on, in the clinic's calendar."""
+    return moment.astimezone(_clinic_zone(tz_name)).date()
+
+
 # --- Ledger -----------------------------------------------------------
 
 
@@ -473,7 +533,7 @@ class LedgerService:
 
     @staticmethod
     async def get_patient_ledger(
-        db: AsyncSession, clinic_id: UUID, patient_id: UUID, currency: str
+        db: AsyncSession, clinic_id: UUID, patient_id: UUID, currency: str, timezone: str
     ) -> PatientLedger:
         total_paid_row = await db.execute(
             select(
@@ -510,7 +570,7 @@ class LedgerService:
         )
         on_account_balance: Decimal = on_account_row.scalar_one()
 
-        timeline = await LedgerService._build_timeline(db, clinic_id, patient_id)
+        timeline = await LedgerService._build_timeline(db, clinic_id, patient_id, timezone)
 
         return PatientLedger(
             patient_id=patient_id,
@@ -525,7 +585,7 @@ class LedgerService:
 
     @staticmethod
     async def _build_timeline(
-        db: AsyncSession, clinic_id: UUID, patient_id: UUID
+        db: AsyncSession, clinic_id: UUID, patient_id: UUID, timezone: str
     ) -> list[LedgerEntry]:
         entries: list[LedgerEntry] = []
 
@@ -539,7 +599,7 @@ class LedgerService:
             entries.append(
                 LedgerEntry(
                     entry_type="payment",
-                    occurred_at=datetime.combine(p.payment_date, datetime.min.time(), tzinfo=UTC),
+                    occurred_at=_clinic_midnight(p.payment_date, timezone),
                     amount=p.amount,
                     reference_id=p.id,
                     description=p.method,
@@ -773,6 +833,7 @@ class PaymentReportsService:
         currency: str,
         date_from: date,
         date_to: date,
+        timezone: str,
     ) -> PaymentsSummary:
         # Collected (gross)
         result = await db.execute(
@@ -787,15 +848,18 @@ class PaymentReportsService:
         )
         total_collected, payment_count = result.one()
 
-        # Refunded
+        # Refunded. `payment_date` above is a DATE and already the clinic's
+        # calendar; `refunded_at` is an instant, so the window has to be
+        # built from the clinic's own midnights to line the two up.
+        window_start, window_end = _clinic_day_window(date_from, date_to, timezone)
         result = await db.execute(
             select(
                 func.coalesce(func.sum(Refund.amount), Decimal("0")),
                 func.count(Refund.id),
             ).where(
                 Refund.clinic_id == clinic_id,
-                Refund.refunded_at >= datetime.combine(date_from, datetime.min.time(), tzinfo=UTC),
-                Refund.refunded_at <= datetime.combine(date_to, datetime.max.time(), tzinfo=UTC),
+                Refund.refunded_at >= window_start,
+                Refund.refunded_at < window_end,
             )
         )
         total_refunded, refund_count = result.one()
@@ -902,8 +966,11 @@ class PaymentReportsService:
         clinic_id: UUID,
         date_from: date,
         date_to: date,
+        timezone: str,
     ) -> list[ProfessionalBreakdown]:
         """Earned breakdown by professional (using earned ledger)."""
+        # `performed_at` is an instant; the requested days are the clinic's.
+        window_start, window_end = _clinic_day_window(date_from, date_to, timezone)
         result = await db.execute(
             select(
                 PatientEarnedEntry.professional_id,
@@ -912,10 +979,8 @@ class PaymentReportsService:
             )
             .where(
                 PatientEarnedEntry.clinic_id == clinic_id,
-                PatientEarnedEntry.performed_at
-                >= datetime.combine(date_from, datetime.min.time(), tzinfo=UTC),
-                PatientEarnedEntry.performed_at
-                <= datetime.combine(date_to, datetime.max.time(), tzinfo=UTC),
+                PatientEarnedEntry.performed_at >= window_start,
+                PatientEarnedEntry.performed_at < window_end,
             )
             .group_by(PatientEarnedEntry.professional_id)
         )
@@ -1029,9 +1094,9 @@ class PaymentReportsService:
         currency: str,
         date_from: date,
         date_to: date,
+        timezone: str,
     ) -> RefundsReport:
-        dt_from = datetime.combine(date_from, datetime.min.time(), tzinfo=UTC)
-        dt_to = datetime.combine(date_to, datetime.max.time(), tzinfo=UTC)
+        dt_from, dt_to = _clinic_day_window(date_from, date_to, timezone)
 
         # By reason
         by_reason_rows = await db.execute(
@@ -1043,7 +1108,7 @@ class PaymentReportsService:
             .where(
                 Refund.clinic_id == clinic_id,
                 Refund.refunded_at >= dt_from,
-                Refund.refunded_at <= dt_to,
+                Refund.refunded_at < dt_to,
             )
             .group_by(Refund.reason_code)
             .order_by(desc(func.sum(Refund.amount)))
@@ -1063,7 +1128,7 @@ class PaymentReportsService:
             .where(
                 Refund.clinic_id == clinic_id,
                 Refund.refunded_at >= dt_from,
-                Refund.refunded_at <= dt_to,
+                Refund.refunded_at < dt_to,
             )
             .group_by(Refund.method)
         )
@@ -1103,6 +1168,7 @@ class PaymentReportsService:
         date_from: date,
         date_to: date,
         granularity: str,
+        timezone: str,
     ) -> PaymentsTrends:
         # Compute bucket starts in Python from raw rows; portable across
         # SQL dialects and avoids dialect-specific date_trunc usage.
@@ -1113,11 +1179,12 @@ class PaymentReportsService:
                 Payment.payment_date <= date_to,
             )
         )
+        window_start, window_end = _clinic_day_window(date_from, date_to, timezone)
         refunds_rows = await db.execute(
             select(Refund.refunded_at, Refund.amount).where(
                 Refund.clinic_id == clinic_id,
-                Refund.refunded_at >= datetime.combine(date_from, datetime.min.time(), tzinfo=UTC),
-                Refund.refunded_at <= datetime.combine(date_to, datetime.max.time(), tzinfo=UTC),
+                Refund.refunded_at >= window_start,
+                Refund.refunded_at < window_end,
             )
         )
 
@@ -1135,10 +1202,14 @@ class PaymentReportsService:
         agg: dict[date, dict[str, Decimal]] = defaultdict(
             lambda: {"collected": Decimal("0"), "refunded": Decimal("0")}
         )
+        # `payment_date` is already a day in the clinic's calendar. A
+        # refund is an instant, so it has to be resolved to one before it
+        # can be bucketed — `.date()` on a UTC-tagged row put a refund
+        # issued at 00:30 in Madrid into the previous day's column.
         for dt, amount in coll_rows.all():
             agg[bucket(dt)]["collected"] += amount
         for refunded_at, amount in refunds_rows.all():
-            agg[bucket(refunded_at.date())]["refunded"] += amount
+            agg[bucket(_clinic_date(refunded_at, timezone))]["refunded"] += amount
 
         points = [
             TrendPoint(

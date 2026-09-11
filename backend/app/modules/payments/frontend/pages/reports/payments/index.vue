@@ -20,6 +20,7 @@ import type {
   AgingBuckets,
   RefundsReport
 } from '~~/app/types'
+import { formatDateOnly } from '~~/app/utils/date'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -213,16 +214,20 @@ const trendRefundsSeries = computed(() => {
 
 const heroSparkline = computed(() => trendSeries.value.map(p => p.y))
 
+/**
+ * `bucket_start` arrives as a bare `YYYY-MM-DD` — a day the backend has
+ * already resolved on the clinic's calendar, not an instant. `new Date()`
+ * read it as UTC midnight, so west of Greenwich every label on the axis
+ * named the day before the column it sat under.
+ */
 function formatBucketLabel(iso: string): string {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
   const opts: Intl.DateTimeFormatOptions
     = granularity.value === 'day'
       ? { day: '2-digit', month: 'short' }
       : granularity.value === 'week'
         ? { day: '2-digit', month: 'short' }
         : { month: 'short', year: '2-digit' }
-  return d.toLocaleDateString(locale.value, opts)
+  return formatDateOnly(iso, locale.value, opts) || iso
 }
 
 // --- Drill-down navigation ---------------------------------------------

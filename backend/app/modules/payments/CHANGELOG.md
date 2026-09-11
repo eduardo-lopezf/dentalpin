@@ -2,6 +2,85 @@
 
 ## Unreleased
 
+- fix(payments): las etiquetas del eje del gráfico de tendencia nombraban la
+  víspera. `bucket_start` llega como `YYYY-MM-DD` —un día que el backend ya
+  resolvió en el calendario de la clínica, no un instante— y `new Date()` lo
+  leía como medianoche UTC, así que al oeste de Greenwich cada etiqueta
+  nombraba el día anterior a la columna sobre la que estaba. Es el caso de
+  `formatDateOnly`, no el de `formatInstant`: aquí no hay instante que
+  reubicar, sino una fecha literal que no hay que tocar.
+
+- fix(payments): «Pendiente de cobrar» mostraba la hora del navegador. El
+  `occurred_at` de un cargo es el `performed_at` del tratamiento, y la
+  tarjeta enseña la hora porque recepción la está cotejando con una sesión
+  recién terminada: un tratamiento hecho a las 19:23 en Madrid se leía como
+  11:23 en un escritorio de Ciudad de México, que no cuadra con ninguna cita
+  que nadie recuerde. Peor aún, contradecía a la línea de tiempo justo
+  debajo, ya corregida: la tarjeta decía «16 ago» y el movimiento «17/08».
+
+  Tercer sitio que necesitaba el mismo razonamiento, así que sale a
+  `formatInstant` (`~~/app/utils/date`), junto a `formatDateOnly`, y
+  `PatientPaymentsPanel` pasa a usarlo también. El encabezado de ese fichero
+  afirmaba que para los instantes «no hace falta ayudante, `new Date(iso)` ya
+  es correcto»; era cierto sólo para lo que es relativo al lector, y este
+  trabajo lo ha dejado desfasado. Queda corregido allí.
+
+- fix(payments): las ventanas de fecha de los informes eran de UTC, no de la
+  clínica. Misma raíz que lo del ledger: `Payment.payment_date` es una DATE y
+  ya cae en el calendario de la clínica, pero `Refund.refunded_at` y
+  `PatientEarnedEntry.performed_at` son instantes, y se acotaban combinando
+  las fechas pedidas con medianoche UTC. En Madrid, un informe «1 al 30 de
+  septiembre» corría del 1 de septiembre a las 02:00 al 1 de octubre a las
+  02:00: se dejaba fuera la madrugada del primer día y se colaba la del día
+  siguiente. Corregidos `summary`, `by_professional`, `refunds_report` y
+  `trends`, que reciben `timezone` igual que ya recibían `currency`.
+
+  `trends` tenía además un segundo fallo propio: agrupaba las devoluciones por
+  `refunded_at.date()`, la fecha **UTC** del instante, así que una devolución
+  emitida a las 00:30 en Madrid caía en la columna del día anterior.
+
+  Las ventanas pasan a ser semiabiertas `[inicio, fin)`. La forma anterior
+  comparaba contra `datetime.max`, que es 23:59:59.999999 y pierde lo que
+  caiga en el último microsegundo del día.
+
+- fix(payments): `GET /reports/refunds` era inalcanzable. FastAPI resuelve en
+  orden de registro y `/{payment_id}/refunds` estaba declarada antes, así que
+  «reports» se parseaba como id de pago y la respuesta era un 422 «no es un
+  UUID válido». El bloque `/reports/` sube por encima de `/{payment_id}`, que
+  es la misma regla que el módulo ya aplicaba a `/schedules`. Encontrado al
+  intentar verificar el arreglo de las ventanas — el informe de devoluciones
+  no se podía abrir.
+
+- fix(payments): los pagos se listaban un día antes. Dos fallos encadenados,
+  y arreglar sólo uno no bastaba.
+
+  **Backend.** `payment_date` es una columna DATE: la clínica cobró un día,
+  no en un instante. Para convivir en la línea de tiempo con instantes de
+  verdad hay que convertirlo, y `_build_timeline` lo hacía a medianoche
+  **UTC**. Al oeste de Greenwich, la medianoche UTC es todavía la tarde
+  anterior, así que un cobro del día 10 se leía como del 9. Ahora
+  `_clinic_midnight` lo ancla a la medianoche **de la clínica**, con
+  `Clinic.timezone` —que el modelo ya declara como «fuente única para
+  cualquier módulo que necesite semántica de hora local»— pasado desde el
+  router y desde `tools.py`, igual que ya se pasaba `currency`. Zona
+  inservible cae a UTC con aviso en el log: un límite de día equivocado es
+  una molestia, un ledger que no carga no.
+
+  **Frontend.** Eso solo no bastaba: el día de un cobro pertenece al
+  calendario de la clínica, no al de quien mira. Una clínica de Madrid que
+  cobra el 10 emite `09-09T22:00Z`, que leído en un escritorio de Ciudad de
+  México sigue siendo el 9 — y el ledger contradecía el recibo que tiene el
+  paciente en la mano. `PatientPaymentsPanel` formatea con `timeZone:
+  clinicTimezone`, el mismo recurso que ya usaba `HomeGreeting`.
+
+  El detalle del pago y el listado de Finanzas no pasan por el ledger:
+  reciben `payment_date` en crudo y usan `formatDateOnly`, que lee la fecha
+  literal y es independiente de zonas.
+
+  `tests/modules/payments/test_ledger_payment_day.py` fija los dos sentidos
+  del límite —una implementación ciega a la zona aprueba el caso que
+  escribas y suspende el otro— y el respaldo a UTC.
+
 - feat(ui): a row in the payments list opens a card for that payment.
   Four of the five money lists already opened something on tap and this
   one answered nothing, which on a tablet is only discoverable by

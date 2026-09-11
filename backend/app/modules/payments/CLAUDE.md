@@ -146,6 +146,29 @@ the public endpoints.
   `_upsert_earned_entry`: **manda el desglose por sesiones**; la fila de
   tratamiento completo es solo para trabajo que nunca pasó por sesiones, se
   omite si ya hay filas de sesión y se borra si las sesiones llegan después.
+- **El `occurred_at` de un pago es medianoche de la clínica, no de UTC.**
+  `payment_date` es una DATE y la línea de tiempo necesita un instante, así
+  que hay que elegir cuál. `_clinic_midnight` usa `Clinic.timezone`, que
+  llega como parámetro desde el router y desde `tools.py` —igual que
+  `currency`— y nunca se consulta desde el servicio. Combinarlo a medianoche
+  UTC, que es lo que hacía, adelantaba un día todo cobro de cualquier clínica
+  al oeste de Greenwich.
+- **Las ventanas de los informes se construyen con `_clinic_day_window`.**
+  Regla general: donde un instante (`refunded_at`, `performed_at`) se compara
+  con un día pedido, el límite es el de la clínica. Donde se compara
+  `payment_date`, que ya es una DATE, no hay nada que convertir. Son
+  semiabiertas `[inicio, fin)`: `datetime.max` deja fuera el último
+  microsegundo del día.
+- **Cualquier ruta literal va declarada antes que `/{payment_id}`.** Vale para
+  `/schedules` y para `/reports/`: `/reports/refunds` estuvo devolviendo 422
+  porque `/{payment_id}/refunds` se había registrado antes.
+- **El día y la hora de cualquier apunte son los del calendario de la
+  clínica, no los del lector.** El frontend formatea con `formatInstant`
+  (`~~/app/utils/date`), que fija `timeZone: clinicTimezone`. Sin eso, una
+  clínica de Madrid leída desde México muestra la víspera, y el ledger
+  contradice el recibo que tiene el paciente delante. Vale igual para la
+  hora: «Pendiente de cobrar» enseña la hora de la sesión para que recepción
+  la coteje con la cita, y esa hora es la de la consulta.
 - **No `is_voided` flag.** Total reverso is `Refund(amount=Payment.amount)`.
   Don't reintroduce the legacy flag — the report stack relies on
   Refund rows being the only adjustment vector.

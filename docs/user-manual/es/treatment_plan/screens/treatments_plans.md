@@ -84,6 +84,17 @@ Bandeja de planes de tratamiento de la clínica. Se organiza en
   con filtro por estado. Es la vista de catálogo: aquí aparece
   cualquier plan, incluidos borradores y archivados que no entran en
   ninguna cola.
+- **Los borradores sólo viven aquí.** La pestaña *Clínico* de la ficha
+  del paciente no los lista: esa vista responde a «en qué punto está el
+  tratamiento de este paciente», y un plan a medio escribir no es una
+  respuesta — además empujaba hacia abajo los planes que sí importan.
+  Se siguen viendo, editando y borrando desde *Todos*, cuyo filtro por
+  estado incluye *Borrador*. Los planes anteriores sí siguen en la ficha,
+  plegados al final de la lista bajo **Planes anteriores**: completados y
+  cerrados van juntos, porque para quien lee el historial son la misma
+  cosa —tratamiento terminado— y separarlos dejaba el pasado del paciente
+  detrás de dos paneles distintos. La etiqueta de cada tarjeta sigue
+  diciendo cuál de los dos es.
 - **Paginación del pipeline.** Las columnas paginan de verdad: el
    paginador ignoraba los clics porque usaba la API antigua del
    componente, así que solo se veía la primera página.

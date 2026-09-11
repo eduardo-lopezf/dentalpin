@@ -1,6 +1,21 @@
 # Changelog — frontend
 
 ## Unreleased
+- refactor(home): `HomeGreeting` formatea la fecha con `formatInstant`
+  (`~/utils/date`) en lugar de repartir a mano la opción `timeZone`. Es el
+  mismo ajuste que ya aplican el ledger y «Pendiente de cobrar», y con el
+  helper la regla la impone la función, no la memoria de quien escribe la
+  siguiente pantalla.
+
+  Sobrevive un `zone` local, para el saludo: ese cálculo saca la **hora como
+  número** con `Intl.DateTimeFormat(...).format()` en vez de renderizar una
+  fecha, así que no cabe en el helper. Queda anotado en el sitio.
+
+  Sin cambio de comportamiento: `formatInstant` hace exactamente lo que hacía
+  el código anterior, así que la precaución de hidratación que documenta la
+  cabecera de ese fichero —servidor y cliente formateando el mismo instante
+  en la misma zona— sigue en pie.
+
 - fix(a11y): la interfaz hablaba en inglés a los lectores de pantalla. Eran
   **dos** problemas distintos, con arreglos distintos:
   - **Mensajes de Nuxt UI** (el botón de tema anunciaba «Switch to dark

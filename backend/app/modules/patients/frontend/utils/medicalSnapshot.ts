@@ -146,13 +146,26 @@ export function hasAnyMedicalData(mh: MedicalHistory | null | undefined): boolea
   )
 }
 
+/**
+ * Age in whole years from a date-only ``YYYY-MM-DD`` birth date.
+ *
+ * The components are read off the string rather than via ``new Date()``:
+ * that parses a bare date as **UTC midnight**, so west of Greenwich the
+ * local calendar day comes back as the day before and the patient aged a
+ * day early — on 12 March, someone born 12 March was already counted as
+ * having had their birthday the day before.
+ */
 export function computeAge(dateOfBirth: string | null | undefined): number | null {
   if (!dateOfBirth) return null
+  const parts = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateOfBirth)
+  if (!parts) return null
+  const birthYear = Number(parts[1])
+  const birthMonth = Number(parts[2]) - 1
+  const birthDay = Number(parts[3])
   const today = new Date()
-  const birth = new Date(dateOfBirth)
-  let years = today.getFullYear() - birth.getFullYear()
-  const m = today.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) years--
+  let years = today.getFullYear() - birthYear
+  const m = today.getMonth() - birthMonth
+  if (m < 0 || (m === 0 && today.getDate() < birthDay)) years--
   return years
 }
 
@@ -161,6 +174,14 @@ export function isMinorPatient(dateOfBirth: string | null | undefined): boolean 
   return age !== null && age < 18
 }
 
+/**
+ * Format a **true instant** (``start_time``, ``last_updated_at``, …) as a
+ * date in the reader's zone.
+ *
+ * Not for date-only columns: ``new Date('1985-03-12')`` is UTC midnight
+ * and prints the day before west of Greenwich. Use ``formatDateOnly``
+ * from ``~~/app/utils/date`` for those.
+ */
 export function formatPatientDate(dateStr: string | null | undefined, locale = 'es-ES'): string | null {
   if (!dateStr) return null
   const d = new Date(dateStr)

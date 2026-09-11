@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PERMISSIONS } from '~/config/permissions'
+import { formatInstant } from '~/utils/date'
 
 const { t, locale } = useI18n()
 const { user, clinicTimezone } = useAuth()
@@ -34,13 +35,19 @@ onBeforeUnmount(() => {
 
 const now = computed(() => new Date(nowIso.value))
 
-/** Formatting options pinned to the clinic's zone, when we know it. */
+/**
+ * The clinic's zone as a formatting option, for the one use below that is
+ * not a date format. Everything that *is* one goes through `formatInstant`,
+ * which applies the same rule so no caller has to remember it.
+ */
 const zone = computed<Intl.DateTimeFormatOptions>(() =>
   clinicTimezone.value ? { timeZone: clinicTimezone.value } : {}
 )
 
 const greetingKey = computed(() => {
-  // `hourCycle: 'h23'` so the hour parses as 0–23 in every locale.
+  // Pulls the hour as a number rather than rendering a date, so it cannot go
+  // through `formatInstant`. `hourCycle: 'h23'` so it parses as 0–23 in every
+  // locale.
   const hour = Number(
     new Intl.DateTimeFormat('en-GB', { ...zone.value, hour: 'numeric', hourCycle: 'h23' })
       .format(now.value)
@@ -58,13 +65,12 @@ const title = computed(() => {
 })
 
 const formattedDate = computed(() =>
-  now.value.toLocaleDateString(locale.value, {
-    ...zone.value,
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
+  formatInstant(
+    nowIso.value,
+    locale.value,
+    { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' },
+    clinicTimezone.value
+  )
 )
 
 const canWriteAppointments = computed(() => can(PERMISSIONS.appointments.write))

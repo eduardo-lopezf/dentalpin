@@ -84,8 +84,15 @@ mismas reglas de seguridad:
 
 > Requiere `patients.write`.
 
-1. Pulsa el icono del lápiz en la cabecera, o el botón **Editar** de
-   la sub-pestaña *Identidad*.
+La tarjeta de identidad de **Info** se presenta como ficha: una banda
+tintada, el retrato (o las iniciales) apoyado en su borde, el nombre como
+título y los datos en mosaico de casillas — el mismo lenguaje visual que
+la ficha de profesionales. Sólo se dibujan las casillas con contenido,
+salvo la fecha de nacimiento, que aparece siempre porque su ausencia
+también es un dato clínico.
+
+1. Pulsa el icono del lápiz en la cabecera, o el botón **Editar datos
+   generales** de la tarjeta de identidad.
 2. Actualiza nombre, contacto, documento, demografía. Los datos
    extendidos viven detrás de *Identidad → Extendido* y se guardan
    por el endpoint `/extended`.
@@ -113,10 +120,14 @@ tarjeta de **Pendiente de cobrar** al principio.
 
 - La tarjeta lista las sesiones recién completadas que aún no están
   cubiertas por los pagos del paciente (FIFO).
+- La fecha y la hora de cada sesión son las de **la clínica**, no las del
+  navegador de quien mira: recepción las está cotejando con una cita, y esa
+  cita ocurrió en la consulta. Abrir la ficha desde otro país no cambia la
+  hora que se lee aquí.
 - El total del paciente se calcula como `clinic_receivable =
   earned − net_paid`.
-- El botón **Cobrar X €** abre el modal de cobro con el importe ya
-  rellenado; recepción solo elige el método y confirma.
+- El botón **Cobrar** abre el modal de cobro con el importe ya rellenado
+  en la moneda de la clínica; recepción solo elige el método y confirma.
 - Tras el cobro, la tarjeta desaparece o reduce su importe según
   cuánto se cobró.
 

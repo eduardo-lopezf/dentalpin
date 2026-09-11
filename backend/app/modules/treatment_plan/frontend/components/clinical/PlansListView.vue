@@ -29,20 +29,38 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-// Group plans by status for display order. Covers every status the
-// state machine emits (draft → pending → active → completed, plus
-// closed); anything else falls into ``otherPlans`` so a future status
-// is never silently dropped from the list.
-const draftPlans = computed(() => props.plans.filter(p => p.status === 'draft'))
-const pendingPlans = computed(() => props.plans.filter(p => p.status === 'pending'))
-const activePlans = computed(() => props.plans.filter(p => p.status === 'active'))
-const completedPlans = computed(() => props.plans.filter(p => p.status === 'completed'))
-const closedPlans = computed(() => props.plans.filter(p => p.status === 'closed'))
+// Drafts are deliberately absent from the patient's clinical record.
+// This view answers "where does this patient's treatment stand", and a
+// half-written plan is not an answer to that — it is unfinished work,
+// and it pushed the plans that matter further down the page. They stay
+// listed and editable under Tratamientos → Planes → Todos, whose status
+// filter includes Borrador, so nothing becomes unreachable.
+//
+// Exclusion rather than an allowlist, so the `otherPlans` safety net
+// below still catches a status this file has not heard of yet.
+const visiblePlans = computed(() => props.plans.filter(p => p.status !== 'draft'))
 
-const KNOWN_STATUSES = new Set(['draft', 'pending', 'active', 'completed', 'closed'])
-const otherPlans = computed(() => props.plans.filter(p => !KNOWN_STATUSES.has(p.status)))
+// Group by status for display order. Covers every status the state
+// machine emits (pending → active → completed, plus closed); anything
+// else falls into ``otherPlans`` so a future status is never silently
+// dropped from the list.
+const pendingPlans = computed(() => visiblePlans.value.filter(p => p.status === 'pending'))
+const activePlans = computed(() => visiblePlans.value.filter(p => p.status === 'active'))
 
-const hasPlans = computed(() => props.plans.length > 0)
+// Completed and closed are one thing to the person reading the record —
+// treatment that is over — and splitting them put the patient's history
+// behind two separate collapsed panels. One section, in the order the
+// server sent them so the newest stays on top; the status badge on each
+// card still says which of the two it is.
+const PREVIOUS_STATUSES = new Set(['completed', 'closed'])
+const previousPlans = computed(() => visiblePlans.value.filter(p => PREVIOUS_STATUSES.has(p.status)))
+
+const KNOWN_STATUSES = new Set(['pending', 'active', 'completed', 'closed'])
+const otherPlans = computed(() => visiblePlans.value.filter(p => !KNOWN_STATUSES.has(p.status)))
+
+// Counted on what is shown: a patient whose only plans are drafts must
+// get the empty state, not a heading with nothing under it.
+const hasPlans = computed(() => visiblePlans.value.length > 0)
 </script>
 
 <template>
@@ -152,30 +170,6 @@ const hasPlans = computed(() => props.plans.length > 0)
         </div>
       </div>
 
-      <!-- Draft plans -->
-      <div
-        v-if="draftPlans.length > 0"
-        class="space-y-[var(--density-gap,0.75rem)]"
-      >
-        <h4 class="text-caption text-muted uppercase tracking-wide flex items-center gap-2">
-          <UIcon
-            name="i-lucide-pencil"
-            class="w-4 h-4 text-warning-accent"
-          />
-          {{ t('clinical.plans.drafts') }}
-        </h4>
-        <div class="grid gap-[var(--density-gap,0.75rem)]">
-          <TreatmentPlanMiniCard
-            v-for="plan in draftPlans"
-            :key="plan.id"
-            :plan="plan"
-            @view="emit('view-plan', plan.id)"
-            @activate="emit('activate-plan', plan)"
-            @schedule="emit('schedule', plan)"
-          />
-        </div>
-      </div>
-
       <!-- Other (unknown / future) statuses — never silently drop a plan -->
       <div
         v-if="otherPlans.length > 0"
@@ -199,45 +193,23 @@ const hasPlans = computed(() => props.plans.length > 0)
         </div>
       </div>
 
-      <!-- Completed plans (collapsible) -->
+      <!-- Previous plans — completed and closed together, collapsed -->
       <UAccordion
-        v-if="completedPlans.length > 0"
+        v-if="previousPlans.length > 0"
         :items="[{
-          label: `${t('clinical.plans.completed')} (${completedPlans.length})`,
-          slot: 'completed'
+          label: `${t('clinical.plans.previous')} (${previousPlans.length})`,
+          slot: 'previous'
         }]"
         class="mt-4"
       >
-        <template #completed>
+        <template #previous>
           <div class="grid gap-[var(--density-gap,0.75rem)] pt-2">
             <TreatmentPlanMiniCard
-              v-for="plan in completedPlans"
+              v-for="plan in previousPlans"
               :key="plan.id"
               :plan="plan"
               @view="emit('view-plan', plan.id)"
               @generate-budget="emit('generate-budget', plan)"
-              @schedule="emit('schedule', plan)"
-            />
-          </div>
-        </template>
-      </UAccordion>
-
-      <!-- Closed plans (collapsible) -->
-      <UAccordion
-        v-if="closedPlans.length > 0"
-        :items="[{
-          label: `${t('clinical.plans.closed')} (${closedPlans.length})`,
-          slot: 'closed'
-        }]"
-        class="mt-4"
-      >
-        <template #closed>
-          <div class="grid gap-[var(--density-gap,0.75rem)] pt-2">
-            <TreatmentPlanMiniCard
-              v-for="plan in closedPlans"
-              :key="plan.id"
-              :plan="plan"
-              @view="emit('view-plan', plan.id)"
               @schedule="emit('schedule', plan)"
             />
           </div>

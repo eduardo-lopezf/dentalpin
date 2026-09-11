@@ -318,7 +318,7 @@
       "title": "{count} alert | {count} alerts",
       "label": "Clinical alerts"
     },
-    "editDemographics": "Edit demographics",
+    "editDemographics": "Edit general details",
     "editEmergencyContact": "Edit emergency contact",
     "editBilling": "Edit billing information",
     "editMedicalHistory": "Edit medical history",
@@ -760,6 +760,7 @@
       "drafts": "Drafts",
       "completed": "Completed",
       "closed": "Closed",
+      "previous": "Previous plans",
       "other": "Other",
       "noItems": "No treatments in the plan",
       "markComplete": "Mark as completed",

@@ -18,6 +18,7 @@
  */
 
 import type { PatientExtended } from '~~/app/types'
+import { computeAge } from '../../utils/medicalSnapshot'
 
 interface Props {
   patient: PatientExtended
@@ -44,15 +45,9 @@ const initials = computed(() => {
   return (first + last).toUpperCase() || '?'
 })
 
-const age = computed(() => {
-  if (!props.patient.date_of_birth) return null
-  const today = new Date()
-  const birth = new Date(props.patient.date_of_birth)
-  let years = today.getFullYear() - birth.getFullYear()
-  const m = today.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) years--
-  return years
-})
+// Third copy of this arithmetic in the module, and each one carried the
+// same UTC-midnight bug. One helper now, so a fix cannot miss a caller.
+const age = computed(() => computeAge(props.patient.date_of_birth))
 
 const genderLabel = computed(() => {
   const g = props.patient.gender

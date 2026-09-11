@@ -8,7 +8,7 @@ import {
   toWallClockIso,
   wallClockDate
 } from '../../../backend/app/modules/agenda/frontend/utils/date'
-import { formatDateOnly } from '../../app/utils/date'
+import { formatDateOnly, formatInstant } from '../../app/utils/date'
 
 // The bug is invisible in UTC: it only shows when the reader's zone
 // disagrees with the offset the backend serialized. Pin the runner to
@@ -103,5 +103,45 @@ describe('formatDateOnly', () => {
     expect(formatDateOnly(undefined, 'es-ES')).toBe('')
     expect(formatDateOnly('', 'es-ES')).toBe('')
     expect(formatDateOnly('not a date', 'es-ES')).toBe('')
+  })
+})
+
+describe('formatInstant', () => {
+  const OPTS: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }
+
+  // The runner is pinned to UTC-6 above, so these read as a Mexico City desk
+  // looking at a Madrid clinic — the cross that makes the two answers differ.
+  it('reports the clinic\'s day and hour, not the reader\'s', () => {
+    // 21:00 UTC on the 10th is 23:00 in Madrid, still the 10th; on the
+    // reader's own clock it is 15:00, also the 10th — same day, wrong hour.
+    const madrid = formatInstant('2026-09-10T21:00:00Z', 'es-ES', OPTS, 'Europe/Madrid')
+    expect(madrid).toContain('23:00')
+    expect(madrid).toContain('10/09/2026')
+  })
+
+  it('keeps a late-evening instant on the clinic\'s day', () => {
+    // 22:30 UTC is 00:30 on the 11th in Madrid. Read bare on a UTC-6 desk it
+    // is 16:30 on the 10th — a day the clinic had already closed.
+    const madrid = formatInstant('2026-09-10T22:30:00Z', 'es-ES', OPTS, 'Europe/Madrid')
+    expect(madrid).toContain('11/09/2026')
+    expect(madrid).toContain('00:30')
+  })
+
+  it('falls back to the reader\'s zone when the clinic\'s is unknown', () => {
+    const known = formatInstant('2026-09-10T21:00:00Z', 'es-ES', OPTS, null)
+    const bare = new Date('2026-09-10T21:00:00Z').toLocaleDateString('es-ES', OPTS)
+    expect(known).toBe(bare)
+  })
+
+  it('returns an empty string for missing or malformed input', () => {
+    expect(formatInstant(null, 'es-ES', OPTS, 'Europe/Madrid')).toBe('')
+    expect(formatInstant(undefined, 'es-ES', OPTS, 'Europe/Madrid')).toBe('')
+    expect(formatInstant('not a date', 'es-ES', OPTS, 'Europe/Madrid')).toBe('')
   })
 })

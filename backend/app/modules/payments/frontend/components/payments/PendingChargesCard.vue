@@ -13,6 +13,7 @@
  * via the ``collect`` emit so the host owns the modal lifecycle.
  */
 import { useCurrency } from '~~/app/composables/useCurrency'
+import { formatInstant } from '~~/app/utils/date'
 
 interface PendingCharge {
   entry_id: string
@@ -33,6 +34,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
+const { clinicTimezone } = useAuth()
 const { format: formatCurrency } = useCurrency()
 
 const total = computed(() =>
@@ -42,13 +44,20 @@ const total = computed(() =>
 const visibleCharges = computed(() => props.charges.slice(0, 5))
 const overflow = computed(() => Math.max(0, props.charges.length - visibleCharges.value.length))
 
+/**
+ * `occurred_at` is the treatment's `performed_at` — a true instant, shown
+ * here with the hour because reception is matching it against a session
+ * that just finished. The hour has to be the clinic's: a treatment done at
+ * 19:23 in Madrid read as 11:23 on a Mexico City desk, which matches no
+ * appointment anybody remembers.
+ */
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(locale.value, {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return formatInstant(
+    iso,
+    locale.value,
+    { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' },
+    clinicTimezone.value
+  )
 }
 </script>
 

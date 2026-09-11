@@ -1,6 +1,42 @@
 # Changelog — patients module
 
 ## Unreleased
+
+- feat(patients): la tarjeta de identidad de *Info* pasa a ficha, con el
+  mismo lenguaje visual que `ProfessionalProfileModal`: banda tintada,
+  retrato apoyado en su borde, el nombre como título y los datos en
+  mosaico de casillas en lugar de lista de definiciones. Una lista se lee
+  de arriba abajo y obliga a rastrear la línea que buscas; el mosaico deja
+  que el ojo aterrice en ella. Mismos campos, ninguno añadido ni quitado;
+  la fecha de nacimiento se dibuja siempre, el resto sólo si tiene valor.
+
+  Se cae la cabecera "Datos personales": la tarjeta abría con ese título y
+  repetía el nombre debajo, dos títulos para una sola cosa. Ahora el nombre
+  es el encabezado y `aria-labelledby` apunta a él.
+
+  El botón pasa a llamarse **Editar datos generales** (clave
+  `patients.editDemographics`, es y en). La clave `patients.demographics`
+  ("Datos demográficos") ya no la usa nadie — queda señalada, no borrada.
+
+- fix(patients): la fecha de nacimiento se leía un día antes. `date_of_birth`
+  es una columna DATE y `new Date('1985-03-12')` la interpreta como
+  medianoche UTC, así que al oeste de Greenwich el día local retrocede: la
+  ficha decía 11/03/1985 mientras el formulario de edición, justo al lado,
+  decía 12/03/1985. Ahora usa `formatDateOnly` (`~~/app/utils/date`), que ya
+  existía por este mismo fallo en presupuestos y nunca se propagó.
+
+  `computeAge` tenía la misma raíz y hacía cumplir años un día antes. Había
+  **tres** copias de esa aritmética —el helper, `PatientStickyHeader` y
+  `[id].vue`—, cada una con el fallo; ahora las tres pasan por `computeAge` /
+  `isMinorPatient`, que es lo que impide que el arreglo se deje una fuera.
+  La de `[id].vue` decidía si mostrar la tarjeta de tutor legal: un paciente
+  dejaba de ser menor un día antes de cumplir 18.
+
+  `formatPatientDate` se queda como está —sus otros dos llamantes le pasan
+  instantes reales— pero ahora lo dice en su documentación.
+  `frontend/tests/patients/patientDates.test.ts` fija los bordes con el
+  runner anclado a la zona de la clínica; en UTC el fallo es invisible.
+
 - fix(buscador): buscar sin acentos no encontraba a los pacientes. `ILIKE`
   ignora mayúsculas pero **no** las tildes, así que «Fernandez» no devolvía
   nada y «Garcia» solo encontraba a quien tenía el email escrito sin tilde

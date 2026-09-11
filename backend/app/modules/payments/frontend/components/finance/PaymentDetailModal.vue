@@ -17,6 +17,7 @@
  */
 import type { PaymentRecord } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { formatDateOnly } from '~~/app/utils/date'
 
 const props = defineProps<{
   open: boolean
@@ -48,9 +49,12 @@ function methodIcon(method: string): string {
   }
 }
 
+// `payment_date` is a DATE column: `new Date()` reads it as UTC midnight
+// and prints the day before west of Greenwich. Genuine timestamps still
+// go through `new Date()` — see `~~/app/utils/date`.
 function formatDate(s: string | undefined): string {
   if (!s) return '—'
-  return new Date(s).toLocaleDateString(locale.value)
+  return formatDateOnly(s, locale.value) || '—'
 }
 
 /** Same split the row shows, so the card confirms rather than contradicts. */
