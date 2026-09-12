@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // only exists inside Docker.
 import {
   formatWallClockTime,
+  isoPartsToDateKey,
   parseIsoParts,
   toWallClockIso,
   wallClockDate
@@ -66,6 +67,51 @@ describe('formatWallClockTime', () => {
 
   it('does not shift an early appointment across midnight', () => {
     expect(formatWallClockTime('2026-09-02T01:00:00+00:00', 'es-ES')).toBe('01:00')
+  })
+})
+
+describe('wallClockDate for a full date-and-time label', () => {
+  // The patient record's appointment list builds its own label rather than
+  // using `formatWallClockTime`, because it shows the date too. It reached
+  // for `new Date()` and so disagreed with the calendar by the browser
+  // offset: a 17:30 urgency drawn at 17:30 on the grid was listed as 11:30.
+  const OPTS: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }
+
+  it('keeps the hour the calendar draws', () => {
+    expect(wallClockDate('2026-09-11T17:30:00Z').toLocaleString('es-ES', OPTS))
+      .toBe('11/09/2026, 17:30')
+  })
+
+  it('keeps a late appointment on its own day', () => {
+    // 23:30 tagged Z is the previous afternoon west of Greenwich, which
+    // moved the appointment to the day before in the list.
+    expect(wallClockDate('2026-09-11T23:30:00Z').toLocaleString('es-ES', OPTS))
+      .toBe('11/09/2026, 23:30')
+  })
+})
+
+describe('isoPartsToDateKey', () => {
+  // The day the clinic files an appointment under: used for the agenda's
+  // `?date=` deep links and for bucketing a week's appointments into
+  // columns. Read through `new Date()`, a 01:00 appointment landed on the
+  // previous day west of Greenwich — the link opened the wrong day and the
+  // card it meant to highlight was not on screen.
+  it('keeps an early-morning appointment on its own day', () => {
+    expect(isoPartsToDateKey(parseIsoParts('2026-09-11T01:00:00Z'))).toBe('2026-09-11')
+  })
+
+  it('keeps a late-evening appointment on its own day', () => {
+    expect(isoPartsToDateKey(parseIsoParts('2026-09-11T23:30:00Z'))).toBe('2026-09-11')
+  })
+
+  it('ignores the offset the value happens to carry', () => {
+    expect(isoPartsToDateKey(parseIsoParts('2026-09-11T09:00:00-04:00'))).toBe('2026-09-11')
   })
 })
 

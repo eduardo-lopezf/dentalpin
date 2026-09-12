@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.models import Clinic, ClinicMembership
@@ -497,6 +497,147 @@ async def test_search_catalog_items(
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) >= 1
+
+
+@pytest.mark.asyncio
+async def test_recent_items_are_ordered_by_last_use_not_by_count(
+    client: AsyncClient,
+    auth_headers: dict,
+    catalog_clinic_setup: dict,
+    db_session: AsyncSession,
+):
+    """Recency and frequency are different questions, and they disagree.
+
+    The treatment a clinic used twice yesterday belongs above the one it used
+    thirty times last year — that is the whole reason this endpoint exists
+    next to `/items/popular`.
+    """
+    category = await client.post(
+        "/api/v1/catalog/categories",
+        json={"key": "recency", "names": {"es": "Recencia"}},
+        headers=auth_headers,
+    )
+    category_id = category.json()["data"]["id"]
+
+    codes = ["REC-OLD", "REC-NEW"]
+    item_ids = {}
+    for code in codes:
+        created = await client.post(
+            "/api/v1/catalog/items",
+            json={
+                "category_id": category_id,
+                "internal_code": code,
+                "names": {"es": code},
+                "vat_type_id": catalog_clinic_setup["vat_exempt_id"],
+                "treatment_scope": "global_mouth",
+            },
+            headers=auth_headers,
+        )
+        item_ids[code] = created.json()["data"]["id"]
+
+    patient = await client.post(
+        "/api/v1/patients",
+        json={"first_name": "Reciente", "last_name": "Prueba"},
+        headers=auth_headers,
+    )
+    patient_id = patient.json()["data"]["id"]
+
+    # The old one three times, the new one once and later. Written straight to
+    # the chart table because that is what the ranking reads — and on
+    # `recorded_at`, the clinical date, not `created_at`, which is only when
+    # the row happened to be written.
+    clinic_id = catalog_clinic_setup["clinic_id"]
+    await db_session.execute(
+        text("""
+            INSERT INTO treatments
+                (id, clinic_id, patient_id, clinical_type, scope, catalog_item_id,
+                 status, recorded_at, source_module, created_at, updated_at)
+            VALUES
+                (gen_random_uuid(), :clinic, :patient, 'other', 'global_mouth', :old,
+                 'planned', now() - interval '30 days', 'test', now(), now()),
+                (gen_random_uuid(), :clinic, :patient, 'other', 'global_mouth', :old,
+                 'planned', now() - interval '29 days', 'test', now(), now()),
+                (gen_random_uuid(), :clinic, :patient, 'other', 'global_mouth', :old,
+                 'planned', now() - interval '28 days', 'test', now(), now()),
+                (gen_random_uuid(), :clinic, :patient, 'other', 'global_mouth', :new,
+                 'planned', now() - interval '1 day', 'test', now(), now())
+        """),
+        {
+            "clinic": clinic_id,
+            "patient": patient_id,
+            "old": item_ids["REC-OLD"],
+            "new": item_ids["REC-NEW"],
+        },
+    )
+    await db_session.commit()
+
+    recent = await client.get("/api/v1/catalog/items/recent?limit=5", headers=auth_headers)
+    assert recent.status_code == 200
+    ranked = [i["internal_code"] for i in recent.json()["data"]]
+    assert ranked[:2] == ["REC-NEW", "REC-OLD"]
+
+    popular = await client.get("/api/v1/catalog/items/popular?limit=5", headers=auth_headers)
+    assert popular.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_search_items_ignores_accents_and_word_order(
+    client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
+):
+    """Staff type without accents and in whatever order the words come out.
+
+    A plain ILIKE on the whole string answers neither: "reconstruccion" never
+    matches "Reconstrucción", and "radicular alisado" never matches "Raspado y
+    alisado radicular". Same two rules as the patient search.
+    """
+    category = await client.post(
+        "/api/v1/catalog/categories",
+        json={"key": "accents", "names": {"es": "Acentos"}},
+        headers=auth_headers,
+    )
+    category_id = category.json()["data"]["id"]
+
+    await client.post(
+        "/api/v1/catalog/items",
+        json={
+            "category_id": category_id,
+            "internal_code": "ACC-RAR",
+            "names": {"es": "Raspado y alisado radicular"},
+            "vat_type_id": catalog_clinic_setup["vat_exempt_id"],
+            "treatment_scope": "tooth",
+        },
+        headers=auth_headers,
+    )
+    await client.post(
+        "/api/v1/catalog/items",
+        json={
+            "category_id": category_id,
+            "internal_code": "ACC-RECON",
+            "names": {"es": "Reconstrucción amplia"},
+            "vat_type_id": catalog_clinic_setup["vat_exempt_id"],
+            "treatment_scope": "tooth",
+        },
+        headers=auth_headers,
+    )
+
+    unaccented = await client.get(
+        "/api/v1/catalog/items/search?q=reconstruccion",
+        headers=auth_headers,
+    )
+    assert unaccented.status_code == 200
+    assert [i["internal_code"] for i in unaccented.json()["data"]] == ["ACC-RECON"]
+
+    reordered = await client.get(
+        "/api/v1/catalog/items/search?q=radicular%20alisado",
+        headers=auth_headers,
+    )
+    assert reordered.status_code == 200
+    assert [i["internal_code"] for i in reordered.json()["data"]] == ["ACC-RAR"]
+
+    # The picker needs both of these to decide what it may offer and whether
+    # the treatment is still waiting for a tooth.
+    assert unaccented.json()["data"][0]["treatment_scope"] == "tooth"
+    assert unaccented.json()["data"][0]["is_diagnostic"] is False
 
 
 @pytest.mark.asyncio

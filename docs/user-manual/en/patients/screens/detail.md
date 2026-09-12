@@ -57,6 +57,11 @@ one click reaches the detail.
   Clinical and Administration the sub-nav is a pill-bar exposing all
   modes upfront (Diagnosis · Plans · Appointments · History /
   Budgets · Billing · Payments · Documents).
+- **New plan no longer opens a dialog.** *Clinical → Plans → New plan*
+  goes to
+  [/treatments/plans/new](../../treatment_plan/screens/treatments_plans_new.md)
+  with the patient already filled in and the title already written. It is
+  the same screen from everywhere, and it starts on a blank chart.
 - **Mobile** — header condenses, cards stack to a single column and
   a sticky bottom bar surfaces the three core actions
   (Appointment · Collect · Note).

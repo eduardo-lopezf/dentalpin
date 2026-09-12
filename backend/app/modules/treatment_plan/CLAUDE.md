@@ -58,6 +58,10 @@ Routes mounted at `/api/v1/treatment-plans/`.
 - `GET   /treatment-plans/{id}/history`     — change log + the caller's rights
 - `POST  /treatment-plans/{id}/apply-template` — append a template; `plans.write`.
   Body takes `excluded_template_item_ids`; returns `{items, skipped}`.
+- `POST  /treatment-plans/{id}/catalog-items` — append hand-drawn lines;
+  `plans.write`. `{lines: [{catalog_item_id, tooth_numbers, surfaces, phase,
+  notes}]}` in, `{items, skipped}` out, 422 naming the lines still waiting
+  for a tooth. Same code underneath as `apply-template`.
 - `GET   /plan-templates`                   — list; `plans.read`
 - `POST  /plan-templates`                   — create; `plans.templates`
 - `PUT   /plan-templates/{id}`              — update; items are a full replace when sent
@@ -194,6 +198,25 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   the teeth belong to (both arches when no teeth were given).** A template
   with per-tooth items and no teeth is refused with a 422 that names the
   treatments waiting, so the UI can ask for the right thing.
+- **Hand-drawn lines take the template's path, not the item path.**
+  `POST /catalog-items` goes through `PlanTemplateService.add_catalog_items`
+  → `_create_treatments` → `add_item`, because turning a catalog item into
+  planned `Treatment` rows is where all the scope logic lives (one per tooth,
+  once per arch, once for the mouth). `POST /items` is the other door and
+  takes a `Treatment` that already exists — that is the odontogram's path,
+  and it cannot serve a client that only knows a catalog item id. The body is
+  a **list of lines**, each with its own teeth: the plan is drawn on a chart,
+  so a crown on 16 and a filling on 24 arrive together.
+- **The create screen has no patient until the end, and that is the point.**
+  `/treatments/plans/new` opens on a blank chart (`PlanDraftChart`, which
+  shares `ToothQuadrant` with the real chart but fetches nothing) and holds
+  the whole plan in client memory until *Crear*, which then creates the
+  patient if new, the plan, and every line. Nothing is half-written if the
+  screen is abandoned. The cost is that the chart cannot show what the
+  patient already has, so the patient step re-reads their odontogram and
+  **warns** — a missing tooth comes from `tooth_records.general_condition`,
+  not from a treatment, and a check that only read treatments would warn
+  about nothing.
 - **A template line is either a given or a decision.** `is_optional` marks the
   ones a clinic may not offer or a patient may not need — the orthodontics of
   an orthognathic case, a genioplasty. Optional lines are offered **ticked**

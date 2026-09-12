@@ -131,3 +131,8 @@ flujo (programada → confirmada → en sala → completada → cobrada).
 - **El calendario solo va de 08:00 a 21:00.** El módulo `schedules`
   no está instalado o no tiene horario configurado; la agenda usa la
   ventana por defecto.
+- **La hora de una cita es siempre la de la clínica.** No cambia porque
+  abras la aplicación desde otro país o con el portátil en otro huso: una
+  cita de las 17:30 se lee 17:30 en el calendario, en el kanban y en la
+  ficha del paciente. Si ves la misma cita con dos horas distintas en dos
+  pantallas, es un fallo — repórtalo.

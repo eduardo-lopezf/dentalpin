@@ -238,6 +238,96 @@ test.describe('touch adaptation', () => {
   })
 
   /**
+   * The plan builder: a blank chart, and the patient asked last.
+   *
+   * It is the screen a dentist uses on a tablet at the chair, so both
+   * orientations have to work — the chart is the widest thing in the app and
+   * a tablet held upright is the narrowest it ever gets.
+   */
+  test('the builder draws a plan on a blank chart, tooth by tooth', async ({
+    loggedIn: page
+  }) => {
+    test.setTimeout(180_000)
+
+    await page.goto('/treatments/plans/new', {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+    await expect(page.locator('main')).toBeVisible()
+
+    // A full permanent dentition, and no patient behind it.
+    const teeth = page.locator('main .tooth-cell')
+    await expect(teeth.first()).toBeVisible({ timeout: 60_000 })
+    expect(await teeth.count()).toBe(32)
+
+    // Tapping a tooth opens the panel, and it is not empty before you type:
+    // the treatments the clinic used most recently are the head start.
+    await teeth.filter({ hasText: '16' }).first().click()
+    await expect(page.getByText('Usados recientemente')).toBeVisible({ timeout: 30_000 })
+    const firstRecent = page.locator('.treatment-row').first()
+    await expect(firstRecent).toBeVisible()
+    await firstRecent.click()
+
+    // The tap lands in the plan, and the plan is what the chart now shows.
+    await expect(page.locator('.draft-line')).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled()
+
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets in the plan builder'
+    ).toEqual([])
+  })
+
+  /**
+   * The half that cannot be checked while the chart is blank.
+   *
+   * Choosing the patient last is the point of the screen, so the warning is
+   * the only thing standing between a plan and a crown on a tooth that is
+   * not there. It warns; it never refuses.
+   */
+  test('choosing the patient names the plan and flags what clashes', async ({
+    loggedIn: page
+  }) => {
+    test.setTimeout(180_000)
+
+    await page.goto('/treatments/plans/new', {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+    await expect(page.locator('main')).toBeVisible()
+
+    // 18 is missing on this patient's chart in the demo data.
+    const teeth = page.locator('main .tooth-cell')
+    await expect(teeth.first()).toBeVisible({ timeout: 60_000 })
+    await teeth.filter({ hasText: '18' }).first().click()
+    await expect(page.locator('.treatment-row').first()).toBeVisible({ timeout: 30_000 })
+    await page.locator('.treatment-row').first().click()
+
+    await page.getByRole('button', { name: 'Continuar' }).click()
+    await page.getByPlaceholder('Nombre o teléfono').fill('Perez')
+    const match = page.locator('main button').filter({ hasText: 'Pérez' }).first()
+    await expect(match).toBeVisible({ timeout: 30_000 })
+    await match.click()
+
+    // The title writes itself from the patient, and stays editable.
+    await expect(
+      page.locator('input[value*="Plan de Tratamiento para"]')
+    ).toBeVisible({ timeout: 30_000 })
+
+    // The warning names the tooth, and Crear stays available underneath it.
+    await expect(page.getByText('Revisa estas piezas antes de crear el plan')).toBeVisible()
+    await expect(page.locator('.conflict-list')).toContainText('18')
+    await expect(page.getByRole('button', { name: 'Crear', exact: true })).toBeEnabled()
+
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets on the patient step'
+    ).toEqual([])
+  })
+
+  /**
    * The five list toolbars, which share `FilterBar`.
    *
    * `FilterBar` collapses its chips to a "Filtros" button when they stop

@@ -1,6 +1,33 @@
 # Changelog — catalog module
 
 ## Unreleased
+- feat(catálogo): nuevo `GET /items/recent`, tratamientos por **cuándo** se
+  usaron por última vez. Es el otro eje de `/items/popular`, y los dos
+  discrepan justo donde importa: una clínica que dejó las amalgamas el año
+  pasado las sigue teniendo arriba en una lista por frecuencia. Lo consume el
+  panel del alta de plan, que ofrece algo antes de que nadie teclee.
+
+  Lee de `treatments` (el odontograma), que es la fila que crea todo
+  tratamiento planificado o realizado, venga de donde venga. Mismo montaje en
+  SQL crudo —y misma advertencia— que `get_popular_items`: el nombre de la
+  tabla es el único contrato, así que renombrarla en `odontogram` obliga a
+  coordinarlo aquí. `odontogram` es `removable=False`, así que la tabla está
+  siempre.
+
+- fix(catálogo): `GET /items/search` ignora acentos y admite las palabras en
+  cualquier orden. Era un `ILIKE '%texto%'` sobre el código y el nombre
+  entero, así que «reconstruccion» no encontraba «Reconstrucción» y «radicular
+  alisado» no encontraba «Raspado y alisado radicular» — el mismo par de fallos
+  que ya se corrigió en el buscador de pacientes, y con la misma pieza
+  (`app.core.utils.search`): plegado con `translate()` a los dos lados y una
+  cláusula por palabra, Y entre palabras, O entre columnas. Lo notan los tres
+  selectores de tratamiento y el buscador del alta de plan.
+
+- change(catálogo): `CatalogItemBrief` añade `treatment_scope` e
+  `is_diagnostic`. Un selector necesita las dos para decidir qué puede ofrecer
+  y si el tratamiento sigue esperando un diente; sin ellas tenía que pedir el
+  ítem completo o adivinar. Campos añadidos, ninguno retirado.
+
 - feat(catálogo): un administrador ya puede **borrar tratamientos sembrados**.
   Hasta ahora `DELETE /items/{id}` devolvía 403 sobre cualquier ítem
   `is_system`, así que los ~130 del catálogo de partida se quedaban en todos

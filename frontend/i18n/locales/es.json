@@ -810,8 +810,8 @@
         "unassigned": "Sin fase asignada"
       },
       "templates": {
-        "title": "Empezar desde una plantilla",
-        "subtitle": "Las formas que tu clínica repite. Puedes ajustar todo después.",
+        "title": "Empezar el plan",
+        "subtitle": "Elige una plantilla, añade tratamientos sueltos o las dos cosas. Puedes ajustarlo todo después.",
         "blank": "En blanco",
         "blankHint": "Construye el plan desde el odontograma",
         "apply": "Aplicar plantilla",
@@ -836,7 +836,12 @@
         "itemsCount": "{count} tratamiento(s)",
         "optional": "Opcional",
         "optionalHint": "Las líneas opcionales vienen marcadas. Desmarca las que tu clínica no ofrezca o este paciente no necesite.",
-        "skipped": "Omitido, no está en tu catálogo: {treatments}."
+        "skipped": "Omitido, no está en tu catálogo: {treatments}.",
+        "searchPlaceholder": "Buscar un tratamiento o una plantilla",
+        "searchTemplatesPlaceholder": "Buscar una plantilla",
+        "groupTreatments": "Tratamientos sueltos",
+        "noResults": "Sin resultados para «{query}».",
+        "treatmentsFailed": "No se han podido añadir los tratamientos."
       },
       "moreOptions": "Más opciones",
       "blocked": {
@@ -856,6 +861,36 @@
         "pending": "Por cobrar",
         "partial": "Quedan {amount}",
         "phasePending": "por cobrar {amount}"
+      },
+      "draft": {
+        "chartHelp": "Toca una pieza para añadir un tratamiento. El paciente se elige después.",
+        "chartHint": "El odontograma está en blanco: aquí solo se dibuja el plan, no el historial.",
+        "wholeMouth": "Boca completa",
+        "tooth": "Pieza {tooth}",
+        "toothSurface": "Pieza {tooth} · {surface}",
+        "searchHelp": "Empieza por los recientes o busca en plantillas y catálogo.",
+        "recent": "Usados recientemente",
+        "noRecent": "Todavía no hay tratamientos recientes. Busca en el catálogo.",
+        "lines": "Plan | 1 tratamiento | {count} tratamientos",
+        "empty": "Todavía no has añadido nada. Toca una pieza del odontograma.",
+        "editLine": "Editar {name}",
+        "removeLine": "Quitar {name}",
+        "lineNotes": "Nota de la línea",
+        "lineNotesPlaceholder": "Ej. cara distal respetada",
+        "continue": "Continuar",
+        "backToChart": "Volver al odontograma",
+        "defaultTitle": "Plan de Tratamiento para {name}",
+        "newPatient": "Crear paciente nuevo",
+        "searchInstead": "Buscar un paciente existente",
+        "clearPatient": "Quitar el paciente seleccionado",
+        "conflictTitle": "Revisa estas piezas antes de crear el plan",
+        "conflictAbsent": "La pieza {tooth} consta como ausente en su odontograma.",
+        "conflictDuplicate": "La pieza {tooth} ya tiene «{name}» planificado.",
+        "fixIt": "Corregir en el odontograma",
+        "blocked": {
+          "empty": "Añade al menos un tratamiento.",
+          "newPatient": "Indica nombre y apellidos del paciente."
+        }
       }
     },
     "tooth": "Diente"

@@ -456,6 +456,23 @@ async def get_popular_items(
     return ApiResponse(data=[CatalogItemBrief.model_validate(i) for i in items])
 
 
+@router.get("/items/recent", response_model=ApiResponse[list[CatalogItemBrief]])
+async def get_recent_items(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: int = Query(default=8, ge=1, le=20),
+) -> ApiResponse[list[CatalogItemBrief]]:
+    """Catalog items by how recently the clinic used them.
+
+    The other axis from `/items/popular`: what the practice is doing now,
+    not what it has done most. It is what the plan builder offers before
+    anybody types.
+    """
+    items = await CatalogService.get_recent_items(db, ctx.clinic_id, limit)
+    return ApiResponse(data=[CatalogItemBrief.model_validate(i) for i in items])
+
+
 @router.get("/items/search", response_model=ApiResponse[list[CatalogItemBrief]])
 async def search_items(
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],

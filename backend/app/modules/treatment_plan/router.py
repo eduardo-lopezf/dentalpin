@@ -13,6 +13,7 @@ from app.database import get_db
 from .proposals import PlanProposalService
 from .schemas import (
     AcceptProposalsRequest,
+    AddCatalogItemsRequest,
     ApplyTemplateRequest,
     ApplyTemplateResult,
     ClosePlanRequest,
@@ -42,7 +43,7 @@ from .schemas import (
     UpdateSessionRequest,
 )
 from .service import PlanLockedError, TreatmentPlanService, stewards_of
-from .templates_service import PlanTemplateService, TemplateNeedsTeethError
+from .templates_service import PlanLine, PlanTemplateService, TemplateNeedsTeethError
 
 router = APIRouter()
 
@@ -1016,6 +1017,59 @@ async def apply_plan_template(
             data.template_id,
             data.tooth_numbers,
             data.excluded_template_item_ids,
+        )
+    except TemplateNeedsTeethError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "template_needs_teeth", "treatments": exc.item_names},
+        ) from exc
+    except PlanLockedError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    await db.commit()
+    return ApiResponse(
+        data=ApplyTemplateResult(
+            items=[PlannedTreatmentItemResponse.model_validate(i) for i in result.items],
+            skipped=[{"name": s.name, "reason": s.reason} for s in result.skipped],
+        )
+    )
+
+
+@router.post(
+    "/treatment-plans/{plan_id}/catalog-items",
+    response_model=ApiResponse[ApplyTemplateResult],
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_catalog_items_to_plan(
+    plan_id: UUID,
+    data: AddCatalogItemsRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[ApplyTemplateResult]:
+    """Add treatments picked one by one from the catalog.
+
+    Same contract as ``apply-template`` — it is the same code underneath —
+    including the 422 that names the treatments still waiting for a tooth.
+    """
+    try:
+        result = await PlanTemplateService.add_catalog_items(
+            db,
+            ctx.clinic_id,
+            ctx.user_id,
+            plan_id,
+            [
+                PlanLine(
+                    catalog_item_id=line.catalog_item_id,
+                    tooth_numbers=line.tooth_numbers,
+                    surfaces=line.surfaces,
+                    phase=line.phase,
+                    notes=line.notes,
+                )
+                for line in data.lines
+            ],
         )
     except TemplateNeedsTeethError as exc:
         raise HTTPException(

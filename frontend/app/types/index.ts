@@ -2569,3 +2569,25 @@ export interface ApplyTemplateResult {
   items: PlannedTreatmentItem[]
   skipped: SkippedTemplateLine[]
 }
+
+/**
+ * One treatment on a plan that is still being drawn.
+ *
+ * Client-side only: it lives in the builder's memory from the tap on the
+ * tooth until the plan is created, and never round-trips. The `id` is a
+ * counter, not anything the server issued.
+ */
+export interface PlanDraftLine {
+  id: string
+  catalogItemId: string
+  name: string
+  /** Chart type, when the catalog item maps to one. Drives the icon. */
+  clinicalType: string
+  toothNumbers: number[]
+  surfaces: Surface[] | null
+  price: number | null
+  /** tooth | multi_tooth | global_mouth | global_arch. */
+  scope: string
+  phase: TreatmentPhase | null
+  notes: string | null
+}

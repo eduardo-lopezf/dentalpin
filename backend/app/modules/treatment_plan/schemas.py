@@ -417,6 +417,41 @@ class ApplyTemplateRequest(BaseModel):
     excluded_template_item_ids: list[UUID] = Field(default_factory=list)
 
 
+class PlanLineInput(BaseModel):
+    """One treatment the dentist put on the plan, with its own teeth.
+
+    Per line, not per request: the plan is built by clicking teeth on a
+    chart, so a crown on 16 and a filling on 24 arrive together and each
+    carries its own piece. A request-wide tooth list could only say "all of
+    these, on all of those", which is not what anybody drew.
+
+    ``surfaces`` is only meaningful for a treatment the catalog marks as
+    per-surface; everything else ignores it.
+    """
+
+    catalog_item_id: UUID
+    tooth_numbers: list[int] = Field(default_factory=list)
+    surfaces: list[str] | None = None
+    phase: TreatmentPhase | None = None
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class AddCatalogItemsRequest(BaseModel):
+    """Add treatments picked one by one from the catalog.
+
+    The other half of "start from a template": a plan is often a known shape
+    *plus* the treatments this patient needs on named teeth, and until this
+    endpoint those could only be added after the plan existed, from the
+    chart.
+
+    Same tooth rule as a template, applied per line — a per-tooth treatment
+    is created once per tooth listed, whole-mouth ones once — because it is
+    the same code path underneath.
+    """
+
+    lines: list[PlanLineInput] = Field(min_length=1)
+
+
 class SkippedTemplateLine(BaseModel):
     """A template line that could not be applied.
 

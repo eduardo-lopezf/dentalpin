@@ -56,6 +56,11 @@ también deep-links — un click llega al detalle.
   En Clínica y Administración el sub-nav es un pill-bar con todos los
   modos visibles desde el primer momento (Diagnóstico · Planes ·
   Citas · Histórico / Presupuestos · Facturación · Cobros · Documentos).
+- **Nuevo plan ya no abre una ventana.** *Clínica → Planes → Nuevo
+  plan* lleva a
+  [/treatments/plans/new](../../treatment_plan/screens/treatments_plans_new.md)
+  con el paciente ya puesto y el título ya escrito. Es la misma pantalla
+  desde cualquier sitio, y empieza por el odontograma en blanco.
 - **Mobile** — la cabecera se condensa, las cards se apilan a una
   columna y aparece una barra inferior fija (Cita · Cobrar · Nota).
 

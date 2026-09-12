@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+- fix(agenda): el panel de inicio pedía a la API una ventana corrida. «Hoy»
+  se construía con los límites del día local y se serializaba con
+  `toISOString()`, que los reinterpreta como instantes: en un equipo UTC−6
+  la consulta iba de las 06:00 a las 06:00 del día siguiente, así que el
+  panel **perdía en silencio toda cita anterior a las seis** y se traía de
+  propina las primeras del día siguiente. `toWallClockIso` existía
+  justamente para esto y no se usaba aquí.
+
+  Y «hoy» pasa a ser el día de la **clínica**. El saludo que hay justo
+  encima ya mostraba la fecha de la clínica, así que la cabecera decía
+  «sábado 12» mientras la tarjeta de debajo contaba las citas del viernes
+  11. Si la zona aún no se conoce —primer pintado, antes de que responda
+  `/auth/me`— se usa la del navegador, que es lo que había.
+
+- fix(agenda): tres sitios más leían `start_time` con `new Date()`, que
+  desplaza el reloj de la clínica por el desfase del navegador:
+
+  - «Citas hoy» contaba como *próximas* citas ya pasadas.
+  - El enlace de *Por confirmar mañana* mandaba al día anterior en citas de
+    primera hora, así que la agenda abría en el día equivocado y la tarjeta
+    que iba a resaltar no estaba en pantalla.
+  - La tira semanal del día contaba esas mismas citas bajo la víspera.
+
+- fix(agenda): la lista de citas de la ficha del paciente pintaba la hora en
+  la zona del navegador. `start_time` es hora de pared de la clínica, cuyo
+  desfase es un artefacto de almacenamiento y no un instante que convertir
+  (ver `frontend/utils/date.ts`), pero `AppointmentsMode` la pasaba por
+  `new Date()`. Resultado: una urgencia dibujada a las 17:30 en el calendario
+  se listaba a las 11:30 en la ficha. La misma cita, dos horas, dos
+  pantallas — y en los datos de demo aparecían citas a las 05:00 y 06:00.
+
+  Es la misma regresión que el docstring de `wallClockDate` ya cuenta para el
+  kanban («12:00 en la rejilla y 06:00 en la tarjeta»), arreglada entonces
+  allí y no aquí. El helper existía; sólo faltaba usarlo.
+
+
 - fix(core auth): `/auth/me` now returns each clinic's `timezone`. It was the
   only clock reference the frontend could have during SSR — the global auth
   middleware awaits `auth.init()` on the server, while `useClinic` fetches from

@@ -23,6 +23,7 @@ import type {
   DayBounds
 } from '../../composables/useFreeSlots'
 import { useFreeSlots } from '../../composables/useFreeSlots'
+import { wallClockDate } from '../../utils/date'
 import type { AvailabilityPayload } from '../../composables/useScheduleAvailability'
 import { useScheduleAvailability } from '../../composables/useScheduleAvailability'
 
@@ -274,8 +275,10 @@ function formatHeaderDate(date: Date): string {
 
 function countForDay(day: Date): number {
   return props.appointments.filter((apt) => {
-    const d = new Date(apt.start_time)
-    return isSameDay(d, day) && apt.status !== 'cancelled'
+    // `day` is a browser-local date; `wallClockDate` puts the appointment
+    // on the same footing. Through `new Date()` the two were on different
+    // clocks and early appointments were counted under the previous day.
+    return isSameDay(wallClockDate(apt.start_time), day) && apt.status !== 'cancelled'
   }).length
 }
 

@@ -50,6 +50,17 @@ class SkippedLine:
 
 
 @dataclass(frozen=True)
+class PlanLine:
+    """One hand-drawn plan line: a catalog item and the teeth it is for."""
+
+    catalog_item_id: UUID
+    tooth_numbers: list[int]
+    surfaces: list[str] | None = None
+    phase: str | None = None
+    notes: str | None = None
+
+
+@dataclass(frozen=True)
 class ApplyResult:
     items: list[PlannedTreatmentItem]
     skipped: list[SkippedLine]
@@ -345,6 +356,83 @@ class PlanTemplateService:
         return ApplyResult(items=created, skipped=skipped)
 
     @staticmethod
+    async def add_catalog_items(
+        db: AsyncSession,
+        clinic_id: UUID,
+        user_id: UUID,
+        plan_id: UUID,
+        lines: list[PlanLine],
+    ) -> ApplyResult:
+        """Add treatments the dentist picked one by one, tooth by tooth.
+
+        The same catalog-item → planned-treatment path a template line takes,
+        minus the shape: this is a plan drawn on a chart, where every line
+        already knows which piece it is for.
+
+        Order follows the lines as given — the order they were drawn in.
+        Retired or unknown items are skipped and reported, for the same
+        reason a template line is: a plan that arrives short must say so.
+        """
+        plan = await TreatmentPlanService.get(db, clinic_id, plan_id)
+        if not plan:
+            raise ValueError("Plan not found")
+
+        wanted_ids = {line.catalog_item_id for line in lines}
+        rows = (
+            await db.execute(
+                select(TreatmentCatalogItem).where(
+                    TreatmentCatalogItem.clinic_id == clinic_id,
+                    TreatmentCatalogItem.id.in_(wanted_ids),
+                    TreatmentCatalogItem.is_active.is_(True),
+                    TreatmentCatalogItem.deleted_at.is_(None),
+                )
+            )
+        ).scalars()
+        by_id = {item.id: item for item in rows}
+
+        blocked = [
+            _catalog_name(by_id[line.catalog_item_id])
+            for line in lines
+            if line.catalog_item_id in by_id
+            and by_id[line.catalog_item_id].treatment_scope in _TOOTH_SCOPES
+            and not line.tooth_numbers
+        ]
+        if blocked:
+            raise TemplateNeedsTeethError(blocked)
+
+        created: list[PlannedTreatmentItem] = []
+        skipped: list[SkippedLine] = []
+        for line in lines:
+            catalog_item = by_id.get(line.catalog_item_id)
+            if catalog_item is None:
+                skipped.append(SkippedLine(name=str(line.catalog_item_id), reason="not_in_catalog"))
+                continue
+
+            teeth = sorted(set(line.tooth_numbers))
+            for treatment in await PlanTemplateService._create_treatments(
+                db,
+                clinic_id,
+                plan,
+                user_id,
+                catalog_item,
+                teeth,
+                surfaces=line.surfaces,
+                notes=line.notes,
+            ):
+                item = await TreatmentPlanService.add_item(
+                    db,
+                    clinic_id,
+                    plan_id,
+                    # No phase is not "no opinion": the catalog item's own
+                    # `default_phase` fills in downstream.
+                    {"treatment_id": treatment.id, "phase": line.phase},
+                )
+                if item is not None:
+                    created.append(item)
+
+        return ApplyResult(items=created, skipped=skipped)
+
+    @staticmethod
     async def _create_treatments(
         db: AsyncSession,
         clinic_id: UUID,
@@ -352,8 +440,15 @@ class PlanTemplateService:
         user_id: UUID,
         catalog_item: TreatmentCatalogItem,
         teeth: list[int],
+        surfaces: list[str] | None = None,
+        notes: str | None = None,
     ) -> list[Treatment]:
-        """Turn one template line into the odontogram treatments it implies."""
+        """Turn one template line into the odontogram treatments it implies.
+
+        ``surfaces`` and ``notes`` only ever arrive from a hand-drawn line: a
+        template describes a shape, and neither the caries-facing surface nor
+        a note about this patient belongs to a shape.
+        """
         scope = catalog_item.treatment_scope
         common: dict = {
             "db": db,
@@ -363,10 +458,10 @@ class PlanTemplateService:
             "catalog_item_id": catalog_item.id,
             "clinical_type": None,
             "teeth": None,
-            "common_surfaces": None,
+            "common_surfaces": surfaces or None,
             # Everything a template creates is planned, never performed.
             "status": "planned",
-            "notes": None,
+            "notes": notes,
             "budget_item_id": None,
             "source_module": "treatment_plan",
         }

@@ -2,6 +2,79 @@
 
 ## Unreleased
 
+- feat(treatment_plan): **el alta de plan se dibuja primero y se firma
+  después.** La pantalla abre en un odontograma en blanco; tocas una pieza,
+  dices qué necesita, y solo cuando el plan ya está en pantalla pregunta de
+  quién era la boca.
+
+  El orden anterior era el inverso —paciente, título, profesional, y el
+  «qué» lo construías luego desde el odontograma— y es el inverso del que
+  sigue quien acaba de mirar una boca. Además había **dos** altas: la
+  página `/treatments/plans/new` y una ventana dentro de la ficha del
+  paciente que ni siquiera ofrecía plantillas, que es justo la que se usa en
+  tablet. Ahora hay una sola pantalla y los dos caminos llegan a ella; desde
+  la ficha, con el paciente y el título ya puestos.
+
+  Piezas nuevas, todas en el módulo:
+
+  - `PlanDraftChart` — el odontograma sin paciente. Deliberadamente **no** es
+    `OdontogramChart`: aquel está atado a un paciente, lo consulta y escribe
+    tratamientos en el servidor, y aquí no hay ni paciente ni nada que
+    escribir. Comparte lo que importa — el mismo `ToothQuadrant`, así que un
+    diente se ve, se resalta y se toca igual — y la misma escalera de zoom,
+    que está medida contra tablets reales.
+  - `PlanTreatmentSearch` — el panel que se abre al tocar. Antes de teclear
+    ofrece *usados recientemente*; al teclear busca plantillas y catálogo a
+    la vez. Una plantilla elegida desde una pieza se despliega en cliente:
+    sus líneas por diente toman esa pieza, las de boca completa ninguna, y
+    todas quedan editables antes de escribir nada.
+  - `PlanDraftLines` — el plan mientras se dibuja, con fase y nota por línea.
+
+  **Nada se escribe hasta *Crear***: el paciente (si es nuevo), el plan y
+  todas las líneas van en una secuencia al final. Un plan abandonado a
+  media exploración no deja rastro.
+
+  La contrapartida, y es real: **el odontograma está en blanco**, así que
+  nada impide planificar una corona sobre una pieza ausente. El paso del
+  paciente cierra el hueco hasta donde puede —lee su odontograma real y
+  avisa de lo que choca— pero **avisa, no bloquea**. Un dentista que dice
+  que el plan está bien acierta más que una regla sobre el plan.
+
+  La comprobación de «pieza ausente» lee `tooth_records.general_condition`,
+  no los tratamientos: una pieza que falta es una propiedad del diente, no
+  algo que alguien tratara, y una comprobación que solo mirara tratamientos
+  no habría avisado de nada (en el juego de datos de demo hay 6 piezas
+  ausentes y **cero** tratamientos de tipo `missing`/`extraction`). Los
+  tratamientos se leen igualmente, para el caso de la extracción ya hecha, y
+  a través del composable del odontograma porque normaliza `performed` a
+  `existing`; llamando a la URL a pelo vuelve el valor crudo y la
+  comparación no casa nunca en silencio.
+
+  `POST /treatment-plans/{id}/catalog-items` pasa a recibir **líneas**
+  (`{lines: [{catalog_item_id, tooth_numbers, surfaces, phase, notes}]}`) en
+  vez de una lista de ids con una lista de dientes común: un plan dibujado
+  en un odontograma lleva una corona en el 16 y una obturación en el 24, y
+  una lista de dientes por petición solo sabría decir «todos estos en todos
+  esos». `_create_treatments` acepta ahora caras y nota, que solo llegan de
+  una línea dibujada a mano — una plantilla describe una forma, y ni la cara
+  con caries ni una nota sobre este paciente pertenecen a una forma.
+
+  Se retira `TreatmentPlanModal.vue`. **Ojo con lo que se va con él**: su
+  rama de edición (título, profesional, notas y el reasignado en cascada de
+  los ítems pendientes) ya era inalcanzable antes de este cambio —ninguna
+  pantalla le pasaba `:plan`—, así que `PUT /treatment-plans/{id}` y su
+  `reassign_pending_items` se quedan sin ningún llamador en la interfaz. El
+  comportamiento sigue cubierto por los tests de backend; si se quiere editar
+  un plan ya creado, hay que darle una pantalla nueva.
+
+- fix(treatment_plan): el selector de plantillas decía «Todavía no hay
+  plantillas» mientras las cargaba. El render de servidor llega con la
+  lista vacía y sin petición hecha, así que el estado vacío se mostraba
+  como si fuera una respuesta —y en una tablet lenta dura lo suficiente
+  para que alguien se lo crea y se ponga a construir el plan a mano. Ahora
+  el bloque gris cubre hasta que la primera petición vuelve, y el aviso
+  solo aparece cuando de verdad no hay ninguna.
+
 - change(treatment_plan): la lista de planes de la pestaña *Clínico* deja
   de mostrar los borradores. Esa vista responde a «en qué punto está el
   tratamiento de este paciente», y un plan a medio escribir no es una

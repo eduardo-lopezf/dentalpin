@@ -46,7 +46,6 @@ const {
 // Current view: 'list' or 'detail'
 const view = ref<'list' | 'detail'>('list')
 const selectedPlan = ref<TreatmentPlanDetail | null>(null)
-const showCreateModal = ref(false)
 
 // Pagination
 const currentPage = ref(1)
@@ -110,10 +109,12 @@ function handleSchedule(plan: TreatmentPlan) {
   router.push(`/appointments?patient_id=${plan.patient_id}`)
 }
 
-function handlePlanCreated(plan: TreatmentPlan) {
-  showCreateModal.value = false
-  // Open the newly created plan
-  openPlanDetail(plan.id)
+/**
+ * One screen creates plans now, and it opens on a blank chart. The patient
+ * travels in the URL so the final step comes pre-answered.
+ */
+function handleCreatePlan() {
+  router.push(`/treatments/plans/new?patient_id=${props.patientId}`)
 }
 
 async function handlePlanUpdated() {
@@ -173,7 +174,7 @@ watch(() => props.initialPlanId, (newId) => {
       :total-pages="totalPages"
       :page-size="pageSize"
       @view-plan="openPlanDetail"
-      @create-plan="showCreateModal = true"
+      @create-plan="handleCreatePlan"
       @activate-plan="handleActivatePlan"
       @generate-budget="handleGenerateBudget"
       @schedule="handleSchedule"
@@ -190,13 +191,6 @@ watch(() => props.initialPlanId, (newId) => {
       @generate-budget="handleDetailGenerateBudget"
       @schedule="router.push(`/appointments?patient_id=${patientId}`)"
       @cancelled="handlePlanCancelled"
-    />
-
-    <!-- Create Plan Modal -->
-    <TreatmentPlanModal
-      v-model="showCreateModal"
-      :patient-id="patientId"
-      @saved="handlePlanCreated"
     />
   </div>
 </template>

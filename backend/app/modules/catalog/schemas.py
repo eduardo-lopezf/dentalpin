@@ -406,6 +406,11 @@ class CatalogItemBrief(BaseModel):
     default_price: Decimal | None
     default_duration_minutes: int | None
     is_active: bool
+    # What a picker needs to decide before it offers the item: whether it is
+    # waiting for a tooth, and whether it is a finding rather than something
+    # you can plan.
+    treatment_scope: str
+    is_diagnostic: bool
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { wallClockDate } from '../../utils/date'
+
 defineProps<{ ctx?: unknown }>()
 
 const { t } = useI18n()
@@ -22,7 +24,11 @@ const counts = computed(() => {
     else if (a.status === 'cancelled') c.cancelled += 1
     else if (a.status === 'no_show') c.noShow += 1
     else if (a.status === 'checked_in' || a.status === 'in_treatment') c.inProgress += 1
-    else if (new Date(a.start_time).getTime() >= now) c.upcoming += 1
+    // `start_time` is the clinic's wall clock, so it has to be read as
+    // one before being compared with the clock on the wall. Through
+    // `new Date()` it arrived offset by the clinic's own UTC gap, and
+    // appointments already seen still counted as upcoming.
+    else if (wallClockDate(a.start_time).getTime() >= now) c.upcoming += 1
   }
   return c
 })

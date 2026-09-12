@@ -765,10 +765,26 @@ class CatalogService:
         query: str,
         limit: int = 20,
     ) -> list[TreatmentCatalogItem]:
-        """Search catalog items by name or code."""
+        """Search catalog items by name or code.
+
+        Same two rules as the patient search (`app.core.utils.search`), and
+        for the same reason: staff type "reconstruccion" and "raspado
+        alisado", and a plain ILIKE on the whole string answers neither.
+        Accents are folded on both sides, and every word must match
+        *something* — the code or the name — in any order.
+        """
         from sqlalchemy.dialects.postgresql import TEXT
 
-        search_pattern = f"%{query}%"
+        from app.core.utils.search import FOLD_FROM, FOLD_TO, search_tokens
+
+        tokens = search_tokens(query)
+        if not tokens:
+            return []
+
+        folded_code = func.translate(TreatmentCatalogItem.internal_code, FOLD_FROM, FOLD_TO)
+        folded_names = func.translate(
+            func.cast(TreatmentCatalogItem.names, TEXT), FOLD_FROM, FOLD_TO
+        )
 
         result = await db.execute(
             select(TreatmentCatalogItem)
@@ -776,11 +792,13 @@ class CatalogService:
                 TreatmentCatalogItem.clinic_id == clinic_id,
                 TreatmentCatalogItem.is_active.is_(True),
                 TreatmentCatalogItem.deleted_at.is_(None),
-                or_(
-                    TreatmentCatalogItem.internal_code.ilike(search_pattern),
-                    # Cast JSONB to text for searching
-                    func.cast(TreatmentCatalogItem.names, TEXT).ilike(search_pattern),
-                ),
+                *[
+                    or_(
+                        folded_code.ilike(f"%{token}%"),
+                        folded_names.ilike(f"%{token}%"),
+                    )
+                    for token in tokens
+                ],
             )
             .options(
                 joinedload(TreatmentCatalogItem.category),
@@ -868,6 +886,82 @@ class CatalogService:
         )
         items_by_id = {item.id: item for item in result.unique().scalars().all()}
         # Preserve the count-ordered ranking from the raw query.
+        return [items_by_id[i] for i in ranked_ids if i in items_by_id]
+
+    @staticmethod
+    async def get_recent_items(
+        db: AsyncSession,
+        clinic_id: UUID,
+        limit: int = 8,
+    ) -> list[TreatmentCatalogItem]:
+        """The treatments this clinic reached for most recently.
+
+        Recency, not frequency — `get_popular_items` already answers "most
+        used", and the two diverge exactly where it matters: a clinic that
+        stopped doing amalgams last year still has them at the top of a
+        frequency list. What a dentist wants offered before they type is what
+        they were doing this week.
+
+        Read from ``treatments`` (the chart), because that is the row every
+        planned or performed treatment creates, whichever surface recorded
+        it. Same raw-SQL arrangement — and the same caveat — as
+        ``get_popular_items``: the table name is the only contract, so a
+        rename in `odontogram` must be coordinated here. `odontogram` is
+        `removable=False`, so the table is always there.
+        """
+        rows = (
+            await db.execute(
+                text(
+                    """
+                    SELECT catalog_item_id, MAX(recorded_at) AS last_used
+                    FROM treatments
+                    WHERE clinic_id = :clinic_id
+                      AND catalog_item_id IS NOT NULL
+                      AND deleted_at IS NULL
+                    GROUP BY catalog_item_id
+                    ORDER BY last_used DESC
+                    LIMIT :limit
+                    """
+                ),
+                {"clinic_id": clinic_id, "limit": limit},
+            )
+        ).all()
+
+        ranked_ids: list[UUID] = [row.catalog_item_id for row in rows]
+
+        loaders = (
+            joinedload(TreatmentCatalogItem.category),
+            joinedload(TreatmentCatalogItem.vat_type_rel),
+        )
+
+        if not ranked_ids:
+            # A clinic that has never charted anything still needs something
+            # under the search box, or the first plan starts on a blank panel.
+            result = await db.execute(
+                select(TreatmentCatalogItem)
+                .where(
+                    TreatmentCatalogItem.clinic_id == clinic_id,
+                    TreatmentCatalogItem.is_active.is_(True),
+                    TreatmentCatalogItem.deleted_at.is_(None),
+                )
+                .options(*loaders)
+                .order_by(TreatmentCatalogItem.created_at.desc())
+                .limit(limit)
+            )
+            return list(result.unique().scalars().all())
+
+        result = await db.execute(
+            select(TreatmentCatalogItem)
+            .where(
+                TreatmentCatalogItem.clinic_id == clinic_id,
+                TreatmentCatalogItem.id.in_(ranked_ids),
+                TreatmentCatalogItem.is_active.is_(True),
+                TreatmentCatalogItem.deleted_at.is_(None),
+            )
+            .options(*loaders)
+        )
+        items_by_id = {item.id: item for item in result.unique().scalars().all()}
+        # Preserve the recency ranking from the raw query.
         return [items_by_id[i] for i in ranked_ids if i in items_by_id]
 
 

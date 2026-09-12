@@ -4,6 +4,7 @@
  */
 
 import type { Appointment, PaginatedResponse } from '~~/app/types'
+import { wallClockDate } from '../../utils/date'
 
 const props = defineProps<{
   patientId: string
@@ -49,9 +50,17 @@ watch(() => props.patientId, () => {
 
 onMounted(loadAppointments)
 
-// Format date time
+/**
+ * The clinic's wall clock, like everywhere else in this module.
+ *
+ * `start_time` is a clinic-local time whose offset is a storage artifact,
+ * not an instant to convert — see `../../utils/date`. Passing it through
+ * `new Date()` moved the hands by the browser↔UTC gap, so a 17:30 urgency
+ * drawn at 17:30 on the calendar was listed here as 11:30 on a UTC−6 desk.
+ * Same appointment, two hours, two screens.
+ */
 function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString(locale.value, {
+  return wallClockDate(dateStr).toLocaleString(locale.value, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

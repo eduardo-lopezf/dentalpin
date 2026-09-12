@@ -578,3 +578,103 @@ async def test_update_answers_with_the_lines_it_just_wrote(client, auth_headers,
     items = r.json()["data"]["items"]
     assert len(items) == 2
     assert [i["is_optional"] for i in items] == [False, True]
+
+
+# ---------------------------------------------------------------------------
+# Treatments picked one by one
+#
+# The other half of "start from a template". A plan is often a known shape
+# plus the two treatments this patient happens to need, and those two used to
+# be addable only after the plan existed, from the chart — which is why the
+# create form on a tablet sent everyone to the odontogram.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_each_line_carries_its_own_teeth(client, auth_headers, setup):
+    """A plan drawn on a chart is per tooth, not one tooth list for everything."""
+    plan_id = await _plan(client, auth_headers, setup)
+
+    r = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/catalog-items",
+        headers=auth_headers,
+        json={
+            "lines": [
+                {"catalog_item_id": setup["catalog"]["cleaning"], "tooth_numbers": []},
+                {"catalog_item_id": setup["catalog"]["crown"], "tooth_numbers": [16]},
+                {"catalog_item_id": setup["catalog"]["crown"], "tooth_numbers": [24, 25]},
+            ]
+        },
+    )
+    assert r.status_code == 201, r.text
+    items = r.json()["data"]["items"]
+    # The cleaning once, the first crown on 16, the second crown once per tooth.
+    assert len(items) == 4
+    assert items[0]["treatment"]["scope"] == "global_mouth"
+    assert [i["treatment"]["teeth"][0]["tooth_number"] for i in items[1:]] == [16, 24, 25]
+    # Phase comes from the catalog item; there is no template to override it.
+    assert items[0]["phase"] == "preventivo"
+
+
+@pytest.mark.asyncio
+async def test_a_line_can_name_the_surfaces_it_treats(client, auth_headers, setup):
+    plan_id = await _plan(client, auth_headers, setup)
+
+    r = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/catalog-items",
+        headers=auth_headers,
+        json={
+            "lines": [
+                {
+                    "catalog_item_id": setup["catalog"]["crown"],
+                    "tooth_numbers": [16],
+                    "surfaces": ["O", "M"],
+                    "notes": "Cara distal respetada",
+                }
+            ]
+        },
+    )
+    assert r.status_code == 201, r.text
+    item = r.json()["data"]["items"][0]
+    assert sorted(item["treatment"]["teeth"][0]["surfaces"]) == ["M", "O"]
+
+
+@pytest.mark.asyncio
+async def test_a_line_without_its_tooth_says_which_treatment(client, auth_headers, setup):
+    plan_id = await _plan(client, auth_headers, setup)
+
+    r = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/catalog-items",
+        headers=auth_headers,
+        json={
+            "lines": [
+                {"catalog_item_id": setup["catalog"]["cleaning"], "tooth_numbers": []},
+                {"catalog_item_id": setup["catalog"]["crown"], "tooth_numbers": []},
+            ]
+        },
+    )
+    assert r.status_code == 422
+    # Only the per-tooth one is named, and nothing at all is created.
+    assert "T-CROWN" in r.text
+    assert "T-CLEAN" not in r.text
+
+
+@pytest.mark.asyncio
+async def test_a_line_from_another_clinic_is_skipped_not_applied(client, auth_headers, setup):
+    """Nothing is created for it, and the caller is told — never silently."""
+    plan_id = await _plan(client, auth_headers, setup)
+
+    r = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/catalog-items",
+        headers=auth_headers,
+        json={
+            "lines": [
+                {"catalog_item_id": setup["catalog"]["cleaning"], "tooth_numbers": []},
+                {"catalog_item_id": str(uuid4()), "tooth_numbers": []},
+            ]
+        },
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()["data"]
+    assert len(body["items"]) == 1
+    assert [s["reason"] for s in body["skipped"]] == ["not_in_catalog"]

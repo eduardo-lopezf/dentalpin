@@ -57,7 +57,10 @@ combine:
 
 - **Apply template.** Brings in a whole plan shape (see
   [New plan](./treatments_plans_new.md)). It can be applied more than
-  once, so a plan can be hygiene phase + single implant.
+  once, so a plan can be hygiene phase + single implant. The dialog
+  carries a search box that filters templates by name and by the
+  treatments they contain; it does not offer individual treatments
+  here, because the chart already does that.
 - **Propose from the chart.** The button appears with a count when the
   patient has findings charted that nothing is planned for. The list
   pairs each finding with the matching treatment — caries →

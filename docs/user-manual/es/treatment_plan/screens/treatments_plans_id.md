@@ -58,7 +58,9 @@ combinan:
 - **Aplicar plantilla.** Trae una forma completa de plan (ver
   [Nuevo plan](./treatments_plans_new.md)). Se puede aplicar varias
   veces, así que un plan puede ser fase higiénica + implante
-  unitario.
+  unitario. La ventana lleva un buscador que filtra las plantillas por
+  nombre y por los tratamientos que llevan dentro; aquí no ofrece
+  tratamientos sueltos, porque para eso ya está el odontograma.
 - **Proponer desde el odontograma.** El botón aparece con un número
   cuando el paciente tiene hallazgos marcados en la ficha para los que
   no hay nada planificado. La lista empareja cada hallazgo con el

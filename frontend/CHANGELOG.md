@@ -1,6 +1,16 @@
 # Changelog — frontend
 
 ## Unreleased
+- feat(planes): el alta de plan es ahora un odontograma en blanco donde se
+  dibuja el tratamiento, y el paciente se pregunta al final. Motivos y
+  detalle en el CHANGELOG de `treatment_plan`.
+
+  Lo que toca a este paquete: `PlanDraftLine` se añade a `app/types` (el
+  plan mientras vive solo en memoria del navegador), y `TreatmentCatalogItem`
+  gana `is_diagnostic` en los resultados de `/catalog/items/search`, que es
+  lo que permite dejar los diagnósticos (caries, fractura) fuera de un
+  selector de planificación.
+
 - refactor(home): `HomeGreeting` formatea la fecha con `formatInstant`
   (`~/utils/date`) en lugar de repartir a mano la opción `timeZone`. Es el
   mismo ajuste que ya aplican el ledger y «Pendiente de cobrar», y con el

@@ -128,3 +128,8 @@ professionals and rooms, and walk them through their workflow
 - **The calendar only runs 08:00–21:00.** The `schedules` module is
   not installed or has no schedule configured; the agenda falls back
   to its default window.
+- **An appointment's time is always the clinic's.** It does not change
+  because you opened the app from another country or with your laptop in
+  another timezone: a 17:30 appointment reads 17:30 on the calendar, on the
+  kanban and on the patient record. Seeing the same appointment at two
+  different times on two screens is a bug — report it.

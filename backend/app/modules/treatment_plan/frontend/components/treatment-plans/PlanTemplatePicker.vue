@@ -1,11 +1,16 @@
 <script setup lang="ts">
 /**
- * Pick a plan template and, when it needs them, the teeth to apply it to.
+ * Pick a template to append to a plan that already exists, and the teeth it
+ * needs.
  *
- * Two surfaces use this: the "new plan" form (where picking a template is the
- * first real decision, ahead of the title) and the plan itself (where a
- * template is appended to what is already there). Both need the same two
- * questions, so they share one component.
+ * One surface uses this now: the plan detail's "apply template". Creating a
+ * plan went to a different screen — a blank chart where treatments are drawn
+ * tooth by tooth — and that one has its own panel, because it asks a
+ * different question: not "which shape" but "what does this tooth need".
+ *
+ * The search matches a template by its name, its description **and the
+ * treatments it contains**, so "implante" finds the template even when its
+ * name never says so.
  *
  * Teeth are asked for here rather than left to the backend's 422, because the
  * template response already says which treatments are per-tooth — the UI can
@@ -32,11 +37,12 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const { templates, loading, fetchTemplates, needsTeeth, treatmentsNeedingTeeth }
+const { templates, fetchTemplates, needsTeeth, treatmentsNeedingTeeth }
   = usePlanTemplates()
 
 const selectedId = ref<string | null>(props.modelValue ?? null)
 const teethInput = ref('')
+const query = ref('')
 
 /**
  * Optional lines the caller has unticked. Optional lines start ticked: the
@@ -45,8 +51,17 @@ const teethInput = ref('')
  */
 const excludedItemIds = ref<string[]>([])
 
-onMounted(() => {
-  fetchTemplates()
+/**
+ * Whether the first fetch has come back — success or failure. Without it the
+ * server-rendered pass, where nothing has been fetched yet, showed "no hay
+ * plantillas" for as long as the request took. On a tablet that reads as an
+ * answer rather than as a wait, and the dentist builds the plan by hand.
+ */
+const fetchDone = ref(false)
+
+onMounted(async () => {
+  await fetchTemplates()
+  fetchDone.value = true
 })
 
 watch(() => props.modelValue, (value) => {
@@ -55,6 +70,37 @@ watch(() => props.modelValue, (value) => {
 
 const selected = computed<PlanTemplate | null>(
   () => templates.value.find(x => x.id === selectedId.value) ?? null
+)
+
+/** Accent-blind, case-blind. Reception types "ortognatica" and means it. */
+function fold(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+const tokens = computed(() => fold(query.value).split(/\s+/).filter(Boolean))
+
+/**
+ * Templates matching every word of the query, in the name, the description or
+ * the treatments inside. The last one is the point: "implante" should find the
+ * template that contains an implant even when its name never says so.
+ */
+const shownTemplates = computed<PlanTemplate[]>(() => {
+  if (tokens.value.length === 0) return templates.value
+  return templates.value.filter((template) => {
+    const haystack = fold([
+      template.name,
+      template.description ?? '',
+      ...template.items.map(i => itemName(i.catalog_item?.names)),
+      ...template.items.map(i => i.catalog_item?.internal_code ?? '')
+    ].join(' '))
+    return tokens.value.every(token => haystack.includes(token))
+  })
+})
+
+const isSearchingAnything = computed(() => tokens.value.length > 0)
+
+const nothingFound = computed(() =>
+  isSearchingAnything.value && shownTemplates.value.length === 0
 )
 
 const requiresTeeth = computed(() =>
@@ -149,65 +195,82 @@ watch(teethInput, emitChange)
 
 <template>
   <div class="space-y-3">
+    <UInput
+      v-model="query"
+      class="w-full"
+      icon="i-lucide-search"
+      :placeholder="t('clinical.plans.templates.searchTemplatesPlaceholder')"
+      :disabled="disabled"
+    />
+
     <USkeleton
-      v-if="loading && templates.length === 0"
+      v-if="!fetchDone"
       class="h-20 w-full"
     />
 
     <p
-      v-else-if="templates.length === 0"
+      v-else-if="templates.length === 0 && !isSearchingAnything"
       class="text-caption text-muted"
     >
       {{ t('clinical.plans.templates.empty') }}
     </p>
 
-    <div
-      v-else
-      class="template-grid"
-    >
-      <button
-        v-if="allowBlank"
-        type="button"
-        class="template-card"
-        :class="{ 'is-selected': selectedId === null }"
-        :disabled="disabled"
-        @click="select(null)"
+    <template v-else>
+      <p
+        v-if="nothingFound"
+        class="text-caption text-muted"
       >
-        <span class="template-name">{{ t('clinical.plans.templates.blank') }}</span>
-        <span class="template-desc">{{ t('clinical.plans.templates.blankHint') }}</span>
-      </button>
+        {{ t('clinical.plans.templates.noResults', { query }) }}
+      </p>
 
-      <button
-        v-for="template in templates"
-        :key="template.id"
-        type="button"
-        class="template-card"
-        :class="{ 'is-selected': selectedId === template.id }"
-        :disabled="disabled"
-        @click="select(template.id)"
+      <div
+        v-if="shownTemplates.length > 0"
+        class="template-grid"
       >
-        <span class="template-name">{{ template.name }}</span>
-        <span class="template-desc">{{ template.description }}</span>
-        <span class="template-meta">
-          <UBadge
-            color="neutral"
-            variant="subtle"
-            size="xs"
-          >
-            {{ t('clinical.plans.templates.itemsCount', { count: template.items.length }) }}
-          </UBadge>
-          <UBadge
-            :color="needsTeeth(template) ? 'warning' : 'success'"
-            variant="subtle"
-            size="xs"
-          >
-            {{ needsTeeth(template)
-              ? t('clinical.plans.templates.needsTeeth')
-              : t('clinical.plans.templates.noTeethNeeded') }}
-          </UBadge>
-        </span>
-      </button>
-    </div>
+        <button
+          v-if="allowBlank && !isSearchingAnything"
+          type="button"
+          class="template-card"
+          :class="{ 'is-selected': selectedId === null }"
+          :disabled="disabled"
+          @click="select(null)"
+        >
+          <span class="template-name">{{ t('clinical.plans.templates.blank') }}</span>
+          <span class="template-desc">{{ t('clinical.plans.templates.blankHint') }}</span>
+        </button>
+
+        <button
+          v-for="template in shownTemplates"
+          :key="template.id"
+          type="button"
+          class="template-card"
+          :class="{ 'is-selected': selectedId === template.id }"
+          :disabled="disabled"
+          @click="select(template.id)"
+        >
+          <span class="template-name">{{ template.name }}</span>
+          <span class="template-desc">{{ template.description }}</span>
+          <span class="template-meta">
+            <UBadge
+              color="neutral"
+              variant="subtle"
+              size="xs"
+            >
+              {{ t('clinical.plans.templates.itemsCount', { count: template.items.length }) }}
+            </UBadge>
+            <UBadge
+              :color="needsTeeth(template) ? 'warning' : 'success'"
+              variant="subtle"
+              size="xs"
+            >
+              {{ needsTeeth(template)
+                ? t('clinical.plans.templates.needsTeeth')
+                : t('clinical.plans.templates.noTeethNeeded') }}
+            </UBadge>
+          </span>
+        </button>
+      </div>
+    </template>
 
     <!-- What the chosen template contains, so nothing is applied blind.
          Optional lines carry a checkbox: the clinic may not offer that
@@ -264,7 +327,7 @@ watch(teethInput, emitChange)
     </div>
 
     <UFormField
-      v-if="selected && requiresTeeth"
+      v-if="requiresTeeth"
       :label="t('clinical.plans.templates.teethLabel')"
       :help="t('clinical.plans.templates.teethHelp')"
     >
@@ -334,6 +397,84 @@ watch(teethInput, emitChange)
   margin-top: 2px;
 }
 
+.group-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #6B7280);
+  margin: 0 0 4px;
+}
+
+.treatment-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+
+.treatment-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 12px;
+  background: var(--color-bg-elevated, #fff);
+}
+
+.treatment-row + .treatment-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.treatment-row:hover:not(:disabled) {
+  background: var(--color-bg-muted, #F9FAFB);
+}
+
+.treatment-plus {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--color-primary);
+}
+
+.treatment-price {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.picked-treatments {
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg-muted, #F9FAFB);
+}
+
+.picked-title {
+  font-size: 11px;
+  color: var(--color-text-muted, #6B7280);
+  margin: 0 0 6px;
+}
+
+.picked-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.picked-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 2px 2px 8px;
+  font-size: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-elevated, #fff);
+  max-width: 100%;
+}
+
 .template-preview {
   padding: 8px 12px;
   border-radius: var(--radius-md, 8px);
@@ -376,5 +517,8 @@ watch(teethInput, emitChange)
 
 .line-name {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

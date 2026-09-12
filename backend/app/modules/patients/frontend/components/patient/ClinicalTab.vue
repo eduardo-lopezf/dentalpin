@@ -43,7 +43,6 @@ const currentMode = ref<ClinicalMode>('diagnosis')
 const targetPlanId = ref<string | null>(null)
 
 // Create plan modal
-const showPlanModal = ref(false)
 
 // ============================================================================
 // URL Sync
@@ -86,18 +85,17 @@ onMounted(() => {
 // Mode Transitions
 // ============================================================================
 
+/**
+ * Creating a plan is one screen for the whole app now, and it starts on a
+ * blank chart — the examination is what a dentist types first. The patient
+ * rides along in the URL, so the last step arrives already answered.
+ */
 function handleCreatePlan() {
-  showPlanModal.value = true
+  router.push(`/treatments/plans/new?patient_id=${props.patientId}`)
 }
 
 function handleContinuePlan(planId: string) {
   targetPlanId.value = planId
-  currentMode.value = 'plans'
-}
-
-function handlePlanCreated(plan: TreatmentPlan) {
-  showPlanModal.value = false
-  targetPlanId.value = plan.id
   currentMode.value = 'plans'
 }
 
@@ -150,13 +148,6 @@ watch(currentMode, (newMode) => {
     <AppointmentsMode
       v-else-if="currentMode === 'appointments'"
       :patient-id="patientId"
-    />
-
-    <!-- Create Plan Modal (shared across modes) -->
-    <TreatmentPlanModal
-      v-model="showPlanModal"
-      :patient-id="patientId"
-      @saved="handlePlanCreated"
     />
   </div>
 </template>

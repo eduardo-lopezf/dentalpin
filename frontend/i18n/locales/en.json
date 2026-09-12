@@ -810,8 +810,8 @@
         "unassigned": "No stage assigned"
       },
       "templates": {
-        "title": "Start from a template",
-        "subtitle": "The shapes your clinic repeats. You can adjust everything afterwards.",
+        "title": "Start the plan",
+        "subtitle": "Pick a template, add individual treatments, or both. You can adjust everything later.",
         "blank": "Blank",
         "blankHint": "Build the plan from the chart",
         "apply": "Apply template",
@@ -836,7 +836,12 @@
         "itemsCount": "{count} treatment(s)",
         "optional": "Optional",
         "optionalHint": "Optional lines come ticked. Untick the ones your clinic does not offer or this patient does not need.",
-        "skipped": "Skipped, not in your catalog: {treatments}."
+        "skipped": "Skipped, not in your catalog: {treatments}.",
+        "searchPlaceholder": "Search a treatment or a template",
+        "searchTemplatesPlaceholder": "Search a template",
+        "groupTreatments": "Individual treatments",
+        "noResults": "Nothing found for “{query}”.",
+        "treatmentsFailed": "The treatments could not be added."
       },
       "moreOptions": "More options",
       "blocked": {
@@ -856,6 +861,36 @@
         "pending": "To collect",
         "partial": "{amount} left",
         "phasePending": "{amount} to collect"
+      },
+      "draft": {
+        "chartHelp": "Tap a tooth to add a treatment. The patient comes afterwards.",
+        "chartHint": "The chart is blank: this draws the plan, not the history.",
+        "wholeMouth": "Whole mouth",
+        "tooth": "Tooth {tooth}",
+        "toothSurface": "Tooth {tooth} · {surface}",
+        "searchHelp": "Start from the recent ones, or search templates and catalog.",
+        "recent": "Recently used",
+        "noRecent": "No recent treatments yet. Search the catalog.",
+        "lines": "Plan | 1 treatment | {count} treatments",
+        "empty": "Nothing added yet. Tap a tooth on the chart.",
+        "editLine": "Edit {name}",
+        "removeLine": "Remove {name}",
+        "lineNotes": "Line note",
+        "lineNotesPlaceholder": "e.g. distal surface untouched",
+        "continue": "Continue",
+        "backToChart": "Back to the chart",
+        "defaultTitle": "Treatment Plan for {name}",
+        "newPatient": "Create a new patient",
+        "searchInstead": "Search an existing patient",
+        "clearPatient": "Clear the selected patient",
+        "conflictTitle": "Check these teeth before creating the plan",
+        "conflictAbsent": "Tooth {tooth} is recorded as missing on their chart.",
+        "conflictDuplicate": "Tooth {tooth} already has “{name}” planned.",
+        "fixIt": "Fix it on the chart",
+        "blocked": {
+          "empty": "Add at least one treatment.",
+          "newPatient": "Enter the patient's first and last name."
+        }
       }
     },
     "tooth": "Tooth"

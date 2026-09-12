@@ -13,7 +13,7 @@ Returned by `TreatmentPlanModule.get_permissions()`
 | Permission | Allows | Required by |
 |------------|--------|-------------|
 | `treatment_plan.plans.read` | _Describe what this allows._ | _List the endpoints._ |
-| `treatment_plan.plans.write` | _Describe what this allows._ | _List the endpoints._ |
+| `treatment_plan.plans.write` | Create a plan and change what is in it: its items, their order, their notes and stage, and the two bulk ways of filling it — a template, or treatments picked one by one from the catalog. Reopening a plan asks for more than this (see the module CLAUDE.md: an administrator or an assigned professional). | `POST /treatment-plans`, `PUT /treatment-plans/{id}`, `POST /treatment-plans/{id}/items`, `PUT /treatment-plans/{id}/items/{item_id}`, `DELETE /treatment-plans/{id}/items/{item_id}`, `PATCH /treatment-plans/{id}/items/reorder`, `POST /treatment-plans/{id}/apply-template`, `POST /treatment-plans/{id}/catalog-items`, `POST /treatment-plans/{id}/proposals` |
 | `treatment_plan.plans.confirm` | _Describe what this allows._ | _List the endpoints._ |
 | `treatment_plan.plans.close` | _Describe what this allows._ | _List the endpoints._ |
 | `treatment_plan.plans.reactivate` | _Describe what this allows._ | _List the endpoints._ |

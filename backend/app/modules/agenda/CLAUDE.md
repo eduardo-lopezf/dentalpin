@@ -88,6 +88,21 @@ None.
   `draggable` here — Chrome on Android delivers neither while a finger is
   moving, which is how create, move and resize came to be silently
   broken on tablets. See `docs/technical/touch-adaptation.md`.
+- **`start_time` / `end_time` are the clinic's wall clock, not instants.**
+  The offset they carry is a storage artifact. Read them with
+  `wallClockDate` / `formatWallClockTime` / `parseIsoParts` from
+  `frontend/utils/date.ts`; serialize day boundaries with `toWallClockIso`.
+  Plain `new Date(start_time)` moves the hands by the browser's offset and
+  is how the same appointment came to be drawn at 12:00 on the grid and
+  06:00 on the kanban card, listed at 11:30 in the patient record while the
+  calendar said 17:30, counted as upcoming after it had happened, and filed
+  under the previous day in deep links and per-day counts. Comparing two
+  appointments with `new Date()` is fine — both shift equally — but
+  anything that renders, buckets by day, or compares against *now* is not.
+- **"Today" on the dashboard is the clinic's day.** `useHomeAgenda`
+  resolves it through `clinicTimezone`; the greeting above those tiles does
+  the same. Reading the browser's day instead put the header and the tile
+  on different dates for anyone working outside the clinic's zone.
 - **Calendar geometry reads `useDensity().effective`, not `density`.**
   The preference can say "compact" while a coarse pointer forces the
   touch scale; reading the preference puts the drag maths 10 px per slot

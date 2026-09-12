@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Appointment } from '~~/app/types'
-import { formatWallClockTime } from '../../utils/date'
+import { formatWallClockTime, isoPartsToDateKey, parseIsoParts } from '../../utils/date'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
 defineProps<{ ctx?: unknown }>()
@@ -51,12 +51,14 @@ function formatTime(iso: string): string {
   return formatWallClockTime(iso, locale.value)
 }
 
+/**
+ * The day the clinic files this appointment under, for the `?date=` deep
+ * link. Read through `new Date()` an early-morning appointment landed on
+ * the day before, so the link opened the agenda on the wrong day and the
+ * highlighted card was nowhere on screen.
+ */
 function isoDay(iso: string): string {
-  const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return isoPartsToDateKey(parseIsoParts(iso))
 }
 
 function appointmentHref(a: Appointment): string {
