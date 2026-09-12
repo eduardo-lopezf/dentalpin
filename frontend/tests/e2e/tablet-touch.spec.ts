@@ -298,16 +298,23 @@ test.describe('touch adaptation', () => {
     await awaitDetection(page)
     await expect(page.locator('main')).toBeVisible()
 
-    // 18 is missing on this patient's chart in the demo data.
+    // Tooth 36 and this patient both come from the seed: `seed-demo.sh
+    // --lang es` gives María Teresa Romero Vega the `adult_with_implant`
+    // chart, whose only missing tooth is 36. Picking a name and a tooth
+    // that merely exist on a developer's database is what made this test
+    // pass locally and fail in CI.
     const teeth = page.locator('main .tooth-cell')
     await expect(teeth.first()).toBeVisible({ timeout: 60_000 })
-    await teeth.filter({ hasText: '18' }).first().click()
+    await teeth.filter({ hasText: '36' }).first().click()
     await expect(page.locator('.treatment-row').first()).toBeVisible({ timeout: 30_000 })
     await page.locator('.treatment-row').first().click()
 
     await page.getByRole('button', { name: 'Continuar' }).click()
-    await page.getByPlaceholder('Nombre o teléfono').fill('Perez')
-    const match = page.locator('main button').filter({ hasText: 'Pérez' }).first()
+    // Unaccented on purpose — it is how a receptionist types, and the
+    // search is accent-insensitive. "Romero Vega" matches this patient
+    // alone; "Romero" alone also matches Francisco García Romero.
+    await page.getByPlaceholder('Nombre o teléfono').fill('Romero Vega')
+    const match = page.locator('main button').filter({ hasText: 'Romero Vega' }).first()
     await expect(match).toBeVisible({ timeout: 30_000 })
     await match.click()
 
@@ -318,7 +325,7 @@ test.describe('touch adaptation', () => {
 
     // The warning names the tooth, and Crear stays available underneath it.
     await expect(page.getByText('Revisa estas piezas antes de crear el plan')).toBeVisible()
-    await expect(page.locator('.conflict-list')).toContainText('18')
+    await expect(page.locator('.conflict-list')).toContainText('36')
     await expect(page.getByRole('button', { name: 'Crear', exact: true })).toBeEnabled()
 
     expect(

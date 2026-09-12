@@ -801,6 +801,20 @@ function goBack() {
   max-width: 48rem;
 }
 
+/* Room below the action row on short viewports. Create sits directly
+   under the patient and title fields at the end of a document-scrolled
+   page, so on a tablet in landscape the on-screen keyboard covers it
+   exactly while those fields are being typed in — and with the page
+   already at its scroll end there is nothing left to scroll it clear of.
+   Reported from a real device; only reproducible with a real keyboard,
+   so this buys the scroll room rather than betting on a diagnosis.
+   The chart step needs none of this: it has no text input. */
+@media (max-height: 700px) {
+  .who-card {
+    padding-bottom: 18rem;
+  }
+}
+
 .who-summary {
   display: flex;
   flex-wrap: wrap;

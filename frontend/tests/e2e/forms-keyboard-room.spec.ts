@@ -64,9 +64,32 @@ async function roomBelowSubmit(page: Page): Promise<number> {
   })
 }
 
+/**
+ * Open a route and leave the page showing the form this file measures.
+ *
+ * The new-plan screen became two steps in the builder redesign — a blank
+ * chart first, the patient and title last — so its form does not exist on
+ * load: a line has to be drawn and `Continuar` pressed. Waiting for
+ * `form` alone timed out here and, because it failed before the
+ * assertion, hid that the keyboard guard had been dropped from the
+ * rewritten page. Every other route still renders its form on load.
+ */
 async function open(page: Page, route: string): Promise<void> {
   await page.goto(route, { waitUntil: 'domcontentloaded' })
   await page.waitForSelector('html[data-ua]', { state: 'attached', timeout: 60_000 })
+
+  if (route.startsWith('/treatments/plans/new')) {
+    const teeth = page.locator('main .tooth-cell')
+    await expect(teeth.first()).toBeVisible({ timeout: 60_000 })
+    await teeth.first().click()
+
+    const treatment = page.locator('.treatment-row').first()
+    await expect(treatment).toBeVisible({ timeout: 30_000 })
+    await treatment.click()
+
+    await page.getByRole('button', { name: 'Continuar' }).click()
+  }
+
   await page.waitForSelector('form', { timeout: 60_000 })
   await page.waitForTimeout(1500)
 }
