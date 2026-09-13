@@ -306,8 +306,21 @@ test.describe('touch adaptation', () => {
     const teeth = page.locator('main .tooth-cell')
     await expect(teeth.first()).toBeVisible({ timeout: 60_000 })
     await teeth.filter({ hasText: '36' }).first().click()
-    await expect(page.locator('.treatment-row').first()).toBeVisible({ timeout: 30_000 })
-    await page.locator('.treatment-row').first().click()
+
+    // Searched by name, not `.treatment-row` first: that class is shared by
+    // three lists in the panel — recents, templates and treatments — and
+    // recents are ordered by what the clinic has used, so the first row is
+    // whatever the history happens to put there. It has to be a *tooth*
+    // treatment or `addTreatment` attaches no tooth (`teethFor` only fills
+    // it for tooth/multi_tooth scope), the line lands on no tooth, and the
+    // conflict this test is about never fires. `REST-COMP` is tooth-scoped
+    // and comes from the catalog seed.
+    await page.getByPlaceholder('Buscar un tratamiento o una plantilla')
+      .fill('Obturación composite')
+    const treatment = page.locator('.treatment-row')
+      .filter({ hasText: 'Obturación composite' }).first()
+    await expect(treatment).toBeVisible({ timeout: 30_000 })
+    await treatment.click()
 
     await page.getByRole('button', { name: 'Continuar' }).click()
     // Unaccented on purpose — it is how a receptionist types, and the

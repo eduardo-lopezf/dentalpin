@@ -83,7 +83,16 @@ async function open(page: Page, route: string): Promise<void> {
     await expect(teeth.first()).toBeVisible({ timeout: 60_000 })
     await teeth.first().click()
 
-    const treatment = page.locator('.treatment-row').first()
+    // By name: `.treatment-row` is shared by the panel's recents,
+    // templates and treatments lists, and recents are ordered by clinic
+    // history — so the first row is not the same thing on every database.
+    // Any line will do here (it only has to enable `Continuar`), but a
+    // template row would run `addTemplate`, which adds nothing when its
+    // catalog items are missing, and the step would never unlock.
+    await page.getByPlaceholder('Buscar un tratamiento o una plantilla')
+      .fill('Obturación composite')
+    const treatment = page.locator('.treatment-row')
+      .filter({ hasText: 'Obturación composite' }).first()
     await expect(treatment).toBeVisible({ timeout: 30_000 })
     await treatment.click()
 
