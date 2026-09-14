@@ -884,6 +884,13 @@
         "removeLine": "Quitar {name}",
         "lineNotes": "Nota de la línea",
         "lineNotesPlaceholder": "Ej. cara distal respetada",
+        "lineTeeth": "Piezas",
+        "lineSurfaces": "Caras",
+        "pickTeeth": "Elegir en el odontograma",
+        "pickingDone": "Listo",
+        "pickingTeeth": "Toca las piezas de «{name}». Vuelve a tocar una para quitarla.",
+        "dropTooth": "Quitar la pieza {tooth}",
+        "needsTooth": "Falta la pieza",
         "continue": "Continuar",
         "backToChart": "Volver al odontograma",
         "defaultTitle": "Plan de Tratamiento para {name}",
@@ -896,7 +903,8 @@
         "fixIt": "Corregir en el odontograma",
         "blocked": {
           "empty": "Añade al menos un tratamiento.",
-          "newPatient": "Indica nombre y apellidos del paciente."
+          "newPatient": "Indica nombre y apellidos del paciente.",
+          "needsTeeth": "Indica en qué pieza va: {names}."
         }
       }
     },

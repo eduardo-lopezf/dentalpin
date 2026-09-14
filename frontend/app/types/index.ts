@@ -2585,6 +2585,12 @@ export interface PlanDraftLine {
   clinicalType: string
   toothNumbers: number[]
   surfaces: Surface[] | null
+  /**
+   * Whether the catalog describes this treatment by the faces it touches.
+   * A crown does not: it covers the tooth. Carried on the line so the
+   * builder can offer the faces for editing without re-reading the catalog.
+   */
+  requiresSurfaces: boolean
   price: number | null
   /** tooth | multi_tooth | global_mouth | global_arch. */
   scope: string

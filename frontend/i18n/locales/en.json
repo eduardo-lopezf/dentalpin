@@ -884,6 +884,13 @@
         "removeLine": "Remove {name}",
         "lineNotes": "Line note",
         "lineNotesPlaceholder": "e.g. distal surface untouched",
+        "lineTeeth": "Teeth",
+        "lineSurfaces": "Faces",
+        "pickTeeth": "Pick on the odontogram",
+        "pickingDone": "Done",
+        "pickingTeeth": "Tap the teeth for “{name}”. Tap one again to take it off.",
+        "dropTooth": "Remove tooth {tooth}",
+        "needsTooth": "No tooth yet",
         "continue": "Continue",
         "backToChart": "Back to the chart",
         "defaultTitle": "Treatment Plan for {name}",
@@ -896,7 +903,8 @@
         "fixIt": "Fix it on the chart",
         "blocked": {
           "empty": "Add at least one treatment.",
-          "newPatient": "Enter the patient's first and last name."
+          "newPatient": "Enter the patient's first and last name.",
+          "needsTeeth": "Say which tooth these go on: {names}."
         }
       }
     },

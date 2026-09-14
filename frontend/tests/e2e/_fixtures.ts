@@ -59,6 +59,21 @@ export async function login(page: Page, role: Role): Promise<void> {
   await page.waitForURL(url => url.pathname === '/', { timeout: 10_000 })
 }
 
+/**
+ * The bearer token the `loggedIn` fixture already obtained.
+ *
+ * Read back off the cookie rather than logging in a second time: a second
+ * login would mint a second session row, and the point of asking the API
+ * from a test is to learn something the page cannot show, not to set up a
+ * different user.
+ */
+export async function tokenFor(page: Page): Promise<string> {
+  const cookies = await page.context().cookies()
+  const token = cookies.find(cookie => cookie.name === 'access_token')?.value
+  if (!token) throw new Error('no access_token cookie — was this page logged in?')
+  return token
+}
+
 type RoleFixture = {
   role: Role
   loggedIn: Page

@@ -15,7 +15,7 @@ related_paths:
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanTreatmentSearch.vue
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanDraftLines.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: e372dd4
+last_verified_commit: f2ce026
 ---
 
 # New treatment plan
@@ -63,9 +63,39 @@ generate a budget.
    all of its lines at once: the per-tooth ones land on the tooth you
    were on, the whole-mouth ones ask for none.
 5. The list on the right (below, when held upright) is the plan. The
-   pencil opens that line's phase and note; the bin removes it. The total
-   keeps itself up to date.
-6. **Continue** once there is at least one treatment.
+   pencil opens that line for editing; the bin removes it. The total keeps
+   itself up to date.
+6. **Continue** once there is at least one treatment, and none without a
+   tooth.
+
+### Correcting a line before the plan exists
+
+While the plan does not exist, **everything on a line can be changed**, as
+often as needed: nothing is written, and no budget quotes it. After
+*Create* that stops being true, and changing the treatments means
+**Reopen**, which cancels the live budget.
+
+The line's pencil opens:
+
+- **Teeth.** Each tooth is a chip with its own ✕. *Pick on the odontogram*
+  hands the chart over to that line: while the blue notice is up, tapping a
+  tooth adds it and tapping it again takes it off, instead of opening the
+  treatment panel. *Done* gives the chart back. Whole-mouth and whole-arch
+  treatments have no such section — they hang off no tooth.
+- **Faces**, only for the treatments the catalog describes by face (a
+  filling does; a crown does not, because it covers the tooth). They are
+  always written in chart order, so the same three faces read the same way
+  whatever order you tick them in.
+- **Phase** and **line note**.
+
+The **price is not editable here**: it is the catalog's, and changing it
+belongs to the budget, where the negotiation leaves a trail. To change the
+treatment itself, remove the line and add the right one.
+
+> A per-tooth line you take every tooth off is marked in amber as *No tooth
+> yet* and blocks **Continue**, naming it. That is deliberate: a correction
+> has to be allowed to leave the line empty for a moment, and the block is
+> what stops the plan going out that way.
 
 ## Step 2 — Whose mouth it was
 
@@ -106,6 +136,12 @@ generate a budget.
 - **I tapped a tooth and the treatment did not land on it.** Whole-mouth
   and whole-arch treatments do not hang off a tooth even when picked from
   one; they appear in the list as *Whole mouth*.
+- **Tapping the chart adds teeth to a line instead of opening the panel.**
+  A line is in editing mode; the blue notice at the top says which. Press
+  *Done* and the chart goes back to adding treatments.
+- **It will not continue and says "Say which tooth these go on".** A
+  per-tooth line has been left with none. Open it with the pencil and give
+  it a tooth, or remove it.
 - **"Whole mouth" will not let me pick a treatment.** Per-tooth ones are
   dimmed there, because there would be no tooth to put them on. Pick
   those from the tooth.

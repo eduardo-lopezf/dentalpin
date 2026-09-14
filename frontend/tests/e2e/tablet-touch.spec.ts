@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, test } from './_fixtures'
+import { API_BASE, expect, test, tokenFor } from './_fixtures'
 
 /**
  * Touch-adaptation guarantees, run in both tablet orientations.
@@ -34,6 +34,27 @@ const HYDRATION_TIMEOUT = 60_000
 async function awaitDetection(page: Page): Promise<void> {
   test.setTimeout(test.info().timeout + HYDRATION_TIMEOUT)
   await page.waitForSelector('html[data-ua]', { state: 'attached', timeout: HYDRATION_TIMEOUT })
+}
+
+/**
+ * A plan the clinic counts as under way, with a budget already issued.
+ *
+ * Those two together are what freezes the plan's odontogram, so the test
+ * that checks the freeze has to have both. Read through the API because
+ * neither is visible from a list row.
+ */
+async function findLockedPlanId(page: Page): Promise<string | undefined> {
+  const response = await page.request.get(
+    `${API_BASE}/api/v1/treatment_plan/treatment-plans?page_size=100`,
+    { headers: { authorization: `Bearer ${await tokenFor(page)}` } }
+  )
+  expect(response.ok(), `plan list: ${response.status()}`).toBe(true)
+  const body = (await response.json()) as {
+    data: { id: string, status: string, budget_id: string | null }[]
+  }
+  return body.data.find(
+    plan => ['pending', 'active'].includes(plan.status) && plan.budget_id
+  )?.id
 }
 
 /**
@@ -330,6 +351,132 @@ test.describe('touch adaptation', () => {
       await countUndersizedTargets(page),
       'undersized targets in the treatment search'
     ).toEqual([])
+  })
+
+  /**
+   * Every line stays editable until the plan exists.
+   *
+   * The screen's own argument is that nothing is written until *Crear*, and
+   * this is what that buys: a line drawn on the wrong tooth is corrected on
+   * the chart that drew it, not by deleting the line and searching the
+   * treatment out again. After *Crear* the same correction costs a Reabrir,
+   * which throws a budget away — so the cheap window is worth pinning.
+   *
+   * Tooth-scoped on purpose (`REST-COMP`): a whole-mouth line has no teeth
+   * to edit, so it could not fail this test and could not pass it either.
+   */
+  test('a drawn treatment can be moved to another tooth before the plan exists', async ({
+    loggedIn: page
+  }) => {
+    test.setTimeout(180_000)
+
+    await page.goto('/treatments/plans/new', {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+    await expect(page.locator('main')).toBeVisible()
+
+    const teeth = page.locator('main .tooth-cell')
+    await expect(teeth.first()).toBeVisible({ timeout: 60_000 })
+    await teeth.filter({ hasText: '16' }).first().click()
+
+    await page.getByPlaceholder('Buscar un tratamiento o una plantilla')
+      .fill('Obturación composite')
+    const treatment = page.locator('.treatment-row')
+      .filter({ hasText: 'Obturación composite' }).first()
+    await expect(treatment).toBeVisible({ timeout: 30_000 })
+    await treatment.click()
+
+    const line = page.locator('.draft-line').first()
+    await expect(line).toBeVisible()
+    await expect(line.locator('.line-teeth')).toContainText('16')
+
+    // Open the line's editor and hand the chart over to it.
+    await line.getByRole('button', { name: /^Editar / }).click()
+    await line.getByRole('button', { name: 'Elegir en el odontograma' }).click()
+    await expect(page.getByText('Toca las piezas de')).toBeVisible()
+
+    // Now a tap edits this line instead of opening the treatment panel.
+    await teeth.filter({ hasText: '26' }).first().click()
+    await expect(line.locator('.line-teeth')).toContainText('26')
+    // ...and tapping the wrong one again takes it off.
+    await teeth.filter({ hasText: '16' }).first().click()
+    await expect(line.locator('.line-teeth')).not.toContainText('16')
+
+    // Still one treatment: the chart edited the line, it did not add lines.
+    await expect(page.locator('.draft-line')).toHaveCount(1)
+
+    // A per-tooth line with no tooth left cannot be created, and says so
+    // rather than failing at the server with a 422.
+    await teeth.filter({ hasText: '26' }).first().click()
+    await expect(page.getByText('Falta la pieza').first()).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled()
+
+    // Putting a tooth back releases it.
+    await teeth.filter({ hasText: '26' }).first().click()
+    await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled()
+
+    // Faces are editable too, for a treatment the catalog describes by face.
+    await line.getByRole('button', { name: 'Oclusal' }).click()
+    await expect(line.locator('.line-teeth')).toContainText('O')
+
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets while editing a draft line'
+    ).toEqual([])
+  })
+
+  /**
+   * The other side of that window: once the plan exists, the chart is shut.
+   *
+   * This is the boundary the editable-line test is worth having. A plan in
+   * progress carries a budget the patient may have seen, so its odontogram
+   * is read-only and a tap explains itself rather than doing nothing —
+   * changing it means Reabrir, which cancels that budget.
+   *
+   * Reached through the `en_curso` bandeja, whose leading rows the demo seed
+   * fills with plans that carry a budget (`seed-demo.sh`). The test asserts
+   * the lock before it asserts anything about the tap, so a seed that ever
+   * stops producing one fails loudly here instead of passing vacuously.
+   */
+  test('a plan in progress shuts its chart and says how to open it', async ({
+    loggedIn: page
+  }) => {
+    test.setTimeout(180_000)
+
+    // Asked of the API rather than picked off a list. The bandeja's own
+    // tabs are not links — only "Listado" renders real hrefs, and its
+    // first row is whatever is newest, which is as likely to be a draft.
+    // The lock needs a specific pair (status pending|active *and* a live
+    // budget), so the test names that pair instead of hoping for it.
+    const planId = await findLockedPlanId(page)
+    expect(planId, 'the seed has no plan in progress carrying a budget').toBeTruthy()
+
+    await page.goto(`/treatments/plans/${planId}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+    await expect(page.getByText('Plan bloqueado')).toBeVisible({ timeout: 60_000 })
+
+    // The chart says it is frozen...
+    await expect(page.getByText('Solo lectura')).toBeVisible()
+
+    // ...and a tap on it answers, instead of being swallowed. The banner is
+    // a scroll above the chart, so without this the screen looks broken.
+    const teeth = page.locator('main .tooth-cell')
+    await expect(teeth.first()).toBeVisible({ timeout: 60_000 })
+    await teeth.filter({ hasText: '11' }).first().click()
+    // `exact` matters: a toast also renders a screen-reader announcement
+    // that repeats the title inside a longer string, and a loose match
+    // resolves to both.
+    await expect(
+      page.getByText('Odontograma bloqueado', { exact: true })
+    ).toBeVisible({ timeout: 30_000 })
+
+    // No treatment panel: the tap changed nothing, which is the point.
+    await expect(page.getByText('Usados recientemente')).toHaveCount(0)
   })
 
   /**

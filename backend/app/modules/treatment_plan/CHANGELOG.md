@@ -2,6 +2,51 @@
 
 ## Unreleased
 
+- feat(treatment_plan): mientras el plan se dibuja, **toda** línea es
+  editable, no solo su fase y su nota. La pantalla ya prometía que nada se
+  escribe hasta *Crear*; lo que faltaba era poder cobrar esa promesa. La
+  corrección más frecuente en un odontograma que nadie ha contrastado
+  todavía con un paciente no es «tratamiento equivocado» sino «pieza
+  equivocada» —el 16 por el 26, un segundo premolar por un primero— y hasta
+  ahora la única salida era borrar la línea y volver a buscar el
+  tratamiento: mucho trabajo para deshacer un toque.
+
+  - **Piezas.** Cada una es una chapa con su ✕, y *Elegir en el
+    odontograma* le entrega el gráfico a esa línea: un toque añade la pieza,
+    otro la quita, y el gráfico resalta lo que la línea lleva. Se elige
+    donde se eligió la primera vez. Un campo numérico o un desplegable de
+    32 dientes serían una segunda manera, peor, de decir lo mismo en una
+    pantalla cuyo argumento entero es que el odontograma es el formulario.
+  - **Caras**, solo donde el catálogo describe el tratamiento por caras.
+    Se guardan en orden de odontograma pase lo que pase, para que las
+    mismas tres caras no se impriman distinto según cuál se marcó última.
+  - Precio y tratamiento siguen sin editarse, y por escrito en el
+    componente: el precio es del catálogo y cambiarlo pertenece al
+    presupuesto; cambiar el tratamiento es quitar y añadir.
+
+  El límite es el que ya existía: una vez creado el plan, editar pasa por
+  **Reabrir**. Esta ventana es barata justamente porque no hay nada escrito
+  detrás.
+
+  Aparece un estado nuevo que antes no era alcanzable —una línea de diente
+  sin ninguna pieza, porque ahora se le pueden quitar— y se resuelve donde
+  toca: se puede vaciar (una corrección tiene que poder pasar por ahí), se
+  marca en ámbar en la lista y bloquea *Continuar* nombrando el
+  tratamiento. El servidor contesta a eso con un 422; mejor una frase junto
+  al botón.
+
+  Las reglas viven en `planDraftLineUtils.ts`, fuera del componente, con 19
+  pruebas unitarias: son lo que merece pinchar, y montar un componente es
+  mal sitio para probarlas. Dos pruebas e2e cubren las dos caras del
+  límite: editar antes de crear, y el gráfico cerrado después.
+
+- fix(treatment_plan): dibujar sobre una cara concreta nunca registraba la
+  cara. `addTreatment` leía `requires_surfaces` del ítem que devuelve
+  `/catalog/items/search`, y ese resumen no trae el campo, así que la
+  condición era siempre `undefined`. Ahora se resuelve contra el catálogo
+  de odontograma que la pantalla ya carga, con el valor del propio ítem por
+  delante para quien sí lo mande.
+
 - feat(treatment_plan): hacer clic en el odontograma de un plan en curso ya
   no es un silencio. El cartel de «Plan bloqueado» vive arriba del todo y el
   odontograma queda un scroll por debajo, así que lo primero que hace

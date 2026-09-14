@@ -20,6 +20,7 @@
  * every line go in one sequence at the end. A half-built plan abandoned
  * mid-examination leaves nothing behind.
  */
+import { incompleteLines, toggleTooth } from '~/components/treatment-plans/planDraftLineUtils'
 import type {
   ApiResponse,
   Patient,
@@ -83,6 +84,20 @@ function clinicalTypeFor(catalogItemId: string): string {
     ?.odontogram_treatment_type ?? 'filling'
 }
 
+/**
+ * Whether the catalog describes this treatment by faces.
+ *
+ * A line added from the search panel carries the answer already; a line
+ * expanded from a template does not, because a template's catalog item is
+ * a brief. This reads the same list `clinicalTypeFor` reads, which holds
+ * only the items that map to the chart — and an item with no mapping is
+ * whole-mouth, so `false` is the right answer for it anyway.
+ */
+function requiresSurfacesFor(catalogItemId: string): boolean {
+  return treatmentCatalog.treatments.value.find(x => x.id === catalogItemId)
+    ?.requires_surfaces ?? false
+}
+
 function openSearchForTooth(toothNumber: number) {
   searchTooth.value = toothNumber
   searchSurface.value = null
@@ -108,6 +123,12 @@ function teethFor(item: { treatment_scope?: string | null }): number[] {
 }
 
 function addTreatment(item: TreatmentCatalogItem) {
+  // `/catalog/items/search` answers with a brief that carries no
+  // `requires_surfaces`, so reading it off the panel's item was always
+  // `undefined` — which is why drawing on a named face never recorded the
+  // face. The catalog lookup is the authority either way; the item's own
+  // value is kept first for the callers that do send it.
+  const requiresSurfaces = item.requires_surfaces ?? requiresSurfacesFor(item.id)
   lines.value.push({
     id: nextId(),
     catalogItemId: item.id,
@@ -116,7 +137,8 @@ function addTreatment(item: TreatmentCatalogItem) {
     toothNumbers: teethFor(item),
     // A face only means something for a treatment the catalog says is
     // per-surface; on a crown it would be noise on the chart.
-    surfaces: item.requires_surfaces && searchSurface.value ? [searchSurface.value] : null,
+    surfaces: requiresSurfaces && searchSurface.value ? [searchSurface.value] : null,
+    requiresSurfaces,
     price: item.default_price === undefined || item.default_price === null
       ? null
       : Number(item.default_price),
@@ -145,6 +167,7 @@ function addTemplate(template: PlanTemplate) {
       clinicalType: clinicalTypeFor(catalogItem.id),
       toothNumbers: teethFor(catalogItem),
       surfaces: null,
+      requiresSurfaces: requiresSurfacesFor(catalogItem.id),
       price: catalogItem.default_price ?? null,
       scope: catalogItem.treatment_scope ?? 'global_mouth',
       phase: (templateItem.phase ?? null) as TreatmentPhase | null,
@@ -156,12 +179,79 @@ function addTemplate(template: PlanTemplate) {
 
 function removeLine(id: string) {
   lines.value = lines.value.filter(line => line.id !== id)
+  if (pickingLineId.value === id) pickingLineId.value = null
 }
 
 function updateLine(id: string, patch: Partial<PlanDraftLine>) {
   const line = lines.value.find(x => x.id === id)
   if (line) Object.assign(line, patch)
 }
+
+// ---------------------------------------------------------------------------
+// Changing a line's teeth, on the chart that drew it
+//
+// A plan is drawn before anyone knows whose mouth it is, so the commonest
+// correction is not "wrong treatment" but "wrong tooth" — 16 tapped for 26,
+// a second premolar for a first. Until now the only way back was to delete
+// the line and search the treatment out again, which is a lot of work to
+// undo one tap.
+//
+// The tooth is picked the way it was picked in the first place: on the
+// chart. While a line is in picking mode a tap toggles that tooth in or out
+// of it instead of opening the treatment panel, and the chart shows what the
+// line currently holds. Anything else — a number field, a dropdown of 32
+// teeth — would be a second, worse way to say the same thing on a screen
+// whose whole argument is that the chart is the form.
+// ---------------------------------------------------------------------------
+
+/** The line whose teeth the next chart tap belongs to, if any. */
+const pickingLineId = ref<string | null>(null)
+
+const pickingLine = computed(() =>
+  lines.value.find(line => line.id === pickingLineId.value) ?? null
+)
+
+function togglePicking(id: string) {
+  pickingLineId.value = pickingLineId.value === id ? null : id
+}
+
+function stopPicking() {
+  pickingLineId.value = null
+}
+
+/**
+ * Route a chart tap to the line being edited, when there is one.
+ *
+ * A tap on a face collapses to its tooth — the same rule the real chart
+ * applies while several teeth are being selected. Choosing which faces a
+ * filling covers is a separate edit with its own control; conflating the
+ * two would make it impossible to put a tooth on the line without also
+ * claiming a face.
+ */
+function onChartToothClick(toothNumber: number) {
+  const line = pickingLine.value
+  if (!line) {
+    openSearchForTooth(toothNumber)
+    return
+  }
+  const patch = toggleTooth(line, toothNumber)
+  if (patch) updateLine(line.id, patch)
+}
+
+function onChartSurfaceClick(toothNumber: number, surface: Surface) {
+  if (pickingLine.value) {
+    onChartToothClick(toothNumber)
+    return
+  }
+  openSearchForSurface(toothNumber, surface)
+}
+
+/**
+ * Lines that can no longer be created, which only editing can produce: a
+ * per-tooth treatment whose last tooth was taken off it. The server answers
+ * that with a 422, so it is caught here and named next to the button.
+ */
+const unfinishedLines = computed(() => incompleteLines(lines.value))
 
 // ---------------------------------------------------------------------------
 // Whose mouth it was
@@ -351,11 +441,22 @@ onMounted(async () => {
   }
 })
 
-const canContinue = computed(() => lines.value.length > 0)
+const canContinue = computed(() => lines.value.length > 0 && unfinishedLines.value.length === 0)
+
+/** Why the plan cannot leave step one, in the words the dentist needs. */
+const chartBlockingReason = computed<string | null>(() => {
+  if (lines.value.length === 0) return t('clinical.plans.draft.blocked.empty')
+  if (unfinishedLines.value.length > 0) {
+    return t('clinical.plans.draft.blocked.needsTeeth', {
+      names: unfinishedLines.value.map(line => line.name).join(', ')
+    })
+  }
+  return null
+})
 
 /** Null when the plan can be created; otherwise the reason it cannot. */
 const blockingReason = computed<string | null>(() => {
-  if (lines.value.length === 0) return t('clinical.plans.draft.blocked.empty')
+  if (chartBlockingReason.value) return chartBlockingReason.value
   if (showNewPatient.value) {
     return newPatient.value.first_name.trim() && newPatient.value.last_name.trim()
       ? null
@@ -452,11 +553,35 @@ function goBack() {
           </UButton>
         </div>
 
+        <!-- While a line is being re-toothed the chart stops being a way to
+             add treatments, so say so where the eye already is. -->
+        <div
+          v-if="pickingLine"
+          class="picking-banner"
+        >
+          <UIcon
+            name="i-lucide-hand"
+            class="w-4 h-4 shrink-0"
+          />
+          <span class="min-w-0 flex-1">
+            {{ t('clinical.plans.draft.pickingTeeth', { name: pickingLine.name }) }}
+          </span>
+          <UButton
+            size="xs"
+            color="primary"
+            variant="soft"
+            @click="stopPicking"
+          >
+            {{ t('clinical.plans.draft.pickingDone') }}
+          </UButton>
+        </div>
+
         <PlanDraftChart
           :lines="lines"
           :conflicts="conflicts"
-          @tooth-click="openSearchForTooth"
-          @surface-click="openSearchForSurface"
+          :selected-teeth="pickingLine?.toothNumbers ?? []"
+          @tooth-click="onChartToothClick"
+          @surface-click="onChartSurfaceClick"
         />
       </UCard>
 
@@ -470,8 +595,10 @@ function goBack() {
 
         <PlanDraftLines
           :lines="lines"
+          :picking-line-id="pickingLineId"
           @remove="removeLine"
           @update="updateLine"
+          @pick-teeth="togglePicking"
         />
 
         <div class="builder-actions">
@@ -484,10 +611,10 @@ function goBack() {
             {{ t('clinical.plans.draft.continue') }}
           </UButton>
           <p
-            v-if="!canContinue"
+            v-if="chartBlockingReason"
             class="text-caption text-muted text-center"
           >
-            {{ t('clinical.plans.draft.blocked.empty') }}
+            {{ chartBlockingReason }}
           </p>
         </div>
       </UCard>
@@ -775,6 +902,18 @@ function goBack() {
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.picking-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--ui-primary, #3B82F6);
+  background: color-mix(in oklab, var(--ui-primary, #3B82F6) 8%, transparent);
+  font-size: 12px;
 }
 
 .lines-head {

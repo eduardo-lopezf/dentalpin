@@ -275,6 +275,7 @@ async def test_phase_splits_a_category_that_mixes_stages(
     assert await phase_of("SURG-EXT-SIMPLE") == "urgencia"
     assert await phase_of("PERIO-MAINT") == "mantenimiento"
 
+
 ORTHOGNATHIC_CODES = {
     "MXF-CONS-01",
     "MXF-EST-01",

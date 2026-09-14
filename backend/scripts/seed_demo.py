@@ -59,6 +59,7 @@ from app.modules.treatment_plan.models import (
     PlannedTreatmentItemSession,
     TreatmentPlan,
 )
+from app.modules.treatment_plan.templates_service import PlanTemplateService
 from app.seeds.demo_data import (
     CLINIC_ID,
     USER_DENTIST_ID,
@@ -732,6 +733,16 @@ async def main(lang: str = "en") -> None:
 
             links = await seed_professional_specialties(db)
             print(f"  Linked {links} professional specialties")
+
+            # Starter plan templates. Normally installed by treatment_plan's
+            # `clinic.created` handler, which this script never fires — and
+            # even if it did, it runs before the catalog exists and
+            # `PlanTemplateService.seed` drops a template whose every line is
+            # missing. So a demo clinic came up with none at all. Called here,
+            # after the catalog, which is the order the seed is documented to
+            # need (see `scripts/backfill_plan_templates.py`).
+            templates = await PlanTemplateService.seed(db, CLINIC_ID)
+            print(f"  Installed {templates} plan templates")
 
             print("\n[5/10] Creating odontogram data...")
             await seed_odontogram(db)

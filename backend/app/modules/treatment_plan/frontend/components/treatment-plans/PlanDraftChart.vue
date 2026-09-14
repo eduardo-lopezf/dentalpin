@@ -23,10 +23,19 @@ const props = withDefaults(defineProps<{
   dentition?: 'permanent' | 'deciduous'
   /** Tooth → why it is a problem, once a patient is known. */
   conflicts?: Record<number, string>
+  /**
+   * Teeth belonging to the line currently being re-toothed. Non-empty only
+   * while the parent is in picking mode, and then it takes over the
+   * highlight: what this line holds is the only question on screen, and a
+   * conflict on a tooth the dentist is not editing can wait for the step
+   * that exists to raise it.
+   */
+  selectedTeeth?: number[]
   disabled?: boolean
 }>(), {
   dentition: 'permanent',
-  conflicts: () => ({})
+  conflicts: () => ({}),
+  selectedTeeth: () => []
 })
 
 const emit = defineEmits<{
@@ -96,6 +105,11 @@ const plannedTeeth = computed(() => [...viewsByTooth.value.keys()])
 
 const conflictTeeth = computed(() => Object.keys(props.conflicts).map(Number))
 
+/** What the chart paints as highlighted: the edit in hand, else the warnings. */
+const highlightedTeeth = computed(() =>
+  props.selectedTeeth.length > 0 ? props.selectedTeeth : conflictTeeth.value
+)
+
 function onToothClick(toothNumber: number) {
   if (props.disabled) return
   emit('toothClick', toothNumber)
@@ -130,7 +144,7 @@ function onSurfaceClick(toothNumber: number, surface: Surface) {
             :selected-tooth="null"
             :show-lateral="true"
             :hovered-tooth="hoveredTooth"
-            :highlighted-teeth="conflictTeeth"
+            :highlighted-teeth="highlightedTeeth"
             :pending-treatment="null"
             @surface-click="onSurfaceClick"
             @tooth-click="onToothClick"
@@ -147,7 +161,7 @@ function onSurfaceClick(toothNumber: number, surface: Surface) {
             :selected-tooth="null"
             :show-lateral="true"
             :hovered-tooth="hoveredTooth"
-            :highlighted-teeth="conflictTeeth"
+            :highlighted-teeth="highlightedTeeth"
             :pending-treatment="null"
             @surface-click="onSurfaceClick"
             @tooth-click="onToothClick"
@@ -172,7 +186,7 @@ function onSurfaceClick(toothNumber: number, surface: Surface) {
             :selected-tooth="null"
             :show-lateral="true"
             :hovered-tooth="hoveredTooth"
-            :highlighted-teeth="conflictTeeth"
+            :highlighted-teeth="highlightedTeeth"
             :pending-treatment="null"
             @surface-click="onSurfaceClick"
             @tooth-click="onToothClick"
@@ -189,7 +203,7 @@ function onSurfaceClick(toothNumber: number, surface: Surface) {
             :selected-tooth="null"
             :show-lateral="true"
             :hovered-tooth="hoveredTooth"
-            :highlighted-teeth="conflictTeeth"
+            :highlighted-teeth="highlightedTeeth"
             :pending-treatment="null"
             @surface-click="onSurfaceClick"
             @tooth-click="onToothClick"

@@ -15,7 +15,7 @@ related_paths:
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanTreatmentSearch.vue
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanDraftLines.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: e372dd4
+last_verified_commit: f2ce026
 ---
 
 # Nuevo plan de tratamiento
@@ -64,9 +64,39 @@ presupuesto.
    añade todas sus líneas de golpe: las que van por diente se ponen en la
    pieza donde estabas, y las de boca completa no piden ninguna.
 5. La lista de la derecha (debajo, en vertical) es el plan. El lápiz abre
-   fase y nota de esa línea; la papelera la quita. El total se actualiza
+   la línea para editarla; la papelera la quita. El total se actualiza
    solo.
-6. **Continuar** cuando haya al menos un tratamiento.
+6. **Continuar** cuando haya al menos un tratamiento, y ninguno sin pieza.
+
+### Corregir una línea antes de crear el plan
+
+Mientras el plan no exista, **todo lo de una línea se puede cambiar** las
+veces que haga falta: no hay nada escrito, ni presupuesto que lo cite.
+Después de *Crear* deja de ser así y para tocar los tratamientos hay que
+**Reabrir** el plan, lo que cancela el presupuesto vigente.
+
+El lápiz de la línea abre:
+
+- **Piezas.** Cada pieza es una chapa con su ✕ para quitarla. *Elegir en
+  el odontograma* le entrega el odontograma a esa línea: mientras el aviso
+  azul esté arriba, tocar una pieza la añade y volver a tocarla la quita,
+  en lugar de abrir el panel de tratamientos. *Listo* devuelve el
+  odontograma a lo suyo. Los tratamientos de boca completa o de arcada no
+  tienen esta sección: no cuelgan de ninguna pieza.
+- **Caras**, solo en los tratamientos que el catálogo describe por caras
+  (una obturación sí; una corona no, porque cubre el diente). Se escriben
+  siempre en orden de odontograma, así que las mismas tres caras se leen
+  igual las toques en el orden que las toques.
+- **Fase** y **nota de la línea**.
+
+El **precio no se edita aquí**: es el del catálogo, y cambiarlo pertenece
+al presupuesto, donde queda constancia de la negociación. Para cambiar el
+tratamiento en sí, quita la línea y añade la correcta.
+
+> Una línea de diente a la que le quitas todas las piezas se marca en
+> ámbar como *Falta la pieza* y bloquea **Continuar** nombrándola. Es a
+> propósito: durante una corrección tiene que poder quedarse vacía un
+> momento, y el bloqueo es lo que evita que el plan salga así.
 
 ## Paso 2 — De quién es la boca
 
@@ -108,6 +138,12 @@ presupuesto.
   tratamientos de boca completa o de arcada no cuelgan de un diente
   aunque los elijas desde uno; aparecerán en la lista como *Boca
   completa*.
+- **Toco el odontograma y en vez de abrirse el panel se me añaden piezas
+  a una línea.** Hay una línea en modo edición: el aviso azul de arriba
+  dice cuál. Pulsa *Listo* y el odontograma vuelve a añadir tratamientos.
+- **No me deja continuar y dice «Indica en qué pieza va».** Una línea de
+  diente se ha quedado sin ninguna. Ábrela con el lápiz y dale una pieza,
+  o quítala.
 - **Desde «Boca completa» no me deja elegir un tratamiento.** Los que van
   por diente están atenuados ahí, porque no habría pieza a la que
   asignarlos. Tócalos desde la pieza.

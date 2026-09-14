@@ -1,6 +1,10 @@
 # Changelog — frontend
 
 ## Unreleased
+- feat(types): `PlanDraftLine` gana `requiresSurfaces`. La línea en memoria
+  tiene que saber si su tratamiento se describe por caras para poder
+  ofrecerlas al editarlo, sin volver a preguntar al catálogo en cada
+  render. Motivos y detalle en el CHANGELOG de `treatment_plan`.
 - fix(tests): `tablet-touch.spec.ts` parpadeaba en horizontal. La espera de
   hidratación (`awaitDetection`) tenía permitidos 60 s de selector dentro de
   un suite cuyo presupuesto por test es de 30 s, así que una ruta lenta
