@@ -1059,6 +1059,53 @@ async def test_add_item_snapshots_catalog_sessions(
 
 
 @pytest.mark.asyncio
+async def test_append_session_by_hand_returns_the_saved_row(
+    client: AsyncClient, auth_headers: dict, setup: dict
+):
+    """Appending a session manually must persist it and answer 201.
+
+    The service appended the row to the collection and returned the item
+    without flushing. `id` is a Python-side `default=uuid4`, so it was still
+    None when the response model serialized it, and Pydantic answered 500 —
+    which rolled the row back. Adding a session by hand had never once
+    worked; a long treatment could only ever get the sessions its catalog
+    template carried.
+    """
+    plan_resp = await client.post(
+        "/api/v1/treatment_plan/treatment-plans",
+        headers=auth_headers,
+        json={"patient_id": setup["patient_id"]},
+    )
+    plan_id = plan_resp.json()["data"]["id"]
+    treatment_id = await _create_treatment(client, auth_headers, setup)
+    item = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/items",
+        headers=auth_headers,
+        json={"treatment_id": treatment_id},
+    )
+    item_id = item.json()["data"]["id"]
+
+    added = await client.post(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/sessions",
+        headers=auth_headers,
+        json={"label": "Revisión al mes", "amount": "0.00"},
+    )
+    assert added.status_code == 201, added.text
+    sessions = added.json()["data"]["sessions"]
+    assert len(sessions) == 2
+    assert sessions[1]["id"] is not None
+    assert sessions[1]["label"] == "Revisión al mes"
+    assert sessions[1]["sequence"] == 2
+
+    # And it is really in the database, not just in the response.
+    reread = await client.get(
+        f"/api/v1/treatment_plan/treatment-plans/{plan_id}", headers=auth_headers
+    )
+    stored = [i for i in reread.json()["data"]["items"] if i["id"] == item_id][0]
+    assert len(stored["sessions"]) == 2
+
+
+@pytest.mark.asyncio
 async def test_add_item_without_catalog_template_creates_single_session(
     client: AsyncClient, auth_headers: dict, setup: dict
 ):

@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- fix(ui): en vertical, la vista de Día se salía por la derecha. La rejilla
+  exigía 200 px por profesional (`200 x N + 80`), así que una clínica con
+  cinco pedía 1080 px contra los ~620 que tiene una tablet en vertical: casi
+  la mitad del día quedaba fuera de pantalla y había que arrastrar en
+  horizontal para llegar a ella.
+
+  La ironía es que vertical abre en Día justamente para *evitar* eso — una
+  semana de siete columnas no cabe a lo ancho. Pero el suelo de 200 px es la
+  única de las dos medidas que crece con el tamaño de la clínica, y nadie
+  comprobó cuánto pedía Día de verdad: la semana ocultaba 112 px y Día
+  ocultaba 392. En horizontal hay 1168 px y las dos vistas caben, que es por
+  lo que solo se veía girando la tablet.
+
+  Ahora el suelo depende de si hay sitio a lo ancho que gastar: 200 px por
+  columna en horizontal (y se arrastra cuando la clínica es grande), y en
+  vertical el mínimo en el que una tarjeta sigue siendo legible, repartiendo
+  el ancho que hay. Por debajo de eso vuelve a arrastrarse, en lugar de
+  estrechar las columnas hasta lo ilegible.
+
+  La prueba que cubría esto solo comprobaba que la rejilla *estuviera* —
+  nunca que **cupiera**. La nueva mide el desbordamiento y además fija el
+  ancho mínimo de columna, para que no se pueda «arreglar» un desbordamiento
+  futuro encogiéndolas.
+
 - fix(agenda): el panel de inicio pedía a la API una ventana corrida. «Hoy»
   se construía con los límites del día local y se serializaba con
   `toISOString()`, que los reinterpreta como instantes: en un equipo UTC−6

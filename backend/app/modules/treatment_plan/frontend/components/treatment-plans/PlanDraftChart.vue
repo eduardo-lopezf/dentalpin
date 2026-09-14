@@ -109,7 +109,13 @@ function onSurfaceClick(toothNumber: number, surface: Surface) {
 
 <template>
   <div class="odontogram-wrapper">
-    <div class="odontogram-grid bg-surface rounded-lg border border-default p-4">
+    <!-- data-dense: same reason as `OdontogramChart`, whose `ToothQuadrant`
+         this shares — the cell is one of sixteen across an arch, and the tap
+         opens the treatment panel rather than acting in place. -->
+    <div
+      data-dense
+      class="odontogram-grid bg-surface rounded-lg border border-default p-4"
+    >
       <!-- Upper arch -->
       <div class="mb-6">
         <div class="text-caption text-subtle text-center mb-2">

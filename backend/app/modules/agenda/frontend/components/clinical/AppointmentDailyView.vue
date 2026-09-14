@@ -82,6 +82,37 @@ function getSlotHeight() {
 
 const calendarRef = ref<HTMLElement | null>(null)
 
+const { isPortrait } = useDevice()
+
+/**
+ * How wide the grid insists on being, which is what decides whether it
+ * scrolls sideways.
+ *
+ * A professional's column wants 200 px: that is what an appointment card
+ * needs for a time, a patient and a treatment. A clinic with more
+ * professionals than fit simply scrolls to reach them, which on a
+ * landscape screen costs nothing.
+ *
+ * Held upright there is no sideways room to spend. The portrait default
+ * lands on this view precisely because a seven-day week does not fit
+ * across a tablet — but 200 px x five professionals is 1080, and against
+ * the ~620 px an upright tablet has that put nearly half the day off the
+ * right edge. So portrait asks for the narrowest column a card is still
+ * readable in and lets the columns share what width exists; past that it
+ * scrolls, rather than shrinking them into illegibility.
+ *
+ * Orientation changes the layout, never the interaction
+ * ([ADR 0022](../../../../../../docs/adr/0022-touch-adaptation-is-capability-driven.md)).
+ */
+const COLUMN_WIDTH = 200
+const COLUMN_WIDTH_PORTRAIT = 104
+const TIME_GUTTER = 80
+
+const gridMinWidth = computed(() => {
+  const perColumn = isPortrait.value ? COLUMN_WIDTH_PORTRAIT : COLUMN_WIDTH
+  return `${perColumn * props.professionals.length + TIME_GUTTER}px`
+})
+
 const {
   dragState,
   createDragState,
@@ -391,7 +422,7 @@ const appointmentsByProfIndex = computed(() => {
       <div
         data-dense
         class="min-w-[600px]"
-        :style="{ minWidth: `${200 * professionals.length + 80}px` }"
+        :style="{ minWidth: gridMinWidth }"
       >
         <!-- Professional headers -->
         <div

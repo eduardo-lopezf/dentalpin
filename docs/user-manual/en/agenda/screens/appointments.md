@@ -59,6 +59,11 @@ professionals and rooms, and walk them through their workflow
   fit across), the kanban wraps its columns into two rows, and the header
   falls to two lines. Once you pick a view yourself, rotating no longer
   changes it. Rotating never changes how a gesture behaves.
+- **Upright, the Day view fits every professional across the screen** —
+  the columns narrow to share the width the tablet has, so the whole day
+  is in front of you without dragging sideways. A clinic with enough
+  professionals that the columns would stop being readable scrolls
+  instead; turning the tablet on its side always gives them more room.
 - **Date navigation lives in the header** — previous / today / next and
   the date sit next to the title, and step by week or by day depending
   on the active view.

@@ -119,6 +119,9 @@ ITEM_SPECIALTY_EXTRAS: list[tuple[str, list[str]]] = [
     ("SURG-BONE-", ["implantologia"]),
     ("SURG-SINUS", ["implantologia"]),
     ("SURG-PRP", ["implantologia"]),
+    # The orthognathic pathway is surgery's, including the assessment steps
+    # that live under the diagnostic category.
+    ("MXF-", ["cirugia"]),
     # Mucogingival and periapical surgery belong to their own disciplines too.
     ("SURG-CONN-GRAFT", ["periodoncia"]),
     ("SURG-CROWN-LENGTH", ["periodoncia"]),
@@ -186,6 +189,12 @@ ITEM_PHASES: list[tuple[str, str]] = [
     ("SURG-IMP-", "rehabilitacion"),
     ("SURG-BONE-", "rehabilitacion"),
     ("SURG-SINUS", "rehabilitacion"),
+    # Orthognathic surgery restores function and face; it is not disease
+    # control, which is what `cirugia` defaults to. The three diagnostic MXF
+    # codes need no entry — their category already says `diagnostico`.
+    ("MXF-VSP-", "rehabilitacion"),
+    ("MXF-CIR-", "rehabilitacion"),
+    ("MXF-GENIO-", "rehabilitacion"),
     # Elective aesthetics.
     ("REST-VEN-", "estetica"),
     # Recall and upkeep.
@@ -197,6 +206,7 @@ ITEM_PHASES: list[tuple[str, str]] = [
     ("PROT-OCC-ADJ", "mantenimiento"),
     ("PROT-REBASE", "mantenimiento"),
     ("PROT-REPAIR", "mantenimiento"),
+    ("MXF-OSTEO-", "mantenimiento"),
 ]
 
 
@@ -445,6 +455,52 @@ TREATMENTS: dict[str, list[dict[str, Any]]] = {
             "default_duration_minutes": 15,
             "vat_type": "exempt",
             "pricing_strategy": "flat",
+        },
+        # Orthognathic pathway — the assessment half. The surgical half lives
+        # under "cirugia"; both are whole-mouth or skeletal, so neither draws
+        # anything on a tooth chart.
+        {
+            "internal_code": "MXF-CONS-01",
+            "names": {
+                "es": "Primera consulta de Cirugía Maxilofacial",
+                "en": "First maxillofacial surgery consultation",
+            },
+            "treatment_scope": "global_mouth",
+            "default_price": Decimal("120.00"),
+            "default_duration_minutes": 45,
+            "vat_type": "exempt",
+            "pricing_strategy": "flat",
+            "odontogram_treatment_type": "consultation",
+        },
+        {
+            "internal_code": "MXF-EST-01",
+            "names": {
+                "es": "Estudio diagnóstico ortognático",
+                "en": "Orthognathic diagnostic workup",
+            },
+            "descriptions": {
+                "es": "Registros, CBCT, escaneado de modelos, arco facial y cefalometría",
+                "en": "Records, CBCT, model scanning, facebow and cephalometrics",
+            },
+            "treatment_scope": "global_mouth",
+            "default_price": Decimal("350.00"),
+            "default_duration_minutes": 60,
+            "vat_type": "exempt",
+            "pricing_strategy": "flat",
+            "odontogram_treatment_type": "imaging",
+        },
+        {
+            "internal_code": "MXF-PREAN-01",
+            "names": {
+                "es": "Valoración preanestésica",
+                "en": "Pre-anaesthetic assessment",
+            },
+            "treatment_scope": "global_mouth",
+            "default_price": Decimal("150.00"),
+            "default_duration_minutes": 30,
+            "vat_type": "exempt",
+            "pricing_strategy": "flat",
+            "odontogram_treatment_type": "consultation",
         },
     ],
     # ---------- Preventivo ----------
@@ -1494,6 +1550,103 @@ TREATMENTS: dict[str, list[dict[str, Any]]] = {
             "vat_type": "exempt",
             "pricing_strategy": "flat",
         },
+        # Orthognathic pathway — the surgical half. These act on the facial
+        # skeleton, not on a tooth, so they carry a skeletal clinical type and
+        # no visualization rules: they reach the UI as a named chip under
+        # "Boca completa" and draw nothing on the chart.
+        {
+            "internal_code": "MXF-VSP-01",
+            "names": {
+                "es": "Planificación virtual y férulas quirúrgicas",
+                "en": "Virtual surgical planning and splints",
+            },
+            "treatment_scope": "global_mouth",
+            "default_price": Decimal("900.00"),
+            "default_duration_minutes": 60,
+            "vat_type": "exempt",
+            "pricing_strategy": "flat",
+            "odontogram_treatment_type": "consultation",
+        },
+        {
+            "internal_code": "MXF-CIR-01",
+            "names": {
+                "es": "Cirugía ortognática bimaxilar (Le Fort I + OSBR)",
+                "en": "Bimaxillary orthognathic surgery (Le Fort I + BSSO)",
+            },
+            "treatment_scope": "global_mouth",
+            "default_price": Decimal("9500.00"),
+            "default_duration_minutes": 300,
+            "vat_type": "exempt",
+            "pricing_strategy": "flat",
+            "odontogram_treatment_type": "osteotomy_lefort1",
+            # One act and a year of follow-up. The reviews are sessions rather
+            # than separate lines because they are included: only the first
+            # carries money, and the item is not finished until the last one
+            # is, which is what keeps the plan open for the year it lasts.
+            "sessions": [
+                {
+                    "labels": {"es": "Acto quirúrgico", "en": "Surgery"},
+                    "default_price": Decimal("9500.00"),
+                },
+                {
+                    "labels": {
+                        "es": "Control postoperatorio inmediato",
+                        "en": "Immediate post-op check",
+                    },
+                    "default_price": Decimal("0.00"),
+                },
+                {
+                    "labels": {"es": "Revisión 1.ª semana", "en": "Week 1 review"},
+                    "default_price": Decimal("0.00"),
+                },
+                {
+                    "labels": {"es": "Revisión 2.ª semana", "en": "Week 2 review"},
+                    "default_price": Decimal("0.00"),
+                },
+                {
+                    "labels": {"es": "Revisión al mes", "en": "One-month review"},
+                    "default_price": Decimal("0.00"),
+                },
+                {
+                    "labels": {"es": "Revisión a los 3 meses", "en": "Three-month review"},
+                    "default_price": Decimal("0.00"),
+                },
+                {
+                    "labels": {"es": "Revisión a los 6 meses", "en": "Six-month review"},
+                    "default_price": Decimal("0.00"),
+                },
+                {
+                    "labels": {"es": "Alta quirúrgica al año", "en": "Discharge at one year"},
+                    "default_price": Decimal("0.00"),
+                },
+            ],
+        },
+        {
+            "internal_code": "MXF-GENIO-01",
+            "names": {
+                "es": "Mentoplastia (genioplastia de deslizamiento)",
+                "en": "Sliding genioplasty",
+            },
+            "treatment_scope": "global_mouth",
+            "default_price": Decimal("1800.00"),
+            "default_duration_minutes": 90,
+            "vat_type": "exempt",
+            "pricing_strategy": "flat",
+            "odontogram_treatment_type": "genioplasty",
+        },
+        {
+            "internal_code": "MXF-OSTEO-01",
+            "names": {
+                "es": "Retirada de material de osteosíntesis",
+                "en": "Osteosynthesis hardware removal",
+            },
+            "treatment_scope": "global_mouth",
+            "default_price": Decimal("1200.00"),
+            "default_duration_minutes": 60,
+            "vat_type": "exempt",
+            "pricing_strategy": "flat",
+            "odontogram_treatment_type": "osteosynthesis_removal",
+        },
     ],
     # ---------- Ortodoncia ----------
     "ortodoncia": [
@@ -2053,7 +2206,10 @@ async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
             treatment_data = dict(treatment_raw)
 
             odontogram_type = treatment_data.pop("odontogram_treatment_type", None)
-            viz_rules = treatment_data.pop("visualization_rules", None)
+            # Both columns are JSONB containers, so an absent key means "empty",
+            # never None — an item that draws nothing still has a list of no
+            # rules, and the mapping below is written with that list.
+            viz_rules = treatment_data.pop("visualization_rules", None) or []
             viz_config = treatment_data.pop("visualization_config", None) or {}
             vat_type_key = treatment_data.pop("vat_type", "exempt")
             vat_type_id = vat_type_map.get(vat_type_key, vat_type_map.get("exempt"))
@@ -2088,7 +2244,14 @@ async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
             db.add(item)
             await db.flush()
 
-            if odontogram_type and viz_rules:
+            # A declared type with no drawing rules is a legitimate pair, not an
+            # incomplete one: skeletal and process types (an osteotomy, a
+            # consultation, a radiograph) act on the face or on the visit and
+            # deliberately draw nothing on a tooth chart — see
+            # `odontogram/constants.py`. Requiring rules here left those items
+            # with no mapping at all, so `_resolve_clinical_type` fell back to
+            # `procedure` and a Le Fort I was filed as a generic act.
+            if odontogram_type:
                 mapping = TreatmentOdontogramMapping(
                     clinic_id=clinic_id,
                     catalog_item_id=item.id,

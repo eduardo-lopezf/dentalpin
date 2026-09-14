@@ -179,6 +179,68 @@ const isLocked = computed(() => {
 
 const effectiveReadonly = computed(() => props.readonly || isLocked.value)
 
+/**
+ * A tooth was clicked on a chart this view has frozen.
+ *
+ * The locked banner sits at the top of the page and the odontogram is a
+ * scroll below it, so the first thing a user does on a plan in progress is
+ * click a tooth and watch nothing happen. The chart cannot explain itself —
+ * it is handed `view-only` and never learns why — so the answer is composed
+ * here, where the plan's status and the caller's rights are known.
+ *
+ * The branches follow the buttons that are actually on screen: the toast
+ * never offers `Reabrir` unless the header is offering it too, because a
+ * toast that proposes an action the user cannot take is worse than silence.
+ */
+function handleReadonlyChartClick() {
+  // A stable id merges repeat clicks into the one toast instead of stacking
+  // a column of them (Nuxt UI `mergeDuplicate`).
+  const id = 'plan-chart-locked'
+
+  if (props.readonly) {
+    toast.add({
+      id,
+      title: t('clinical.plans.chartLocked.title'),
+      description: t('clinical.plans.chartLocked.noPermission'),
+      color: 'neutral',
+      icon: 'i-lucide-lock'
+    })
+    return
+  }
+
+  if (planPermissions.value.can_reopen) {
+    toast.add({
+      id,
+      title: t('clinical.plans.chartLocked.title'),
+      description: t('clinical.plans.chartLocked.reopenToEdit'),
+      color: 'warning',
+      icon: 'i-lucide-lock',
+      actions: [{
+        label: t('treatmentPlans.actions.reopen'),
+        icon: 'i-lucide-undo-2',
+        color: 'warning',
+        variant: 'soft',
+        // Opens the same confirmation modal as the header button. Reopening
+        // throws away a budget the patient may have seen, so the toast is a
+        // shortcut to the decision, never the decision itself.
+        onClick: () => { showReopenModal.value = true }
+      }]
+    })
+    return
+  }
+
+  const inProgress = props.plan.status === 'pending' || props.plan.status === 'active'
+  toast.add({
+    id,
+    title: t('clinical.plans.chartLocked.title'),
+    description: inProgress
+      ? t('clinical.plans.chartLocked.reopenNotYours')
+      : t('clinical.plans.chartLocked.closed'),
+    color: 'neutral',
+    icon: 'i-lucide-lock'
+  })
+}
+
 // ============================================================================
 // ============================================================================
 // Change log
@@ -856,6 +918,7 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
           @tooth-hover="hoveredToothNumber = $event"
           @global-hover="hoveredGlobalTreatmentId = $event"
           @treatments-changed="emit('updated')"
+          @readonly-interaction="handleReadonlyChartClick"
         />
       </UCard>
 

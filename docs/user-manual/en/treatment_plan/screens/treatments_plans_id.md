@@ -39,7 +39,7 @@ related_paths:
   - backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue
   - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: e372dd4
+last_verified_commit: 1091f98
 ---
 
 # Treatment plan detail
@@ -239,3 +239,11 @@ added to a plan, one session is created per step.
   Completed items remain as history.
 - **Cannot complete an item.** Your role lacks
   `treatment_plan.plans.write`.
+- **Clicking a tooth does nothing.** The plan is under way: the
+  odontogram stays **read-only** while a live budget is attached. The
+  click now raises a notice carrying a **Reopen** button, which sends
+  the plan back to draft and cancels that budget — the same button as
+  the header, and it asks for confirmation first. When the notice
+  offers no button it is because reopening belongs to an administrator
+  or a professional assigned to the case, or because the plan is
+  already completed or closed.

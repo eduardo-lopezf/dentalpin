@@ -12,6 +12,9 @@ import { expect, test } from './_fixtures'
  * See docs/technical/touch-adaptation.md and ADR 0022.
  */
 
+/** What one hydration is allowed to cost on a cold module graph. */
+const HYDRATION_TIMEOUT = 60_000
+
 /**
  * Block until client-side device detection has run.
  *
@@ -19,9 +22,18 @@ import { expect, test } from './_fixtures'
  * the dev server hydrates this app in well over the default 5 s
  * expect timeout on a cold module graph. `data-ua` is written once, from
  * `useDevice`'s mount hook, so its presence is the hydration signal.
+ *
+ * The wait also buys the deadline it is allowed to spend. Raising only the
+ * selector timeout left this wait permitted 60 s inside a suite whose
+ * per-test budget is 30 s, so a slow route killed the test before its
+ * assertion ever ran — and it did, intermittently, for exactly the five
+ * tests that had not raised their own budget, while the five on 180 s never
+ * flaked. Paying for it here rather than per test is what keeps the next
+ * test anyone adds from inheriting the same trap.
  */
 async function awaitDetection(page: Page): Promise<void> {
-  await page.waitForSelector('html[data-ua]', { state: 'attached', timeout: 60_000 })
+  test.setTimeout(test.info().timeout + HYDRATION_TIMEOUT)
+  await page.waitForSelector('html[data-ua]', { state: 'attached', timeout: HYDRATION_TIMEOUT })
 }
 
 /**
@@ -276,6 +288,47 @@ test.describe('touch adaptation', () => {
     expect(
       await countUndersizedTargets(page),
       'undersized targets in the plan builder'
+    ).toEqual([])
+  })
+
+  /**
+   * Searching the panel, which is the other half of how a plan gets built.
+   *
+   * Two groups come back from one box — the clinic's plan templates and the
+   * loose catalog — and on a tablet both have to be tappable, which the 44 px
+   * rule covers, *and* visible, which it does not: the panel opens to show a
+   * list, and autofocus raises the on-screen keyboard straight over it. The
+   * field is focused on a mouse and left alone under a finger, so this is the
+   * only project where the assertion below can fail.
+   */
+  test('searching returns templates and treatments without raising the keyboard', async ({
+    loggedIn: page
+  }) => {
+    test.setTimeout(180_000)
+
+    await page.goto('/treatments/plans/new', {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+    await expect(page.locator('main')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Boca completa' }).click()
+    await expect(page.getByText('Usados recientemente')).toBeVisible({ timeout: 30_000 })
+
+    // The panel opened on a list; the keyboard must not be covering it.
+    const search = page.getByPlaceholder('Buscar un tratamiento o una plantilla')
+    await expect(search).not.toBeFocused()
+
+    // One query, both groups: a template to start from and the loose lines.
+    await search.fill('endodoncia')
+    await expect(page.getByText('Empezar el plan')).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText('Tratamientos sueltos')).toBeVisible()
+    expect(await page.locator('.treatment-row').count()).toBeGreaterThan(1)
+
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets in the treatment search'
     ).toEqual([])
   })
 

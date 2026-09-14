@@ -1,6 +1,56 @@
 # Changelog — odontogram module
 
 ## Unreleased
+
+- feat(odontogram): `OdontogramChart` avisa hacia arriba cuando un clic cae
+  sobre un diente estando en `view-only`. Hasta ahora se tragaba el clic en
+  silencio, que es exactamente lo que parece un odontograma roto: la chapa
+  dice «solo lectura» pero no qué lo descongelaría.
+
+  El gráfico no puede decirlo — recibe el modo de quien lo monta y nunca se
+  entera del motivo — así que reporta el rechazo con `readonlyInteraction`
+  y quien lo monta redacta la explicación. La vista de plan lo usa para
+  mandar al usuario a **Reabrir**.
+
+  El caso `isViewingHistory` se excluye a propósito: ahí la línea de tiempo
+  está visiblemente sujetando el gráfico en el pasado y arrastrarla de vuelta
+  a hoy es toda la pista que hace falta.
+
+  **Deuda que queda anotada, no tocada:** `ToothDualView` declara un emit
+  `surfaceClick` que no emite nunca, así que la cadena hasta
+  `handleSurfaceClick` en `OdontogramChart` está muerta — todo clic sobre una
+  superficie sube como `toothClick` desde el envoltorio del diente.
+
+- fix(odontogram): el botón **Deshacer** del aviso de «tratamiento añadido»
+  no hacía nada. La acción se declaraba con `click:` en lugar de `onClick:`;
+  Nuxt UI monta la acción de un toast volcando el objeto sobre un `UButton`,
+  que declara `onClick` como *prop*, así que una clave `click` aterrizaba
+  como atributo suelto y no se llamaba nunca.
+
+  Sólo estaba mal la atadura: `handleUndo` siempre funcionó por Ctrl+Z, que
+  es la otra puerta y la que tapaba el fallo. Verificado en la ficha:
+  aplicar una obturación y pulsar *Deshacer* borra el tratamiento y deja el
+  odontograma como estaba.
+
+- chore(odontogram): el gráfico se marca `data-dense`. Una arcada es
+  anatomía, no una barra de botones: dieciséis piezas una al lado de otra,
+  así que el ancho de celda es lo que la arcada dé de sí —24 px en una
+  tablet en vertical— y llevar cada una a 44 px exigiría 704 px y rompería
+  la arcada que está dibujando.
+
+  Es declaración pura, y conviene decirlo: las celdas son `div` y `path`
+  SVG, nunca botones, así que la regla de 44 px nunca las alcanzó y el
+  atributo no mueve un píxel. Medido a 767 px, el grid contiene **cero**
+  controles que la regla pueda ver. Lo que aporta es el registro honesto —
+  la superficie queda en la tabla de exclusiones de
+  `docs/technical/touch-adaptation.md` con su número escrito.
+
+  El emparejamiento que el marcador exige ya existía: tocar cualquier punto
+  del diente abre el panel de tratamientos, cuyas filas sí miden 44 px, así
+  que el objetivo pequeño es una puerta y no el final de la interacción.
+  Queda pendiente lo que el marcador declara: acertar una pieza concreta con
+  el dedo en una tablet en vertical sigue siendo difícil.
+
 - fix(odontograma): en tablet vertical se perdían los cordales. La escalera
   de `zoom` se quedaba en 0.5, y a ese paso las arcadas siguen pidiendo
   ~491 px; dentro de la ficha del plan el contenedor mide 472, así que

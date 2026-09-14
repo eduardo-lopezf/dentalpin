@@ -92,12 +92,25 @@ Surfaces currently opted out:
 | `AppointmentDailyView` grid | same |
 | `TodayTimelineStrip` | chip width encodes appointment duration |
 | `PerioArchBlock` table | cells are probing sites, 6 per tooth |
+| `OdontogramChart` grid | a cell is one of sixteen teeth across an arch |
+| `PlanDraftChart` grid | same chart, drawn empty for the plan builder |
 
 **`data-dense` is a debt marker, not a solution.** It says "this surface
 needs a purpose-built touch interaction", and the E2E audit deliberately
 skips what is inside it — so opting out buys you no coverage. Use it when
 the alternative would corrupt the data the surface is drawing, and pair
 it with a plan.
+
+**The odontogram is the case where the marker is pure declaration.** Its
+cells are `div`s and SVG `path`s, never buttons, so the 44 px rule was
+never reaching them and the attribute changes not one pixel: measured at
+767 px the grid holds zero controls the rule can see and a tooth is
+24x64 px. What it buys is the honest record — the surface is dense, the
+table above now says so, and the number to beat is written down. The
+pairing it requires already exists: a tap anywhere on the tooth opens the
+treatment panel, whose rows are 44 px, so the small target is a doorway
+and not the whole interaction. What is still owed is the arch itself
+being hard to hit precisely with a finger on an upright tablet.
 
 ## Density
 
@@ -234,6 +247,17 @@ The same rule picks the default view: portrait opens on the day, because
 a seven-day grid needs 800 px and an upright tablet has less, so the week
 would be nothing but sideways scrolling. Once the user picks a view that
 choice stands, and rotating never overrides it.
+
+**A default view is only worth choosing if it fits.** That reasoning was
+right about the week and never checked against the day, which asked for a
+flat 200 px per professional: five professionals wanted 1080 px against
+the ~620 an upright tablet has, so the view chosen to avoid sideways
+scrolling overflowed three times worse than the one it replaced. A grid
+whose width scales with the clinic — one column per professional, per
+cabinet, per chair — has no fixed width to compare a viewport against, so
+the floor has to be the narrowest a column is still readable at, not the
+width it would like on a desk. Landscape has 1168 px and both views fit,
+which is why only a rotated tablet ever showed it.
 
 ## Where it stands
 

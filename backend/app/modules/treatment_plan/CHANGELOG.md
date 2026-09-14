@@ -2,6 +2,59 @@
 
 ## Unreleased
 
+- feat(treatment_plan): hacer clic en el odontograma de un plan en curso ya
+  no es un silencio. El cartel de «Plan bloqueado» vive arriba del todo y el
+  odontograma queda un scroll por debajo, así que lo primero que hace
+  cualquiera es pinchar un diente y ver que no pasa nada.
+
+  `PlanDetailView` escucha el nuevo `readonlyInteraction` del gráfico y
+  compone el aviso donde se saben las dos cosas que hacen falta: el estado
+  del plan y los derechos de quien mira. Las ramas siguen a los botones que
+  de verdad están en pantalla — el aviso no ofrece **Reabrir** si la cabecera
+  no lo está ofreciendo, porque proponer una acción que el usuario no puede
+  ejecutar es peor que el silencio:
+
+  - con `can_reopen` (plan en `pending`/`active` y quien mira es
+    administrador o profesional asignado): el aviso lleva **Reabrir**, que
+    abre el mismo modal de confirmación que la cabecera. Reabrir tira un
+    presupuesto que el paciente puede haber visto, así que el aviso es un
+    atajo a la decisión, nunca la decisión;
+  - plan en curso sin esos derechos: se dice de quién es reabrirlo;
+  - plan completado o cerrado: se dice que ya no admite cambios;
+  - sin `odontogram.write` (el `readonly` que baja de la ficha): se dice que
+    falta el permiso, porque ahí reabrir no arreglaría nada.
+
+  El aviso lleva un `id` fijo, así que pinchar tres dientes seguidos
+  actualiza un único toast en vez de apilar una columna.
+
+- chore(treatment_plan): `PlanDraftChart` se marca `data-dense`, por lo mismo
+  que `OdontogramChart`, cuyo `ToothQuadrant` comparte.
+
+- fix(treatment_plan): el buscador de tratamientos y plantillas levantaba el
+  teclado nada más abrirse en tablet. El panel abre a propósito sobre una
+  lista —los tratamientos que la clínica usó últimamente, que suelen ser la
+  respuesta— y el `autofocus` la tapaba: en una tablet en horizontal, cuatro
+  de las ocho filas quedaban detrás del teclado. Ahora el campo se enfoca con
+  ratón y se deja en paz con el dedo (`useDevice().isTouch`), que es la regla
+  del repo: decide la capacidad, no el ancho de la ventana.
+
+  Auditado a 767×1024 con puntero grueso: ningún control por debajo de 44 px
+  ni en el panel ni en la página, sin desbordes horizontales, y tocar un
+  diente, una fila reciente o un resultado de búsqueda funciona. El selector
+  de plantillas del detalle de plan pasa igual (tarjetas de 232×97–132 px).
+
+- fix(treatment_plan): añadir una sesión a mano devolvía 500 y no guardaba
+  nada. `add_session_manual` agregaba la fila a la colección y devolvía la
+  partida **sin hacer flush**; `id` es un `default=uuid4` de Python, así que
+  llegaba a `None` al serializador y Pydantic rechazaba la respuesta — con lo
+  que la fila se revertía. El endpoint no había funcionado nunca: un
+  tratamiento largo solo podía tener las sesiones que trajera su plantilla de
+  catálogo, y no había forma de añadirle una revisión después.
+
+  Encontrado al reconstruir el acto quirúrgico del plan de Juan Pérez, que
+  lleva ocho sesiones de seguimiento.
+
+
 - feat(treatment_plan): **el alta de plan se dibuja primero y se firma
   después.** La pantalla abre en un odontograma en blanco; tocas una pieza,
   dices qué necesita, y solo cuando el plan ya está en pantalla pregunta de

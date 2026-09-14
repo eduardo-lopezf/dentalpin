@@ -54,6 +54,15 @@ const emit = defineEmits<{
   globalHover: [treatmentId: string | null]
   /** Arch currently under hover (for painting the arch halo). */
   archHover: [arch: 'upper' | 'lower' | null]
+  /**
+   * A click landed on a tooth while the chart was in `view-only`.
+   *
+   * The chart refuses the click but cannot say why: it is handed
+   * `view-only` by whoever owns it, and the reason lives there — a plan
+   * locked by a budget in progress, a ficha opened by someone without
+   * write rights. So it reports the refusal and the owner explains it.
+   */
+  readonlyInteraction: [toothNumber: number]
 }>()
 
 const { t } = useI18n()
@@ -360,7 +369,21 @@ function handleSurfaceClick(toothNumber: number, surface: Surface) {
 }
 
 function handleToothClick(toothNumber: number) {
-  if (isReadonly.value || !isClickToApplyMode.value) return
+  // A read-only chart used to swallow the click in silence, which reads as a
+  // broken odontogram: the "solo lectura" badge says the chart is frozen but
+  // not what would thaw it. Report it upward instead of guessing — the answer
+  // belongs to whoever set the mode.
+  //
+  // `isViewingHistory` is deliberately not reported: the timeline slider is
+  // visibly holding the chart in the past and dragging it back to today is
+  // the whole affordance, so there is nothing to explain.
+  if (isReadonly.value) {
+    if (props.mode === 'view-only' && !isViewingHistory.value) {
+      emit('readonlyInteraction', toothNumber)
+    }
+    return
+  }
+  if (!isClickToApplyMode.value) return
 
   if (isMultiToothMode.value) {
     handleMultiToothClick(toothNumber)
@@ -548,7 +571,12 @@ async function applyTreatment(toothNumber: number, surfaces?: Surface[]) {
     title: `${t(`odontogram.treatments.types.${treatment.clinical_type}`, treatment.clinical_type)} - ${t('odontogram.tooth')} ${toothNumber}`,
     description: t('odontogram.treatments.treatmentAdded'),
     color: 'success',
-    actions: [{ label: t('common.undo'), click: handleUndo }]
+    // `onClick`, not `click`: Nuxt UI renders a toast action by spreading
+    // the object onto a `UButton`, which declares `onClick` as a prop. A
+    // `click` key lands as a plain attribute and is never called, so this
+    // button did nothing at all. Ctrl+Z always worked — which is why the
+    // undo path itself is fine and only the binding was wrong.
+    actions: [{ label: t('common.undo'), onClick: handleUndo }]
   })
 
   emit('treatmentAdd', treatment)
@@ -866,7 +894,16 @@ defineExpose({
       class="flex flex-col gap-4"
     >
       <div class="odontogram-wrapper">
+        <!-- data-dense: an arch is anatomy, not a toolbar. Sixteen teeth
+             sit side by side, so a cell's width is whatever the arch
+             divides into — 24 px on an upright tablet — and growing each
+             to 44 px would need 704 px and break the arch it is drawing.
+             The pairing the marker requires is real and already here: a
+             tap anywhere on the tooth opens a panel whose own rows are
+             44 px, so the small target leads somewhere finger-sized
+             rather than being the end of the interaction. -->
         <div
+          data-dense
           class="odontogram-grid bg-surface rounded-lg border border-default p-4"
           :class="{ 'cursor-crosshair': isClickToApplyMode }"
         >

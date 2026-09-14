@@ -1,6 +1,24 @@
 # Changelog — frontend
 
 ## Unreleased
+- fix(tests): `tablet-touch.spec.ts` parpadeaba en horizontal. La espera de
+  hidratación (`awaitDetection`) tenía permitidos 60 s de selector dentro de
+  un suite cuyo presupuesto por test es de 30 s, así que una ruta lenta
+  mataba el test antes de que su aserción llegara a ejecutarse.
+
+  El reparto no era casual: los cinco tests que fallaban de forma
+  intermitente eran exactamente los cinco que seguían con el presupuesto por
+  defecto de 30 s; los cinco que ya llevaban `test.setTimeout(180_000)` no
+  parpadearon nunca. Medido, «every control outside a dense surface meets the
+  44 px minimum» tardaba 25,8 s y 24,0 s contra ese límite de 30 s — un
+  margen de cuatro segundos, es decir, una compilación de ruta lenta de
+  distancia de morir.
+
+  El arreglo va dentro de `awaitDetection`, que ahora compra el plazo que se
+  le permite gastar (`test.setTimeout(test.info().timeout + HYDRATION_TIMEOUT)`).
+  Pagarlo ahí y no test a test es lo que evita que el siguiente test que
+  alguien añada herede la misma trampa.
+
 - feat(planes): el alta de plan es ahora un odontograma en blanco donde se
   dibuja el tratamiento, y el paciente se pregunta al final. Motivos y
   detalle en el CHANGELOG de `treatment_plan`.

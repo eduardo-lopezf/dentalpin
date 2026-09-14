@@ -39,7 +39,7 @@ related_paths:
   - backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue
   - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: e372dd4
+last_verified_commit: 1091f98
 ---
 
 # Detalle del plan de tratamiento
@@ -242,3 +242,11 @@ añadirlos al plan se crea automáticamente una sesión por cada paso.
   Los ítems completados quedan como histórico.
 - **No me deja completar un ítem.** Tu rol no tiene
   `treatment_plan.plans.write`.
+- **Hago clic en un diente y no pasa nada.** El plan está en curso: el
+  odontograma se queda en **solo lectura** mientras haya un presupuesto
+  vivo. Al hacer clic sale un aviso con el botón **Reabrir**, que
+  devuelve el plan a borrador cancelando ese presupuesto — el mismo
+  botón de la cabecera, y pide confirmación antes de nada. Si el aviso
+  no ofrece ese botón es porque reabrir es cosa de un administrador o de
+  un profesional asignado al caso, o porque el plan ya está completado o
+  cerrado.

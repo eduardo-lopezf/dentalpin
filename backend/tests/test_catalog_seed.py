@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.auth.models import Clinic
 from app.modules.catalog.models import TreatmentCatalogItem
@@ -273,3 +274,80 @@ async def test_phase_splits_a_category_that_mixes_stages(
     # Urgency cuts across categories.
     assert await phase_of("SURG-EXT-SIMPLE") == "urgencia"
     assert await phase_of("PERIO-MAINT") == "mantenimiento"
+
+ORTHOGNATHIC_CODES = {
+    "MXF-CONS-01",
+    "MXF-EST-01",
+    "MXF-PREAN-01",
+    "MXF-VSP-01",
+    "MXF-CIR-01",
+    "MXF-GENIO-01",
+    "MXF-OSTEO-01",
+}
+
+
+@pytest.mark.asyncio
+async def test_seed_creates_the_orthognathic_pathway(
+    db_session: AsyncSession, seeded_clinic: Clinic
+) -> None:
+    """The maxillofacial codes must survive a reset-and-reseed.
+
+    They were built by hand in a clinic and lived only in that database, so
+    the first `reset-db` + `seed-demo` took the whole orthognathic pathway
+    with it — and with it every plan that referenced those codes.
+    """
+    rows = await db_session.execute(
+        select(TreatmentCatalogItem.internal_code).where(
+            TreatmentCatalogItem.clinic_id == seeded_clinic.id,
+            TreatmentCatalogItem.internal_code.in_(ORTHOGNATHIC_CODES),
+        )
+    )
+    assert set(rows.scalars().all()) == ORTHOGNATHIC_CODES
+
+
+@pytest.mark.asyncio
+async def test_orthognathic_items_act_on_the_mouth_not_on_a_tooth(
+    db_session: AsyncSession, seeded_clinic: Clinic
+) -> None:
+    """A Le Fort I is not done to a tooth, and the chart must not try to draw it."""
+    rows = await db_session.execute(
+        select(TreatmentCatalogItem)
+        .where(
+            TreatmentCatalogItem.clinic_id == seeded_clinic.id,
+            TreatmentCatalogItem.internal_code.in_(ORTHOGNATHIC_CODES),
+        )
+        .options(selectinload(TreatmentCatalogItem.odontogram_mapping))
+    )
+    for item in rows.scalars():
+        assert item.treatment_scope == "global_mouth", item.internal_code
+        assert item.odontogram_mapping is not None, item.internal_code
+        assert item.odontogram_mapping.visualization_rules == [], item.internal_code
+
+
+@pytest.mark.asyncio
+async def test_the_surgical_act_carries_its_year_of_follow_up(
+    db_session: AsyncSession, seeded_clinic: Clinic
+) -> None:
+    """Sessions belong to the catalog item, not to whoever builds the plan.
+
+    Without them the eight reviews had to be added by hand, one endpoint call
+    at a time — and that endpoint was broken, so in practice they could not be
+    added at all. Only the first session carries money; the reviews are
+    included, and the item stays open until the last one is done.
+    """
+    item = (
+        await db_session.execute(
+            select(TreatmentCatalogItem)
+            .where(
+                TreatmentCatalogItem.clinic_id == seeded_clinic.id,
+                TreatmentCatalogItem.internal_code == "MXF-CIR-01",
+            )
+            .options(selectinload(TreatmentCatalogItem.sessions))
+        )
+    ).scalar_one()
+
+    sessions = sorted(item.sessions, key=lambda s: s.sequence)
+    assert len(sessions) == 8
+    assert sum(s.default_price for s in sessions) == item.default_price
+    assert sessions[0].default_price == item.default_price
+    assert all(s.default_price == 0 for s in sessions[1:])

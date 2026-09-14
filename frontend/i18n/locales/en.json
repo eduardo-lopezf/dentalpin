@@ -803,6 +803,13 @@
         "subtitle": "Quote {number} has been issued. To edit treatments, use Reopen (if pending) or Renegotiate the quote.",
         "viewBudget": "View quote"
       },
+      "chartLocked": {
+        "title": "Odontogram locked",
+        "reopenToEdit": "This plan is under way. Reopen it to draw treatments on the odontogram again.",
+        "reopenNotYours": "This plan is under way. To edit the odontogram it has to be reopened by an administrator or a professional assigned to the case.",
+        "closed": "This plan no longer takes changes. Reactivate it, or create a new one to plan more treatments.",
+        "noPermission": "You do not have permission to edit the odontogram."
+      },
       "confirms": {
         "removeItem": "Remove this treatment from the plan? It also disappears from the odontogram and from its budget line."
       },

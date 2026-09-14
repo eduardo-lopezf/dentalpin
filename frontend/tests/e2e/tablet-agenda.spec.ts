@@ -143,6 +143,44 @@ test.describe('agenda by touch', () => {
     await expect(page.getByText(/Mínimo/)).toHaveCount(0)
   })
 
+  test('the day grid fits across an upright tablet instead of running off it', async ({ loggedIn: page }) => {
+    // The companion to the test above. Portrait defaults to the day view
+    // *because* a seven-day week does not fit across a tablet held
+    // upright — but the day grid asked for a flat 200 px per
+    // professional, so a five-professional clinic demanded 1080 px
+    // against the ~620 px it actually had and nearly half the day sat
+    // off the right edge. Landscape has 1168 px and hid the bug.
+    await page.setViewportSize({ width: 720, height: 1152 })
+    await openAgenda(page)
+
+    await expect(page.getByRole('tab', { name: 'Día', exact: true }))
+      .toHaveAttribute('aria-selected', 'true')
+
+    const geometry = await page.evaluate(() => {
+      const grid = document.querySelector('[data-dense]')!
+      const scroller = grid.closest('.overflow-auto')!
+      // The header row: one time gutter plus one cell per professional.
+      const header = grid.firstElementChild!
+      const columns = [...header.children].slice(1)
+      return {
+        available: scroller.clientWidth,
+        needed: scroller.scrollWidth,
+        columnWidths: columns.map(c => Math.round(c.getBoundingClientRect().width))
+      }
+    })
+
+    // Nothing off the right edge.
+    expect(geometry.needed, 'the day grid must fit the width an upright tablet has')
+      .toBeLessThanOrEqual(geometry.available)
+
+    // ...and not by shrinking the columns into illegibility, which is the
+    // other way this assertion could be satisfied. A column still has to
+    // hold a card's time and a first name.
+    expect(geometry.columnWidths.length).toBeGreaterThan(0)
+    expect(Math.min(...geometry.columnWidths), 'professional columns must stay readable')
+      .toBeGreaterThanOrEqual(100)
+  })
+
   test('tapping an empty slot opens the create modal', async ({ loggedIn: page }) => {
     await openAgenda(page)
 

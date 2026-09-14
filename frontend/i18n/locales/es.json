@@ -803,6 +803,13 @@
         "subtitle": "Presupuesto {number} emitido. Para editar tratamientos, usa Reabrir (si está pendiente) o Renegociar el presupuesto.",
         "viewBudget": "Ver presupuesto"
       },
+      "chartLocked": {
+        "title": "Odontograma bloqueado",
+        "reopenToEdit": "El plan está en curso. Reábrelo para volver a dibujar tratamientos en el odontograma.",
+        "reopenNotYours": "El plan está en curso. Para modificar el odontograma tiene que reabrirlo un administrador o un profesional asignado al caso.",
+        "closed": "Este plan ya no admite cambios. Reactívalo o crea uno nuevo para planificar más tratamientos.",
+        "noPermission": "No tienes permiso para modificar el odontograma."
+      },
       "confirms": {
         "removeItem": "¿Quitar este tratamiento del plan? También desaparece del odontograma y de la línea de presupuesto asociada."
       },

@@ -1,6 +1,30 @@
 # Changelog — catalog module
 
 ## Unreleased
+
+- feat(catalog): la vía ortognática entra en la semilla — `MXF-CONS-01`,
+  `MXF-EST-01`, `MXF-PREAN-01`, `MXF-VSP-01`, `MXF-CIR-01`, `MXF-GENIO-01` y
+  `MXF-OSTEO-01`. Se habían construido a mano en una clínica y vivían solo en
+  esa base de datos, así que el primer `reset-db` + `seed-demo` se llevó la vía
+  entera y con ella todo plan que la referenciara.
+
+  El acto quirúrgico lleva sus **ocho sesiones** en el propio artículo: acto y
+  siete revisiones hasta el alta al año. Solo la primera tiene importe; las
+  revisiones van incluidas y mantienen la partida abierta el año que dura el
+  seguimiento. Antes había que añadirlas a mano una por una.
+
+- fix(catalog): el sembrador no creaba mapeo de odontograma cuando el artículo
+  declaraba tipo clínico pero ninguna regla de dibujo. Esa pareja es legítima,
+  no incompleta: los tipos esqueléticos y de proceso —una osteotomía, una
+  consulta, una radiografía— actúan sobre la cara o sobre la visita y
+  deliberadamente no dibujan nada en un odontograma. Sin mapeo,
+  `_resolve_clinical_type` caía a `procedure` y un Le Fort I quedaba archivado
+  como acto genérico. De los 136 artículos de la semilla, los 7 afectados son
+  justo los nuevos.
+
+  De paso, `visualization_rules` ausente se escribe como lista vacía y no como
+  `None`: la columna es un contenedor JSONB y declara `Mapped[list]`.
+
 - feat(catálogo): nuevo `GET /items/recent`, tratamientos por **cuándo** se
   usaron por última vez. Es el otro eje de `/items/popular`, y los dos
   discrepan justo donde importa: una clínica que dejó las amalgamas el año

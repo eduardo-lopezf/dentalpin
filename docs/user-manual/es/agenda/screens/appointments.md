@@ -60,6 +60,11 @@ flujo (programada → confirmada → en sala → completada → cobrada).
   no cabe a lo ancho), el kanban reparte sus columnas en dos filas y la
   cabecera pasa a dos líneas. Si eliges tú una vista, girar la tablet ya
   no te la cambia. Girar nunca cambia cómo funciona un gesto.
+- **En vertical, la vista de Día cabe entera a lo ancho** — las columnas
+  se estrechan para repartirse el ancho que hay, así que tienes el día
+  completo delante sin arrastrar en horizontal. Si la clínica tiene
+  tantos profesionales que las columnas dejarían de leerse, entonces sí
+  se arrastra; poner la tablet en horizontal siempre les da más sitio.
 - **Navegación de fechas en la cabecera** — los botones anterior / hoy /
   siguiente y la fecha viven junto al título, y avanzan de semana en
   semana o de día en día según la vista activa.

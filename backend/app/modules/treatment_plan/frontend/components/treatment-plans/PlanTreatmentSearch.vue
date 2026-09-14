@@ -33,6 +33,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
+const { isTouch } = useDevice()
 const api = useApi()
 const { templates, fetchTemplates } = usePlanTemplates()
 const { searchResults, isSearching, search, getItemName, formatPrice } = useTreatmentCatalogSearch()
@@ -182,13 +183,19 @@ function chooseTemplate(template: PlanTemplate) {
           />
         </header>
 
+        <!-- Focused on a mouse, left alone under a finger. Autofocus raises
+             the on-screen keyboard the instant the panel opens, and the
+             panel opens precisely to show the recent list — half of which
+             the keyboard then covers on a tablet held sideways. With a
+             mouse there is no such cost and typing straight away is the
+             point, so the pointer decides, not the viewport. -->
         <UInput
           v-model="query"
           class="w-full"
           icon="i-lucide-search"
           :placeholder="t('clinical.plans.templates.searchPlaceholder')"
           :loading="isSearching"
-          autofocus
+          :autofocus="!isTouch"
         />
 
         <div class="search-body">
