@@ -278,8 +278,17 @@ class TestCoverage:
     # Modules that hold nothing about a patient. Each entry is a
     # decision, not an omission: catalogs, staff schedules, the clinic's
     # own channel settings and report queries hold no patient row.
+    #
+    # `cashbox` is the till, and its own models say so: a movement is
+    # money in or out that is *not* a patient payment, and the three
+    # tables key on `clinics.id` and `users.id` with no `patient_id`
+    # anywhere. The one place patient-derived figures could have landed is
+    # a closing's `snapshot`, and that holds totals by payment method with
+    # their counts — no rows, no identifiers. Patient payments live in
+    # `payments`, which contributes for both modules.
     SILENT_BY_DESIGN = {
         "accounting_export",
+        "cashbox",
         "catalog",
         "professionals",
         "reports",

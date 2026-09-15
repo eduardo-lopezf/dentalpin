@@ -61,7 +61,7 @@ The public budget link is protected by **two factors**:
    `public_auth_method = "none"` for new budgets.
 
 Successful verification issues an **HttpOnly + Secure + SameSite=Strict
-cookie** scoped to `/api/v1/public/budgets/<token>`, signed with a
+cookie** scoped to `/api/v1/budget/public/budgets/<token>`, signed with a
 dedicated secret `BUDGET_PUBLIC_SECRET_KEY` independent of the global
 `SECRET_KEY` used for staff JWTs. TTL: 30 minutes, renewed on every
 authenticated request.

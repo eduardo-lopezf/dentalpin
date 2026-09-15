@@ -20,6 +20,7 @@ from .schemas import (
     CompleteItemRequest,
     CompleteSessionRequest,
     ContactLogRequest,
+    DismissFindingsRequest,
     GenerateBudgetResponse,
     LinkBudgetRequest,
     PipelineRow,
@@ -151,6 +152,30 @@ async def list_treatment_plans(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get(
+    "/treatment-plans/patient/{patient_id}/proposals",
+    response_model=ApiResponse[list[PlanProposal]],
+)
+async def list_patient_proposals(
+    patient_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[PlanProposal]]:
+    """Charted findings for a patient who has no plan yet.
+
+    The sibling of ``/treatment-plans/{plan_id}/proposals``, for the one
+    moment that endpoint cannot serve: the builder, where the plan does not
+    exist until the dentist presses *Crear*. Same findings, same clinical
+    mapping; only the way in is different.
+
+    Declared above the ``/{plan_id}`` routes for the reason given at the top
+    of this file — ``patient`` would otherwise be parsed as a plan id.
+    """
+    proposals = await PlanProposalService.for_patient(db, ctx.clinic_id, patient_id)
+    return ApiResponse(data=[PlanProposal.model_validate(p) for p in proposals])
 
 
 @router.get(
@@ -1114,6 +1139,30 @@ async def list_plan_proposals(
     if proposals is None:
         raise HTTPException(status_code=404, detail="Plan not found")
     return ApiResponse(data=[PlanProposal.model_validate(p) for p in proposals])
+
+
+@router.post(
+    "/treatment-plans/{plan_id}/dismissed-findings",
+    response_model=ApiResponse[dict],
+)
+async def dismiss_plan_findings(
+    plan_id: UUID,
+    data: DismissFindingsRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[dict]:
+    """Record findings this plan does not answer, so it stops proposing them.
+
+    The builder calls this for the seeded lines the dentist deleted. The
+    findings themselves are untouched — the chart keeps showing the caries,
+    and the patient's next plan proposes it again.
+    """
+    dismissed = await PlanProposalService.dismiss(
+        db, ctx.clinic_id, ctx.user_id, plan_id, data.finding_ids
+    )
+    await db.commit()
+    return ApiResponse(data={"dismissed": dismissed})
 
 
 @router.post(

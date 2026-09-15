@@ -3,7 +3,7 @@ module: treatment_plan
 screen: treatments_plans_new
 route: /treatments/plans/new
 related_endpoints:
-  - POST /api/v1/treatment_plan/treatments/plans
+  - POST /api/v1/treatment_plan/treatment-plans
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/catalog-items
   - GET /api/v1/treatment_plan/plan-templates
 related_permissions:

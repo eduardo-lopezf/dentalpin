@@ -29,6 +29,7 @@ import type {
   ApiResponse,
   Patient,
   PlanDraftLine,
+  PlanProposal,
   PlanTemplate,
   Surface,
   Treatment,
@@ -154,6 +155,57 @@ function addTreatment(item: TreatmentCatalogItem) {
 }
 
 /**
+ * Draw what the chart already knows.
+ *
+ * The screen opens blank because it usually has no patient. When it does —
+ * reached from a record — the clinic has normally already charted what is
+ * wrong, and the dentist was left redrawing it tooth by tooth, only to be
+ * told after saving which findings went unplanned. The same mapping that
+ * powers that after-the-fact list (`SUGGESTIONS`, server side) runs here
+ * instead, before anything is written.
+ *
+ * These are ordinary draft lines: editable, deletable, and nothing is
+ * persisted until *Crear*. A finding the catalog cannot answer is skipped
+ * rather than added empty — a line with no treatment is not a proposal, it
+ * is a blank the dentist has to fill in.
+ */
+async function preloadFindings(patientId: string) {
+  // Never over an examination already in progress: the dentist typed those.
+  if (lines.value.length > 0) return
+  try {
+    const response = await api.get<ApiResponse<PlanProposal[]>>(
+      `/api/v1/treatment_plan/treatment-plans/patient/${patientId}/proposals`
+    )
+    for (const proposal of response.data ?? []) {
+      const item = proposal.suggested_catalog_item
+      if (!item) continue
+      const scope = item.treatment_scope ?? 'tooth'
+      const landsOnTooth = ['tooth', 'multi_tooth'].includes(scope)
+      const requiresSurfaces = requiresSurfacesFor(item.id)
+      lines.value.push({
+        id: nextId(),
+        findingId: proposal.finding_id,
+        catalogItemId: item.id,
+        name: itemName(item.names),
+        clinicalType: clinicalTypeFor(item.id),
+        toothNumbers: landsOnTooth && proposal.tooth_number ? [proposal.tooth_number] : [],
+        // The finding's own faces, but only where the treatment is described
+        // by them — the same rule `addTreatment` applies.
+        surfaces: requiresSurfaces && proposal.surfaces?.length ? [...proposal.surfaces] : null,
+        requiresSurfaces,
+        price: item.default_price ?? null,
+        scope,
+        phase: item.default_phase ?? null,
+        notes: null
+      })
+    }
+  } catch {
+    // A clinic without the catalog codes, or no permission to read the
+    // chart. The builder still opens; it just opens empty, as before.
+  }
+}
+
+/**
  * A template expands here rather than on the server, so its lines arrive in
  * the list as editable as any other: the dentist can drop the two that do
  * not apply before anything is written. Per-tooth lines take the tooth the
@@ -181,7 +233,21 @@ function addTemplate(template: PlanTemplate) {
   searchOpen.value = false
 }
 
+/**
+ * Findings whose seeded line the dentist deleted.
+ *
+ * Kept while the plan is still a draft and sent once it exists: deleting a
+ * seeded line is a judgement — *this plan is not for that caries* — and
+ * without recording it the plan's own proposals list offers the finding
+ * straight back, asking the same question twice.
+ */
+const dismissedFindingIds = ref<string[]>([])
+
 function removeLine(id: string) {
+  const line = lines.value.find(x => x.id === id)
+  if (line?.findingId && !dismissedFindingIds.value.includes(line.findingId)) {
+    dismissedFindingIds.value.push(line.findingId)
+  }
   lines.value = lines.value.filter(line => line.id !== id)
   if (pickingLineId.value === id) pickingLineId.value = null
 }
@@ -422,7 +488,12 @@ const professionalOptions = computed(() =>
 )
 
 onMounted(async () => {
-  if (!treatmentCatalog.initialized.value) treatmentCatalog.fetchTreatments()
+  // Kept unawaited for the blank-chart case, which is most of them: the
+  // catalog is only needed once something is drawn. The patient path below
+  // does wait for it, because it reads the catalog to build its lines.
+  const catalogReady = treatmentCatalog.initialized.value
+    ? Promise.resolve()
+    : treatmentCatalog.fetchTreatments()
   await fetchProfessionals()
 
   const currentUserId = auth.user.value?.id
@@ -430,14 +501,22 @@ onMounted(async () => {
     form.value.assigned_professional_id = currentUserId
   }
 
-  // Reached from a patient's record: the patient comes with us, and so does
-  // the title. The chart still leads — the point of this screen is that the
-  // examination is what you type first.
+  // Reached from a patient's record: the patient comes with us, the title
+  // writes itself, and the chart arrives holding what the clinic already
+  // diagnosed. The examination still leads — those lines are a draft to
+  // correct, not a plan to accept.
   const patientId = route.query.patient_id as string | undefined
   if (patientId) {
     try {
       const response = await api.get<ApiResponse<Patient>>(`/api/v1/patients/${patientId}`)
-      if (response.data) selectPatient(response.data)
+      if (response.data) {
+        selectPatient(response.data)
+        // After the catalog: the lines are built from it (chart type, faces,
+        // stage of care), and an empty catalog would draw them all as
+        // untyped fillings with no phase.
+        await catalogReady
+        await preloadFindings(patientId)
+      }
     } catch {
       // A bad id in the URL should not block the plan; the patient step
       // simply starts empty.
@@ -505,6 +584,20 @@ async function handleSubmit() {
         notes: line.notes || null
       }))
     )
+
+    // After the lines, and never allowed to lose the plan: the plan and its
+    // treatments are what the dentist came for, and a dismissal that failed
+    // to record costs one redundant proposal, not the work.
+    if (dismissedFindingIds.value.length > 0) {
+      try {
+        await api.post(
+          `/api/v1/treatment_plan/treatment-plans/${plan.id}/dismissed-findings`,
+          { finding_ids: dismissedFindingIds.value }
+        )
+      } catch {
+        // Nothing to tell the dentist: the plan is correct either way.
+      }
+    }
 
     router.push(`/treatments/plans/${plan.id}`)
   } finally {

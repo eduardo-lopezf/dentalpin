@@ -14,6 +14,9 @@ the documentation contract holds:
   ``docs/user-manual/en/<module>/screens/<slug>.md`` *and*
   ``docs/user-manual/es/<module>/screens/<slug>.md`` with frontmatter
   whose ``route`` field equals the page's route.
+- Every ``/api/v1/<module>/...`` path named in **any** markdown under
+  ``docs/`` is served by some module's router. Catches an ADR or a tech
+  plan that outlives the endpoint it describes.
 - Every screen file's frontmatter ``route`` resolves to a real page,
   ``related_endpoints`` (if present) reference paths that exist on the
   module's router, and ``related_permissions`` (if present) are
@@ -36,6 +39,7 @@ import os
 import re
 import sys
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 
@@ -168,13 +172,19 @@ class ModuleFacts:
     events_emitted: list[str]
     events_consumed: list[str]
     pages: dict[str, Path]  # route -> .vue path
+    settings_routes: dict[str, Path]  # route -> plugin that registers it
     endpoints: list[tuple[str, str]]  # (METHOD, full path including /api/v1/<m>)
     has_frontend: bool
 
 
 HTTP_METHODS = ("get", "post", "put", "patch", "delete")
 ROUTER_DECORATOR_RE = re.compile(
-    r"@router\.(?P<method>get|post|put|patch|delete)\(\s*[\"'](?P<path>[^\"']*)[\"']",
+    # ``@\w*router.`` and not ``@router.``: the budget module declares its
+    # patient-facing endpoints on a second `public_router` that its
+    # `get_router()` composes into the same mount (ADR 0006). Matching the
+    # name literally made every one of those invisible, so a screen that
+    # documented them was told they do not exist.
+    r"@\w*router\.(?P<method>get|post|put|patch|delete)\(\s*[\"'](?P<path>[^\"']*)[\"']",
 )
 # First arg of an event_bus.publish(...) call. Captures the four shapes a
 # module can publish through so the "events.md required" rule below fires
@@ -198,7 +208,10 @@ def _scan_module_endpoints(mod_dir: Path, mount_prefix: str) -> list[tuple[str, 
     endpoints: list[tuple[str, str]] = []
     for py_file in mod_dir.rglob("*.py"):
         text = py_file.read_text(encoding="utf-8", errors="replace")
-        if "@router." not in text:
+        # Cheap skip, and it has to agree with the decorator regex above:
+        # keyed to "@router." it threw away `public_router.py` before the
+        # widened pattern ever saw it, which is a quiet way to undo the fix.
+        if "router." not in text:
             continue
         for match in ROUTER_DECORATOR_RE.finditer(text):
             method = match.group("method").upper()
@@ -247,6 +260,112 @@ def _scan_module_pages(mod_dir: Path) -> dict[str, Path]:
     return out
 
 
+SETTINGS_PAGE_CALL = "registerSettingsPage("
+SETTINGS_PATH_RE = re.compile(r"\bpath:\s*['\"]([^'\"]+)['\"]")
+SETTINGS_CATEGORY_RE = re.compile(r"\bcategory:\s*['\"]([^'\"]+)['\"]")
+
+
+def _scan_settings_pages(mod_dir: Path) -> dict[str, Path]:
+    """Routes a module contributes through the settings registry.
+
+    A module does not have to own a Nuxt page to own a screen: it can call
+    ``registerSettingsPage({path, category})`` from a client plugin, and the
+    host serves it from its own ``settings/[category]/[page].vue``. Those
+    screens are documented like any other and have a real, reachable route,
+    but nothing under ``<module>/frontend/pages/`` corresponds to them — so
+    checking the frontmatter route against pages alone reported every one of
+    them as unmatched.
+
+    Read by scanning forward from each call rather than by matching the whole
+    object literal: the options include an arrow function, and one plugin
+    registers two pages in a row.
+    """
+    out: dict[str, Path] = {}
+    plugins_dir = mod_dir / "frontend" / "plugins"
+    if not plugins_dir.is_dir():
+        return out
+    for plugin in sorted(plugins_dir.rglob("*.ts")):
+        text = plugin.read_text(encoding="utf-8", errors="replace")
+        start = text.find(SETTINGS_PAGE_CALL)
+        while start != -1:
+            window = text[start : start + 1200]
+            path = SETTINGS_PATH_RE.search(window)
+            category = SETTINGS_CATEGORY_RE.search(window)
+            if path and category:
+                out[f"/settings/{category.group(1)}/{path.group(1)}"] = plugin
+            start = text.find(SETTINGS_PAGE_CALL, start + len(SETTINGS_PAGE_CALL))
+    return out
+
+
+@lru_cache(maxsize=1)
+def _all_app_routes() -> frozenset[str]:
+    """Every route the app serves: host pages, module pages, settings screens.
+
+    A module can own a screen without owning a page. `cashbox` is a tab on
+    the host's own `/finanzas`; `periodontogram` is a view inside the
+    `patients` module's `/patients/[id]`. Both are real places a user lands
+    on, and neither is under the documenting module's `pages/`, so matching
+    a frontmatter route against that module alone reported them as broken.
+    """
+    routes: set[str] = set()
+    host_pages = REPO_ROOT / "frontend" / "app" / "pages"
+    if host_pages.is_dir():
+        for vue in host_pages.rglob("*.vue"):
+            routes.add(_page_to_route(vue.relative_to(host_pages)))
+    for mod_dir in sorted(MODULES_ROOT.iterdir()):
+        if mod_dir.is_dir():
+            routes.update(_scan_module_pages(mod_dir))
+            routes.update(_scan_settings_pages(mod_dir))
+    return frozenset(routes)
+
+
+@lru_cache(maxsize=1)
+def _all_app_endpoints() -> frozenset[str]:
+    """Every endpoint the API serves, normalised, whichever module owns it.
+
+    A screen is documented by the module that owns the *screen*, and that is
+    not always the module that owns the data it reads: `billing`'s
+    invoice-from-budget screen fetches the budget, `reports` reads
+    `payments`' own report endpoints. Checking only the documenting module's
+    router called every one of those a broken reference.
+    """
+    out: set[str] = set()
+    for mod_dir in sorted(MODULES_ROOT.iterdir()):
+        if not mod_dir.is_dir():
+            continue
+        prefix = f"/api/v1/{mod_dir.name}"
+        for method, path in _scan_module_endpoints(mod_dir, mount_prefix=prefix):
+            out.add(_normalise_endpoint(method, path))
+    return frozenset(out)
+
+
+@lru_cache(maxsize=1)
+def _all_app_permissions() -> frozenset[str]:
+    """Every permission any module declares, namespaced as `<module>.<perm>`.
+
+    Same reason as the endpoints: a screen can be gated by another module's
+    permission, and `catalog`'s treatments screen genuinely needs
+    `treatment_plan.plans.read` to show a plan link.
+    """
+    out: set[str] = set()
+    for module in discover_modules():
+        for perm in getattr(module, "get_permissions", lambda: [])() or []:
+            out.add(f"{module.name}.{perm}")
+    return frozenset(out)
+
+
+def _route_base(route: str) -> str:
+    """The page a documented route lands on: no query, Nuxt's bracket params.
+
+    The query is dropped rather than checked. `?tab=cashbox` names a tab
+    inside the page, and proving that tab exists means reading the page's
+    component state — brittle, and a wrong tab name is a far smaller error
+    than a route that goes nowhere. The page itself is still verified.
+    """
+    base = route.split("?", 1)[0].rstrip("/") or "/"
+    return re.sub(r"\{(\w+)\}", r"[\1]", base)
+
+
 def _collect_facts(module) -> ModuleFacts:
     name = module.name
     mod_dir = MODULES_ROOT / name
@@ -255,6 +374,7 @@ def _collect_facts(module) -> ModuleFacts:
     events_consumed = sorted(handlers.keys())
     events_emitted = sorted(_scan_module_publishers(mod_dir))
     pages = _scan_module_pages(mod_dir)
+    settings_routes = _scan_settings_pages(mod_dir)
     endpoints = _scan_module_endpoints(mod_dir, mount_prefix=f"/api/v1/{name}")
     has_frontend = (mod_dir / "frontend").is_dir()
     return ModuleFacts(
@@ -263,6 +383,7 @@ def _collect_facts(module) -> ModuleFacts:
         events_emitted=events_emitted,
         events_consumed=events_consumed,
         pages=pages,
+        settings_routes=settings_routes,
         endpoints=endpoints,
         has_frontend=has_frontend,
     )
@@ -379,11 +500,16 @@ def _check_module(facts: ModuleFacts, findings: Findings) -> None:
             route = str(fm.get("route") or "")
             if not route:
                 findings.err(f"{rel}: frontmatter `route` is required.")
-            elif route not in facts.pages:
+            elif (
+                route not in facts.pages
+                and route not in facts.settings_routes
+                and _route_base(route) not in _all_app_routes()
+            ):
                 findings.warn(
-                    f"{rel}: frontmatter route {route!r} does not match any "
-                    f"page under {name}/frontend/pages/ "
-                    f"(known: {sorted(facts.pages.keys())})."
+                    f"{rel}: frontmatter route {route!r} lands on "
+                    f"{_route_base(route)!r}, which is not a page this module "
+                    f"owns, a settings screen it registers, or any other page "
+                    f"in the app."
                 )
             if not fm.get("last_verified_commit"):
                 findings.warn(f"{rel}: frontmatter `last_verified_commit` is empty.")
@@ -397,19 +523,21 @@ def _check_module(facts: ModuleFacts, findings: Findings) -> None:
                     continue
                 method, path = m.group(1), m.group(2).strip()
                 key = _normalise_endpoint(method, path)
-                if key not in valid_endpoints:
+                if key not in valid_endpoints and key not in _all_app_endpoints():
                     findings.warn(
-                        f"{rel}: related_endpoint {method} {path} not found "
-                        f"on {name}'s router (after normalising path params)."
+                        f"{rel}: related_endpoint {method} {path} is not on "
+                        f"{name}'s router nor any other module's "
+                        f"(after normalising path params)."
                     )
 
             for perm in fm.get("related_permissions", []) or []:
                 # Accept both 'patients.read' and 'read'.
                 bare = str(perm).split(".", 1)[-1]
-                if bare not in facts.permissions:
+                if bare not in facts.permissions and str(perm) not in _all_app_permissions():
                     findings.warn(
-                        f"{rel}: related_permission {perm!r} not in "
-                        f"{name}.get_permissions() = {facts.permissions}."
+                        f"{rel}: related_permission {perm!r} is declared by "
+                        f"neither {name} (= {facts.permissions}) nor any "
+                        f"other module."
                     )
 
 
@@ -437,6 +565,67 @@ def _check_orphan_screens(modules: list[str], findings: Findings) -> None:
 # ---------------------------------------------------------------------------
 
 
+# `.` is inside the class so `/export.csv` is captured whole rather than
+# truncated to `/export`, which would then look like a route that does
+# not exist. Trailing sentence punctuation is stripped after the match.
+API_PATH_IN_PROSE = re.compile(r"/api/v1/[A-Za-z0-9_][A-Za-z0-9_{}/.\-]*")
+
+
+def _check_markdown_api_paths(findings: Findings) -> None:
+    """Every ``/api/v1/...`` a markdown file mentions must be a real endpoint.
+
+    The frontmatter check only covers screen docs, so an ADR, a tech plan or
+    a module's CLAUDE.md could name a path that does not exist and nothing
+    said so. Two did: the budget ADR and its tech plan kept
+    ``/api/v1/public/budgets/...`` long after the module's mount made the
+    real path ``/api/v1/budget/public/budgets/...``.
+
+    Deliberately narrow, because the alternative is noise:
+
+    * only paths addressed to a known module are checked. Core routers
+      (``/api/v1/auth/...``, ``/api/v1/_meta/...``) declare their sub-paths
+      away from their mount prefix, so there is no trustworthy surface to
+      compare them against — a check that cannot be right is worse than none.
+    * ``/api/v1/<module>`` on its own is a mount prefix, not an endpoint.
+    * anything with a ``<placeholder>`` is a template in a guide.
+
+    The built portal under ``docs/portal/.vitepress/`` is skipped: it is
+    generated output, and its findings would be duplicates of the sources.
+    """
+    modules = {d.name for d in MODULES_ROOT.iterdir() if d.is_dir() and not d.name.startswith("_")}
+    known = {
+        _normalise_endpoint("GET", path).split(" ", 1)[1]
+        for path in {key.split(" ", 1)[1] for key in _all_app_endpoints()}
+    }
+
+    for md in sorted(DOCS_ROOT.rglob("*.md")):
+        if ".vitepress" in md.parts:
+            continue
+        rel = md.relative_to(REPO_ROOT)
+        seen: set[str] = set()
+        md_text = md.read_text(encoding="utf-8", errors="replace")
+        for match in API_PATH_IN_PROSE.finditer(md_text):
+            # A path that runs straight into `<token>` or `<id>` is a prose
+            # prefix with a placeholder after it, not an endpoint.
+            after = md_text[match.end() : match.end() + 1]
+            if after in ("<", "*"):
+                continue
+            path = match.group(0).rstrip("/.,;:")
+            # An unclosed `{` means the match ran into a template expression
+            # in a code sample — `f"...{setup['patient_id']}..."` — and what
+            # was captured is not the path the sample builds.
+            if path.count("{") != path.count("}"):
+                continue
+            segments = path.split("/")
+            if len(segments) <= 4 or segments[3] not in modules:
+                continue
+            if path in seen:
+                continue
+            seen.add(path)
+            if _normalise_endpoint("GET", path).split(" ", 1)[1] not in known:
+                findings.warn(f"{rel}: mentions {path}, which no module's router serves.")
+
+
 def run(strict: bool) -> int:
     findings = Findings()
 
@@ -452,6 +641,7 @@ def run(strict: bool) -> int:
         _check_module(facts, findings)
 
     _check_orphan_screens([m.name for m in modules], findings)
+    _check_markdown_api_paths(findings)
 
     if findings.warnings:
         print("Documentation coverage warnings:", file=sys.stderr)

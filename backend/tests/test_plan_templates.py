@@ -326,12 +326,12 @@ async def _finding(
     return r.json()["data"]["id"]
 
 
-@pytest.mark.asyncio
-async def test_findings_are_proposed_with_a_suggested_treatment(
-    client, auth_headers, setup, db_session
-):
-    # The suggestion table resolves by internal_code, so the codes have to be
-    # in this clinic's catalog for anything to be proposed.
+async def _suggestable_item(db_session: AsyncSession, setup: dict, code: str) -> None:
+    """Put a code the suggestion table knows into this clinic's catalog.
+
+    `SUGGESTIONS` resolves by `internal_code`, so nothing is proposed until
+    the clinic actually offers the treatment.
+    """
     vat = (
         (await db_session.execute(select(VatType).where(VatType.clinic_id == setup["clinic_id"])))
         .scalars()
@@ -350,7 +350,7 @@ async def test_findings_are_proposed_with_a_suggested_treatment(
         TreatmentCatalogItem(
             clinic_id=setup["clinic_id"],
             category_id=category.id,
-            internal_code="REST-COMP",
+            internal_code=code,
             names={"es": "Obturación composite"},
             default_price=Decimal("60.00"),
             pricing_strategy="flat",
@@ -360,6 +360,13 @@ async def test_findings_are_proposed_with_a_suggested_treatment(
         )
     )
     await db_session.commit()
+
+
+@pytest.mark.asyncio
+async def test_findings_are_proposed_with_a_suggested_treatment(
+    client, auth_headers, setup, db_session
+):
+    await _suggestable_item(db_session, setup, "REST-COMP")
 
     plan_id = await _plan(client, auth_headers, setup)
     await _finding(client, auth_headers, setup, "caries", 16)
@@ -678,3 +685,134 @@ async def test_a_line_from_another_clinic_is_skipped_not_applied(client, auth_he
     body = r.json()["data"]
     assert len(body["items"]) == 1
     assert [s["reason"] for s in body["skipped"]] == ["not_in_catalog"]
+
+
+@pytest.mark.asyncio
+async def test_a_patient_with_no_plan_still_has_proposals(client, auth_headers, setup, db_session):
+    """The builder's case: findings read before any plan exists.
+
+    `/treatment-plans/{plan_id}/proposals` cannot answer here — there is no
+    plan until the dentist presses *Crear* — and that is exactly the moment
+    the chart's findings are worth something, because otherwise they are
+    redrawn by hand.
+    """
+    await _suggestable_item(db_session, setup, "REST-COMP")
+    await _finding(client, auth_headers, setup, "caries", 16)
+
+    patient_id = setup["patient_id"]
+    r = await client.get(
+        f"{BASE}/treatment-plans/patient/{patient_id}/proposals", headers=auth_headers
+    )
+    assert r.status_code == 200, r.text
+    proposals = r.json()["data"]
+
+    assert len(proposals) == 1
+    assert proposals[0]["clinical_type"] == "caries"
+    assert proposals[0]["tooth_number"] == 16
+    assert proposals[0]["suggested_catalog_item"]["internal_code"] == "REST-COMP"
+
+
+@pytest.mark.asyncio
+async def test_a_tooth_already_planned_is_not_proposed_again(
+    client, auth_headers, setup, db_session
+):
+    """The same coarse rule the plan-scoped endpoint applies.
+
+    Splitting the read out must not have quietly dropped it: a finding on a
+    tooth that already carries planned work is left out, because proposing it
+    again is how a plan grows a duplicate line.
+    """
+    await _suggestable_item(db_session, setup, "REST-COMP")
+    await _finding(client, auth_headers, setup, "caries", 16)
+
+    patient_id = setup["patient_id"]
+    before = await client.get(
+        f"{BASE}/treatment-plans/patient/{patient_id}/proposals", headers=auth_headers
+    )
+    assert len(before.json()["data"]) == 1
+
+    plan_id = await _plan(client, auth_headers, setup)
+    accepted = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/proposals",
+        headers=auth_headers,
+        json={"finding_ids": [before.json()["data"][0]["finding_id"]]},
+    )
+    assert accepted.status_code == 201, accepted.text
+
+    after = await client.get(
+        f"{BASE}/treatment-plans/patient/{patient_id}/proposals", headers=auth_headers
+    )
+    assert after.json()["data"] == []
+
+
+@pytest.mark.asyncio
+async def test_a_dismissed_finding_is_not_proposed_to_that_plan_again(
+    client, auth_headers, setup, db_session
+):
+    """Deleting a seeded line is a judgement, and it has to stick.
+
+    The builder seeds its draft from the chart, so deleting one of those lines
+    means *this plan is not for that caries*. Without recording it the plan's
+    own proposals list offers the finding straight back and asks the dentist
+    the same question twice.
+    """
+    await _suggestable_item(db_session, setup, "REST-COMP")
+    finding_id = await _finding(client, auth_headers, setup, "caries", 16)
+    plan_id = await _plan(client, auth_headers, setup)
+
+    offered = await client.get(f"{BASE}/treatment-plans/{plan_id}/proposals", headers=auth_headers)
+    assert [p["finding_id"] for p in offered.json()["data"]] == [finding_id]
+
+    dismissed = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/dismissed-findings",
+        headers=auth_headers,
+        json={"finding_ids": [finding_id]},
+    )
+    assert dismissed.status_code == 200, dismissed.text
+    assert dismissed.json()["data"]["dismissed"] == 1
+
+    after = await client.get(f"{BASE}/treatment-plans/{plan_id}/proposals", headers=auth_headers)
+    assert after.json()["data"] == []
+
+    # Twice is one decision, not two rows.
+    again = await client.post(
+        f"{BASE}/treatment-plans/{plan_id}/dismissed-findings",
+        headers=auth_headers,
+        json={"finding_ids": [finding_id]},
+    )
+    assert again.json()["data"]["dismissed"] == 0
+
+
+@pytest.mark.asyncio
+async def test_dismissing_binds_to_the_plan_not_to_the_finding(
+    client, auth_headers, setup, db_session
+):
+    """The guarantee that makes dismissing safe.
+
+    A dismissal says only that *this* plan does not answer the finding. The
+    chart keeps showing the caries, and the patient's next plan proposes it
+    again — a decision about one plan must never become a decision to leave a
+    tooth alone forever.
+    """
+    await _suggestable_item(db_session, setup, "REST-COMP")
+    finding_id = await _finding(client, auth_headers, setup, "caries", 16)
+
+    first_plan = await _plan(client, auth_headers, setup)
+    await client.post(
+        f"{BASE}/treatment-plans/{first_plan}/dismissed-findings",
+        headers=auth_headers,
+        json={"finding_ids": [finding_id]},
+    )
+
+    second_plan = await _plan(client, auth_headers, setup)
+    offered = await client.get(
+        f"{BASE}/treatment-plans/{second_plan}/proposals", headers=auth_headers
+    )
+    assert [p["finding_id"] for p in offered.json()["data"]] == [finding_id]
+
+    # And the builder, which knows no plan at all, still offers it.
+    patient_id = setup["patient_id"]
+    fresh = await client.get(
+        f"{BASE}/treatment-plans/patient/{patient_id}/proposals", headers=auth_headers
+    )
+    assert [p["finding_id"] for p in fresh.json()["data"]] == [finding_id]

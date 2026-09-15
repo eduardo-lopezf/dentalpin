@@ -361,3 +361,36 @@ class TreatmentPlanHistory(Base):
     actor: Mapped["User | None"] = relationship(foreign_keys=[actor_user_id])
 
     __table_args__ = (Index("idx_tp_history_plan_created", "treatment_plan_id", "created_at"),)
+
+
+class PlanDismissedFinding(Base, TimestampMixin):
+    """A charted finding the dentist decided this plan does not answer.
+
+    The builder seeds its draft lines from the patient's findings, so deleting
+    one of those lines is a judgement, not a typo: *I saw the caries on 27 and
+    this plan is not for it*. Recorded, or the plan's own proposals list offers
+    it straight back and the dentist answers the same question twice.
+
+    **Scoped to the plan, deliberately.** It says nothing about the finding —
+    the chart keeps showing the caries until it is treated, and the next plan
+    proposes it again. A decision about one plan must not silently become a
+    decision to leave a tooth alone forever.
+    """
+
+    __tablename__ = "plan_dismissed_findings"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), nullable=False, index=True)
+    treatment_plan_id: Mapped[UUID] = mapped_column(
+        ForeignKey("treatment_plans.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # The odontogram `Treatment` row holding the finding. `odontogram` is in
+    # this module's `depends`, so the FK is allowed.
+    finding_id: Mapped[UUID] = mapped_column(
+        ForeignKey("treatments.id", ondelete="CASCADE"), nullable=False
+    )
+    dismissed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
+
+    __table_args__ = (
+        UniqueConstraint("treatment_plan_id", "finding_id", name="uq_plan_dismissed_finding"),
+    )

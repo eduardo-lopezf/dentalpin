@@ -67,8 +67,12 @@ Routes mounted at `/api/v1/treatment-plans/`.
 - `PUT   /plan-templates/{id}`              — update; items are a full replace when sent
 - `DELETE /plan-templates/{id}`             — soft delete (`is_active=False`)
 - `POST  /plan-templates/from-plan/{id}`    — save an existing plan as a template
+- `GET   /treatment-plans/patient/{patient_id}/proposals` — the same findings
+  for a patient with **no plan yet**; what the builder seeds its draft from
 - `GET   /treatment-plans/{id}/proposals`   — charted findings with nothing planned yet
 - `POST  /treatment-plans/{id}/proposals`   — turn accepted findings into plan items
+- `POST  /treatment-plans/{id}/dismissed-findings` — findings this plan is
+  deliberately not answering; `plans.write`. Idempotent per `(plan, finding)`.
 
 > **Notes endpoints moved.** Since issue #60 the `clinical_notes` module
 > owns every clinical-note CRUD path (`/api/v1/clinical_notes/*`). The
@@ -207,6 +211,25 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   and it cannot serve a client that only knows a catalog item id. The body is
   a **list of lines**, each with its own teeth: the plan is drawn on a chart,
   so a crown on 16 and a filling on 24 arrive together.
+- **The builder arrives holding what the chart already knows.** Reached from a
+  record (`/treatments/plans/new?patient_id=`), it calls
+  `GET /treatment-plans/patient/{id}/proposals` and turns each suggestion into
+  an ordinary draft line. Before this the dentist redrew, tooth by tooth, work
+  the clinic had already diagnosed, and only learned what was missed *after*
+  saving, from the plan-scoped endpoint. The two endpoints share
+  `PlanProposalService.for_patient`, because the finding→treatment mapping is
+  clinical judgement and must have one home. Two rules keep it honest: lines
+  are never seeded over an examination already in progress, and a finding the
+  catalog cannot answer is skipped rather than added as a blank. Deleting a
+  seeded line is a judgement, so the builder reports it to
+  `POST /treatment-plans/{id}/dismissed-findings` once the plan exists and
+  `list_proposals` hides it from then on. **Scoped to the plan**: the chart
+  keeps showing the caries and the patient's next plan proposes it again,
+  because a decision about one plan must not become a decision to leave a
+  tooth alone forever. The call is best-effort — a dismissal that fails to
+  record costs one redundant proposal, never the plan. The catalog
+  fetch is awaited on this path only — the lines are built from it, and an
+  empty catalog would draw them all as untyped fillings with no phase.
 - **The create screen has no patient until the end, and that is the point.**
   `/treatments/plans/new` opens on a blank chart (`PlanDraftChart`, which
   shares `ToothQuadrant` with the real chart but fetches nothing) and holds

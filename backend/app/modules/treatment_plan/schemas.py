@@ -56,6 +56,10 @@ class CatalogItemBrief(BaseModel):
     # Needed by the template UI to decide whether the treatment is waiting
     # for a tooth: tooth / multi_tooth do, global_mouth / global_arch do not.
     treatment_scope: str | None = None
+    # Same reason: the plan builder seeds its draft lines from a proposal and
+    # a line carries a stage of care. The catalog list the builder already
+    # holds is the odontogram's view, which does not include it.
+    default_phase: str | None = None
 
 
 class TreatmentBrief(BaseModel):
@@ -490,6 +494,16 @@ class PlanProposal(BaseModel):
 
 
 class AcceptProposalsRequest(BaseModel):
+    finding_ids: list[UUID] = Field(min_length=1)
+
+
+class DismissFindingsRequest(BaseModel):
+    """Findings this plan is deliberately not answering.
+
+    Sent by the builder for the seeded lines the dentist deleted, so the
+    plan's own proposals list does not offer them straight back.
+    """
+
     finding_ids: list[UUID] = Field(min_length=1)
 
 

@@ -25,7 +25,7 @@ from sqlalchemy.orm import selectinload
 from app.modules.catalog.models import TreatmentCatalogItem
 from app.modules.odontogram.models import Treatment, TreatmentTooth
 
-from .models import PlannedTreatmentItem, TreatmentPlan
+from .models import PlanDismissedFinding, PlannedTreatmentItem, TreatmentPlan
 
 logger = logging.getLogger(__name__)
 
@@ -116,12 +116,31 @@ class PlanProposalService:
         if plan_row is None:
             return None
 
+        dismissed = await PlanProposalService._dismissed_for_plan(db, plan_id)
+        proposals = await PlanProposalService.for_patient(db, clinic_id, plan_row.patient_id)
+        return [p for p in proposals if p["finding_id"] not in dismissed]
+
+    @staticmethod
+    async def for_patient(db: AsyncSession, clinic_id: UUID, patient_id: UUID) -> list[dict]:
+        """The same findings, read before any plan exists.
+
+        The builder opens on a blank chart because it has no patient yet, but
+        when it is reached from a patient's record it does — and by then the
+        clinic has usually already charted what is wrong. Without this the
+        dentist redraws, tooth by tooth, work the chart already holds, and
+        only learns what was missed after the plan is saved, from
+        ``list_proposals``.
+
+        Split out rather than duplicated: the mapping from a finding to a
+        treatment is clinical judgement (see ``SUGGESTIONS``) and must have
+        exactly one home.
+        """
         result = await db.execute(
             select(Treatment)
             .options(selectinload(Treatment.teeth))
             .where(
                 Treatment.clinic_id == clinic_id,
-                Treatment.patient_id == plan_row.patient_id,
+                Treatment.patient_id == patient_id,
                 Treatment.deleted_at.is_(None),
                 Treatment.clinical_type.in_(FINDING_TYPES),
                 Treatment.status == "performed",
@@ -132,7 +151,7 @@ class PlanProposalService:
             return []
 
         planned_teeth = await PlanProposalService._teeth_with_planned_work(
-            db, clinic_id, plan_row.patient_id
+            db, clinic_id, patient_id
         )
 
         catalog = await PlanProposalService._catalog_by_code(db, clinic_id)
@@ -161,6 +180,60 @@ class PlanProposalService:
                 }
             )
         return proposals
+
+    @staticmethod
+    async def _dismissed_for_plan(db: AsyncSession, plan_id: UUID) -> set[UUID]:
+        result = await db.execute(
+            select(PlanDismissedFinding.finding_id).where(
+                PlanDismissedFinding.treatment_plan_id == plan_id
+            )
+        )
+        return set(result.scalars().all())
+
+    @staticmethod
+    async def dismiss(
+        db: AsyncSession,
+        clinic_id: UUID,
+        user_id: UUID,
+        plan_id: UUID,
+        finding_ids: list[UUID],
+    ) -> int:
+        """Record that this plan is not the answer to these findings.
+
+        Idempotent on ``(plan, finding)``: the builder sends the whole list it
+        dismissed, and a dentist who deletes a line, undoes, and deletes it
+        again has still made one decision. Unknown ids are skipped rather than
+        refused — a finding deleted from the chart between the draft and
+        *Crear* is not a reason to lose the plan.
+        """
+        if not finding_ids:
+            return 0
+
+        known = await db.execute(
+            select(Treatment.id).where(
+                Treatment.clinic_id == clinic_id,
+                Treatment.id.in_(finding_ids),
+                Treatment.deleted_at.is_(None),
+            )
+        )
+        valid = set(known.scalars().all())
+        if not valid:
+            return 0
+
+        already = await PlanProposalService._dismissed_for_plan(db, plan_id)
+        added = 0
+        for finding_id in valid - already:
+            db.add(
+                PlanDismissedFinding(
+                    clinic_id=clinic_id,
+                    treatment_plan_id=plan_id,
+                    finding_id=finding_id,
+                    dismissed_by=user_id,
+                )
+            )
+            added += 1
+        await db.flush()
+        return added
 
     @staticmethod
     async def _teeth_with_planned_work(

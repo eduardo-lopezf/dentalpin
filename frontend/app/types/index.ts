@@ -2523,6 +2523,28 @@ export interface PlanTemplateItem {
   } | null
 }
 
+/**
+ * A charted finding with the treatment proposed for it.
+ *
+ * `suggested_catalog_item` is null when the clinic's catalog has nothing
+ * matching: the finding is still worth listing, because the dentist may want
+ * to know it is unaddressed even if the app cannot propose anything.
+ */
+export interface PlanProposal {
+  finding_id: string
+  clinical_type: string
+  tooth_number?: number | null
+  surfaces?: Surface[] | null
+  suggested_catalog_item?: {
+    id: string
+    internal_code: string
+    names: Record<string, string>
+    default_price?: number | null
+    treatment_scope?: string | null
+    default_phase?: TreatmentPhase | null
+  } | null
+}
+
 export interface PlanTemplate {
   id: string
   key?: string | null
@@ -2592,6 +2614,12 @@ export interface PlanDraftLine {
    */
   requiresSurfaces: boolean
   price: number | null
+  /**
+   * The charted finding this line was seeded from, when it was not drawn by
+   * hand. Deleting such a line is a decision about that finding, and the
+   * builder reports it so the new plan stops proposing it.
+   */
+  findingId?: string | null
   /** tooth | multi_tooth | global_mouth | global_arch. */
   scope: string
   phase: TreatmentPhase | null

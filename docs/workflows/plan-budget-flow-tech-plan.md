@@ -314,17 +314,17 @@ Implementación: query SQL en `TreatmentPlanService.list_pipeline()` con joins a
 
 | Método | Path | Body | Cookie sesión requerida |
 |---|---|---|---|
-| `GET` | `/api/v1/public/budgets/{token}/meta` | — | No |
-| `POST` | `/api/v1/public/budgets/{token}/verify` | `{ method, value }` | No |
-| `GET` | `/api/v1/public/budgets/{token}` | — | Sí (o `method=none`) |
-| `POST` | `/api/v1/public/budgets/{token}/accept` | `{ signer_name, signature_data? }` | Sí (o `method=none`) |
-| `POST` | `/api/v1/public/budgets/{token}/reject` | `{ reason, note? }` | Sí (o `method=none`) |
-| `POST` | `/api/v1/public/budgets/{token}/request-changes` | `{ reason, note? }` | Sí (o `method=none`) |
+| `GET` | `/api/v1/budget/public/budgets/{token}/meta` | — | No |
+| `POST` | `/api/v1/budget/public/budgets/{token}/verify` | `{ method, value }` | No |
+| `GET` | `/api/v1/budget/public/budgets/{token}` | — | Sí (o `method=none`) |
+| `POST` | `/api/v1/budget/public/budgets/{token}/accept` | `{ signer_name, signature_data? }` | Sí (o `method=none`) |
+| `POST` | `/api/v1/budget/public/budgets/{token}/reject` | `{ reason, note? }` | Sí (o `method=none`) |
+| `POST` | `/api/v1/budget/public/budgets/{token}/request-changes` | `{ reason, note? }` | Sí (o `method=none`) |
 
 **`/meta`** devuelve `{ requires_verification: bool, method: "phone_last4"|"dob"|"manual_code"|"none", clinic_name, locked: bool, expired: bool }`. Sin datos sensibles. Permite a la SPA decidir qué pantalla mostrar.
 
 **`/verify`** valida la cascada (§1.4). Si OK, setea cookie `budget_session_<token>`:
-- `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/v1/public/budgets/<token>`.
+- `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/v1/budget/public/budgets/<token>`.
 - Valor: JWT firmado con `SECRET_KEY`, claims `{ sub: budget_id, exp: now+30min }`.
 - TTL 30 min. Renovable en cada request exitoso.
 
@@ -594,7 +594,7 @@ Frontend: añadir constants en `frontend/app/config/permissions.ts`.
 
 1. Doctor crea plan + 3 items → confirm → asserts: plan `pending`, budget `draft` creado.
 2. Receptionist envía → asserts: budget `sent`, `public_token` presente.
-3. Cliente HTTP sin auth abre `/api/v1/public/budgets/{token}` → asserts: 200 + `viewed_at` set.
+3. Cliente HTTP sin auth abre `/api/v1/budget/public/budgets/{token}` → asserts: 200 + `viewed_at` set.
 4. Cliente acepta → asserts: plan `active`, budget `accepted`, signature row creada.
 5. Marcar todos los items completed → asserts: plan `completed`.
 

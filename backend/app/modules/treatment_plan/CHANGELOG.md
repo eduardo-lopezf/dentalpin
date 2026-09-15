@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Added
+
+- **The plan builder opens holding the patient's charted findings.** Reached
+  from a patient's record, `/treatments/plans/new` now seeds its draft lines
+  from `GET /treatment-plans/patient/{patient_id}/proposals` — the same
+  `SUGGESTIONS` mapping that until now only ran *after* a plan existed. The
+  dentist reviews and drops instead of redrawing what the clinic already
+  diagnosed, and a clash with the real chart shows while drawing rather than
+  as a warning at the end. `CatalogItemBrief` gained `default_phase` so a
+  seeded line carries its stage of care.
+
+- **A dismissed finding stays dismissed for that plan.** Deleting one of the
+  seeded lines now records the decision (`plan_dismissed_findings`, migration
+  `tp_0012`) and the plan stops proposing it. Bound to the plan, not to the
+  finding: the chart keeps showing it and the patient's next plan offers it
+  again.
+
 - feat(treatment_plan): mientras el plan se dibuja, **toda** línea es
   editable, no solo su fase y su nota. La pantalla ya prometía que nada se
   escribe hasta *Crear*; lo que faltaba era poder cobrar esa promesa. La
