@@ -207,7 +207,13 @@ const made = await api.post<ApiResponse<Patient>>('/api/v1/patients', { ... })  
 
 UI: Nuxt UI (`UButton`, `UInput`, `UCard`, `UModal`, `USelect`, `UFormField`, `UBadge`, `UAvatar`, `USkeleton`).
 
-TS aliases inside a layer: `~` = layer root, `~~` = host frontend root (use for shared types: `import type { Patient } from '~~/app/types'`).
+TS aliases: **both point at the host, never at the layer.** `~` = host app root (`frontend/app`), `~~` = host frontend root (`frontend`) — use it for shared types: `import type { Patient } from '~~/app/types'`.
+
+A module's own files are reached with a **relative path**, not `~/`. This line used to read "`~` = layer root", and following it produced
+`import … from '~/components/treatment-plans/planDraftLineUtils'`, which
+resolves against `frontend/app/components/` — where a module's components
+are not — and fails to compile. `~/config/permissions` works from a module
+only because it lands on the host's own `frontend/app/config/permissions.ts`.
 
 ---
 

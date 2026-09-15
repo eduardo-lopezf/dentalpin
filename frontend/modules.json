@@ -9,6 +9,7 @@
     "/module_layers/budget/frontend",
     "/module_layers/payments/frontend",
     "/module_layers/billing/frontend",
+    "/module_layers/cashbox/frontend",
     "/module_layers/copilot/frontend",
     "/module_layers/patients_clinical/frontend",
     "/module_layers/treatment_plan/frontend",
@@ -56,6 +57,10 @@
     {
       "name": "billing",
       "path": "/module_layers/billing/frontend"
+    },
+    {
+      "name": "cashbox",
+      "path": "/module_layers/cashbox/frontend"
     },
     {
       "name": "copilot",

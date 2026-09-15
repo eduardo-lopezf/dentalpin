@@ -20,7 +20,11 @@
  * every line go in one sequence at the end. A half-built plan abandoned
  * mid-examination leaves nothing behind.
  */
-import { incompleteLines, toggleTooth } from '~/components/treatment-plans/planDraftLineUtils'
+// Relative, not `~/`: that alias points at the host app (`frontend/app`),
+// not at this layer, so `~/components/...` resolves against the host's
+// component tree and misses everything a module owns. Same path style as
+// `PlanDraftLines.vue`, which imports these helpers from next door.
+import { incompleteLines, toggleTooth } from '../../../components/treatment-plans/planDraftLineUtils'
 import type {
   ApiResponse,
   Patient,

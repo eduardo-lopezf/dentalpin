@@ -1,0 +1,116 @@
+{
+  "cashbox": {
+    "nav": {
+      "cashbox": "Caja"
+    },
+    "day": "Día",
+    "footnote": "Movimientos de caja del {date}. Los cobros de pacientes se registran en Cobros.",
+    "totals": {
+      "in": "Entradas",
+      "out": "Salidas",
+      "net": "Neto",
+      "count": "{n} movimiento(s)"
+    },
+    "directions": {
+      "in": "Entra dinero",
+      "out": "Sale dinero"
+    },
+    "categories": {
+      "lab": "Laboratorio",
+      "supplies": "Material",
+      "advance": "Adelanto",
+      "bank_deposit": "Depósito a banco",
+      "float_adjustment": "Ajuste de fondo",
+      "other": "Otro"
+    },
+    "movements": {
+      "add": "Registrar movimiento",
+      "addTitle": "Nuevo movimiento de caja",
+      "editTitle": "Corregir movimiento",
+      "edit": "Corregir «{concept}»",
+      "remove": "Quitar «{concept}»",
+      "empty": "No hay movimientos de caja este día.",
+      "closed": "Día cerrado",
+      "deleted": "Movimiento eliminado",
+      "deleteFailed": "No se pudo eliminar el movimiento",
+      "saveFailed": "No se pudo guardar el movimiento",
+      "dayClosed": "Día cerrado"
+    },
+    "form": {
+      "direction": "Dirección",
+      "amount": "Importe",
+      "date": "Fecha",
+      "category": "Categoría",
+      "concept": "Concepto",
+      "conceptHint": "Obligatorio: es lo que hará entendible la fila dentro de tres meses.",
+      "conceptPlaceholder": "Ej. mensajero del laboratorio, coronas de Pérez",
+      "reference": "Referencia",
+      "referencePlaceholder": "Nº de ticket o factura"
+    },
+    "closing": {
+      "title": "Arqueo de caja",
+      "done": "Contado",
+      "start": "Hacer el arqueo",
+      "confirm": "Cerrar el día",
+      "openingFloat": "Fondo inicial",
+      "openingFloatHint": "Lo que había en el cajón al abrir. Viene del último arqueo; cámbialo si no era eso.",
+      "cashCollected": "Cobrado en efectivo",
+      "cashRefunded": "Devuelto en efectivo",
+      "counted": "Contado",
+      "countedHint": "Cuenta el cajón y escribe lo que hay. El esperado aparece después, a propósito.",
+      "countedPlaceholder": "Lo que hay en el cajón",
+      "expected": "Esperado",
+      "difference": "Diferencia",
+      "notes": "Qué pasó",
+      "notesHint": "Obligatorio cuando la cuenta no cuadra: una diferencia sin explicar no sirve para nada.",
+      "notesPlaceholder": "Ej. se pagó un taxi y no se apuntó",
+      "closingFloat": "Se queda para mañana",
+      "closingFloatHint": "Lo que dejas de fondo. El resto sale del cajón.",
+      "otherChannels": "Ese día también entró, fuera del cajón:",
+      "closedBy": "Contado por {who} el {when}",
+      "leftForTomorrow": "quedan {amount} de fondo",
+      "reopen": "Reabrir el día",
+      "reopenTitle": "Reabrir el arqueo",
+      "reopenWarning": "El conteo deja de estar vigente y los movimientos del día vuelven a ser editables. El conteo anterior no se borra: queda en el histórico.",
+      "reopenReason": "Motivo",
+      "reopenReasonPlaceholder": "Ej. se contó antes de vaciar el cajón",
+      "reopenFailed": "No se pudo reabrir el día",
+      "saveFailed": "No se pudo cerrar el día",
+      "blocked": {
+        "count": "Cuenta el cajón y escribe el importe.",
+        "notes": "La cuenta no cuadra: di qué pasó.",
+        "float": "No puedes dejar para mañana más de lo que has contado."
+      }
+    },
+    "period": {
+      "title": "Corte del periodo",
+      "week": "Semana",
+      "fortnight": "Quincena",
+      "month": "Mes",
+      "countedDays": "{n} día(s) contado(s)",
+      "pending": "Faltan {n} día(s) por contar",
+      "pendingWhy": "Son días en los que se movió dinero del cajón y nadie hizo el arqueo. Sus importes no están sumados arriba.",
+      "differenceTotal": "Diferencia del periodo",
+      "daysOff": "{n} día(s) no cuadraron",
+      "otherChannels": "Además entró, fuera del cajón:",
+      "empty": "Todavía no hay arqueos en este periodo."
+    },
+    "late": {
+      "title": "Apuntes posteriores al corte",
+      "lede": "Se registraron con fecha de un día que ya estaba contado, así que no están en su arqueo.",
+      "net": "Suman {amount}.",
+      "how": "O reabres el día y lo vuelves a contar, o anotas qué se hace con cada uno y desaparece de aquí.",
+      "ack": "Anotar",
+      "ackTitle": "¿Qué se hace con este apunte?",
+      "ackFailed": "No se pudo anotar",
+      "resolution": "Qué se hace",
+      "resolutionHint": "Obligatorio. «Visto» no es una decisión sobre la que nadie pueda actuar dentro de tres meses.",
+      "resolutionPlaceholder": "Ej. entra en el arqueo de mañana",
+      "kinds": {
+        "payment": "Cobro en efectivo",
+        "refund": "Devolución en efectivo",
+        "movement": "Movimiento de caja"
+      }
+    }
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "cashbox": {
+    "nav": {
+      "cashbox": "Till"
+    },
+    "day": "Day",
+    "footnote": "Till movements for {date}. Patient payments are recorded under Payments.",
+    "totals": {
+      "in": "In",
+      "out": "Out",
+      "net": "Net",
+      "count": "{n} movement(s)"
+    },
+    "directions": {
+      "in": "Money in",
+      "out": "Money out"
+    },
+    "categories": {
+      "lab": "Lab",
+      "supplies": "Supplies",
+      "advance": "Advance",
+      "bank_deposit": "Bank deposit",
+      "float_adjustment": "Float adjustment",
+      "other": "Other"
+    },
+    "movements": {
+      "add": "Record movement",
+      "addTitle": "New till movement",
+      "editTitle": "Correct movement",
+      "edit": "Correct “{concept}”",
+      "remove": "Remove “{concept}”",
+      "empty": "No till movements on this day.",
+      "closed": "Day closed",
+      "deleted": "Movement deleted",
+      "deleteFailed": "Could not delete the movement",
+      "saveFailed": "Could not save the movement",
+      "dayClosed": "Day closed"
+    },
+    "form": {
+      "direction": "Direction",
+      "amount": "Amount",
+      "date": "Date",
+      "category": "Category",
+      "concept": "Concept",
+      "conceptHint": "Required: it is what makes the row readable three months from now.",
+      "conceptPlaceholder": "e.g. lab courier, Pérez crowns",
+      "reference": "Reference",
+      "referencePlaceholder": "Ticket or invoice no."
+    },
+    "closing": {
+      "title": "Till count",
+      "done": "Counted",
+      "start": "Count the drawer",
+      "confirm": "Close the day",
+      "openingFloat": "Opening float",
+      "openingFloatHint": "What was in the drawer at opening. Carried from the last count; change it if that is not what was there.",
+      "cashCollected": "Collected in cash",
+      "cashRefunded": "Refunded in cash",
+      "counted": "Counted",
+      "countedHint": "Count the drawer and type what is there. The expected figure appears afterwards, on purpose.",
+      "countedPlaceholder": "What is in the drawer",
+      "expected": "Expected",
+      "difference": "Difference",
+      "notes": "What happened",
+      "notesHint": "Required when the count does not match: an unexplained difference is no use to anybody.",
+      "notesPlaceholder": "e.g. a taxi was paid and not recorded",
+      "closingFloat": "Left for tomorrow",
+      "closingFloatHint": "What you leave as float. The rest comes out of the drawer.",
+      "otherChannels": "Also came in that day, outside the drawer:",
+      "closedBy": "Counted by {who} on {when}",
+      "leftForTomorrow": "{amount} left as float",
+      "reopen": "Reopen the day",
+      "reopenTitle": "Reopen the count",
+      "reopenWarning": "The count stops standing and the day's movements become editable again. The previous count is not deleted: it stays in the history.",
+      "reopenReason": "Reason",
+      "reopenReasonPlaceholder": "e.g. counted before the drawer was emptied",
+      "reopenFailed": "Could not reopen the day",
+      "saveFailed": "Could not close the day",
+      "blocked": {
+        "count": "Count the drawer and type the amount.",
+        "notes": "The count does not match: say what happened.",
+        "float": "You cannot leave more for tomorrow than you counted."
+      }
+    },
+    "period": {
+      "title": "Period cut",
+      "week": "Week",
+      "fortnight": "Fortnight",
+      "month": "Month",
+      "countedDays": "{n} day(s) counted",
+      "pending": "{n} day(s) still to count",
+      "pendingWhy": "Days where money moved in the drawer and nobody counted it. Their amounts are not in the totals above.",
+      "differenceTotal": "Period difference",
+      "daysOff": "{n} day(s) did not match",
+      "otherChannels": "Also came in, outside the drawer:",
+      "empty": "No counts in this period yet."
+    },
+    "late": {
+      "title": "Entries after the count",
+      "lede": "Recorded against a day that had already been counted, so they are not in its arqueo.",
+      "net": "They come to {amount}.",
+      "how": "Either reopen the day and count it again, or write down what is being done with each one and it comes off this list.",
+      "ack": "Note it",
+      "ackTitle": "What is being done with this?",
+      "ackFailed": "Could not note it",
+      "resolution": "What is being done",
+      "resolutionHint": "Required. Seen is not a decision anybody can act on three months from now.",
+      "resolutionPlaceholder": "e.g. goes into tomorrow's count",
+      "kinds": {
+        "payment": "Cash collection",
+        "refund": "Cash refund",
+        "movement": "Till movement"
+      }
+    }
+  }
+}

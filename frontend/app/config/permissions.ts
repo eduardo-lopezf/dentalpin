@@ -115,6 +115,13 @@ export const PERMISSIONS = {
     recordRefund: 'payments.record.refund',
     reportsRead: 'payments.reports.read'
   },
+  cashbox: {
+    movementRead: 'cashbox.movement.read',
+    movementWrite: 'cashbox.movement.write',
+    closingRead: 'cashbox.closing.read',
+    closingWrite: 'cashbox.closing.write',
+    closingReopen: 'cashbox.closing.reopen'
+  },
   verifactu: {
     settingsRead: 'verifactu.settings.read',
     settingsConfigure: 'verifactu.settings.configure',

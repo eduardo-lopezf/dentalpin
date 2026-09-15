@@ -1,5 +1,5 @@
 {
-  "total": 173,
+  "total": 171,
   "errors": {
     "app/components/shared/PatientSearch.vue|TS2345|Argument of type 'undefined | undefined; ... N more ...; updated_at: string; } | undefined; date_of_birth?: string | undefined; email?: string | undefined; notes?: string | { id: string; clinic_id: string; first_name: string; last_name: string; phone?: string' is not assignable to parameter of type 'Patient'.": 1,
     "app/components/shared/PlannedTreatmentSelector.vue|TS18048|'tooth' is possibly 'undefined'.": 3,
@@ -50,7 +50,6 @@
     "backend/app/modules/odontogram/frontend/components/odontogram/ChangeHistorySection.vue|TS2322|Type '\"#E5E7EB\" | TreatmentColorConfig' is not assignable to type 'string'.": 1,
     "backend/app/modules/odontogram/frontend/components/odontogram/GlobalTreatmentsStrip.vue|TS2367|This comparison appears to be unintentional because the types 'ClinicalType' and '\"migrated\"' have no overlap.": 1,
     "backend/app/modules/odontogram/frontend/components/odontogram/ImplantSVG.vue|TS18048|'__VLS_ctx.statusStyle' is possibly 'undefined'.": 1,
-    "backend/app/modules/odontogram/frontend/components/odontogram/OdontogramChart.vue|TS2561|Object literal may only specify known properties, but 'click' does not exist in type 'ButtonProps'. Did you mean to write 'onClick'?": 1,
     "backend/app/modules/odontogram/frontend/components/odontogram/TimelineSlider.vue|TS2532|Object is possibly 'undefined'.": 5,
     "backend/app/modules/odontogram/frontend/components/odontogram/ToothDualView.vue|TS2322|Type 'ToothTreatmentView | undefined' is not assignable to type 'Treatment | undefined'.": 2,
     "backend/app/modules/odontogram/frontend/components/odontogram/ToothDualView.vue|TS2339|Property 'treatment_type' does not exist on type 'Treatment'.": 5,
@@ -101,7 +100,6 @@
     "backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue|TS2367|This comparison appears to be unintentional because the types 'ClinicalType | undefined' and '\"migrated\"' have no overlap.": 1,
     "backend/app/modules/treatment_plan/frontend/components/treatment-plans/PipelineTabPanel.vue|TS2322|Type 'string' is not assignable to type '\"error\" | \"info\" | \"neutral\" | \"primary\" | \"secondary\" | \"success\" | \"warning\" | undefined'.": 1,
     "backend/app/modules/treatment_plan/frontend/components/treatment-plans/TreatmentPlanDetail.vue|TS2322|Type 'string' is not assignable to type '\"error\" | \"info\" | \"neutral\" | \"primary\" | \"secondary\" | \"success\" | \"warning\" | undefined'.": 1,
-    "backend/app/modules/treatment_plan/frontend/components/treatment-plans/TreatmentPlanModal.vue|TS2353|Object literal may only specify known properties, and 'width' does not exist in type '{ overlay?: SlotClass; content?: SlotClass; header?: SlotClass; wrapper?: SlotClass; body?: SlotClass; footer?: SlotClass; title?: SlotClass; description?: SlotClass; close?: SlotClass; }'.": 1,
     "backend/app/modules/treatment_plan/frontend/components/treatment-plans/TreatmentPlanStatusBadge.vue|TS2322|Type 'string' is not assignable to type '\"error\" | \"info\" | \"neutral\" | \"primary\" | \"secondary\" | \"success\" | \"warning\" | undefined'.": 1,
     "backend/app/modules/verifactu/frontend/components/verifactu/InvoiceVerifactuPanel.vue|TS2322|Type '\"amber\" | \"gray\" | \"green\" | \"red\"' is not assignable to type '\"error\" | \"info\" | \"neutral\" | \"primary\" | \"secondary\" | \"success\" | \"warning\" | undefined'.": 1,
     "backend/app/modules/verifactu/frontend/components/verifactu/InvoiceVerifactuSlot.vue|TS2349|This expression is not callable.": 2,

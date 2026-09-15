@@ -17,4 +17,4 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 
 ## Modules that send nothing off-premises
 
-`accounting_export`, `agenda`, `billing`, `budget`, `catalog`, `clinical_notes`, `media`, `migration_import`, `odontogram`, `patient_timeline`, `patients`, `patients_clinical`, `payments`, `periodontogram`, `professionals`, `recalls`, `reports`, `schedules`, `treatment_plan`
+`accounting_export`, `agenda`, `billing`, `budget`, `cashbox`, `catalog`, `clinical_notes`, `media`, `migration_import`, `odontogram`, `patient_timeline`, `patients`, `patients_clinical`, `payments`, `periodontogram`, `professionals`, `recalls`, `reports`, `schedules`, `treatment_plan`

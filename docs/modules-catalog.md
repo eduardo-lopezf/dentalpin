@@ -14,6 +14,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `agenda` | 0.4.0 | official | patients, catalog, odontogram, professionals | auto | no | 4 | 11 | 0 | yes |
 | `billing` | 0.1.0 | official | patients, catalog, budget, payments | auto | no | 3 | 3 | 1 | yes |
 | `budget` | 0.1.0 | official | patients, catalog, odontogram, professionals | auto | no | 5 | 7 | 4 | yes |
+| `cashbox` | 0.1.0 | official | payments | auto | no | 5 | 0 | 0 | yes |
 | `catalog` | 0.1.0 | official | — | auto | no | 3 | 0 | 1 | yes |
 | `clinical_notes` | 0.2.0 | official | patients, odontogram, treatment_plan, media, agenda | auto | no | 2 | 6 | 0 | yes |
 | `copilot` | 0.1.0 | official | — | auto | yes | 5 | 3 | 1 | yes |
@@ -135,6 +136,26 @@ Dental treatment quotes, versioning, signatures.
   - `treatment_plan.treatment_added`
   - `treatment_plan.treatment_removed`
 - **Module CLAUDE.md:** [`backend/app/modules/budget/CLAUDE.md`](../backend/app/modules/budget/CLAUDE.md)
+
+### `cashbox` — v0.1.0
+
+Caja de la clínica: movimientos de efectivo, arqueo diario y cortes por periodo.
+
+- **Author:** DentalPin Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=True · removable=False
+- **Depends:** `payments`
+- **Frontend layer:** `frontend`
+- **Permissions:**
+  - `cashbox.closing.read`
+  - `cashbox.closing.reopen`
+  - `cashbox.closing.write`
+  - `cashbox.movement.read`
+  - `cashbox.movement.write`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/cashbox/CLAUDE.md`](../backend/app/modules/cashbox/CLAUDE.md)
 
 ### `catalog` — v0.1.0
 
