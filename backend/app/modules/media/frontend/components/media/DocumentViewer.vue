@@ -122,7 +122,7 @@ onUnmounted(() => {
                 class="w-8 h-8 animate-spin text-primary-accent"
               />
               <p class="mt-2 text-caption text-subtle">
-                {{ t('documents.viewer.loading', 'Loading document...') }}
+                {{ t('documents.viewer.loading') }}
               </p>
             </div>
           </div>
@@ -138,7 +138,7 @@ onUnmounted(() => {
                 class="w-12 h-12 text-subtle mx-auto"
               />
               <p class="mt-2 text-caption text-subtle">
-                {{ t('documents.viewer.error', 'Could not load document') }}
+                {{ t('documents.viewer.error') }}
               </p>
               <UButton
                 variant="soft"
@@ -146,7 +146,7 @@ onUnmounted(() => {
                 class="mt-3"
                 @click="handleDownload"
               >
-                {{ t('documents.viewer.downloadInstead', 'Download instead') }}
+                {{ t('documents.viewer.downloadInstead') }}
               </UButton>
             </div>
           </div>
@@ -174,7 +174,7 @@ onUnmounted(() => {
                 class="w-12 h-12 text-subtle mx-auto"
               />
               <p class="mt-2 text-caption text-subtle">
-                {{ t('documents.viewer.unsupported', 'Preview not available for this file type') }}
+                {{ t('documents.viewer.unsupported') }}
               </p>
               <UButton
                 variant="soft"

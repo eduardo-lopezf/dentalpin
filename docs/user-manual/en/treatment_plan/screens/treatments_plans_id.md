@@ -149,6 +149,13 @@ of what happened.
   plan is *pending* awaiting acceptance.
 - **Clinical notes.** Can be attached to the plan from the
   `clinical_notes` module (slot `patient.detail.clinical.notes`).
+- **The treatment's own dialog.** Tap a treatment's box and it opens:
+  professional, price, teeth, sessions and where its money stands
+  (earned, collected, outstanding). The three actions that used to be
+  loose icons on the row — **add note**, **set recall** and **charge**
+  — live there under *Acciones*. The row keeps only what changes the
+  plan (complete, remove), which is what stops "open something" and
+  "change the plan" sitting a finger apart.
 
 ## Confirm a plan
 
@@ -164,15 +171,34 @@ of what happened.
 
 > Requires `treatment_plan.plans.write`.
 
-1. On the item, click **Mark as done**.
+1. On the item, click the ✓ on the row or **Mark as completed** inside
+   its dialog.
 2. `treatment_plan.treatment_completed` is published. `recalls` can
    suggest a follow-up recall based on `treatment_category_key`.
-3. To record a clinical note at that moment, use the *Add note*
-   button (contributed by `clinical_notes`).
+3. The app then asks **whether to charge now or leave it pending**.
+   It is the cheapest moment to charge — the patient is still in the
+   chair — but leaving it pending is as real an answer: a clinic that
+   bills monthly does it every day, and the amount stays in "pending
+   to charge" either way.
+4. To record a clinical note, open it from the treatment's dialog
+   (*Acciones → Add note*, contributed by `clinical_notes`).
 
 **Removing an item from the plan** (the trash icon on the row) asks
 for confirmation: it cascades into the odontogram treatment and the
 associated budget line.
+
+## A closed treatment, and how to reopen it
+
+A treatment reads as **Cerrado** when it is completed **and** there is
+nothing left to charge for it. It is not a stored state: it is derived
+from the money, so it cannot drift from the ledger. Record a refund in
+Finanzas and the treatment stops being closed on its own, with nobody
+having to remember to touch it.
+
+**Reopen** (in the treatment's dialog) unlocks the actions there: you
+can add a note or set a recall again. It **does not return the money** —
+a charge is reverted where charges are reverted, in Finanzas, and this
+screen should not pretend it can do that from a clinical button.
 
 ## Multi-session treatments
 

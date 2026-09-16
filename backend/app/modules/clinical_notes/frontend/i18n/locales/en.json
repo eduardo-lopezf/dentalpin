@@ -54,7 +54,8 @@
     "composer": {
       "placeholder": "Write the note…",
       "templates": "Templates",
-      "bindToTooth": "Attach to tooth {n}"
+      "bindToTooth": "Attach to tooth {n}",
+      "attach": "Attach a photo or document"
     },
     "linked": {
       "tooth": "Tooth {n}",

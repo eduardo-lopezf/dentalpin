@@ -56,7 +56,18 @@ decision may branch on it.**
 ## The 44 px minimum
 
 Enforced centrally in `frontend/app/assets/css/main.css`, under
-`@media (pointer: coarse)`. You do not need to do anything per component:
+`@media (pointer: coarse)`, and checked by
+`frontend/tests/e2e/tablet-touch.spec.ts` over the routes listed there —
+including the **patient-facing budget page**, which is the one surface a
+patient touches on their own device and where a plan is accepted and
+signed. That test discovers the budget, its public token and the
+verification digits through the API rather than hardcoding them: the seed
+mints a fresh `public_token` on every run.
+
+Its cold states — rejected, expired, locked — are covered too. The last
+two are flags on the `meta` call, so the test answers that call
+differently instead of expiring or locking a real budget: a test should
+not leave a patient's record in a state it invented. You do not need to do anything per component:
 buttons, links, tabs, selects and text inputs get `min-height: 44px`, and
 icon-only controls get `min-width: 44px` too.
 
@@ -68,6 +79,28 @@ Two things to know about that block:
 - **Hover-revealed actions become visible.** The
   `opacity-0 group-hover:opacity-100` idiom is neutralised, because with
   no hover those actions are otherwise unreachable.
+
+### Checkboxes and radios carry their 44 px in a hit area
+
+Growing the box is wrong for a control whose size is part of its meaning:
+a checkbox that is 44 px square reads as a button. So
+`[role="checkbox"]` and `[role="radio"]` keep the box they draw and get
+the target from an absolutely-positioned `::after` with a negative inset.
+
+This is also a correction, not just a refinement. Nuxt UI renders a
+checkbox as `button[role="checkbox"]` with a `size-4` box and an
+indicator span, which meant the generic `button` rule stretched it to
+16×44 — a pill — while the icon-only `min-width` rule skipped it, because
+its test is "no non-empty span child" and the indicator holds the tick.
+
+**If you audit tap targets, measure the hit area, not the element.**
+`getBoundingClientRect()` on one of these returns 16×16 and says nothing
+about whether a finger reaches it; `tablet-touch.spec.ts` folds the
+`::after` inset back in before deciding.
+
+**And measure after the animation, not during it.** A dialog opens with a
+scale transform, so a 44px control measures 43 while it is still growing.
+That reads exactly like a real miss and is not one.
 
 ## Opting out: `data-dense`
 

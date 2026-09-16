@@ -290,6 +290,13 @@ class TestCoverage:
         "accounting_export",
         "cashbox",
         "catalog",
+        # Settlements with professionals. No patient column; `lines` is a
+        # frozen per-treatment snapshot (treatment id, session label,
+        # amounts) of what an associate was paid on. The patient's side of
+        # that money is exported and retained by `payments`
+        # (PatientEarnedEntry). Pinned by
+        # test_liquidations_stays_free_of_patient_data.
+        "liquidations",
         "professionals",
         "reports",
         "schedules",
@@ -320,6 +327,28 @@ class TestCoverage:
             "get_subject_contributors(), or add them to SILENT_BY_DESIGN with a "
             f"reason: {sorted(unexpected)}"
         )
+
+    def test_liquidations_stays_free_of_patient_data(self) -> None:
+        # `liquidations` is silent only because neither its tables nor the
+        # frozen `lines` snapshot name a patient. The day either does, it
+        # needs a privacy.py that exports those lines and states a
+        # retention_reason — settled figures must not be rewritten.
+        from app.modules.liquidations.models import Liquidation, ProfessionalCommission
+        from app.modules.liquidations.schemas import LiquidationLine
+
+        columns = {
+            column.name
+            for model in (Liquidation, ProfessionalCommission)
+            for column in model.__table__.columns
+        }
+        assert not {name for name in columns if "patient" in name}
+        assert set(LiquidationLine.model_fields) == {
+            "treatment_id",
+            "description",
+            "performed_at",
+            "earned",
+            "collected",
+        }
 
     def test_silence_list_has_no_stale_entries(self) -> None:
         from app.core.plugins.loader import discover_and_register

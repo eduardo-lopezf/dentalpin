@@ -196,7 +196,7 @@ function toggleCompare() {
             <button
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
-              :aria-label="t('actions.close', 'Cerrar')"
+              :aria-label="t('actions.close')"
               @click="close"
             >
               <UIcon
@@ -230,8 +230,8 @@ function toggleCompare() {
             <figure class="relative flex flex-col items-center">
               <span class="absolute top-2 left-2 z-10 rounded bg-primary px-2 py-0.5 text-[11px] font-semibold text-inverted shadow">
                 {{ current?.media_subtype === 'after'
-                  ? t('photoGallery.compare.after', 'Después')
-                  : t('photoGallery.compare.before', 'Antes') }}
+                  ? t('photoGallery.compare.after')
+                  : t('photoGallery.compare.before') }}
               </span>
               <img
                 v-if="blobUrl"
@@ -244,8 +244,8 @@ function toggleCompare() {
             <figure class="relative flex flex-col items-center">
               <span class="absolute top-2 left-2 z-10 rounded bg-primary px-2 py-0.5 text-[11px] font-semibold text-inverted shadow">
                 {{ partner?.media_subtype === 'before'
-                  ? t('photoGallery.compare.before', 'Antes')
-                  : t('photoGallery.compare.after', 'Después') }}
+                  ? t('photoGallery.compare.before')
+                  : t('photoGallery.compare.after') }}
               </span>
               <img
                 v-if="partnerBlobUrl"
@@ -303,20 +303,20 @@ function toggleCompare() {
           class="border-t border-white/10 bg-black/80 px-4 py-3"
         >
           <div class="mb-2 flex items-center justify-between text-xs text-white/80">
-            <span>{{ t('photoGallery.pair.pickHint', 'Elige la foto a emparejar:') }}</span>
+            <span>{{ t('photoGallery.pair.pickHint') }}</span>
             <button
               type="button"
               class="text-white/60 hover:text-white"
               @click="pickerOpen = false"
             >
-              {{ t('actions.cancel', 'Cancelar') }}
+              {{ t('actions.cancel') }}
             </button>
           </div>
           <div
             v-if="pairCandidates.length === 0"
             class="text-xs text-white/60"
           >
-            {{ t('photoGallery.pair.noCandidates', 'Sin fotos disponibles. Sube otra primero.') }}
+            {{ t('photoGallery.pair.noCandidates') }}
           </div>
           <div
             v-else
@@ -386,7 +386,7 @@ function toggleCompare() {
                   name="i-lucide-link"
                   class="h-3.5 w-3.5"
                 />
-                {{ partner?.title ?? t('photoGallery.pair.paired', 'Emparejada') }}
+                {{ partner?.title ?? t('photoGallery.pair.paired') }}
               </span>
               <button
                 type="button"
@@ -395,8 +395,8 @@ function toggleCompare() {
                 @click="toggleCompare"
               >
                 {{ comparing
-                  ? t('photoGallery.pair.exitCompare', 'Salir de la comparativa')
-                  : t('photoGallery.pair.compare', 'Comparar') }}
+                  ? t('photoGallery.pair.exitCompare')
+                  : t('photoGallery.pair.compare') }}
               </button>
               <button
                 type="button"
@@ -404,7 +404,7 @@ function toggleCompare() {
                 :disabled="pairBusy"
                 @click="handleUnpair"
               >
-                {{ t('photoGallery.pair.unpair', 'Quitar') }}
+                {{ t('photoGallery.pair.unpair') }}
               </button>
             </template>
             <button
@@ -418,7 +418,7 @@ function toggleCompare() {
                 name="i-lucide-link"
                 class="mr-1 inline h-3.5 w-3.5"
               />
-              {{ t('photoGallery.pair.pair', 'Emparejar antes/después') }}
+              {{ t('photoGallery.pair.pair') }}
             </button>
           </div>
         </div>

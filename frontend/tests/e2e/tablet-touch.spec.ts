@@ -81,6 +81,27 @@ async function countUndersizedTargets(page: Page): Promise<string[]> {
       '[role="slider"]'
     ].join(',')
 
+    /** A control's box, grown by a `::after` hit area when it has one. */
+    function expandedRect(el: Element): DOMRect {
+      const rect = el.getBoundingClientRect()
+      const after = getComputedStyle(el, '::after')
+      if (after.content !== '""' || after.position !== 'absolute') return rect
+      const px = (v: string) => {
+        const n = Number.parseFloat(v)
+        return Number.isFinite(n) ? n : 0
+      }
+      const sides = [after.top, after.right, after.bottom, after.left].map(px)
+      // Only an outward inset counts; a decorative offset is not a target.
+      if (sides.some(v => v > 0)) return rect
+      const [top, right, bottom, left] = sides
+      return new DOMRect(
+        rect.x + left,
+        rect.y + top,
+        rect.width - left - right,
+        rect.height - top - bottom
+      )
+    }
+
     // Named, not counted: "expected 0, received 1" says nothing about
     // which control is small, and the whole point of a failure here is to
     // go and resize that one control.
@@ -90,7 +111,12 @@ async function countUndersizedTargets(page: Page): Promise<string[]> {
       if (el.closest('#nuxt-devtools-anchor,#nuxt-devtools-container')) continue
       if (el.closest('[data-dense]')) continue
 
-      const rect = el.getBoundingClientRect()
+      // The box a control draws is not always the box a finger hits: a
+      // checkbox keeps its 16px square and carries the 44px in an
+      // absolutely-positioned `::after` (see main.css). Measuring the
+      // element alone would report every checkbox as undersized while the
+      // target is fine, so the pseudo element is folded in.
+      const rect = expandedRect(el)
       if (rect.width === 0 || rect.height === 0) continue
       if (rect.bottom < 0 || rect.top > window.innerHeight) continue
       if (rect.right < 0 || rect.left > window.innerWidth) continue
@@ -545,6 +571,370 @@ test.describe('touch adaptation', () => {
       await countUndersizedTargets(page),
       'undersized targets on the patient step'
     ).toEqual([])
+  })
+
+  /**
+   * The till, which is the only finance tab that is a working surface rather
+   * than a list.
+   *
+   * **Every assertion here is structural on purpose.** `seed-demo.sh` creates
+   * no till movements and no arqueos — it cannot, because a count is
+   * something a person does — so a test that expected a figure would pass on
+   * a developer's database and fail in CI. What is asserted instead is that
+   * the screen exists, that its controls are tappable, and that the one
+   * product rule the whole feature rests on holds with no data at all.
+   *
+   * `cashbox` is `auto_install=True`, so it is mounted wherever the suite
+   * runs. If that ever changes, this fails loudly on the first assertion
+   * rather than skipping quietly.
+   */
+  test('the till counts before it reveals what it expected', async ({ loggedIn: page }) => {
+    test.setTimeout(180_000)
+
+    await page.goto('/finanzas?tab=cashbox', {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+
+    // The tab is mounted through the `finance.tabs` slot, which registers
+    // client-side — so this is the assertion that catches a module that
+    // failed to mount, and it has to wait for hydration rather than assume.
+    await expect(page.getByRole('tab', { name: 'Caja' })).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByText('Arqueo de caja')).toBeVisible({ timeout: 60_000 })
+
+    // Counted on a day far older than anything the seed writes, rather than
+    // on today. A developer's database has real arqueos in it, and a day
+    // that happens to be counted already hides the button this test needs —
+    // failing locally while passing in CI, which is the least useful shape
+    // a failure can take. Nothing is ever counted on this date.
+    await page.locator('input[type="date"]').first().fill('2020-01-06')
+    await expect(page.getByRole('button', { name: 'Hacer el arqueo' })).toBeVisible({
+      timeout: 30_000
+    })
+
+    // **The rule.** Show somebody "you should have 4.350" and then ask them
+    // to count, and 4.350 is what they type: the difference reads zero every
+    // day and a year of counts says nothing. The workings are on screen from
+    // the start; the total they add up to appears only after a count.
+    await page.getByRole('button', { name: 'Hacer el arqueo' }).click()
+    const reveal = page.locator('.reveal')
+    await expect(reveal).toHaveCount(0)
+
+    await page.getByPlaceholder('Lo que hay en el cajón').fill('0')
+    await expect(reveal).toHaveCount(1)
+    await expect(reveal).toContainText('Esperado')
+
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets while counting the till'
+    ).toEqual([])
+  })
+
+  /**
+   * The till's movement form, which route audits never open.
+   *
+   * Same reasoning as the accept-in-clinic dialog above: a dialog's controls
+   * are invisible to a sweep of the page behind it, so the one surface
+   * reception types into every day would go unaudited.
+   */
+  test('the till movement form meets the 44 px minimum', async ({ loggedIn: page }) => {
+    test.setTimeout(180_000)
+
+    await page.goto('/finanzas?tab=cashbox', {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+
+    // Same old day, same reason: on a day this developer's database has
+    // already counted, the button is gone and the form cannot open.
+    await page.locator('input[type="date"]').first().fill('2020-01-06')
+    await page.getByRole('button', { name: 'Registrar movimiento' }).click()
+    await expect(page.getByText('Nuevo movimiento de caja')).toBeVisible({ timeout: 30_000 })
+    // Not a stray sleep: the modal animates in with a scale transform, and
+    // `getBoundingClientRect` mid-animation reports a 44 px control as 43.
+    // The same wait is in the accept-in-clinic test above, for the same
+    // reason — measuring a transform is measuring the animation.
+    await page.waitForTimeout(1000)
+
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets in the till movement form'
+    ).toEqual([])
+  })
+
+  /**
+   * A treatment row stopped carrying its own links.
+   *
+   * It used to hold five targets a finger apart — a note button, a recall
+   * button, a doctor chip, a tick and a bin — where the two that *open*
+   * something looked exactly like the two that *change the plan*. The row
+   * now keeps only what changes the plan; everything you open moved into a
+   * dialog the row opens.
+   */
+  test('a treatment row opens a dialog instead of carrying its own links', async ({
+    loggedIn: page
+  }) => {
+    test.setTimeout(180_000)
+
+    // Reached through the list so the test does not name a plan: seeded ids
+    // are not the ids of whatever database this runs against.
+    // `listado` is the tab that renders real links to each plan; the
+    // pipeline tabs are cards. The existing plan-detail audit reaches the
+    // detail the same way.
+    await page.goto('/treatments/plans?tab=listado', {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+    const firstRow = page.locator('main a[href*="/treatments/plans/"]').first()
+    await expect(firstRow).toBeVisible({ timeout: 60_000 })
+    const href = await firstRow.getAttribute('href')
+    expect(href, 'no plan to open').toBeTruthy()
+
+    await page.goto(href!, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+    await awaitDetection(page)
+    const row = page.locator('main .plan-item').first()
+    await expect(row).toBeVisible({ timeout: 60_000 })
+
+    // Gone from the row: the two contributed by sibling modules.
+    await expect(row.getByTitle('Programar recordatorio')).toHaveCount(0)
+    await expect(row.getByLabel(/Notas del tratamiento/)).toHaveCount(0)
+
+    await row.click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 30_000 })
+    // And present in the dialog, under a heading that says what they are.
+    await expect(dialog.getByText('Acciones')).toBeVisible()
+    await expect(dialog.getByLabel(/Notas del tratamiento/)).toBeVisible()
+
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets in the treatment dialog'
+    ).toEqual([])
+  })
+
+  /**
+   * Paid off, and therefore closed — derived from the ledger rather than
+   * stored, so a refund recorded in Finanzas un-closes it with no second
+   * write. Skipped rather than faked when the dataset has no such treatment:
+   * it needs completed work that has also been collected.
+   */
+  test('a treatment that is paid off reads as closed and can be reopened', async ({
+    loggedIn: page
+  }) => {
+    test.setTimeout(180_000)
+
+    await page.goto('/treatments/plans?tab=listado', {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+
+    const links = page.locator('main a[href*="/treatments/plans/"]')
+    await expect(links.first()).toBeVisible({ timeout: 60_000 })
+    const hrefs = await links.evaluateAll(els =>
+      els.map(el => (el as HTMLAnchorElement).getAttribute('href')).filter(Boolean)
+    )
+
+    for (const href of hrefs.slice(0, 10)) {
+      await page.goto(href!, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+      await awaitDetection(page)
+      await expect(page.locator('main')).toBeVisible()
+
+      // Completed treatments live behind an accordion labelled with a count.
+      const accordion = page.locator('main button', { hasText: /\(\d+\)/ }).first()
+      if (await accordion.count() === 0) continue
+      await accordion.click()
+      await page.waitForTimeout(800)
+
+      const closed = page.locator('main').getByText('Cerrado', { exact: true })
+      if (await closed.count() === 0) continue
+
+      // The badge sits inside the row, and the row is what opens the dialog.
+      await closed.first().click()
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible({ timeout: 30_000 })
+      await expect(dialog.getByText('Tratamiento cerrado')).toBeVisible()
+
+      const reopen = dialog.getByRole('button', { name: 'Reabrir' })
+      await expect(reopen).toBeVisible()
+      await reopen.click()
+      // Reopening changes what the dialog offers and nothing else — the
+      // actions come back, the money is untouched.
+      await expect(dialog.getByText('Acciones')).toBeVisible()
+      return
+    }
+
+    test.skip(true, 'no completed-and-collected treatment in this dataset')
+  })
+
+  /**
+   * The patient-facing budget page, which is the one surface here that a
+   * patient touches on their own phone or tablet — and the one this audit
+   * had never covered. It is where a treatment plan is accepted and signed,
+   * so an unreachable control there is not a papercut.
+   *
+   * Nothing is hardcoded: the seed mints a random `public_token` on every
+   * run, so a literal would pass locally and fail in CI. The token, the
+   * patient and the verification digits are all discovered through the API
+   * the logged-in session already has.
+   *
+   * Opening the page marks the budget as viewed — that is what the product
+   * does for any visit, and it is the only trace this test leaves. It never
+   * accepts or rejects: both are blocked at the network as well as unclicked.
+   */
+  test('the public budget page meets the 44 px minimum', async ({ loggedIn: page }) => {
+    test.setTimeout(180_000)
+
+    await page.route('**/public/budgets/*/accept', route => route.abort())
+    await page.route('**/public/budgets/*/reject', route => route.abort())
+
+    const apiBase = process.env.API_BASE_URL || 'http://localhost:8000'
+    const cookie = (await page.context().cookies()).find(c => c.name === 'access_token')
+    expect(cookie?.value, 'no access token on the session').toBeTruthy()
+    const headers = { Authorization: `Bearer ${cookie!.value}` }
+
+    const list = await page.request.get(
+      `${apiBase}/api/v1/budget/budgets?status=sent&page_size=1`,
+      { headers }
+    )
+    expect(list.ok(), 'budget list unavailable').toBeTruthy()
+    const row = (await list.json()).data?.[0]
+    if (!row) {
+      // A budget has to be *sent* to have a patient-facing page at all.
+      test.skip(true, 'no budget in sent status in this dataset')
+    }
+
+    const detail = await page.request.get(
+      `${apiBase}/api/v1/budget/budgets/${row.id}`,
+      { headers }
+    )
+    const publicToken = (await detail.json()).data?.public_token
+    expect(publicToken, 'sent budget without a public token').toBeTruthy()
+
+    const patient = await page.request.get(
+      `${apiBase}/api/v1/patients/${row.patient.id}`,
+      { headers }
+    )
+    const digits = String((await patient.json()).data?.phone ?? '').replace(/\D/g, '')
+    if (digits.length < 4) {
+      test.skip(true, 'patient has no phone to verify against')
+    }
+
+    // 1. The gate.
+    await page.goto(`/p/budget/${publicToken}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    const last4 = page.getByPlaceholder('1234')
+    await expect(last4).toBeVisible({ timeout: 60_000 })
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets on the budget verification gate'
+    ).toEqual([])
+
+    // 2. The budget itself.
+    await last4.fill(digits.slice(-4))
+    await page.getByRole('button', { name: 'Continuar' }).click()
+    await expect(page.getByRole('button', { name: 'Aceptar y firmar' }))
+      .toBeVisible({ timeout: 60_000 })
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets on the public budget'
+    ).toEqual([])
+
+    // 3. The signing dialog — the consent checkbox lives here, and it is
+    //    what gates the signature.
+    await page.getByRole('button', { name: 'Aceptar y firmar' }).click()
+    await expect(page.getByLabel('Tu nombre completo')).toBeVisible({ timeout: 30_000 })
+    // The dialog opens with a scale transform, and a 44px control measures
+    // 43 while it is still growing. Measure the layout, not the animation.
+    await page.waitForTimeout(1200)
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets in the accept-and-sign dialog'
+    ).toEqual([])
+  })
+
+  /**
+   * The budget page's cold states: rejected, expired, locked out.
+   *
+   * They are the screens a patient meets when something has gone wrong, so
+   * they are the ones nobody looks at — and the only control on them is the
+   * "call the clinic" button, which is the whole point of the screen.
+   *
+   * `expired` and `locked` are flags on the `meta` call, so they are
+   * produced by answering that one call differently. **No budget is
+   * altered to see them**: making a real one expire or locking a real link
+   * would leave a patient's record in a state this test invented.
+   */
+  test('the budget page cold states meet the 44 px minimum', async ({ loggedIn: page }) => {
+    test.setTimeout(180_000)
+
+    const apiBase = process.env.API_BASE_URL || 'http://localhost:8000'
+    const cookie = (await page.context().cookies()).find(c => c.name === 'access_token')
+    expect(cookie?.value, 'no access token on the session').toBeTruthy()
+    const headers = { Authorization: `Bearer ${cookie!.value}` }
+
+    /** The public token of the first budget in one of the given statuses. */
+    async function tokenFor(statuses: string[]): Promise<string | null> {
+      const query = statuses.map(s => `status=${s}`).join('&')
+      const list = await page.request.get(
+        `${apiBase}/api/v1/budget/budgets?${query}&page_size=1`,
+        { headers }
+      )
+      if (!list.ok()) return null
+      const row = (await list.json()).data?.[0]
+      if (!row) return null
+      const detail = await page.request.get(`${apiBase}/api/v1/budget/budgets/${row.id}`, { headers })
+      return (await detail.json()).data?.public_token ?? null
+    }
+
+    // Rejected is a real state of a real budget; nothing to simulate.
+    const rejected = await tokenFor(['rejected'])
+    if (rejected) {
+      await page.goto(`/p/budget/${rejected}`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 120_000
+      })
+      await expect(page.getByText('Llamar a la clínica'))
+        .toBeVisible({ timeout: 60_000 })
+      expect(
+        await countUndersizedTargets(page),
+        'undersized targets on a rejected budget'
+      ).toEqual([])
+    }
+
+    const anyToken = rejected ?? await tokenFor(['sent', 'accepted', 'completed'])
+    if (!anyToken) {
+      test.skip(true, 'no budget with a public link in this dataset')
+    }
+
+    for (const flag of ['expired', 'locked'] as const) {
+      await page.route('**/public/budgets/*/meta', async (route) => {
+        const response = await route.fetch()
+        const body = await response.json()
+        // `requires_verification` off as well: a cold state never asks the
+        // patient to prove who they are first.
+        body.data = { ...body.data, [flag]: true, requires_verification: false }
+        await route.fulfill({ response, json: body })
+      })
+
+      await page.goto(`/p/budget/${anyToken}`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 120_000
+      })
+      await expect(page.getByText('Llamar a la clínica'))
+        .toBeVisible({ timeout: 60_000 })
+      expect(
+        await countUndersizedTargets(page),
+        `undersized targets on a ${flag} budget`
+      ).toEqual([])
+
+      await page.unroute('**/public/budgets/*/meta')
+    }
   })
 
   /**

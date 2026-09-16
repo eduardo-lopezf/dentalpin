@@ -66,8 +66,10 @@ fondo.
    número.
 4. **Fecha**: el día al que pertenece. Viene puesto el día que estás
    viendo.
-5. **Categoría**: Laboratorio, Material, Adelanto, Depósito a banco,
-   Ajuste de fondo u Otro. La lista es corta a propósito para que nadie
+5. **Categoría**: Laboratorio, Material, Adelanto, Pago a profesional,
+   Depósito a banco, Ajuste de fondo u Otro. *Pago a profesional* la
+   escribe sola la pestaña Liquidaciones al pagar a un asociado en
+   efectivo, y esas filas no se editan aquí. La lista es corta a propósito para que nadie
    tenga que pensar en el mostrador; el detalle va en el concepto.
 6. **Concepto**, obligatorio. Es lo que hará entendible la fila dentro de
    tres meses: «guantes de nitrilo, farmacia de la esquina» dice algo que

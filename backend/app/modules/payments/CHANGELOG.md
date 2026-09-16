@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- feat(payments): nuevo `PlanItemCollectButton` en el slot
+  `treatment_plan.item.collect` — «Cobrar» para un tratamiento concreto,
+  ofrecido dentro de su ficha en el plan y justo después de marcarlo hecho,
+  en vez de mandar a recepción a Finanzas.
+
+  **Lo que hace de verdad, dicho en el propio componente:** un pago no se
+  puede atar a un tratamiento. Las imputaciones apuntan a un presupuesto o
+  a la cuenta del paciente, y las cifras por tratamiento que enseña el plan
+  son una derivación FIFO sobre lo ejecutado. Así que el botón abre el
+  modal de cobro de siempre con el importe pendiente de ese tratamiento ya
+  puesto, y el dinero cae en el presupuesto y salda lo más antiguo. Llamarlo
+  «cobrar este tratamiento» en la interfaz sería una promesa que el libro
+  no cumple.
+
+  El importe va **relleno**, no solo sugerido. La tarjeta del plan entero usa
+  `suggested-amount` porque allí la cifra es todo lo que debe el paciente y
+  teclearla es una decisión; aquí es el pendiente exacto de un tratamiento, y
+  dejarlo en blanco costaba un toque en «usar este importe» sin ganar ningún
+  criterio. Se vio probando el flujo entero: el botón de enviar decía
+  «Registrar» en vez de «Cobrar 60,00 MXN».
+
+
 - fix(payments): las etiquetas del eje del gráfico de tendencia nombraban la
   víspera. `bucket_start` llega como `YYYY-MM-DD` —un día que el backend ya
   resolvió en el calendario de la clínica, no un instante— y `new Date()` lo

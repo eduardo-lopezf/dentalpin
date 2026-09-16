@@ -78,6 +78,7 @@ verifactu = "app.modules.verifactu:VerifactuModule"
 migration_import = "app.modules.migration_import:MigrationImportModule"
 copilot = "app.modules.copilot:CopilotModule"
 cashbox = "app.modules.cashbox:CashboxModule"
+liquidations = "app.modules.liquidations:LiquidationsModule"
 
 [tool.setuptools.packages.find]
 where = ["."]

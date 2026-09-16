@@ -18,12 +18,12 @@ const { photos, total, loading, fetchPhotos } = usePhotos()
 const canWrite = computed(() => can(PERMISSIONS.documents.write))
 
 const categories: Array<{ key: 'all' | MediaCategory, label: string }> = [
-  { key: 'all', label: t('photoGallery.cat.all', 'All') },
-  { key: 'intraoral', label: t('photoGallery.cat.intraoral', 'Intraoral') },
-  { key: 'extraoral', label: t('photoGallery.cat.extraoral', 'Extraoral') },
-  { key: 'xray', label: t('photoGallery.cat.xray', 'X-ray') },
-  { key: 'clinical', label: t('photoGallery.cat.clinical', 'Before/After') },
-  { key: 'other', label: t('photoGallery.cat.other', 'Other') }
+  { key: 'all', label: t('photoGallery.cat.all') },
+  { key: 'intraoral', label: t('photoGallery.cat.intraoral') },
+  { key: 'extraoral', label: t('photoGallery.cat.extraoral') },
+  { key: 'xray', label: t('photoGallery.cat.xray') },
+  { key: 'clinical', label: t('photoGallery.cat.clinical') },
+  { key: 'other', label: t('photoGallery.cat.other') }
 ]
 
 const activeCategory = ref<'all' | MediaCategory>('all')
@@ -64,7 +64,7 @@ function handleUploaded() {
     <!-- Header -->
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h3 class="text-lg font-semibold">
-        {{ t('photoGallery.title', 'Patient gallery') }}
+        {{ t('photoGallery.title') }}
       </h3>
       <UButton
         v-if="canWrite && mode === 'browse'"
@@ -72,7 +72,7 @@ function handleUploaded() {
         size="sm"
         @click="showUpload = true"
       >
-        {{ t('photoGallery.add', 'Add photo') }}
+        {{ t('photoGallery.add') }}
       </UButton>
     </div>
 
@@ -112,7 +112,7 @@ function handleUploaded() {
         class="mx-auto h-10 w-10"
       />
       <p class="mt-2 text-sm">
-        {{ t('photoGallery.empty', 'No photos yet') }}
+        {{ t('photoGallery.empty') }}
       </p>
       <UButton
         v-if="canWrite && mode === 'browse'"
@@ -121,7 +121,7 @@ function handleUploaded() {
         class="mt-3"
         @click="showUpload = true"
       >
-        {{ t('photoGallery.uploadFirst', 'Upload the first one') }}
+        {{ t('photoGallery.uploadFirst') }}
       </UButton>
     </div>
 
@@ -143,7 +143,7 @@ function handleUploaded() {
       v-if="total > photos.length"
       class="text-xs text-muted"
     >
-      {{ t('photoGallery.showingOf', `Showing ${photos.length} of ${total}`) }}
+      {{ t('photoGallery.showingOf', { count: photos.length, total }) }}
     </p>
 
     <!-- Upload modal -->
@@ -162,10 +162,10 @@ function handleUploaded() {
             </div>
             <div class="flex-1">
               <h3 class="text-base font-semibold leading-tight">
-                {{ t('photoGallery.upload', 'Subir foto') }}
+                {{ t('photoGallery.upload') }}
               </h3>
               <p class="text-xs text-muted">
-                {{ t('photoGallery.uploadHelp', 'Clasifica para que aparezca en la categoría correcta') }}
+                {{ t('photoGallery.uploadHelp') }}
               </p>
             </div>
             <UButton

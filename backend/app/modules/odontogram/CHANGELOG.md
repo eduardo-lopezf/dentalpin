@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- fix(a11y/i18n): el botón flotante de notas del modo diagnóstico —el que
+  abre el panel lateral en pantallas estrechas— decía «Notas» a los lectores
+  de pantalla, y esa clave no existía: estaba escondida tras el valor por
+  defecto de `t()` (27 avisos de intlify en el log). Ahora usa
+  `clinical.diagnosis.openNotes`, nueva en es y en, y dice **«Abrir notas
+  clínicas»**: es lo único que describe un botón que solo tiene icono.
+
 - feat(odontogram): `OdontogramChart` avisa hacia arriba cuando un clic cae
   sobre un diente estando en `view-only`. Hasta ahora se tragaba el clic en
   silencio, que es exactamente lo que parece un odontograma roto: la chapa

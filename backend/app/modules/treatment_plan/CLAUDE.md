@@ -105,6 +105,13 @@ since issue #60.
 - `treatment_plan.detail.sidebar` — rendered by `PlanDetailView.vue` above
   the treatment list. `payments` registers the collections card there. Slot
   ctx: `{ planId, patientId, patientName, budgetId, planStatus }`.
+- `treatment_plan.item.collect` — one treatment's "Cobrar", rendered inside
+  `PlanItemDetailModal` and in the prompt that follows completion.
+  `payments` registers the button. Slot ctx: `{ patientId, patientName,
+  budgetId, amount, label?, block?, variant?, onCollected? }`. **The
+  callback is in the ctx on purpose**: `ModuleSlot` renders a slot
+  component without forwarding its events, so the ctx is the whole contract
+  in both directions.
 
 ## Events emitted
 
@@ -301,6 +308,20 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   one-off pass for visits that predate the attendance rule; it is dry-run
   by default. The live path covers both since completion routes through
   `_sync_plan_lifecycle`.
+- **A plan item's "closed" is derived, never stored.** Completed **and**
+  nothing left to charge (`pending <= 0` from
+  `payments/summary/by-treatments`). Storing it would give the ledger a
+  second opinion about the same money; deriving it means a refund recorded
+  in Finanzas un-closes the treatment with no second write. No `payments`
+  read means no badge — "nothing pending" and "we cannot see the money" are
+  different claims.
+- **"Reabrir" unlocks the dialog's actions and nothing else.** It does not
+  set the item back to `pending`, and it does not refund. Un-completing
+  would strand the `PatientEarnedEntry` that `on_session_completed` booked:
+  money the patient still appears to owe for work the plan no longer counts
+  as done, and `payments` has no handler that reverses it. Doing it
+  properly needs a reversal event consumed there; until then the button
+  does not promise what the ledger would not honour.
 - **Reopening is narrower than `plans.write`.** It throws away a budget the
   patient may already have seen, so the endpoint also asks `stewards_of`:
   an administrator, or a professional assigned to the plan or to any of its

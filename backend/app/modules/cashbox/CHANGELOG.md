@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+- test(cashbox): una prueba de navegador que **recorre la caja entera** y
+  comprueba las cifras. El backend cubre cada regla por separado, pero
+  nadie comprobaba la juntura: que lo que se teclea en la pestaña llega
+  intacto al servicio, que las dos mitades no se netean por el camino, y
+  que el efectivo esperado que suma `CashClosingCard` en el navegador
+  coincide con el que guarda `ClosingService`. Viven en tres sitios
+  distintos y cualquiera podía separarse de los otros sin que fallara una
+  sola prueba de backend.
+
+  **Se fabrica su propio día.** `seed-demo.sh` no escribe movimientos ni
+  arqueos —no puede, un conteo lo hace una persona—, que es justo por lo
+  que la auditoría táctil no afirma ninguna cifra. Aquí las cifras son el
+  asunto, así que las crea ella; una prueba apoyada en lo que hubiera en
+  la base de un desarrollador pasaría en local y fallaría en CI, y eso ya
+  ha pasado aquí.
+
+  Cuenta sobre un día reservado de 2019 y lo deja como lo encontró
+  reabriéndolo antes de empezar: un día cerrado esconde el botón que la
+  siguiente ejecución necesita.
+
+- feat(cashbox): categoría **`professional_payout`** y la regla que la
+  protege. `liquidations` escribe estas filas al pagar una liquidación en
+  efectivo, y son distintas de `advance` a propósito: un adelanto se
+  descuenta después y una liquidación ya es el pago.
+
+  Editar o borrar una fila de esa categoría **desde Caja se rechaza**. La
+  comprobación lee la categoría y no le pregunta nada a `liquidations` —
+  este módulo no sabe lo que es una liquidación y no debe empezar a
+  saberlo. Borrar ya era imposible por la clave ajena, pero llegaba como un
+  500 en vez de una explicación; editar era peor, porque funcionaba y dejaba
+  a la liquidación afirmando un importe que la caja nunca movió. La salida
+  es deshacer el pago desde la liquidación, y el mensaje lo dice.
+
 - feat(cashbox): los **apuntes posteriores al corte**. Recepción registra el
   efectivo del viernes el lunes y el viernes ya estaba contado. Prohibir la
   retrodatación solo consigue que lo apunten con fecha de hoy y mientan, así

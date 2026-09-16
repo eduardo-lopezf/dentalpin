@@ -121,6 +121,7 @@ class MovementService:
         if movement is None:
             return None
         MovementService._refuse_if_closed(movement)
+        MovementService._refuse_if_payout(movement)
         for field, value in data.items():
             setattr(movement, field, value)
         await db.flush()
@@ -132,6 +133,7 @@ class MovementService:
         if movement is None:
             return False
         MovementService._refuse_if_closed(movement)
+        MovementService._refuse_if_payout(movement)
         # Hard delete, deliberately. This is not patient data and an open
         # day has no accounting weight yet — a mistyped row the same
         # minute it was typed should leave nothing behind. Everything that
@@ -140,6 +142,24 @@ class MovementService:
         await db.delete(movement)
         await db.flush()
         return True
+
+    @staticmethod
+    def _refuse_if_payout(movement: CashMovement) -> None:
+        """A settlement payout is edited where it was created, not here.
+
+        `liquidations` writes these and points a foreign key at them, so a
+        delete from this side is refused by the database with an integrity
+        error and a 500 — and an *edit* is worse, because it succeeds and
+        leaves a settlement claiming it paid an amount the till never moved.
+
+        The check reads the category rather than asking `liquidations`:
+        this module knows nothing about that one and must not start to.
+        """
+        if movement.category == "professional_payout":
+            raise CashboxError(
+                "This movement is the payout of a settlement. Undo the payment "
+                "from the settlement itself, which removes this row with it."
+            )
 
     @staticmethod
     def _refuse_if_closed(movement: CashMovement) -> None:

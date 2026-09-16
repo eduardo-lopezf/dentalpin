@@ -39,6 +39,12 @@ MOVEMENT_CATEGORIES = [
     "lab",  # pagado al mensajero del laboratorio
     "supplies",  # material comprado con dinero del cajón
     "advance",  # adelanto o préstamo a alguien de la clínica
+    # Pago de una liquidación a un asociado. Distinta de `advance` a
+    # propósito: un adelanto se descuenta después y una liquidación ya es el
+    # pago, y un informe que no las separa no sirve para ninguna de las dos.
+    # `liquidations` escribe la fila; la categoría vive aquí porque es esta
+    # tabla la que tiene que poder agruparla.
+    "professional_payout",
     "bank_deposit",  # sale del cajón hacia el banco
     "float_adjustment",  # se mete o se saca cambio del fondo
     "other",

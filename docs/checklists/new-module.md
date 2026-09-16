@@ -29,7 +29,18 @@ For deeper rationale on any line, follow the link.
 
 - [ ] Migrations live in `backend/app/modules/<name>/migrations/versions/`
 - [ ] First migration of the module sets `branch_labels = ("<name>",)`
-- [ ] No revision threads through another module's chain (uninstall safety, issue #56 — see ADR 0002)
+- [ ] **The branch is added to `version_locations` in `backend/alembic.ini`.**
+      `discover_version_locations` finds it at runtime, so the app boots and
+      migrates fine — but the Alembic CLI does not run `env.py` for `heads`,
+      `history` or `show`, and reads the static list from the ini instead.
+      Skip this and `alembic heads` reports your brand-new revision as
+      missing while everything else works, which is a confusing half hour.
+- [ ] No revision threads through another module's chain (uninstall safety, issue #56 — see ADR 0002).
+      When a cross-module FK forces an ordering, declare it with
+      `depends_on = ("<other module>",)` — **not** by hanging `down_revision`
+      off that module's head, which merges the two branches and drags yours
+      into `alembic downgrade <other>@base`. Check with `alembic heads`: your
+      revision should print one label, not two.
 - [ ] Cross-module FKs only against modules in `manifest.depends`
 - [ ] `alembic upgrade heads` works clean from base
 

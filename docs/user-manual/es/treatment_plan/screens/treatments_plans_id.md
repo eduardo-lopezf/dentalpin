@@ -152,6 +152,14 @@ pasó.
   plan está en *pendiente* esperando aceptación.
 - **Notas clínicas.** Pueden engancharse al plan desde el módulo
   `clinical_notes` (slot `patient.detail.clinical.notes`).
+- **Ficha del tratamiento.** Toca el recuadro de un tratamiento y se
+  abre su ventana: profesional, precio, dientes, sesiones y el estado
+  del dinero (ejecutado, cobrado, pendiente). Ahí están las tres
+  acciones que antes eran iconos sueltos en la fila — **añadir nota**,
+  **programar recordatorio** y **cobrar** — bajo el epígrafe
+  *Acciones*. La fila se queda solo con lo que cambia el plan
+  (completar, quitar), que es lo que evita confundir «abrir algo» con
+  «cambiar el plan» a un dedo de distancia.
 
 ## Confirmar un plan
 
@@ -166,15 +174,36 @@ pasó.
 
 > Requiere `treatment_plan.plans.write`.
 
-1. En el ítem, pulsa **Marcar como hecho**.
+1. En el ítem, pulsa el ✓ de la fila o **Marcar como completado**
+   dentro de su ventana.
 2. Se publica `treatment_plan.treatment_completed`. `recalls` puede
    sugerir un próximo recall basado en `treatment_category_key`.
-3. Para anotar una nota clínica en ese momento, usa el botón de
-   *Añadir nota* (lo aporta `clinical_notes`).
+3. Acto seguido la aplicación pregunta **si cobras ahora o lo dejas
+   pendiente**. Es el momento más barato para cobrar —el paciente
+   sigue en el sillón— pero *dejar pendiente* es una respuesta tan
+   válida como la otra: una clínica que factura a fin de mes lo hace
+   todos los días, y el importe queda igualmente en «pendiente de
+   cobrar».
+4. Para anotar una nota clínica, ábrela desde la ventana del
+   tratamiento (*Acciones → Añadir nota*, lo aporta `clinical_notes`).
 
 **Quitar un ítem del plan** (icono de papelera en la fila) pide
 confirmación: la baja arrastra el tratamiento del odontograma y la
 línea de presupuesto asociada.
+
+## Tratamiento cerrado, y cómo reabrirlo
+
+Un tratamiento aparece como **Cerrado** cuando está completado **y** no
+queda nada por cobrar de él. No es un estado que se guarde: se deduce
+del dinero, así que no puede desincronizarse del libro. Registra una
+devolución en Finanzas y el tratamiento deja de estar cerrado solo, sin
+que nadie tenga que acordarse de tocarlo.
+
+**Reabrir** (en la ventana del tratamiento) desbloquea las acciones ahí
+mismo: vuelves a poder añadir una nota o programar un recordatorio.
+**No devuelve el dinero** — un cobro se revierte donde se revierten los
+cobros, en Finanzas, y esta pantalla no debería fingir que puede
+hacerlo desde un botón clínico.
 
 ## Tratamientos en varias sesiones
 

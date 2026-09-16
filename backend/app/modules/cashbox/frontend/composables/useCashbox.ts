@@ -16,6 +16,7 @@ export type MovementCategory
   = | 'lab'
     | 'supplies'
     | 'advance'
+    | 'professional_payout'
     | 'bank_deposit'
     | 'float_adjustment'
     | 'other'

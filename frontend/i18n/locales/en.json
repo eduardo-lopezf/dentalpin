@@ -105,7 +105,9 @@
     "save": "Save",
     "create": "Create",
     "delete": "Delete",
-    "close": "Close"
+    "close": "Close",
+    "change": "Change",
+    "remove": "Remove"
   },
   "patients": {
     "title": "Patients",
@@ -400,7 +402,8 @@
       "budgets": "Budgets",
       "billing": "Billing",
       "payments": "Payments",
-      "documents": "Documents"
+      "documents": "Documents",
+      "gallery": "Gallery"
     },
     "historyPlaceholder": "Clinical notes available in future version",
     "noAppointments": "This patient has no appointments",
@@ -742,7 +745,8 @@
       "continuePlan": "Continue Plan \"{name}\"",
       "selectPlan": "Select plan",
       "continue": "Continue",
-      "odontogramTab": "Odontogram"
+      "odontogramTab": "Odontogram",
+      "openNotes": "Open clinical notes"
     },
     "plans": {
       "title": "Treatment Plans",
@@ -771,7 +775,8 @@
         "cancel": "Cancel session",
         "markedDone": "Session marked done",
         "cancelled": "Session cancelled",
-        "untitled": "Session {n}"
+        "untitled": "Session {n}",
+        "title": "Sessions"
       },
       "unknownTreatment": "Treatment",
       "odontogram": "Odontogram",
@@ -867,7 +872,10 @@
         "collected": "Collected",
         "pending": "To collect",
         "partial": "{amount} left",
-        "phasePending": "{amount} to collect"
+        "phasePending": "{amount} to collect",
+        "earned": "Earned",
+        "collectedLabel": "Collected",
+        "pendingLabel": "Pending"
       },
       "draft": {
         "chartHelp": "Tap a tooth to add a treatment. The patient comes afterwards.",
@@ -906,6 +914,23 @@
           "newPatient": "Enter the patient's first and last name.",
           "needsTeeth": "Say which tooth these go on: {names}."
         }
+      },
+      "item": {
+        "open": "Open {name}",
+        "pending": "Pending",
+        "closed": "Closed",
+        "closedTitle": "Treatment closed",
+        "closedHint": "It is completed and paid for. To undo the charge, record the refund in Finanzas; the treatment stops being closed once you do. “Reopen” only unlocks the actions here — it does not touch the money.",
+        "reopen": "Reopen",
+        "teeth": "Tooth {teeth}",
+        "price": "Price",
+        "collect": "Charge",
+        "collectNow": "Charge now",
+        "leavePending": "Leave pending",
+        "completedTitle": "Treatment completed",
+        "collectPrompt": "{amount} is still outstanding on this treatment. You can charge it now or leave it pending.",
+        "collectPromptNoAmount": "Nothing is outstanding on this treatment.",
+        "actions": "Actions"
       }
     },
     "tooth": "Tooth"
@@ -1059,7 +1084,9 @@
     },
     "confirms": {
       "cancel": "Cancel this appointment? The patient is notified according to your notification settings."
-    }
+    },
+    "previousDay": "Previous day",
+    "nextDay": "Next day"
   },
   "dashboard": {
     "greetings": {
@@ -1456,7 +1483,16 @@
     "copy": "Copy",
     "copyFailed": "Could not copy",
     "default": "Default",
-    "treatment": "Treatment"
+    "treatment": "Treatment",
+    "optional": "Optional",
+    "upload": "Upload",
+    "uploading": "Uploading…",
+    "download": "Download",
+    "view": "View",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "more": "more",
+    "status": "Status"
   },
   "cabinet": {
     "toast": {
@@ -2519,6 +2555,13 @@
         "save_failed": "Error saving SMTP settings",
         "test_failed": "Error testing SMTP connection"
       }
+    },
+    "conversation": {
+      "title": "Conversation",
+      "empty": "No messages yet.",
+      "placeholder": "Write a message…",
+      "replyError": "The message could not be sent",
+      "windowClosed": "The 24-hour free-reply window is closed, or the channel is unavailable."
     }
   },
   "invoice": {
@@ -2633,7 +2676,8 @@
       "partial": "Partially paid",
       "paid": "Paid",
       "cancelled": "Cancelled",
-      "voided": "Voided"
+      "voided": "Voided",
+      "title": "Status"
     },
     "actions": {
       "issue": "Issue invoice",

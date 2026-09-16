@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- fix(a11y/i18n): las flechas del navegador de fechas dicen ahora **qué
+  hacen**. Eran iconos sin texto con `aria-label="Anterior"` y
+  `"Siguiente"`, que a un lector de pantalla no le dice si mueve un día o
+  una semana — y esas dos claves no existían en ningún idioma: estaban
+  escondidas tras el segundo argumento de `t(clave, 'por defecto')`, así
+  que la interfaz se veía bien mientras intlify avisaba en cada render
+  (231 y 125 veces en el log del contenedor).
+
+  En vista semanal reutilizan `appointments.prevWeek` / `nextWeek`, que ya
+  existían; en día y kanban usan `previousDay` / `nextDay`, nuevas en es y
+  en. Comprobado en los tres modos: «Semana anterior/siguiente», «Día
+  anterior/siguiente», y ninguna advertencia durante la ejecución.
+
 - fix(ui): en vertical, la vista de Día se salía por la derecha. La rejilla
   exigía 200 px por profesional (`200 x N + 80`), así que una clínica con
   cinco pedía 1080 px contra los ~620 que tiene una tablet en vertical: casi

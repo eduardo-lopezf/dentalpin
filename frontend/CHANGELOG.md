@@ -1,6 +1,152 @@
 # Changelog — frontend
 
 ## Unreleased
+- test(a11y/touch): la auditoría cubre también los **estados fríos** del
+  presupuesto público —rechazado, caducado y bloqueado por intentos—, que
+  son los que ve un paciente cuando algo ha salido mal y por eso los que
+  nadie mira. Su único control es el «Llamar a la clínica», que es
+  justamente lo que la pantalla existe para ofrecer.
+
+  *Caducado* y *bloqueado* son banderas de la llamada `meta`, así que se
+  producen respondiendo esa llamada de otra forma. **No se altera ningún
+  presupuesto para verlos**: caducar uno real o bloquear un enlace real
+  dejaría la ficha de un paciente en un estado que se inventó un test.
+
+- test(a11y/touch): la **página pública del presupuesto** entra en la
+  auditoría táctil, en sus tres estados: la verificación, el presupuesto y
+  el diálogo de *Aceptar y firmar*. Es la única superficie que toca un
+  paciente en su propio dispositivo y donde se acepta y se firma un plan, y
+  era justo la que no se auditaba — por eso la casilla de 16 px llevaba
+  tiempo ahí.
+
+  Nada va escrito a mano: el seed genera un `public_token` nuevo en cada
+  siembra, así que el test descubre presupuesto, token y dígitos de
+  verificación por la API con la sesión que ya tiene. Nunca acepta ni
+  rechaza: ambas peticiones están bloqueadas además de no pulsarse. Deja una
+  única huella, marcar el presupuesto como visto, que es lo que hace el
+  producto ante cualquier visita.
+
+- fix(a11y/touch): las casillas de Nuxt UI eran un blanco de **16 px** en
+  tablet, y se dibujaban como píldoras altas.
+
+  Nuxt UI no renderiza un `input`: renderiza `button[role="checkbox"]` con
+  una caja `size-4` y un `<span>` indicador dentro. Eso las metía en la
+  regla genérica de botones —44 px de alto, ancho intacto: una píldora de
+  16×44, visible como cápsulas azules en la columna *Visible* del
+  catálogo— y a la vez las dejaba fuera de la regla de ancho para botones
+  de solo icono, cuya prueba es «ningún `<span>` hijo con contenido»: el
+  indicador lleva el tick, así que la casilla se leía como un botón con
+  etiqueta.
+
+  Ahora la caja vuelve al tamaño que dibuja y los 44 px salen de un área
+  de toque en `::after` que no ocupa maquetación. Hace falta
+  `overflow: visible` porque el control trae `overflow: hidden`, que
+  recortaría el pseudoelemento; lo que recortaba era el indicador, del
+  mismo tamaño que su caja, así que solo cambian las esquinas de 2 px y
+  solo en táctil.
+
+  Salió probando el *aceptar y firmar* del presupuesto público: la casilla
+  de consentimiento —el control que habilita la firma— medía 16 px de
+  ancho. Ahí el efecto era menor porque su etiqueta larga también alterna
+  la casilla; donde de verdad dolía es en las casillas **sin etiqueta**,
+  como las del catálogo.
+
+- fix(tests): la auditoría táctil medía la caja del control, no el área
+  que toca un dedo, así que habría marcado cada casilla como 16×16 en
+  cuanto una apareciera en una ruta auditada. Ahora suma el `::after`
+  cuando es un área de toque absoluta hacia fuera. Comprobado: 16×16 de
+  caja, 44×44 de objetivo.
+
+- fix(a11y): `SettingsLayout` abría un segundo `<main>` dentro del que ya
+  abre el layout por defecto. Era el tercero de tres sitios con el mismo
+  defecto —los otros dos, en `patients` y en `budget`— y el mismo arreglo:
+  pasa a `<div>`. El rail de categorías sigue siendo un `<aside>`, así que
+  la estructura de landmarks queda en un `main` por documento.
+
+- fix(e2e): el **flake de arranque en frío del periodontograma**. Verde en
+  un servidor caliente, rojo en la primera ejecución tras un reinicio —que
+  es justo lo que hace CI—. La sonda que decidía si el parámetro de la URL
+  había cambiado de pestaña preguntaba `isVisible()` en el instante en que
+  la URL se asentaba, pero `domcontentloaded` salta mientras el servidor de
+  desarrollo todavía compila los chunks de la vista clínica: leía «aún no
+  hidratado» como «el parámetro no funcionó» y se lanzaba a pulsar botones
+  de una página que no estaba lista, hasta agotar el tiempo esperando una
+  pestaña que iba a aparecer igualmente.
+
+  Ahora espera antes de decidir, y solo recurre a pulsar si de verdad no
+  llega. El fichero además no subía el tope de 30 s por test —el resto de
+  specs que abren rutas en frío reservan 120 s— y la ruta tarda ~78 s en
+  compilarse la primera vez, así que agotaba el tiempo por sí solo.
+- fix(auth): **un render de servidor gastaba un token de refresco y
+  presentaba otros tres.** La rotación con detección de reutilización
+  (ADR 0029) revoca la familia entera en cuanto ve un token ya gastado, y
+  sin ventana de gracia — que es la regla correcta. Lo que estaba mal era
+  que la aplicación lo presentaba varias veces ella sola.
+
+  El dedupe del refresco era **solo de cliente**, a propósito: «en el
+  servidor los refrescos son por petición y no necesitan dedupe». No es
+  cierto. Un render dispara en paralelo el middleware de auth,
+  `useClinic`, `useModules` y los fetch de la página; todos se encontraban
+  el mismo access token caducado y cada uno llamaba a `refresh()`:
+
+      1 x POST /auth/refresh -> 200   (rota el token)
+      3 x POST /auth/refresh -> 401   reutilización -> familia revocada
+      3 x POST /auth/logout  -> 204   cada fallo cerraba la sesión otra vez
+
+  Y la respuesta devolvía `refresh_token=; Max-Age=0`: el render había
+  gastado el token bueno y le entregaba al navegador un borrado en su
+  lugar. Lo que se veía era un parpadeo de la pantalla de login y una
+  sesión que seguía funcionando hasta quince minutos más — revocar una
+  familia deja `token_version` intacto a propósito, así que el access
+  token la sobrevive. Cuál de las cuatro escrituras de cookie quedaba la
+  última no era determinista, y de ahí que unas veces echase a login y
+  otras no.
+
+  Tres arreglos, y el segundo es el que no era evidente:
+
+  - **El dedupe existe también en SSR**, sobre el contexto de la petición
+    —compartido por todo el render y nunca serializado—. Un `useState` no
+    vale: una promesa ahí rompe el payload.
+  - **Se recuerda el token ya canjeado.** La promesa compartida solo cubre
+    a quien llega a la vez; `useCookie` le da a cada instancia su *propia*
+    ref, así que una instancia creada antes del canje seguía con el token
+    gastado y lo volvía a presentar. Ahora lo reconoce, adopta el par
+    recién emitido y responde con el resultado en vez de repetir el canje.
+  - **Un refresco fallido ya no llama a `logout()` dos veces.** `refresh()`
+    es el único dueño del cierre de sesión; `useApi` y `fetchUser` ya no
+    revocan por su cuenta una familia que ya estaba revocada.
+
+  Además, un 401 del `/auth/me` posterior al refresco ya no cierra la
+  sesión: a esas alturas el canje ya salió bien.
+
+  Un render con el access token caducado pasa de `1x200 + 3x401` a
+  **un solo refresco 200**, sin logout, y con los reintentos en 200.
+- test(e2e): la pestaña **Caja** entra en la auditoría táctil, con dos
+  pruebas: los controles del formulario de movimiento y —la que importa— que
+  el arqueo **no enseña el esperado hasta que se escribe el conteo**. Esa es
+  la decisión de producto sobre la que se sostiene toda la función y hasta
+  ahora no la sujetaba nada.
+
+  Las dos afirman **sólo estructura**, a propósito: `seed-demo.sh` no crea
+  movimientos ni arqueos —no puede, un conteo lo hace una persona— así que
+  una prueba que esperase una cifra pasaría en la base de un desarrollador y
+  fallaría en CI.
+
+  Y las dos trabajan sobre un **día muy anterior a cualquier cosa que siembre
+  la semilla** en lugar de sobre hoy. La base de un desarrollador tiene
+  arqueos de verdad, y un día ya contado esconde el botón que la prueba
+  necesita: fallaría en local y pasaría en CI, que es la forma menos útil que
+  puede tomar un fallo.
+
+  De paso, la segunda esperaba a que el modal terminase de animar antes de
+  medir. `getBoundingClientRect` a mitad del `scale` de entrada devuelve 43 px
+  para un control de 44, y once controles salían como infradimensionados sin
+  que hubiera nada mal en ellos. El mismo `waitForTimeout` está en la prueba
+  del diálogo de aceptación, por lo mismo.
+
+  **Sin cobertura e2e de Liquidaciones**, y no es un descuido: el módulo es
+  `auto_install=False`, así que no está montado donde corre Playwright y la
+  pestaña no existiría. Queda razonado en el CLAUDE.md del módulo.
 - feat(types): `PlanDraftLine` gana `requiresSurfaces`. La línea en memoria
   tiene que saber si su tratamiento se describe por caras para poder
   ofrecerlas al editarlo, sin volver a preguntar al catálogo en cada

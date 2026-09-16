@@ -65,73 +65,73 @@ const categoryDefs = computed<CategoryDef[]>(() => [
     key: 'intraoral',
     kind: 'photo',
     icon: 'i-lucide-smile',
-    label: t('photoGallery.cat.intraoral', 'Intraoral'),
-    description: t('photoGallery.catDesc.intraoral', 'Dentro de la boca'),
+    label: t('photoGallery.cat.intraoral'),
+    description: t('photoGallery.catDesc.intraoral'),
     subtypes: [
-      { value: 'frontal', label: t('photoGallery.sub.frontal', 'Frontal') },
-      { value: 'lateral_left', label: t('photoGallery.sub.lateral_left', 'Lateral izda') },
-      { value: 'lateral_right', label: t('photoGallery.sub.lateral_right', 'Lateral dcha') },
-      { value: 'occlusal_upper', label: t('photoGallery.sub.occlusal_upper', 'Oclusal sup') },
-      { value: 'occlusal_lower', label: t('photoGallery.sub.occlusal_lower', 'Oclusal inf') },
-      { value: 'palatal', label: t('photoGallery.sub.palatal', 'Palatal') },
-      { value: 'lingual', label: t('photoGallery.sub.lingual', 'Lingual') }
+      { value: 'frontal', label: t('photoGallery.sub.frontal') },
+      { value: 'lateral_left', label: t('photoGallery.sub.lateral_left') },
+      { value: 'lateral_right', label: t('photoGallery.sub.lateral_right') },
+      { value: 'occlusal_upper', label: t('photoGallery.sub.occlusal_upper') },
+      { value: 'occlusal_lower', label: t('photoGallery.sub.occlusal_lower') },
+      { value: 'palatal', label: t('photoGallery.sub.palatal') },
+      { value: 'lingual', label: t('photoGallery.sub.lingual') }
     ]
   },
   {
     key: 'extraoral',
     kind: 'photo',
     icon: 'i-lucide-user',
-    label: t('photoGallery.cat.extraoral', 'Extraoral'),
-    description: t('photoGallery.catDesc.extraoral', 'Cara y perfil'),
+    label: t('photoGallery.cat.extraoral'),
+    description: t('photoGallery.catDesc.extraoral'),
     subtypes: [
-      { value: 'smile', label: t('photoGallery.sub.smile', 'Sonrisa') },
-      { value: 'rest', label: t('photoGallery.sub.rest', 'Reposo') },
-      { value: 'frontal_face', label: t('photoGallery.sub.frontal_face', 'Frontal') },
-      { value: 'profile_left', label: t('photoGallery.sub.profile_left', 'Perfil izdo') },
-      { value: 'profile_right', label: t('photoGallery.sub.profile_right', 'Perfil dcho') },
-      { value: 'three_quarter_left', label: t('photoGallery.sub.three_quarter_left', '3/4 izdo') },
-      { value: 'three_quarter_right', label: t('photoGallery.sub.three_quarter_right', '3/4 dcho') }
+      { value: 'smile', label: t('photoGallery.sub.smile') },
+      { value: 'rest', label: t('photoGallery.sub.rest') },
+      { value: 'frontal_face', label: t('photoGallery.sub.frontal_face') },
+      { value: 'profile_left', label: t('photoGallery.sub.profile_left') },
+      { value: 'profile_right', label: t('photoGallery.sub.profile_right') },
+      { value: 'three_quarter_left', label: t('photoGallery.sub.three_quarter_left') },
+      { value: 'three_quarter_right', label: t('photoGallery.sub.three_quarter_right') }
     ]
   },
   {
     key: 'xray',
     kind: 'xray',
     icon: 'i-lucide-scan-line',
-    label: t('photoGallery.cat.xray', 'Radiografía'),
-    description: t('photoGallery.catDesc.xray', 'Imagen radiológica'),
+    label: t('photoGallery.cat.xray'),
+    description: t('photoGallery.catDesc.xray'),
     subtypes: [
-      { value: 'panoramic', label: t('photoGallery.sub.panoramic', 'Panorámica') },
-      { value: 'periapical', label: t('photoGallery.sub.periapical', 'Periapical') },
-      { value: 'bitewing', label: t('photoGallery.sub.bitewing', 'Aleta') },
-      { value: 'cephalometric_lateral', label: t('photoGallery.sub.ceph_lat', 'Cefalo lateral') },
-      { value: 'cephalometric_pa', label: t('photoGallery.sub.ceph_pa', 'Cefalo PA') },
-      { value: 'cbct', label: t('photoGallery.sub.cbct', 'CBCT') },
-      { value: 'occlusal_xray', label: t('photoGallery.sub.occlusal_xray', 'Oclusal Rx') }
+      { value: 'panoramic', label: t('photoGallery.sub.panoramic') },
+      { value: 'periapical', label: t('photoGallery.sub.periapical') },
+      { value: 'bitewing', label: t('photoGallery.sub.bitewing') },
+      { value: 'cephalometric_lateral', label: t('photoGallery.sub.ceph_lat') },
+      { value: 'cephalometric_pa', label: t('photoGallery.sub.ceph_pa') },
+      { value: 'cbct', label: t('photoGallery.sub.cbct') },
+      { value: 'occlusal_xray', label: t('photoGallery.sub.occlusal_xray') }
     ]
   },
   {
     key: 'clinical',
     kind: 'photo',
     icon: 'i-lucide-arrow-right-left',
-    label: t('photoGallery.cat.clinical', 'Antes/Después'),
-    description: t('photoGallery.catDesc.clinical', 'Comparativa de tratamiento'),
+    label: t('photoGallery.cat.clinical'),
+    description: t('photoGallery.catDesc.clinical'),
     subtypes: [
-      { value: 'before', label: t('photoGallery.sub.before', 'Antes') },
-      { value: 'after', label: t('photoGallery.sub.after', 'Después') },
-      { value: 'progress', label: t('photoGallery.sub.progress', 'Progreso') },
-      { value: 'reference', label: t('photoGallery.sub.reference', 'Referencia') }
+      { value: 'before', label: t('photoGallery.sub.before') },
+      { value: 'after', label: t('photoGallery.sub.after') },
+      { value: 'progress', label: t('photoGallery.sub.progress') },
+      { value: 'reference', label: t('photoGallery.sub.reference') }
     ]
   },
   {
     key: 'other',
     kind: 'photo',
     icon: 'i-lucide-image',
-    label: t('photoGallery.cat.other', 'Otra'),
-    description: t('photoGallery.catDesc.other', 'Sin clasificar'),
+    label: t('photoGallery.cat.other'),
+    description: t('photoGallery.catDesc.other'),
     subtypes: [
-      { value: 'portrait', label: t('photoGallery.sub.portrait', 'Retrato') },
-      { value: 'document_scan', label: t('photoGallery.sub.document_scan', 'Documento') },
-      { value: 'model_photo', label: t('photoGallery.sub.model_photo', 'Modelo') }
+      { value: 'portrait', label: t('photoGallery.sub.portrait') },
+      { value: 'document_scan', label: t('photoGallery.sub.document_scan') },
+      { value: 'model_photo', label: t('photoGallery.sub.model_photo') }
     ]
   }
 ])
@@ -200,7 +200,7 @@ async function submit() {
       </div>
       <div>
         <p class="text-base font-medium text-default">
-          {{ t('photoGallery.dropHere', 'Arrastra una foto o haz clic') }}
+          {{ t('photoGallery.dropHere') }}
         </p>
         <p class="text-xs text-muted mt-1">
           JPG · PNG · HEIC · WebP — hasta 10 MB
@@ -241,7 +241,7 @@ async function submit() {
           size="sm"
           @click="pickFile"
         >
-          {{ t('actions.change', 'Cambiar') }}
+          {{ t('actions.change') }}
         </UButton>
         <UButton
           variant="ghost"
@@ -263,7 +263,7 @@ async function submit() {
     <!-- ===== Step 2 — category cards ===== -->
     <div>
       <p class="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
-        {{ t('photoGallery.category', 'Tipo') }}
+        {{ t('photoGallery.category') }}
       </p>
       <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
         <button
@@ -290,7 +290,7 @@ async function submit() {
     <!-- ===== Step 3 — subtype chips ===== -->
     <div v-if="activeCategory.subtypes.length">
       <p class="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
-        {{ t('photoGallery.subtype', 'Vista') }}
+        {{ t('photoGallery.subtype') }}
       </p>
       <div class="flex flex-wrap gap-1.5">
         <button
@@ -311,20 +311,20 @@ async function submit() {
     <!-- ===== Step 4 — title + optional date ===== -->
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
       <UFormField
-        :label="t('photoGallery.title', 'Título')"
+        :label="t('photoGallery.title')"
         required
         size="sm"
       >
         <UInput
           v-model="title"
-          :placeholder="t('photoGallery.titlePlaceholder', 'Frontal intraoral — 02/05')"
+          :placeholder="t('photoGallery.titlePlaceholder')"
           icon="i-lucide-tag"
         />
       </UFormField>
       <UFormField
-        :label="t('photoGallery.capturedAt', 'Fecha')"
+        :label="t('photoGallery.capturedAt')"
         size="sm"
-        :hint="t('photoGallery.exifHint', 'Auto desde EXIF')"
+        :hint="t('photoGallery.exifHint')"
       >
         <UInput
           v-model="capturedAt"
@@ -343,7 +343,7 @@ async function submit() {
         trailing
         @click="submit"
       >
-        {{ uploading ? t('common.uploading', 'Subiendo…') : t('common.upload', 'Subir foto') }}
+        {{ uploading ? t('common.uploading') : t('common.upload') }}
       </UButton>
     </div>
   </div>

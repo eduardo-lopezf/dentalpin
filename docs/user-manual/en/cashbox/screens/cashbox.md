@@ -63,8 +63,10 @@ to the bank, change added to or removed from the float.
 3. **Amount**, always positive. The direction carries the sign, not the
    number.
 4. **Date**: the day it belongs to. Prefilled with the day you are viewing.
-5. **Category**: Lab, Supplies, Advance, Bank deposit, Float adjustment or
-   Other. The list is short on purpose so nobody has to think at the
+5. **Category**: Lab, Supplies, Advance, Professional payout, Bank deposit,
+   Float adjustment or Other. *Professional payout* is written by the
+   Settlements tab when an associate is paid in cash, and those rows are
+   not editable here. The list is short on purpose so nobody has to think at the
    counter; the detail goes in the concept.
 6. **Concept**, required. It is what makes the row readable three months
    from now: "nitrile gloves, pharmacy on the corner" says something

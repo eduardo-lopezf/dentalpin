@@ -33,6 +33,19 @@ function mondayOf(date: Date): Date {
   return d
 }
 
+/**
+ * What the arrow does, said out loud. The buttons are icon-only, so this
+ * is the only thing a screen reader has to go on — and "Anterior" does not
+ * say whether it moves a day or a week. `week` reuses the labels the view
+ * switcher already has.
+ */
+function stepLabel(direction: -1 | 1): string {
+  if (props.mode === 'week') {
+    return direction === -1 ? t('appointments.prevWeek') : t('appointments.nextWeek')
+  }
+  return direction === -1 ? t('appointments.previousDay') : t('appointments.nextDay')
+}
+
 function step(direction: -1 | 1) {
   if (props.mode === 'week') {
     const next = new Date(props.weekStart)
@@ -89,7 +102,7 @@ const isToday = computed(() => {
       variant="outline"
       color="neutral"
       icon="i-lucide-chevron-left"
-      :aria-label="t('appointments.previous', 'Anterior')"
+      :aria-label="stepLabel(-1)"
       @click="step(-1)"
     />
     <UButton
@@ -103,7 +116,7 @@ const isToday = computed(() => {
       variant="outline"
       color="neutral"
       icon="i-lucide-chevron-right"
-      :aria-label="t('appointments.next', 'Siguiente')"
+      :aria-label="stepLabel(1)"
       @click="step(1)"
     />
     <span

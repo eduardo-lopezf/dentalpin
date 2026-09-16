@@ -1,6 +1,14 @@
 # Changelog — budget module
 
 ## Unreleased
+
+- fix(i18n): el botón de volver de los presupuestos usaba `actions.back`,
+  inexistente en ambos idiomas, así que mostraba la clave en crudo. Pasa a
+  `common.back`, que ya existe.
+- fix(a11y): la página pública del presupuesto abría un segundo `<main>`
+  dentro del que ya abre `layouts/public.vue`. Mismo defecto que en la ficha
+  del paciente y mismo arreglo: pasa a `<div>`, sin cambio visual.
+
 - feat(presupuestos): **Aceptar en clínica** llega a la bandeja de planes.
   El flujo estaba entero —endpoint `POST /budgets/{id}/accept-in-clinic`
   con `accepted_via='in_clinic'`, permiso `budget.accept_in_clinic`,

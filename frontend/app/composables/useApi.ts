@@ -100,8 +100,11 @@ export function useApi() {
             headers
           })
         }
-        // Redirect to login
-        await auth.logout()
+        // No logout here: a false return means `refresh()` already ended
+        // the session and sent the user to /login. Calling logout() again
+        // posted a second revocation of an already-revoked family — three
+        // of them in the render that made this visible — and raced the
+        // cookie writes of everyone else on the page.
         throw error
       }
 

@@ -360,6 +360,37 @@ body {
     min-height: 24px;
   }
 
+  /* Nuxt UI does not render a checkbox as an input: it renders
+     `button[role="checkbox"]` with a `size-4` box and an indicator span
+     inside. Two things went wrong with that shape.
+
+     The generic `button` rule above stretched it to 44px tall while the
+     width stayed 16px — a 16x44 pill, visible as tall blue capsules in
+     the catalog's "Visible" column. And the icon-only `min-width` rule
+     skipped it: its test is "no non-empty span child", and the indicator
+     span holds the tick, so a checkbox reads as a labelled button.
+
+     So the box goes back to the size it draws, and the 44px comes from a
+     hit area that costs no layout. `overflow: visible` is needed because
+     the control sets `overflow: hidden`, which would clip the pseudo
+     element; the indicator it was clipping is the same size as its box,
+     so only the 2px `rounded-sm` corners change, and only on touch. */
+  [role="checkbox"],
+  [role="radio"] {
+    min-height: 0;
+    position: relative;
+    overflow: visible;
+  }
+
+  /* 16px box + 14px on each side = 44px. Neighbouring boxes closer than
+     28px overlap here; that is the usual trade and the later one wins. */
+  [role="checkbox"]::after,
+  [role="radio"]::after {
+    content: "";
+    position: absolute;
+    inset: -14px;
+  }
+
   /* There is no hover, so anything revealed by it is unreachable. This
      covers the `opacity-0 group-hover:opacity-100` idiom used by the
      card and calendar-block quick actions. */

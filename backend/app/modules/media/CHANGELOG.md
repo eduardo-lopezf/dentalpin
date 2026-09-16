@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+- feat(i18n): el módulo tiene **fichero de idiomas**. No tenía ninguno: sus
+  pantallas —galería de fotos, subida y visor de documentos— funcionaban
+  enteras con el segundo argumento de `t(clave, 'por defecto')`, unas 100
+  cadenas que **no se podían traducir**.
+
+  Y no era «todo en castellano»: los textos por defecto estaban escritos
+  mitad en un idioma y mitad en otro, así que la interfaz en español decía
+  *Patient gallery*, *Add photo*, *All*, *X-ray*, *No photos yet*, *Loading
+  document...* y *Zoom in*. Ahora dice *Galería del paciente*, *Añadir
+  foto*, *Todas*, *Radiografía*, *Todavía no hay fotos*…, y en inglés dice
+  lo que debe.
+
+  101 claves (`documents.*` y `photoGallery.*`) en es y en, declaradas en el
+  `nuxt.config` de la capa con el mismo patrón que `payments` y `schedules`.
+  **Retirados los 123 valores por defecto** de los componentes: eran lo que
+  mantenía el problema invisible, porque la pantalla se veía bien mientras
+  intlify avisaba en cada render.
+
+  Tres claves salían **en crudo** en pantalla, sin texto por defecto que las
+  tapara: `documents.filter.allTypes` en el filtro de la galería de
+  documentos, y `common.view` / `common.download` en los botones de la
+  tarjeta y del visor. Eso lo veía el usuario como «documents.filter.allTypes».
+
+  `photoGallery.showingOf` recibía una plantilla de JavaScript
+  (`` `Showing ${n} of ${total}` ``) como valor por defecto, así que nunca
+  fue un mensaje: ahora es `Mostrando {count} de {total}` con parámetros de
+  verdad.
+
+  Las claves de vocabulario compartido que usaban estos componentes
+  —`actions.change`, `common.optional`, `common.upload`, `common.uploading`,
+  `common.view`, `common.download`— van al fichero del host, no al del
+  módulo: un módulo que definiera `common.*` estaría apropiándose de
+  vocabulario de todos.
+
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

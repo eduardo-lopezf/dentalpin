@@ -14,6 +14,7 @@ import { VueDraggable } from 'vue-draggable-plus'
 import { phaseLabelKey, phaseRank } from '~~/app/config/treatmentPhases'
 import type { CollectionState, CollectionStatus } from '../../composables/usePlanCollections'
 import CompletionNudgeModal from './notes/CompletionNudgeModal.vue'
+import { planItemName } from './planItemName'
 import PlanItemDoctorChip from './PlanItemDoctorChip.vue'
 import PlanItemSessionRow from '../treatment-plans/PlanItemSessionRow.vue'
 
@@ -36,6 +37,11 @@ const props = defineProps<{
    * fetched here: the parent makes one call for the whole plan.
    */
   collections?: Record<string, CollectionState>
+  /**
+   * Per-treatment collection state, keyed by treatment id. Used for the
+   * "closed" badge — work done with nothing left to charge.
+   */
+  treatmentCollections?: Record<string, CollectionState>
   /** Per-phase money totals, keyed by phase (empty string = unphased). */
   phaseMoney?: Map<string, { planned: number, earned: number, collected: number, pending: number }>
 }>()
@@ -44,6 +50,12 @@ const completeEnabled = computed(() => !props.readonly || props.allowComplete)
 
 const emit = defineEmits<{
   'item-hover': [itemId: string | null]
+  /**
+   * The row was tapped. Everything a treatment *opens* — its notes, its
+   * recall, its charge — moved into a dialog the host owns, so the row is
+   * left with only what changes the plan.
+   */
+  'item-open': [itemId: string]
   /**
    * Fired after the clinician confirms item completion. ``noteBody`` is the
    * rich-text HTML to persist as a plan_item-level clinical note; when ``null``
@@ -212,30 +224,24 @@ function isHighlighted(itemId: string): boolean {
   return props.highlightedItems?.includes(itemId) ?? false
 }
 
-// Format item name: catalog name (localized) > notes (when migrated
-// free-text with no catalog link) > clinical_type i18n key.
-// The catalog link lives on the Treatment — check item.catalog_item first (item
-// level, used for historical records), then item.treatment.catalog_item.
+/**
+ * Closed = done, and nothing left to charge for it.
+ *
+ * Derived rather than stored so it cannot drift from the ledger: a refund
+ * recorded in Finanzas puts money back on the treatment and the badge goes
+ * away with no second write anywhere. Absent `payments` means no badge —
+ * "nothing pending" and "we cannot see the money" are not the same claim.
+ */
+function isClosed(item: PlannedTreatmentItem): boolean {
+  if (item.status !== 'completed' || !props.treatmentCollections) return false
+  const state = item.treatment_id ? props.treatmentCollections[item.treatment_id] : undefined
+  if (!state) return false
+  return Number(state.earned) > 0 && Number(state.pending) <= 0
+}
+
+/** Shared with the item dialog and the charge prompt — see `planItemName`. */
 function getItemName(item: PlannedTreatmentItem): string {
-  const names = item.catalog_item?.names || item.treatment?.catalog_item?.names
-  if (names) {
-    const name = names[locale.value] || names.es
-    if (name) return name
-  }
-  const clinicalType = item.treatment?.clinical_type
-  if (clinicalType === 'migrated' && item.treatment?.notes) {
-    const trimmed = item.treatment.notes.trim()
-    if (trimmed.length > 0) {
-      return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : trimmed
-    }
-  }
-  if (clinicalType) {
-    const key = `odontogram.treatments.types.${clinicalType}`
-    const translated = t(key)
-    if (translated !== key) return translated
-    return clinicalType
-  }
-  return t('clinical.plans.unknownTreatment')
+  return planItemName(item, locale.value, t)
 }
 
 function itemTeeth(item: PlannedTreatmentItem): number[] {
@@ -373,7 +379,8 @@ function sessionProgress(item: PlannedTreatmentItem): { done: number, total: num
             'alert-surface-warning border-transparent': isHighlighted(item.id),
             'bg-surface border-default': !isHighlighted(item.id)
           }"
-          :aria-label="t('clinical.plans.reorderHint')"
+          :aria-label="t('clinical.plans.item.open', { name: getItemName(item) })"
+          @click="emit('item-open', item.id)"
           @mouseenter="emit('item-hover', item.id)"
           @mouseleave="emit('item-hover', null)"
           @keydown="handleKeydown($event, groupIndex, index)"
@@ -412,6 +419,7 @@ function sessionProgress(item: PlannedTreatmentItem): { done: number, total: num
                   :professional-id="item.assigned_professional_id ?? null"
                   :plan-professional-id="planProfessionalId"
                   :readonly="item.status !== 'pending'"
+                  @click.stop
                   @change="(professionalId) => emit('item-doctor-change', item.id, professionalId)"
                 />
                 <span
@@ -436,17 +444,6 @@ function sessionProgress(item: PlannedTreatmentItem): { done: number, total: num
                 >
                   {{ formatCurrency(getItemPrice(item)) }}
                 </span>
-                <!-- Per-treatment note button (clinical_notes module). Stays
-                   mounted regardless of plan-item status so notes can be
-                   added/read on every status (issue #60). -->
-                <ModuleSlot
-                  name="odontogram.condition.actions"
-                  :ctx="{
-                    treatmentId: item.treatment_id,
-                    toothNumber: itemTeeth(item)[0] ?? null,
-                    status: item.status
-                  }"
-                />
                 <UButton
                   v-if="completeEnabled"
                   size="xs"
@@ -506,7 +503,12 @@ function sessionProgress(item: PlannedTreatmentItem): { done: number, total: num
           <div
             v-for="item in completedItems"
             :key="item.id"
-            class="p-2 rounded bg-surface-muted text-muted"
+            class="p-2 rounded bg-surface-muted text-muted cursor-pointer"
+            role="button"
+            tabindex="0"
+            :aria-label="t('clinical.plans.item.open', { name: getItemName(item) })"
+            @click="emit('item-open', item.id)"
+            @keydown.enter="emit('item-open', item.id)"
             @mouseenter="emit('item-hover', item.id)"
             @mouseleave="emit('item-hover', null)"
           >
@@ -528,21 +530,20 @@ function sessionProgress(item: PlannedTreatmentItem): { done: number, total: num
               <span class="line-through flex-1 min-w-0 break-words">
                 {{ getItemName(item) }}
               </span>
+              <UBadge
+                v-if="isClosed(item)"
+                color="neutral"
+                variant="subtle"
+                size="xs"
+              >
+                {{ t('clinical.plans.item.closed') }}
+              </UBadge>
               <span
                 v-if="hasToothInfo(item)"
                 class="text-xs"
               >
                 - {{ formatToothInfo(item) }}
               </span>
-              <!-- Notes still readable/writable on completed items (issue #60). -->
-              <ModuleSlot
-                name="odontogram.condition.actions"
-                :ctx="{
-                  treatmentId: item.treatment_id,
-                  toothNumber: itemTeeth(item)[0] ?? null,
-                  status: item.status
-                }"
-              />
             </div>
           </div>
         </div>

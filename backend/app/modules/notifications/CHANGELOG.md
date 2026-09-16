@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- fix(i18n): el hilo de conversación con el paciente no tenía **ninguna** de
+  sus cinco claves, y ninguna llevaba texto por defecto: la tarjeta se
+  titulaba literalmente `notifications.conversation.title` y el campo de
+  respuesta tenía `notifications.conversation.placeholder` de marcador.
+  Añadidas en es y en. `windowClosed` explica ahora lo que dice el backend
+  —la ventana de respuesta libre de 24 h está cerrada— en vez de un nombre
+  de clave.
+
 - fix(security): `GET`/`PUT /preferences/patient/{patient_id}` accepted a
   patient from any clinic. Both funnel into
   `get_or_create_patient_preferences`, which created a

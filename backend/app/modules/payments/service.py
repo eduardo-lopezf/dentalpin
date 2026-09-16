@@ -781,6 +781,74 @@ class LedgerService:
 
         return {"treatments": treatments, "sessions": sessions}
 
+    @staticmethod
+    async def coverage_by_earned_entry(
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_ids: list[UUID],
+    ) -> dict[UUID, Decimal]:
+        """How much of each earned entry the patient's payments have covered.
+
+        The same FIFO walk as its two siblings above, projected onto the
+        entries themselves rather than onto treatments or a pending list.
+        `liquidations` needs it because an earned entry carries the
+        professional who did the work, so covering the entries is the only
+        way the money a patient actually handed over can be attributed to
+        the people who earned it.
+
+        It lives here rather than there for the reason the module's own
+        notes give: **the walk has one home**. A second copy that forgot to
+        run over *all* of a patient's entries would attribute money twice —
+        once to the plan that was asked about and once to the plan that had
+        already consumed it.
+        """
+        if not patient_ids:
+            return {}
+
+        paid = await db.execute(
+            select(
+                Payment.patient_id,
+                func.coalesce(func.sum(Payment.amount), Decimal("0")),
+            )
+            .where(
+                Payment.clinic_id == clinic_id,
+                Payment.patient_id.in_(patient_ids),
+            )
+            .group_by(Payment.patient_id)
+        )
+        refunded = await db.execute(
+            select(
+                Payment.patient_id,
+                func.coalesce(func.sum(Refund.amount), Decimal("0")),
+            )
+            .join(Payment, Payment.id == Refund.payment_id)
+            .where(
+                Payment.clinic_id == clinic_id,
+                Payment.patient_id.in_(patient_ids),
+            )
+            .group_by(Payment.patient_id)
+        )
+        remaining: dict[UUID, Decimal] = dict(paid.all())
+        for patient_id, amount in refunded.all():
+            remaining[patient_id] = remaining.get(patient_id, Decimal("0")) - amount
+
+        entries = await db.execute(
+            select(PatientEarnedEntry)
+            .where(
+                PatientEarnedEntry.clinic_id == clinic_id,
+                PatientEarnedEntry.patient_id.in_(patient_ids),
+            )
+            .order_by(PatientEarnedEntry.patient_id, PatientEarnedEntry.performed_at)
+        )
+
+        covered: dict[UUID, Decimal] = {}
+        for entry in entries.scalars().all():
+            left = remaining.get(entry.patient_id, Decimal("0"))
+            take = min(left, entry.amount) if left > 0 else Decimal("0")
+            remaining[entry.patient_id] = left - take
+            covered[entry.id] = take
+        return covered
+
 
 # --- Reports ----------------------------------------------------------
 

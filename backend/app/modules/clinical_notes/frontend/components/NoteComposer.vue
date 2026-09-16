@@ -200,7 +200,7 @@ watch(category, refreshTemplates)
           <button
             type="button"
             class="ml-1"
-            :aria-label="t('actions.remove', 'Quitar')"
+            :aria-label="t('actions.remove')"
             @click="removeAttached(doc.id)"
           >
             <UIcon
@@ -224,7 +224,7 @@ watch(category, refreshTemplates)
           name="i-lucide-loader-2"
           class="h-3.5 w-3.5 animate-spin"
         />
-        <span>{{ t('clinicalNotes.composer.attach', 'Adjuntar foto o documento') }}</span>
+        <span>{{ t('clinicalNotes.composer.attach') }}</span>
         <input
           type="file"
           accept="image/*,application/pdf"

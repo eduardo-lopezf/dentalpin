@@ -1,0 +1,57 @@
+{
+  "liquidations": {
+    "nav": {
+      "liquidations": "Settlements"
+    },
+    "professional": "Professional",
+    "from": "From",
+    "to": "To",
+    "earned": "Earned",
+    "earnedHint": "Work performed, paid or not",
+    "collected": "Collected",
+    "collectedHint": "What the patient has already paid for it",
+    "share": "Arrangement",
+    "due": "Due",
+    "dueHint": "On {base}",
+    "alreadyIssued": "Already settled",
+    "issue": "Issue the settlement",
+    "issueWhy": "Issuing freezes the figures: what the patient pays afterwards does not change what was settled.",
+    "issueFailed": "Could not issue the settlement",
+    "issuedTitle": "Settlements issued in this period",
+    "noWork": "No work by this professional in the period.",
+    "basis": {
+      "collected": "on collected",
+      "earned": "on earned"
+    },
+    "commission": {
+      "title": "Arrangement with the professional",
+      "basis": "Paid on",
+      "basisHint": "On collected, the clinic never pays out money it has not received. On earned, the associate carries none of the collection risk.",
+      "percent": "Percentage",
+      "note": "The arrangement can be changed whenever needed: settlements already issued keep the percentage they were made with.",
+      "edit": "Change the arrangement",
+      "missing": "No arrangement recorded with this professional",
+      "missingWhy": "The work figures are real; the percentage is zero until somebody says otherwise. Record it before settling.",
+      "saveFailed": "Could not save the arrangement"
+    },
+    "pay": {
+      "action": "Pay",
+      "title": "Pay the settlement",
+      "method": "How it is paid",
+      "methodHint": "Cash comes out of the drawer and is recorded as a till movement. A transfer never touches it.",
+      "failed": "Could not record the payment",
+      "undo": "Undo the payment",
+      "undoFailed": "Could not undo. If the day has been counted, it has to be reopened first.",
+      "methods": {
+        "cash": "Cash",
+        "transfer": "Transfer",
+        "other": "Other"
+      },
+      "paidBy": {
+        "cash": "Paid in cash",
+        "transfer": "Paid by transfer",
+        "other": "Paid"
+      }
+    }
+  }
+}

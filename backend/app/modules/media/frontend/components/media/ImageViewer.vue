@@ -47,7 +47,7 @@ function handleWheel(event: WheelEvent) {
         variant="ghost"
         size="xs"
         :disabled="scale <= MIN_SCALE"
-        :title="t('documents.viewer.zoomOut', 'Zoom out')"
+        :title="t('documents.viewer.zoomOut')"
         @click="zoomOut"
       />
       <span class="text-sm font-medium min-w-[4rem] text-center">
@@ -58,7 +58,7 @@ function handleWheel(event: WheelEvent) {
         variant="ghost"
         size="xs"
         :disabled="scale >= MAX_SCALE"
-        :title="t('documents.viewer.zoomIn', 'Zoom in')"
+        :title="t('documents.viewer.zoomIn')"
         @click="zoomIn"
       />
       <UButton
@@ -66,7 +66,7 @@ function handleWheel(event: WheelEvent) {
         variant="ghost"
         size="xs"
         :disabled="scale === 1"
-        :title="t('documents.viewer.resetZoom', 'Reset to 100%')"
+        :title="t('documents.viewer.resetZoom')"
         @click="resetZoom"
       />
     </div>
@@ -85,7 +85,7 @@ function handleWheel(event: WheelEvent) {
     </div>
 
     <p class="text-caption text-subtle text-center py-1">
-      {{ t('documents.viewer.zoomHint', 'Ctrl + scroll to zoom') }}
+      {{ t('documents.viewer.zoomHint') }}
     </p>
   </div>
 </template>

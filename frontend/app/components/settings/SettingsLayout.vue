@@ -72,9 +72,12 @@ const headerTitle = computed(() => props.title ?? t('settings.title'))
         <SettingsCategoryNav :active-id="activeId" />
       </aside>
 
-      <main class="min-w-0 flex-1">
+      <!-- Same reason as the patient record: the default layout is where
+           the page's single `main` lives, and this shell renders inside
+           it. The category rail beside it stays an `aside`. -->
+      <div class="min-w-0 flex-1">
         <slot />
-      </main>
+      </div>
     </div>
   </div>
 </template>

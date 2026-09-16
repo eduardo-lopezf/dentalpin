@@ -1,0 +1,133 @@
+{
+  "documents": {
+    "title": "Documents",
+    "add": "Add",
+    "upload": "Upload document",
+    "uploading": "Uploading…",
+    "uploadFirst": "Upload first document",
+    "uploadHelp": "Classify the file so it lands in its category.",
+    "empty": "No documents yet",
+    "edit": "Edit document",
+    "pdfPreviewHint": "Preview available once uploaded",
+    "dropzone": {
+      "hint": "Drag a document here, or click"
+    },
+    "filter": {
+      "allTypes": "All types"
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Document title",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional notes",
+      "type": "Type"
+    },
+    "types": {
+      "consent": "Consent",
+      "id_scan": "ID document",
+      "insurance": "Insurance",
+      "referral": "Referral",
+      "report": "Report",
+      "other": "Other"
+    },
+    "typeDesc": {
+      "consent": "A signed document",
+      "id_scan": "ID card or passport",
+      "insurance": "Policy or card",
+      "referral": "Referral letter",
+      "report": "Clinical report",
+      "other": "Unclassified"
+    },
+    "errors": {
+      "mime": "File type not allowed. PDF, JPG or PNG only.",
+      "size": "The file is larger than 10 MB."
+    },
+    "deleteConfirm": {
+      "title": "Delete document",
+      "message": "Delete this document? This cannot be undone."
+    },
+    "viewer": {
+      "loading": "Loading document…",
+      "error": "Could not load the document",
+      "unsupported": "No preview for this file type",
+      "downloadInstead": "Download instead",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "resetZoom": "Reset to 100%",
+      "zoomHint": "Ctrl + scroll to zoom"
+    }
+  },
+  "photoGallery": {
+    "title": "Patient gallery",
+    "add": "Add photo",
+    "upload": "Upload photo",
+    "uploadFirst": "Upload the first one",
+    "uploadHelp": "Classify it so it lands in the right category",
+    "empty": "No photos yet",
+    "dropHere": "Drag a photo here, or click",
+    "showingOf": "Showing {count} of {total}",
+    "category": "Type",
+    "subtype": "View",
+    "capturedAt": "Date",
+    "exifHint": "Read from EXIF",
+    "titlePlaceholder": "Intraoral frontal — 02/05",
+    "cat": {
+      "all": "All",
+      "intraoral": "Intraoral",
+      "extraoral": "Extraoral",
+      "xray": "X-ray",
+      "clinical": "Before/After",
+      "other": "Other"
+    },
+    "catDesc": {
+      "intraoral": "Inside the mouth",
+      "extraoral": "Face and profile",
+      "xray": "Radiographic image",
+      "clinical": "Treatment comparison",
+      "other": "Unclassified"
+    },
+    "compare": {
+      "before": "Before",
+      "after": "After"
+    },
+    "pair": {
+      "pair": "Pair before/after",
+      "unpair": "Unpair",
+      "paired": "Paired",
+      "compare": "Compare",
+      "exitCompare": "Exit comparison",
+      "pickHint": "Pick the photo to pair with:",
+      "noCandidates": "No photos available. Upload another one first."
+    },
+    "sub": {
+      "before": "Before",
+      "after": "After",
+      "progress": "Progress",
+      "frontal": "Frontal",
+      "frontal_face": "Frontal",
+      "lateral_left": "Left lateral",
+      "lateral_right": "Right lateral",
+      "occlusal_upper": "Upper occlusal",
+      "occlusal_lower": "Lower occlusal",
+      "palatal": "Palatal",
+      "lingual": "Lingual",
+      "profile_left": "Left profile",
+      "profile_right": "Right profile",
+      "three_quarter_left": "Left three-quarter",
+      "three_quarter_right": "Right three-quarter",
+      "smile": "Smile",
+      "rest": "At rest",
+      "portrait": "Portrait",
+      "panoramic": "Panoramic",
+      "periapical": "Periapical",
+      "bitewing": "Bitewing",
+      "occlusal_xray": "Occlusal X-ray",
+      "ceph_lat": "Lateral ceph",
+      "ceph_pa": "PA ceph",
+      "cbct": "CBCT",
+      "model_photo": "Model",
+      "document_scan": "Document",
+      "reference": "Reference"
+    }
+  }
+}

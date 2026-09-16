@@ -44,6 +44,19 @@ export default defineNuxtPlugin(() => {
     order: 10
   })
 
+  // "Cobrar" for one treatment of the plan, offered inside the treatment's
+  // own detail dialog and right after it is marked done. The plan places the
+  // button and hands over `{ patientId, patientName, budgetId, amount }`; it
+  // never learns that a payment modal exists.
+  registerSlot('treatment_plan.item.collect', {
+    id: 'payments.treatment_plan.item.collect',
+    component: defineAsyncComponent(
+      () => import('../components/PlanItemCollectButton.vue')
+    ),
+    permission: 'payments.record.write',
+    order: 10
+  })
+
   // Agreed payment schedule of the plan. Sits beside the collections card
   // and answers the other money question: not "what can we charge for work
   // done" but "what did we agree to charge, and when".

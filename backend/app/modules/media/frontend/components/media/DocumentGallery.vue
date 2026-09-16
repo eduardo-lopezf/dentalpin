@@ -147,14 +147,14 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize))
     <!-- Header -->
     <div class="flex items-center justify-between gap-4">
       <h3 class="font-semibold text-lg">
-        {{ t('documents.title', 'Documents') }}
+        {{ t('documents.title') }}
       </h3>
 
       <div class="flex items-center gap-2">
         <!-- Type filter -->
         <USelectMenu
           v-model="selectedType"
-          :aria-label="t('documents.fields.type', 'Type')"
+          :aria-label="t('documents.fields.type')"
           :items="typeFilterOptions"
           value-key="value"
           size="sm"
@@ -168,7 +168,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize))
           size="sm"
           @click="showUploadModal = true"
         >
-          {{ t('documents.add', 'Add') }}
+          {{ t('documents.add') }}
         </UButton>
       </div>
     </div>
@@ -194,7 +194,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize))
         name="i-lucide-file-x"
         class="w-12 h-12 mx-auto mb-3 text-subtle"
       />
-      <p>{{ t('documents.empty', 'No documents yet') }}</p>
+      <p>{{ t('documents.empty') }}</p>
       <UButton
         v-if="canWrite"
         variant="soft"
@@ -202,7 +202,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize))
         class="mt-3"
         @click="showUploadModal = true"
       >
-        {{ t('documents.uploadFirst', 'Upload first document') }}
+        {{ t('documents.uploadFirst') }}
       </UButton>
     </div>
 
@@ -250,10 +250,10 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize))
             </div>
             <div class="flex-1">
               <h3 class="text-base font-semibold leading-tight">
-                {{ t('documents.upload', 'Subir documento') }}
+                {{ t('documents.upload') }}
               </h3>
               <p class="text-xs text-muted">
-                {{ t('documents.uploadHelp', 'Clasifica el archivo para que aparezca en su categoría.') }}
+                {{ t('documents.uploadHelp') }}
               </p>
             </div>
             <UButton
@@ -280,11 +280,11 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize))
         <UCard>
           <template #header>
             <h3 class="font-semibold text-danger-accent">
-              {{ t('documents.deleteConfirm.title', 'Delete Document') }}
+              {{ t('documents.deleteConfirm.title') }}
             </h3>
           </template>
           <p class="text-sm text-muted">
-            {{ t('documents.deleteConfirm.message', 'Are you sure you want to delete this document? This action cannot be undone.') }}
+            {{ t('documents.deleteConfirm.message') }}
           </p>
           <p
             v-if="selectedDocument"
@@ -318,33 +318,33 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize))
         <UCard>
           <template #header>
             <h3 class="font-semibold">
-              {{ t('documents.edit', 'Edit Document') }}
+              {{ t('documents.edit') }}
             </h3>
           </template>
           <div class="space-y-4">
-            <UFormField :label="t('documents.fields.type', 'Type')">
+            <UFormField :label="t('documents.fields.type')">
               <USelectMenu
                 v-model="editDocumentType"
-                :aria-label="t('documents.fields.type', 'Type')"
+                :aria-label="t('documents.fields.type')"
                 :items="editTypeOptions"
                 value-key="value"
               />
             </UFormField>
 
             <UFormField
-              :label="t('documents.fields.title', 'Title')"
+              :label="t('documents.fields.title')"
               required
             >
               <UInput
                 v-model="editTitle"
-                :placeholder="t('documents.fields.titlePlaceholder', 'Document title')"
+                :placeholder="t('documents.fields.titlePlaceholder')"
               />
             </UFormField>
 
-            <UFormField :label="t('documents.fields.description', 'Description')">
+            <UFormField :label="t('documents.fields.description')">
               <UTextarea
                 v-model="editDescription"
-                :placeholder="t('documents.fields.descriptionPlaceholder', 'Optional notes')"
+                :placeholder="t('documents.fields.descriptionPlaceholder')"
                 :rows="2"
               />
             </UFormField>

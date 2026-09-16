@@ -115,6 +115,11 @@ export const PERMISSIONS = {
     recordRefund: 'payments.record.refund',
     reportsRead: 'payments.reports.read'
   },
+  liquidations: {
+    settlementRead: 'liquidations.settlement.read',
+    settlementIssue: 'liquidations.settlement.issue',
+    commissionWrite: 'liquidations.commission.write'
+  },
   cashbox: {
     movementRead: 'cashbox.movement.read',
     movementWrite: 'cashbox.movement.write',

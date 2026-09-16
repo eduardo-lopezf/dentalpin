@@ -426,7 +426,9 @@ const greeting = computed(() => {
         </div>
       </section>
 
-      <main class="container content space-y-5 pb-32 md:pb-10">
+      <!-- The public layout opens the page's `main`; this is its content
+           column, not a second landmark. -->
+      <div class="container content space-y-5 pb-32 md:pb-10">
         <!-- Greeting -->
         <header class="space-y-1">
           <h1 class="page-title">
@@ -610,7 +612,7 @@ const greeting = computed(() => {
             </a>
           </div>
         </div>
-      </main>
+      </div>
 
       <!-- Mobile sticky CTA -->
       <div class="mobile-cta md:hidden">

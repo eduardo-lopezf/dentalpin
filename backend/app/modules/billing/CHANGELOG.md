@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- fix(i18n): la columna de estado del resumen de facturación del paciente
+  mostraba `invoice.status.title` como encabezado. El código era
+  `t('invoice.status.title') || t('common.status')`, que **nunca** llega al
+  segundo: una clave que falta devuelve la propia clave, y una cadena no
+  vacía es verdadera. Ambas claves añadidas y el `||` retirado.
+
+- fix(i18n): el botón de volver de las facturas usaba `actions.back`, que no
+  existía en ningún idioma. Pasa a `common.back`, que ya significa «Volver»:
+  la misma palabra en dos espacios de nombres acaba divergiendo.
+
 - feat(ui): Facturas no longer has a sidebar entry of its own. Cobros,
   Presupuestos and Facturas are now the three tabs of a single
   **Finanzas** entry, placed after Profesionales, in that order. This

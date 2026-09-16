@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- fix(i18n): la pestaña **Galería** de la ficha no tenía clave en ningún
+  idioma. No se notaba porque el segundo argumento de `t()` la tapaba —la
+  interfaz mostraba «Galería» mientras intlify avisaba en cada render, 36
+  veces en el log del contenedor—, pero en inglés la pestaña habría salido
+  igualmente en castellano. `patientDetail.tabs.gallery` añadida en es y en,
+  y **retirado el valor por defecto**: si vuelve a faltar, que se vea.
+
+- fix(a11y): la ficha del paciente abría un segundo `<main>` dentro del que
+  ya abre el layout. Anidar landmarks es HTML inválido —solo puede haber un
+  `main` por documento— y un lector de pantalla anunciaba dos regiones
+  principales sin manera de saber cuál es la página. Pasa a `<div>`; las
+  clases y el aspecto no cambian. Salió al tropezar Playwright con la
+  ambigüedad de `getByRole('main')` en esa pantalla.
+
 - feat(patients): la tarjeta de identidad de *Info* pasa a ficha, con el
   mismo lenguaje visual que `ProfessionalProfileModal`: banda tintada,
   retrato apoyado en su borde, el nombre como título y los datos en

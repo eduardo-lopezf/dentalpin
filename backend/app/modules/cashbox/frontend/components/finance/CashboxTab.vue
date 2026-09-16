@@ -58,6 +58,7 @@ const CATEGORY_ICONS: Record<MovementCategory, string> = {
   lab: 'i-lucide-flask-conical',
   supplies: 'i-lucide-package',
   advance: 'i-lucide-hand-coins',
+  professional_payout: 'i-lucide-user-round-check',
   bank_deposit: 'i-lucide-landmark',
   float_adjustment: 'i-lucide-coins',
   other: 'i-lucide-circle-dot'

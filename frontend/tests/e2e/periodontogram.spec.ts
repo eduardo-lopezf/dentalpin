@@ -20,6 +20,11 @@ import { test, expect, type Page } from './_fixtures'
 
 const API_BASE = process.env.E2E_API_BASE || 'http://localhost:8000'
 
+// A cold dev server compiles `/patients/[id]` and the periodontogram layer
+// on first request. The 30 s default lost that race; every other spec that
+// drives a cold route budgets the same 120 s.
+test.describe.configure({ timeout: 120_000 })
+
 async function getPatientId(page: Page): Promise<string> {
   const ctx = page.context()
   const cookies = await ctx.cookies()
@@ -76,11 +81,25 @@ async function navigateToPerioTab(page: Page, patientId: string): Promise<void> 
   )
   await page.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 15_000 })
 
-  // If the query param didn't auto-switch tabs, click through explicitly.
-  // Use a scoped role=tab lookup so the activity-feed filter pill at
-  // the bottom of the Summary view doesn't match.
-  if (!(await page.getByRole('tab', { name: /Periodonto/i }).first()
-    .isVisible().catch(() => false))) {
+  // Did the query param land us on the sub-tab? **Wait before deciding.**
+  //
+  // `domcontentloaded` fires while the dev server is still compiling the
+  // clinical view's chunks, so asking `isVisible()` the instant the URL
+  // settles reads "not hydrated yet" as "the param did not work" — and the
+  // fallback below then clicks its way through a page that is not ready
+  // and times out on a tab that was always going to appear. That was this
+  // file's cold-start flake: green on a warm server, red on the first run
+  // after a restart, which is exactly what CI does.
+  const perioSubtab = page.getByRole('tab', { name: /Periodonto/i }).first()
+  const landedOnSubtab = await perioSubtab
+    .waitFor({ state: 'visible', timeout: 60_000 })
+    .then(() => true)
+    .catch(() => false)
+
+  // Still not there: the param really did not switch tabs, so click
+  // through explicitly. Scoped role=tab lookups so the activity-feed
+  // filter pill at the bottom of the Summary view doesn't match.
+  if (!landedOnSubtab) {
     const clinicalNavTab = page
       .getByRole('tab', { name: /^Clinical$|^Clínica$/i })
       .first()
@@ -95,8 +114,7 @@ async function navigateToPerioTab(page: Page, patientId: string): Promise<void> 
       await diagnosisModeBtn.click()
     }
 
-    const perioSubtab = page.getByRole('tab', { name: /Periodonto/i }).first()
-    await perioSubtab.click({ timeout: 10_000 })
+    await perioSubtab.click({ timeout: 30_000 })
   }
 
   await expect(

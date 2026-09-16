@@ -10,7 +10,7 @@
  */
 
 import type { BadgeProps, DropdownMenuItem } from '@nuxt/ui'
-import type { TreatmentPhase, TreatmentPlanDetail } from '~~/app/types'
+import type { PlannedTreatmentItem, TreatmentPhase, TreatmentPlanDetail } from '~~/app/types'
 import { phaseLabelKey, phaseRank } from '~~/app/config/treatmentPhases'
 
 import ConfirmPlanModal from './modals/ConfirmPlanModal.vue'
@@ -19,6 +19,9 @@ import type { PlanHistoryEntry } from '../../composables/usePlanHistory'
 import ClosePlanModal from './modals/ClosePlanModal.vue'
 import ReactivatePlanModal from './modals/ReactivatePlanModal.vue'
 import ContactLogModal from './modals/ContactLogModal.vue'
+import PlanItemDetailModal from './modals/PlanItemDetailModal.vue'
+import PlanItemCollectPrompt from './modals/PlanItemCollectPrompt.vue'
+import { planItemName } from './planItemName'
 
 const props = withDefaults(defineProps<{
   plan: TreatmentPlanDetail
@@ -496,6 +499,17 @@ async function handleCompleteItem(
   await odontogramRef.value?.refetchTreatments()
   await notesTimelineRef.value?.refresh()
   emit('updated')
+
+  // The patient is still in the chair; this is the cheapest moment to ask.
+  // Both answers are real — a clinic that bills monthly leaves it pending
+  // every day — so neither is the dismissal.
+  await refreshCollections()
+  const settled = itemCollection(item ?? null)
+  collectPrompt.value = {
+    open: true,
+    name: item ? itemDisplayName(item) : '',
+    amount: Number(settled?.pending ?? item?.treatment?.price_snapshot ?? 0)
+  }
 }
 
 async function handleRemoveItem(itemId: string) {
@@ -573,10 +587,58 @@ const { proposals, loading: proposalsLoading, fetchProposals, acceptProposals }
 
 const {
   sessions: sessionCollections,
+  treatments: treatmentCollections,
   available: collectionsAvailable,
   fetchFor: fetchCollections,
   phaseTotals
 } = usePlanCollections()
+
+// ---------------------------------------------------------------------------
+// One treatment, up close
+//
+// Tapping a row opens it. Everything a treatment *opens* — notes, recall, the
+// charge — lives there rather than as three more icons in a row that already
+// holds a name, a doctor, a price and two actions.
+// ---------------------------------------------------------------------------
+
+const openItemId = ref<string | null>(null)
+const openItem = computed(
+  () => props.plan.items.find(i => i.id === openItemId.value) ?? null
+)
+
+const patientName = computed(() =>
+  props.plan.patient
+    ? `${props.plan.patient.first_name} ${props.plan.patient.last_name}`.trim()
+    : null
+)
+
+function itemCollection(item: { treatment_id?: string | null } | null) {
+  if (!item?.treatment_id || !collectionsAvailable.value) return undefined
+  return treatmentCollections.value[item.treatment_id]
+}
+
+function itemCollectionStatus(item: { treatment_id?: string | null } | null) {
+  const state = itemCollection(item)
+  if (!state) return undefined
+  if (Number(state.earned) <= 0) return 'not_earned' as const
+  if (Number(state.pending) <= 0) return 'collected' as const
+  return Number(state.collected) > 0 ? ('partial' as const) : ('pending' as const)
+}
+
+/**
+ * The charge prompt shown right after a treatment is ticked off. It carries
+ * its own copy of name and amount because the item it describes has already
+ * moved on by the time it renders — completion refetches the plan.
+ */
+const collectPrompt = ref<{
+  open: boolean
+  name: string
+  amount: number
+}>({ open: false, name: '', amount: 0 })
+
+function itemDisplayName(item: PlannedTreatmentItem): string {
+  return planItemName(item, locale.value, t)
+}
 
 const phaseMoney = computed(() => phaseTotals(props.plan.items))
 
@@ -973,8 +1035,10 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
             :plan-status="plan.status"
             :plan-professional-id="plan.assigned_professional_id ?? null"
             :collections="collectionsAvailable ? sessionCollections : undefined"
+            :treatment-collections="collectionsAvailable ? treatmentCollections : undefined"
             :phase-money="phaseMoney"
             @item-hover="hoveredItemId = $event"
+            @item-open="openItemId = $event"
             @item-complete="handleCompleteItem"
             @item-remove="handleRemoveItem"
             @session-complete="handleSessionComplete"
@@ -1153,6 +1217,32 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
       @confirm="onReactivatePlan"
       @cancel="showReactivateModal = false"
     />
+    <!-- One treatment, up close: what it is, what it is worth, and the three
+         things you can open on it. -->
+    <PlanItemDetailModal
+      :open="openItemId !== null"
+      :item="openItem"
+      :patient-id="patientId"
+      :patient-name="patientName"
+      :budget-id="plan.budget_id ?? null"
+      :collection="itemCollection(openItem)"
+      :collection-status="itemCollectionStatus(openItem)"
+      :can-complete="isLocked && !readonly"
+      @update:open="(v) => { if (!v) openItemId = null }"
+      @complete="(itemId) => handleCompleteItem(itemId, { noteBody: null })"
+      @collected="refreshCollections"
+    />
+
+    <PlanItemCollectPrompt
+      v-model:open="collectPrompt.open"
+      :treatment-name="collectPrompt.name"
+      :amount="collectPrompt.amount"
+      :patient-id="patientId"
+      :patient-name="patientName"
+      :budget-id="plan.budget_id ?? null"
+      @collected="refreshCollections"
+    />
+
     <ContactLogModal
       :open="showContactLogModal"
       :loading="transitioning"

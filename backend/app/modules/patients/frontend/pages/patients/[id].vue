@@ -137,7 +137,7 @@ const tabs = computed(() => {
   if (can(PERMISSIONS.documents.read)) {
     items.push({
       value: 'gallery',
-      label: t('patientDetail.tabs.gallery', 'Galería'),
+      label: t('patientDetail.tabs.gallery'),
       icon: 'i-lucide-images',
       slot: 'gallery'
     })
@@ -322,7 +322,11 @@ function collect() {
         @archive="isArchiveModalOpen = true"
       />
 
-      <main class="w-full min-w-0">
+      <!-- A `div`, not a second `main`: the default layout already opens
+           one around every page, and nesting them is invalid HTML — a
+           screen reader announces two "main" landmarks and has to guess
+           which one is the page. -->
+      <div class="w-full min-w-0">
         <!-- The strip scrolls sideways instead of squeezing. Six tabs
              with icons do not fit across a tablet held upright: Nuxt UI
              shares the width out and every label collapses to an
@@ -489,7 +493,7 @@ function collect() {
             </UCard>
           </template>
         </UTabs>
-      </main>
+      </div>
 
       <!-- Mobile bottom action bar -->
       <PatientBottomActionBar

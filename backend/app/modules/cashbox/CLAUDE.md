@@ -105,6 +105,12 @@ than through it.
   it. `closing_id` is the flag; it is nullable with no FK until
   `cash_closings` exists (a constraint against a missing table will not
   create).
+- **A `professional_payout` movement is not editable or deletable here.**
+  `liquidations` writes those and points a foreign key at them. The refusal
+  reads the **category**, never asking that module anything — this one knows
+  nothing about settlements and must not start to. Deleting was already
+  impossible (RESTRICT) but surfaced as a 500; editing was worse, because it
+  succeeded and left a settlement claiming an amount the till never moved.
 - **Deleting an open movement is a hard delete, deliberately.** It is not
   patient data and an open day has no accounting weight yet — a mistyped
   row the same minute it was typed should leave nothing behind. What
@@ -232,6 +238,22 @@ than through it.
   and not on `patients`; a name would be both an undeclared dependency and
   PII in a payload that does not need it. The reference and the amount are
   enough to find the row in Cobros, which is where the person belongs.
+
+## Testing
+
+71 backend tests in `backend/tests/modules/cashbox/`, each building its own
+data, plus two in `frontend/tests/e2e/tablet-touch.spec.ts`.
+
+**The e2e assertions are structural on purpose.** `seed-demo.sh` creates no
+movements and no arqueos — it cannot, because a count is something a person
+does — so a test that expected a figure would pass on a developer's database
+and fail in CI. They also drive a **day far older than anything the seed
+writes** rather than today: a developer's database has real arqueos in it,
+and a day that happens to be counted already hides the button the test needs,
+failing locally while passing in CI.
+
+One of the two pins the rule the whole feature rests on — the expected figure
+is not revealed until a count is entered — and needs no data at all to do it.
 
 ## Tools exposed
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- fix(i18n): la banda de alertas del paciente usaba tres claves ausentes.
+  `common.collapse` y `common.expand` estaban tapadas por su valor por
+  defecto; `common.more` no lo tenía, así que el contador de alertas ocultas
+  se leía «+2 common.more». Las tres añadidas en es y en.
+
 - feat(privacy): `get_subject_contributors()` — this module now answers
   for its own data when a patient exercises portability or erasure
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

@@ -1,0 +1,57 @@
+{
+  "liquidations": {
+    "nav": {
+      "liquidations": "Liquidaciones"
+    },
+    "professional": "Profesional",
+    "from": "Desde",
+    "to": "Hasta",
+    "earned": "Devengado",
+    "earnedHint": "Trabajo hecho, cobrado o no",
+    "collected": "Cobrado",
+    "collectedHint": "Lo que el paciente ya pagó de ese trabajo",
+    "share": "Acuerdo",
+    "due": "A pagar",
+    "dueHint": "Sobre {base}",
+    "alreadyIssued": "Ya liquidado",
+    "issue": "Emitir la liquidación",
+    "issueWhy": "Al emitirla las cifras se congelan: lo que el paciente pague después no cambia lo ya liquidado.",
+    "issueFailed": "No se pudo emitir la liquidación",
+    "issuedTitle": "Liquidaciones emitidas en el periodo",
+    "noWork": "No hay trabajo de este profesional en el periodo.",
+    "basis": {
+      "collected": "sobre lo cobrado",
+      "earned": "sobre lo devengado"
+    },
+    "commission": {
+      "title": "Acuerdo con el profesional",
+      "basis": "Se paga sobre",
+      "basisHint": "Sobre lo cobrado, la clínica nunca reparte dinero que no ha recibido. Sobre lo devengado, el asociado no asume el riesgo de cobro.",
+      "percent": "Porcentaje",
+      "note": "El acuerdo se puede cambiar cuando haga falta: las liquidaciones ya emitidas guardan el porcentaje con el que se hicieron.",
+      "edit": "Cambiar el acuerdo",
+      "missing": "No hay acuerdo registrado con este profesional",
+      "missingWhy": "Las cifras de trabajo son reales; el porcentaje es cero hasta que alguien lo diga. Regístralo antes de liquidar.",
+      "saveFailed": "No se pudo guardar el acuerdo"
+    },
+    "pay": {
+      "action": "Pagar",
+      "title": "Pagar la liquidación",
+      "method": "Cómo se paga",
+      "methodHint": "En efectivo sale del cajón y se anota como movimiento de caja. Por transferencia no lo toca.",
+      "failed": "No se pudo registrar el pago",
+      "undo": "Deshacer el pago",
+      "undoFailed": "No se pudo deshacer. Si el día ya está arqueado, hay que reabrirlo primero.",
+      "methods": {
+        "cash": "Efectivo",
+        "transfer": "Transferencia",
+        "other": "Otro"
+      },
+      "paidBy": {
+        "cash": "Pagado en efectivo",
+        "transfer": "Pagado por transferencia",
+        "other": "Pagado"
+      }
+    }
+  }
+}

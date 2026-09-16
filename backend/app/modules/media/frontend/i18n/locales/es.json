@@ -1,0 +1,133 @@
+{
+  "documents": {
+    "title": "Documentos",
+    "add": "Añadir",
+    "upload": "Subir documento",
+    "uploading": "Subiendo…",
+    "uploadFirst": "Sube el primer documento",
+    "uploadHelp": "Clasifica el archivo para que aparezca en su categoría.",
+    "empty": "Todavía no hay documentos",
+    "edit": "Editar documento",
+    "pdfPreviewHint": "Vista previa tras subir",
+    "dropzone": {
+      "hint": "Arrastra un documento o haz clic"
+    },
+    "filter": {
+      "allTypes": "Todos los tipos"
+    },
+    "fields": {
+      "title": "Título",
+      "titlePlaceholder": "Título del documento",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Notas opcionales",
+      "type": "Tipo"
+    },
+    "types": {
+      "consent": "Consentimiento",
+      "id_scan": "Identificación",
+      "insurance": "Seguro",
+      "referral": "Derivación",
+      "report": "Informe",
+      "other": "Otro"
+    },
+    "typeDesc": {
+      "consent": "Documento firmado",
+      "id_scan": "DNI / pasaporte",
+      "insurance": "Póliza o tarjeta",
+      "referral": "Carta de remisión",
+      "report": "Reporte clínico",
+      "other": "Sin clasificar"
+    },
+    "errors": {
+      "mime": "Tipo no permitido. Solo PDF, JPG o PNG.",
+      "size": "El archivo supera 10 MB."
+    },
+    "deleteConfirm": {
+      "title": "Eliminar documento",
+      "message": "¿Seguro que quieres eliminar este documento? No se puede deshacer."
+    },
+    "viewer": {
+      "loading": "Cargando documento…",
+      "error": "No se ha podido cargar el documento",
+      "unsupported": "No hay vista previa para este tipo de archivo",
+      "downloadInstead": "Descargar en su lugar",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar",
+      "resetZoom": "Restablecer al 100%",
+      "zoomHint": "Ctrl + rueda para acercar"
+    }
+  },
+  "photoGallery": {
+    "title": "Galería del paciente",
+    "add": "Añadir foto",
+    "upload": "Subir foto",
+    "uploadFirst": "Sube la primera",
+    "uploadHelp": "Clasifica para que aparezca en la categoría correcta",
+    "empty": "Todavía no hay fotos",
+    "dropHere": "Arrastra una foto o haz clic",
+    "showingOf": "Mostrando {count} de {total}",
+    "category": "Tipo",
+    "subtype": "Vista",
+    "capturedAt": "Fecha",
+    "exifHint": "Auto desde EXIF",
+    "titlePlaceholder": "Frontal intraoral — 02/05",
+    "cat": {
+      "all": "Todas",
+      "intraoral": "Intraoral",
+      "extraoral": "Extraoral",
+      "xray": "Radiografía",
+      "clinical": "Antes/Después",
+      "other": "Otras"
+    },
+    "catDesc": {
+      "intraoral": "Dentro de la boca",
+      "extraoral": "Cara y perfil",
+      "xray": "Imagen radiológica",
+      "clinical": "Comparativa de tratamiento",
+      "other": "Sin clasificar"
+    },
+    "compare": {
+      "before": "Antes",
+      "after": "Después"
+    },
+    "pair": {
+      "pair": "Emparejar antes/después",
+      "unpair": "Quitar",
+      "paired": "Emparejada",
+      "compare": "Comparar",
+      "exitCompare": "Salir de la comparativa",
+      "pickHint": "Elige la foto a emparejar:",
+      "noCandidates": "Sin fotos disponibles. Sube otra primero."
+    },
+    "sub": {
+      "before": "Antes",
+      "after": "Después",
+      "progress": "Progreso",
+      "frontal": "Frontal",
+      "frontal_face": "Frontal",
+      "lateral_left": "Lateral izda",
+      "lateral_right": "Lateral dcha",
+      "occlusal_upper": "Oclusal sup",
+      "occlusal_lower": "Oclusal inf",
+      "palatal": "Palatal",
+      "lingual": "Lingual",
+      "profile_left": "Perfil izdo",
+      "profile_right": "Perfil dcho",
+      "three_quarter_left": "3/4 izdo",
+      "three_quarter_right": "3/4 dcho",
+      "smile": "Sonrisa",
+      "rest": "Reposo",
+      "portrait": "Retrato",
+      "panoramic": "Panorámica",
+      "periapical": "Periapical",
+      "bitewing": "Aleta",
+      "occlusal_xray": "Oclusal Rx",
+      "ceph_lat": "Cefalo lateral",
+      "ceph_pa": "Cefalo PA",
+      "cbct": "CBCT",
+      "model_photo": "Modelo",
+      "document_scan": "Documento",
+      "reference": "Referencia"
+    }
+  }
+}

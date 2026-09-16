@@ -105,7 +105,9 @@
     "save": "Guardar",
     "create": "Crear",
     "delete": "Eliminar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "change": "Cambiar",
+    "remove": "Quitar"
   },
   "patients": {
     "title": "Pacientes",
@@ -400,7 +402,8 @@
       "budgets": "Presupuestos",
       "billing": "Facturación",
       "payments": "Pagos",
-      "documents": "Documentos"
+      "documents": "Documentos",
+      "gallery": "Galería"
     },
     "historyPlaceholder": "Notas clínicas disponibles en futura versión",
     "noAppointments": "Este paciente no tiene citas",
@@ -742,7 +745,8 @@
       "continuePlan": "Continuar Plan \"{name}\"",
       "selectPlan": "Seleccionar plan",
       "continue": "Continuar",
-      "odontogramTab": "Odontograma"
+      "odontogramTab": "Odontograma",
+      "openNotes": "Abrir notas clínicas"
     },
     "plans": {
       "title": "Planes de Tratamiento",
@@ -771,7 +775,8 @@
         "cancel": "Cancelar sesión",
         "markedDone": "Sesión realizada",
         "cancelled": "Sesión cancelada",
-        "untitled": "Sesión {n}"
+        "untitled": "Sesión {n}",
+        "title": "Sesiones"
       },
       "unknownTreatment": "Tratamiento",
       "odontogram": "Odontograma",
@@ -867,7 +872,10 @@
         "collected": "Cobrado",
         "pending": "Por cobrar",
         "partial": "Quedan {amount}",
-        "phasePending": "por cobrar {amount}"
+        "phasePending": "por cobrar {amount}",
+        "earned": "Ejecutado",
+        "collectedLabel": "Cobrado",
+        "pendingLabel": "Pendiente"
       },
       "draft": {
         "chartHelp": "Toca una pieza para añadir un tratamiento. El paciente se elige después.",
@@ -906,6 +914,23 @@
           "newPatient": "Indica nombre y apellidos del paciente.",
           "needsTeeth": "Indica en qué pieza va: {names}."
         }
+      },
+      "item": {
+        "open": "Abrir {name}",
+        "pending": "Pendiente",
+        "closed": "Cerrado",
+        "closedTitle": "Tratamiento cerrado",
+        "closedHint": "Está completado y cobrado. Para deshacer el cobro, registra la devolución en Finanzas; al hacerlo dejará de estar cerrado. «Reabrir» solo desbloquea las acciones aquí, no toca el dinero.",
+        "reopen": "Reabrir",
+        "teeth": "Pieza {teeth}",
+        "price": "Precio",
+        "collect": "Cobrar",
+        "collectNow": "Cobrar ahora",
+        "leavePending": "Dejar pendiente",
+        "completedTitle": "Tratamiento completado",
+        "collectPrompt": "Quedan {amount} por cobrar de este tratamiento. Puedes cobrarlo ahora o dejarlo pendiente.",
+        "collectPromptNoAmount": "No queda nada por cobrar de este tratamiento.",
+        "actions": "Acciones"
       }
     },
     "tooth": "Diente"
@@ -1059,7 +1084,9 @@
     },
     "confirms": {
       "cancel": "¿Cancelar esta cita? Se avisará al paciente según la configuración de notificaciones."
-    }
+    },
+    "previousDay": "Día anterior",
+    "nextDay": "Día siguiente"
   },
   "dashboard": {
     "greetings": {
@@ -1456,7 +1483,16 @@
     "copied": "Copiado al portapapeles",
     "copy": "Copiar",
     "copyFailed": "No se pudo copiar",
-    "treatment": "Tratamiento"
+    "treatment": "Tratamiento",
+    "optional": "Opcional",
+    "upload": "Subir",
+    "uploading": "Subiendo…",
+    "download": "Descargar",
+    "view": "Ver",
+    "collapse": "Contraer",
+    "expand": "Expandir",
+    "more": "más",
+    "status": "Estado"
   },
   "cabinet": {
     "toast": {
@@ -2540,7 +2576,8 @@
       "partial": "Pago parcial",
       "paid": "Pagada",
       "cancelled": "Anulada",
-      "voided": "Anulada"
+      "voided": "Anulada",
+      "title": "Estado"
     },
     "actions": {
       "issue": "Emitir factura",
@@ -3059,6 +3096,13 @@
         "save_failed": "Error al guardar configuración SMTP",
         "test_failed": "Error al probar conexión SMTP"
       }
+    },
+    "conversation": {
+      "title": "Conversación",
+      "empty": "Todavía no hay mensajes.",
+      "placeholder": "Escribe un mensaje…",
+      "replyError": "No se ha podido enviar el mensaje",
+      "windowClosed": "La ventana de respuesta libre de 24 h está cerrada, o el canal no está disponible."
     }
   },
   "invoiceSeries": {

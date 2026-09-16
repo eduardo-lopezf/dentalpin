@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- fix(i18n): `clinicalNotes.composer.attach` y `actions.remove` faltaban;
+  el valor por defecto de `t()` las tapaba y la interfaz se veía bien
+  mientras intlify avisaba en cada render. Añadidas —la primera al fichero
+  del módulo, la segunda al del host, que es de quien es ese vocabulario— y
+  retirados los valores por defecto.
+
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

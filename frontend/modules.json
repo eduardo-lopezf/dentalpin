@@ -11,6 +11,7 @@
     "/module_layers/billing/frontend",
     "/module_layers/cashbox/frontend",
     "/module_layers/copilot/frontend",
+    "/module_layers/liquidations/frontend",
     "/module_layers/patients_clinical/frontend",
     "/module_layers/treatment_plan/frontend",
     "/module_layers/clinical_notes/frontend",
@@ -65,6 +66,10 @@
     {
       "name": "copilot",
       "path": "/module_layers/copilot/frontend"
+    },
+    {
+      "name": "liquidations",
+      "path": "/module_layers/liquidations/frontend"
     },
     {
       "name": "patients_clinical",

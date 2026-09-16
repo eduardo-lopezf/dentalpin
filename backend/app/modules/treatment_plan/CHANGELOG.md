@@ -2,6 +2,60 @@
 
 ## Unreleased
 
+- change(treatment_plan): **cada tratamiento del plan tiene su propia
+  ventana**, y la fila se queda solo con lo que cambia el plan.
+
+  La fila llevaba cinco objetivos a un dedo de distancia — nota,
+  recordatorio, chip de doctor, ✓ y papelera — donde los dos que *abren*
+  algo se ven igual que los dos que *cambian* el plan. Tocar el recuadro
+  abre ahora `PlanItemDetailModal`: profesional, precio, dientes, sesiones
+  y el estado del dinero, con *añadir nota*, *programar recordatorio* y
+  *cobrar* agrupados bajo el epígrafe **Acciones**. Las tres las aportan
+  sus módulos (`clinical_notes` y `recalls` por
+  `odontogram.condition.actions`, `payments` por el slot nuevo
+  `treatment_plan.item.collect`); el plan no importa código de ninguno.
+
+- feat(treatment_plan): al completar un tratamiento, la aplicación pregunta
+  **si se cobra ahora o se deja pendiente**. Es el momento más barato para
+  cobrar —el paciente sigue en el sillón— y las dos salidas son respuestas
+  de verdad: una clínica que factura a fin de mes deja pendiente todos los
+  días, y el importe queda igual en «pendiente de cobrar».
+
+  El botón de cobrar lo pone `payments` en el slot; el plan solo lo coloca
+  y le pasa `{patientId, patientName, budgetId, amount}`. `ModuleSlot` no
+  reenvía eventos hacia arriba, así que el aviso de «ya está cobrado» viaja
+  como un callback dentro del ctx — el ctx es todo el contrato.
+
+- fix(treatment_plan): la ficha de un tratamiento completado que aún tiene
+  cobro pendiente ya no dibuja un pie vacío. No tenía nada que ofrecer ahí
+  —ni completar ni reabrir— y una barra gris en blanco se lee como un control
+  que no cargó.
+
+- feat(treatment_plan): un tratamiento completado y sin nada por cobrar se
+  muestra como **Cerrado**, y su ventana ofrece **Reabrir**.
+
+  «Cerrado» se **deduce** (completado + `pending <= 0`), no se guarda: así
+  no puede desincronizarse del libro, y una devolución registrada en
+  Finanzas lo reabre sola sin que nadie tenga que acordarse de tocar el
+  plan. Sin `payments` legible no hay insignia — «no queda nada pendiente»
+  y «no podemos ver el dinero» no son la misma afirmación.
+
+  **Reabrir desbloquea las acciones de la ventana y nada más.** No
+  descompleta el tratamiento y no devuelve el dinero. Descompletarlo
+  dejaría en `payments` una entrada *earned* por un trabajo que el plan
+  ya no da por hecho —dinero que el paciente seguiría pareciendo deber— y
+  `payments` no tiene hoy ningún manejador que revierta eso. Hacerlo bien
+  pide un evento de reversión en `payments`; hasta entonces, el botón no
+  promete lo que el libro no cumpliría.
+
+- refactor(treatment_plan): el nombre visible de un ítem sale de
+  `planItemName`, compartido por la lista, la ventana del tratamiento y el
+  aviso de cobro. Eran tres copias en camino, y un nombre distinto entre
+  ellas se lee como dos tratamientos distintos. De paso desaparecen tres
+  errores de tipo que estaban en la baseline: la rama `migrated` lee campos
+  que no están en `ClinicalType` ni en `TreatmentBrief`, y ahora lo dice en
+  un sitio en vez de tropezar con ello.
+
 ### Added
 
 - **The plan builder opens holding the patient's charted findings.** Reached

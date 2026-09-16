@@ -36,11 +36,11 @@ function setFile(f: File | null) {
     return
   }
   if (!ALLOWED_MIME.includes(f.type)) {
-    validationError.value = t('documents.errors.mime', 'Tipo no permitido. Solo PDF, JPG o PNG.')
+    validationError.value = t('documents.errors.mime')
     return
   }
   if (f.size > MAX_SIZE) {
-    validationError.value = t('documents.errors.size', 'El archivo supera 10 MB.')
+    validationError.value = t('documents.errors.size')
     return
   }
   file.value = f
@@ -84,38 +84,38 @@ const docTypes = computed<DocTypeDef[]>(() => [
   {
     key: 'consent',
     icon: 'i-lucide-file-signature',
-    label: t('documents.types.consent', 'Consentimiento'),
-    description: t('documents.typeDesc.consent', 'Documento firmado')
+    label: t('documents.types.consent'),
+    description: t('documents.typeDesc.consent')
   },
   {
     key: 'id_scan',
     icon: 'i-lucide-id-card',
-    label: t('documents.types.id_scan', 'Identificación'),
-    description: t('documents.typeDesc.id_scan', 'DNI / pasaporte')
+    label: t('documents.types.id_scan'),
+    description: t('documents.typeDesc.id_scan')
   },
   {
     key: 'insurance',
     icon: 'i-lucide-shield',
-    label: t('documents.types.insurance', 'Seguro'),
-    description: t('documents.typeDesc.insurance', 'Póliza o tarjeta')
+    label: t('documents.types.insurance'),
+    description: t('documents.typeDesc.insurance')
   },
   {
     key: 'report',
     icon: 'i-lucide-file-text',
-    label: t('documents.types.report', 'Informe'),
-    description: t('documents.typeDesc.report', 'Reporte clínico')
+    label: t('documents.types.report'),
+    description: t('documents.typeDesc.report')
   },
   {
     key: 'referral',
     icon: 'i-lucide-file-output',
-    label: t('documents.types.referral', 'Derivación'),
-    description: t('documents.typeDesc.referral', 'Carta de remisión')
+    label: t('documents.types.referral'),
+    description: t('documents.typeDesc.referral')
   },
   {
     key: 'other',
     icon: 'i-lucide-file',
-    label: t('documents.types.other', 'Otro'),
-    description: t('documents.typeDesc.other', 'Sin clasificar')
+    label: t('documents.types.other'),
+    description: t('documents.typeDesc.other')
   }
 ])
 
@@ -178,7 +178,7 @@ async function submit() {
       </div>
       <div>
         <p class="text-base font-medium text-default">
-          {{ t('documents.dropzone.hint', 'Arrastra un documento o haz clic') }}
+          {{ t('documents.dropzone.hint') }}
         </p>
         <p class="mt-1 text-xs text-muted">
           PDF · JPG · PNG — hasta 10 MB
@@ -219,7 +219,7 @@ async function submit() {
             PDF
           </p>
           <p class="text-xs text-muted">
-            {{ t('documents.pdfPreviewHint', 'Vista previa tras subir') }}
+            {{ t('documents.pdfPreviewHint') }}
           </p>
         </div>
       </div>
@@ -240,7 +240,7 @@ async function submit() {
           size="sm"
           @click="pickFile"
         >
-          {{ t('actions.change', 'Cambiar') }}
+          {{ t('actions.change') }}
         </UButton>
         <UButton
           variant="ghost"
@@ -274,7 +274,7 @@ async function submit() {
     <!-- ===== Step 2 — type cards ===== -->
     <div>
       <p class="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
-        {{ t('documents.fields.type', 'Tipo') }}
+        {{ t('documents.fields.type') }}
       </p>
       <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <button
@@ -308,25 +308,25 @@ async function submit() {
 
     <!-- ===== Step 3 — title + description ===== -->
     <UFormField
-      :label="t('documents.fields.title', 'Título')"
+      :label="t('documents.fields.title')"
       required
       size="sm"
     >
       <UInput
         v-model="title"
-        :placeholder="t('documents.fields.titlePlaceholder', 'Consentimiento implantes — 02/05')"
+        :placeholder="t('documents.fields.titlePlaceholder')"
         icon="i-lucide-tag"
       />
     </UFormField>
 
     <UFormField
-      :label="t('documents.fields.description', 'Notas')"
+      :label="t('documents.fields.description')"
       size="sm"
-      :hint="t('common.optional', 'Opcional')"
+      :hint="t('common.optional')"
     >
       <UTextarea
         v-model="description"
-        :placeholder="t('documents.fields.descriptionPlaceholder', 'Contexto interno para el equipo')"
+        :placeholder="t('documents.fields.descriptionPlaceholder')"
         :rows="2"
         autoresize
       />
@@ -338,7 +338,7 @@ async function submit() {
       class="space-y-1"
     >
       <div class="flex justify-between text-caption text-subtle">
-        <span>{{ t('documents.uploading', 'Subiendo…') }}</span>
+        <span>{{ t('documents.uploading') }}</span>
         <span>{{ uploadProgress.percentage }}%</span>
       </div>
       <UProgress :value="uploadProgress.percentage" />
@@ -354,7 +354,7 @@ async function submit() {
         trailing
         @click="submit"
       >
-        {{ uploading ? t('common.uploading', 'Subiendo…') : t('documents.upload', 'Subir documento') }}
+        {{ uploading ? t('common.uploading') : t('documents.upload') }}
       </UButton>
     </div>
   </div>

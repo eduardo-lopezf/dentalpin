@@ -54,7 +54,8 @@
     "composer": {
       "placeholder": "Escribe la nota…",
       "templates": "Plantillas",
-      "bindToTooth": "Asociar al diente {n}"
+      "bindToTooth": "Asociar al diente {n}",
+      "attach": "Adjuntar foto o documento"
     },
     "linked": {
       "tooth": "Diente {n}",
