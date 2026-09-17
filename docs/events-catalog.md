@@ -98,6 +98,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `treatment_plan.created` | `EventType.TREATMENT_PLAN_CREATED` | `treatment_plan` | `patient_timeline` |
 | `treatment_plan.item_completed_without_note` | `EventType.TREATMENT_PLAN_ITEM_COMPLETED_WITHOUT_NOTE` | `treatment_plan` | `patient_timeline` |
 | `treatment_plan.item_session_completed` | `EventType.TREATMENT_PLAN_ITEM_SESSION_COMPLETED` | `treatment_plan` | `payments` |
+| `treatment_plan.item_session_reopened` | `EventType.TREATMENT_PLAN_ITEM_SESSION_REOPENED` | `treatment_plan` | `payments` |
 | `treatment_plan.items_reordered` | `EventType.TREATMENT_PLAN_ITEMS_REORDERED` | `treatment_plan` | — |
 | `treatment_plan.reactivated` | `EventType.TREATMENT_PLAN_REACTIVATED` | `treatment_plan` | `patient_timeline` |
 | `treatment_plan.status_changed` | `EventType.TREATMENT_PLAN_STATUS_CHANGED` | `treatment_plan` | — |
@@ -769,6 +770,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 ### `treatment_plan.item_session_completed`
 
 - **Constant:** `EventType.TREATMENT_PLAN_ITEM_SESSION_COMPLETED`
+- **Publishers:**
+  - `treatment_plan` — `backend/app/modules/treatment_plan/service.py`
+- **Subscribers:**
+  - `payments`
+
+### `treatment_plan.item_session_reopened`
+
+- **Constant:** `EventType.TREATMENT_PLAN_ITEM_SESSION_REOPENED`
 - **Publishers:**
   - `treatment_plan` — `backend/app/modules/treatment_plan/service.py`
 - **Subscribers:**

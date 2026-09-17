@@ -542,3 +542,32 @@ class PlanPermissionsResponse(BaseModel):
 
 
 TreatmentPlanDetailResponse.model_rebuild()
+
+
+# ---------------------------------------------------------------------------
+# Prescriptions
+# ---------------------------------------------------------------------------
+
+
+class PrescriptionCreate(BaseModel):
+    """A prescription for one plan treatment."""
+
+    body: str = Field(..., min_length=1, max_length=5000)
+    # The doctor who signs it. The UI defaults to the treatment's assigned
+    # professional and lets the user pick another.
+    professional_id: UUID
+
+
+class PrescriptionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    patient_id: UUID
+    plan_item_id: UUID | None
+    treatment_label: str | None
+    professional_id: UUID | None
+    professional_name: str
+    professional_license: str | None
+    body: str
+    issued_by: UUID | None
+    created_at: datetime

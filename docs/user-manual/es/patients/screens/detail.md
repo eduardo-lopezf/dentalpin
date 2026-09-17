@@ -14,7 +14,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/patients/router.py
   - backend/app/modules/patients/frontend/pages/patients/[id].vue
-last_verified_commit: 3568519
+last_verified_commit: 2b664a5
 ---
 
 # Ficha del paciente
@@ -61,6 +61,11 @@ también deep-links — un click llega al detalle.
   [/treatments/plans/new](../../treatment_plan/screens/treatments_plans_new.md)
   con el paciente ya puesto y el título ya escrito. Es la misma pantalla
   desde cualquier sitio, y empieza por el odontograma en blanco.
+- **Cada plan de *Clínica → Planes* se abre pulsando en cualquier parte
+  de su tarjeta.** Ya no hay botones *Ver detalle* ni *Programar cita*;
+  las citas se dan desde la agenda o desde **Cita** en las acciones
+  rápidas. Los botones que quedan (*Activar*, *Generar presupuesto*)
+  hacen lo suyo sin abrir el plan.
 - **Mobile** — la cabecera se condensa, las cards se apilan a una
   columna y aparece una barra inferior fija (Cita · Cobrar · Nota).
 

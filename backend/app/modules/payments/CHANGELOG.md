@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- feat(payments): nuevo handler `on_session_reopened` para
+  `treatment_plan.item_session_reopened`: borra el devengo de esa sesión
+  (y la fila de tratamiento completo, si la hubiera). Un tratamiento
+  reabierto deja de figurar como pendiente de cobro; los pagos no se tocan
+  y lo que lo cubría pasa a saldo a favor del paciente.
+
+- feat(payments): `PlanItemCollectButton` acepta `ctx.labelled` (sin icono,
+  tamaño normal, a todo el ancho) y `variant: 'outline'`, para ir como
+  texto junto a las demás acciones en el pie de la ventana del tratamiento.
+
 - feat(payments): nuevo `PlanItemCollectButton` en el slot
   `treatment_plan.item.collect` — «Cobrar» para un tratamiento concreto,
   ofrecido dentro de su ficha en el plan y justo después de marcarlo hecho,

@@ -11,6 +11,7 @@ related_endpoints:
   - GET /api/v1/treatment_plan/treatment-plans/{plan_id}
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/reorder
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/complete
+  - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/reopen
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/status
   - POST /api/v1/treatment_plan/treatment-plans
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/close
@@ -27,19 +28,27 @@ related_endpoints:
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/sync-budget
   - PUT /api/v1/treatment_plan/treatment-plans/{plan_id}
   - PUT /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}
+  - GET /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/prescriptions
+  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/prescriptions
+  - GET /api/v1/treatment_plan/prescriptions/{prescription_id}/pdf
 related_permissions:
   - treatment_plan.plans.read
   - treatment_plan.plans.write
   - treatment_plan.plans.confirm
   - treatment_plan.plans.close
   - treatment_plan.plans.reactivate
+  - treatment_plan.prescriptions.read
+  - treatment_plan.prescriptions.write
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/[id].vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue
+  - backend/app/modules/treatment_plan/frontend/components/clinical/modals/PlanItemDetailModal.vue
+  - backend/app/modules/treatment_plan/frontend/components/clinical/modals/PlanItemPrescriptionModal.vue
+  - backend/app/modules/treatment_plan/prescriptions.py
   - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 1091f98
+last_verified_commit: 2b664a5
 ---
 
 # Treatment plan detail
@@ -151,9 +160,11 @@ of what happened.
   `clinical_notes` module (slot `patient.detail.clinical.notes`).
 - **The treatment's own dialog.** Tap a treatment's box and it opens:
   professional, price, teeth, sessions and where its money stands
-  (earned, collected, outstanding). The three actions that used to be
-  loose icons on the row — **add note**, **set recall** and **charge**
-  — live there under *Acciones*. The row keeps only what changes the
+  (earned, collected, outstanding). Its footer holds same-sized blue
+  buttons: **Añadir nota** (or **Notas (n)** once it has some),
+  **Programar recordatorio**, **Cobrar** (only while something is
+  outstanding) and **Receta médica**; the last cell is **Marcar como
+  completado** in green, or **Reabrir tratamiento** once it is done. The row keeps only what changes the
   plan (complete, remove), which is what stops "open something" and
   "change the plan" sitting a finger apart.
 
@@ -181,24 +192,61 @@ of what happened.
    bills monthly does it every day, and the amount stays in "pending
    to charge" either way.
 4. To record a clinical note, open it from the treatment's dialog
-   (*Acciones → Add note*, contributed by `clinical_notes`).
+   (**Añadir nota**, contributed by `clinical_notes`).
 
 **Removing an item from the plan** (the trash icon on the row) asks
 for confirmation: it cascades into the odontogram treatment and the
 associated budget line.
 
+## Prescription
+
+> Writing one requires `treatment_plan.prescriptions.write` (admin and
+> dentist). Seeing and reprinting them, `treatment_plan.prescriptions.read`
+> (also hygienist, assistant and reception).
+
+1. In the treatment's dialog tap **Receta médica**.
+2. **Doctor que firma** starts on the professional assigned to the
+   treatment; pick another from the directory if needed. Their
+   **professional licence** (cédula) shows underneath, or a warning when
+   none is on file (the prescription would print without it — fill it in
+   from the *Profesionales* menu).
+3. Type the **instructions**: medication, dose, frequency, duration.
+4. Tap **Generar receta**. A tab opens with a print-ready PDF: clinic
+   details (name, address, phone, email), the doctor's name and licence,
+   patient, age, date, treatment, the instructions and a signature line.
+
+The prescription **is kept** on the record and listed under *Recetas
+anteriores* with a **Imprimir** button. The doctor's name and licence are
+copied when it is generated, so a reprint still says what the patient
+took to the pharmacy even if the directory changes. Removing the
+treatment from the plan does not delete it.
+
 ## A closed treatment, and how to reopen it
 
 A treatment reads as **Cerrado** when it is completed **and** there is
 nothing left to charge for it. It is not a stored state: it is derived
-from the money, so it cannot drift from the ledger. Record a refund in
-Finanzas and the treatment stops being closed on its own, with nobody
-having to remember to touch it.
+from the money, so it cannot drift from the ledger. The
+**prescription** stays available on a closed treatment.
 
-**Reopen** (in the treatment's dialog) unlocks the actions there: you
-can add a note or set a recall again. It **does not return the money** —
-a charge is reverted where charges are reverted, in Finanzas, and this
-screen should not pretend it can do that from a clinical button.
+If a treatment was marked done by mistake — closed, or still with money
+outstanding — open it and press **Reopen treatment**. The dialog says
+what will happen first; once you confirm with **Yes, reopen**:
+
+- The treatment **goes back to pending** and no longer counts as done,
+  on the chart too.
+- **Its charge is withdrawn.** It no longer shows as outstanding, on the
+  plan or on the patient's account.
+- **What was already paid is not refunded.** It stays as the patient's
+  credit and covers the treatment once you complete it for real. Giving
+  the money back is a refund, recorded in Finanzas.
+- If the plan was **completed**, it goes back to **Active**,
+  because it now has work outstanding.
+- On a **multi-session** treatment only the last completed session is
+  reopened; earlier ones stay done and charged.
+- The **plan history** records it as *Treatment reopened*.
+
+A treatment on a **closed** plan cannot be reopened: reactivate the plan
+first.
 
 ## Multi-session treatments
 
@@ -251,6 +299,8 @@ added to a plan, one session is created per step.
 | Confirm (draft → pending) | `treatment_plan.plans.confirm` |
 | Close | `treatment_plan.plans.close` |
 | Reactivate | `treatment_plan.plans.reactivate` |
+| See and reprint prescriptions | `treatment_plan.prescriptions.read` |
+| Write a prescription | `treatment_plan.prescriptions.write` |
 
 ## Troubleshooting
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- fix(odontogram): `TreatmentService.update` limpia `performed_at` y
+  `performed_by` cuando un tratamiento pasa de `performed` a otro estado.
+  Antes un tratamiento devuelto a `planned` seguía con fecha de realizado.
+  Lo usa el reabrir tratamiento de `treatment_plan`.
+
 - fix(a11y/i18n): el botón flotante de notas del modo diagnóstico —el que
   abre el panel lateral en pantallas estrechas— decía «Notas» a los lectores
   de pantalla, y esa clave no existía: estaba escondida tras el valor por

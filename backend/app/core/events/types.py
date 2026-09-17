@@ -180,6 +180,11 @@ class EventType:
     # this once on completion; payments stops listening to the legacy
     # TREATMENT_PLAN_TREATMENT_COMPLETED earned path.
     TREATMENT_PLAN_ITEM_SESSION_COMPLETED = "treatment_plan.item_session_completed"
+    # The reverse: a completed item was reopened and the session that
+    # closed it is pending again. Payload: (plan_id, item_id, session_id,
+    # treatment_id, patient_id, clinic_id, reopened_by, occurred_at).
+    # Subscribers: payments (drops the earned entry the completion booked).
+    TREATMENT_PLAN_ITEM_SESSION_REOPENED = "treatment_plan.item_session_reopened"
 
     # Clinical-notes events (clinical_notes module — replaces the legacy
     # ``treatment_plan.{plan,item}_note_created`` pair).

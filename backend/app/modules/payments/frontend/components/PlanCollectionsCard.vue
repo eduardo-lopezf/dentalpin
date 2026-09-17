@@ -24,6 +24,12 @@ interface PlanCtx {
   patientName: string | null
   budgetId: string | null
   planStatus: string
+  /**
+   * Changes whenever a treatment of the plan is completed or reopened.
+   * Both move the patient's earned ledger, and the card has no other way
+   * to hear about it — it used to show the old figure until a reload.
+   */
+  itemsRevision?: string
 }
 
 const props = defineProps<{ ctx: PlanCtx }>()
@@ -50,7 +56,9 @@ const pendingTotal = computed(() =>
 
 async function load() {
   if (!props.ctx?.patientId) return
-  loading.value = true
+  // Skeleton on the first load only; a refresh keeps the old figure up
+  // until the new one arrives instead of flashing.
+  loading.value = pendingCharges.value.length === 0
   failed.value = false
   try {
     const response = await api.get<{ data: PendingCharge[] }>(
@@ -68,6 +76,7 @@ async function load() {
 
 onMounted(load)
 watch(() => props.ctx?.patientId, load)
+watch(() => props.ctx?.itemsRevision, load)
 
 function onRecorded() {
   showCreate.value = false

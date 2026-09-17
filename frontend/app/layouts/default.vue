@@ -12,6 +12,19 @@ const route = useRoute()
 // setup so the attributes are part of the SSR payload.
 initDevice()
 
+// Every authenticated screen renders in this layout, so this is where the
+// inactivity rule watches (ADR 0030). The watch is client-only; the auth
+// middleware applies the same rule on the server. Idle expiry carries the
+// page the user was on, so the next login resumes it.
+const sessionActivity = useSessionActivity()
+let stopWatchingActivity: (() => void) | null = null
+onMounted(() => {
+  stopWatchingActivity = sessionActivity.start(() =>
+    auth.logout({ returnTo: route.fullPath, reason: 'idle' })
+  )
+})
+onBeforeUnmount(() => stopWatchingActivity?.())
+
 // Pull the backend-driven nav on mount + on every route change, so
 // sidebar reflects module installs/upgrades without a full reload.
 // ensureLoaded enforces a 60s freshness window internally.

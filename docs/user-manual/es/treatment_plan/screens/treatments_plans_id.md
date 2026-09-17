@@ -11,6 +11,7 @@ related_endpoints:
   - GET /api/v1/treatment_plan/treatment-plans/{plan_id}
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/reorder
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/complete
+  - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/reopen
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/status
   - POST /api/v1/treatment_plan/treatment-plans
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/close
@@ -27,19 +28,27 @@ related_endpoints:
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/sync-budget
   - PUT /api/v1/treatment_plan/treatment-plans/{plan_id}
   - PUT /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}
+  - GET /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/prescriptions
+  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/prescriptions
+  - GET /api/v1/treatment_plan/prescriptions/{prescription_id}/pdf
 related_permissions:
   - treatment_plan.plans.read
   - treatment_plan.plans.write
   - treatment_plan.plans.confirm
   - treatment_plan.plans.close
   - treatment_plan.plans.reactivate
+  - treatment_plan.prescriptions.read
+  - treatment_plan.prescriptions.write
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/[id].vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue
+  - backend/app/modules/treatment_plan/frontend/components/clinical/modals/PlanItemDetailModal.vue
+  - backend/app/modules/treatment_plan/frontend/components/clinical/modals/PlanItemPrescriptionModal.vue
+  - backend/app/modules/treatment_plan/prescriptions.py
   - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 1091f98
+last_verified_commit: 2b664a5
 ---
 
 # Detalle del plan de tratamiento
@@ -154,10 +163,12 @@ pasó.
   `clinical_notes` (slot `patient.detail.clinical.notes`).
 - **Ficha del tratamiento.** Toca el recuadro de un tratamiento y se
   abre su ventana: profesional, precio, dientes, sesiones y el estado
-  del dinero (ejecutado, cobrado, pendiente). Ahí están las tres
-  acciones que antes eran iconos sueltos en la fila — **añadir nota**,
-  **programar recordatorio** y **cobrar** — bajo el epígrafe
-  *Acciones*. La fila se queda solo con lo que cambia el plan
+  del dinero (ejecutado, cobrado, pendiente). Al pie, como botones
+  azules del mismo tamaño, están **Añadir nota** (o **Notas (n)** si ya
+  tiene), **Programar recordatorio**, **Cobrar** (solo si queda algo
+  pendiente) y **Receta médica**; en la última casilla, **Marcar como
+  completado** en verde, o **Reabrir tratamiento** si ya está hecho. La
+  fila se queda solo con lo que cambia el plan
   (completar, quitar), que es lo que evita confundir «abrir algo» con
   «cambiar el plan» a un dedo de distancia.
 
@@ -185,25 +196,65 @@ pasó.
    todos los días, y el importe queda igualmente en «pendiente de
    cobrar».
 4. Para anotar una nota clínica, ábrela desde la ventana del
-   tratamiento (*Acciones → Añadir nota*, lo aporta `clinical_notes`).
+   tratamiento (**Añadir nota**, lo aporta `clinical_notes`).
 
 **Quitar un ítem del plan** (icono de papelera en la fila) pide
 confirmación: la baja arrastra el tratamiento del odontograma y la
 línea de presupuesto asociada.
 
+## Receta médica
+
+> Escribir una receta requiere `treatment_plan.prescriptions.write`
+> (administrador y dentista). Verlas y reimprimirlas,
+> `treatment_plan.prescriptions.read` (también higienista, auxiliar y
+> recepción).
+
+1. En la ventana del tratamiento pulsa **Receta médica**.
+2. **Doctor que firma** viene con el profesional asignado al
+   tratamiento; puedes elegir otro del directorio. Debajo se ve su
+   **cédula profesional**, o un aviso si no la tiene registrada (la
+   receta saldría sin ella: complétala en el menú *Profesionales*).
+3. Escribe las **indicaciones**: medicamento, dosis, frecuencia y
+   duración.
+4. Pulsa **Generar receta**. Se abre una pestaña con el PDF listo para
+   imprimir: datos de la clínica (nombre, dirección, teléfono, correo),
+   nombre y cédula del doctor, paciente, edad, fecha, tratamiento, las
+   indicaciones y la línea de firma.
+
+La receta **queda guardada** en el expediente y aparece en *Recetas
+anteriores* con su botón **Imprimir**. El nombre y la cédula del doctor
+se copian al generarla: si mañana cambian en el directorio, la
+reimpresión sigue diciendo lo que llevó el paciente a la farmacia. Si
+quitas el tratamiento del plan, la receta no se borra.
+
 ## Tratamiento cerrado, y cómo reabrirlo
 
 Un tratamiento aparece como **Cerrado** cuando está completado **y** no
 queda nada por cobrar de él. No es un estado que se guarde: se deduce
-del dinero, así que no puede desincronizarse del libro. Registra una
-devolución en Finanzas y el tratamiento deja de estar cerrado solo, sin
-que nadie tenga que acordarse de tocarlo.
+del dinero, así que no puede desincronizarse del libro. La **receta
+médica** está disponible también con el tratamiento cerrado.
 
-**Reabrir** (en la ventana del tratamiento) desbloquea las acciones ahí
-mismo: vuelves a poder añadir una nota o programar un recordatorio.
-**No devuelve el dinero** — un cobro se revierte donde se revierten los
-cobros, en Finanzas, y esta pantalla no debería fingir que puede
-hacerlo desde un botón clínico.
+Si marcaste un tratamiento como hecho por error —esté cerrado o todavía
+con cobro pendiente—, ábrelo y pulsa **Reabrir tratamiento**. La ventana
+te explica qué va a pasar antes de hacerlo; al confirmar con **Sí,
+reabrir**:
+
+- El tratamiento **vuelve a pendiente** y deja de contar como hecho,
+  también en el odontograma.
+- **Se retira su cargo.** Ya no aparece como pendiente de cobro ni en el
+  plan ni en la cuenta del paciente.
+- **Lo que ya se cobró no se devuelve.** Queda como saldo a favor del
+  paciente y cubrirá el tratamiento cuando lo completes de verdad. Si lo
+  que quieres es devolver el dinero, eso se hace en Finanzas.
+- Si el plan estaba **completado**, vuelve a **Activo**, porque
+  ahora tiene trabajo pendiente.
+- En un tratamiento de **varias sesiones** solo se reabre la última
+  sesión que se completó; las anteriores siguen hechas y cobradas.
+- Queda anotado en el **historial del plan** como *Tratamiento
+  reabierto*.
+
+No se puede reabrir un tratamiento de un plan **cerrado**: primero hay
+que reactivar el plan.
 
 ## Tratamientos en varias sesiones
 
@@ -255,6 +306,8 @@ añadirlos al plan se crea automáticamente una sesión por cada paso.
 | Confirmar (draft → pending) | `treatment_plan.plans.confirm` |
 | Cerrar | `treatment_plan.plans.close` |
 | Reactivar | `treatment_plan.plans.reactivate` |
+| Ver y reimprimir recetas | `treatment_plan.prescriptions.read` |
+| Escribir una receta | `treatment_plan.prescriptions.write` |
 
 ## Resolución de problemas
 

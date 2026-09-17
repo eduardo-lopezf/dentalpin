@@ -31,6 +31,8 @@
     "invoices": "Invoices"
   },
   "auth": {
+    "sessionIdle": "Your session ended due to inactivity. Log in to pick up where you left off.",
+    "sessionExpired": "Your session has expired. Log in to pick up where you left off.",
     "login": "Log in",
     "logout": "Log out",
     "email": "Email",
@@ -920,8 +922,14 @@
         "pending": "Pending",
         "closed": "Closed",
         "closedTitle": "Treatment closed",
-        "closedHint": "It is completed and paid for. To undo the charge, record the refund in Finanzas; the treatment stops being closed once you do. “Reopen” only unlocks the actions here — it does not touch the money.",
-        "reopen": "Reopen",
+        "closedHint": "It is completed and paid for. If it was completed by mistake, “Reopen treatment” sets it back to pending; what was paid stays as the patient's credit.",
+        "reopen": "Reopen treatment",
+        "reopenTitle": "Reopen this treatment?",
+        "reopenBody": "It goes back to pending and no longer counts as done, on the chart too.",
+        "reopenCharge": "Its {amount} charge is withdrawn, so nothing is left outstanding for it.",
+        "reopenBodyPaid": "What was already paid ({paid}) is not refunded: it stays as the patient's credit and covers the treatment once it is really done.",
+        "reopenSessions": "Only the last completed session is reopened; earlier ones stay done and charged.",
+        "reopenConfirm": "Yes, reopen",
         "teeth": "Tooth {teeth}",
         "price": "Price",
         "collect": "Charge",
@@ -929,8 +937,22 @@
         "leavePending": "Leave pending",
         "completedTitle": "Treatment completed",
         "collectPrompt": "{amount} is still outstanding on this treatment. You can charge it now or leave it pending.",
-        "collectPromptNoAmount": "Nothing is outstanding on this treatment.",
-        "actions": "Actions"
+        "collectPromptNoAmount": "Nothing is outstanding on this treatment."
+      },
+      "prescription": {
+        "open": "Prescription",
+        "title": "Prescription",
+        "doctor": "Signing doctor",
+        "doctorPlaceholder": "Choose a professional",
+        "license": "Professional licence: {license}",
+        "noLicense": "This professional has no licence on file; the prescription will print without it.",
+        "body": "Instructions",
+        "bodyPlaceholder": "Medication, dose, frequency and duration",
+        "generate": "Generate prescription",
+        "print": "Print",
+        "history": "Previous prescriptions",
+        "empty": "No prescriptions for this treatment yet.",
+        "error": "The prescription could not be generated."
       }
     },
     "tooth": "Tooth"
@@ -1923,6 +1945,7 @@
       "itemsAdded": "Treatments added to plan"
     },
     "itemCompleted": "Treatment completed",
+    "itemReopened": "Treatment reopened",
     "budgetGenerated": "Budget generated",
     "created": "Treatment plan created",
     "updated": "Treatment plan updated",
@@ -2047,7 +2070,8 @@
         "closed": "Closed",
         "reactivated": "Reactivated",
         "item_added": "Treatment added",
-        "item_removed": "Treatment removed"
+        "item_removed": "Treatment removed",
+        "item_reopened": "Treatment reopened"
       }
     }
   },

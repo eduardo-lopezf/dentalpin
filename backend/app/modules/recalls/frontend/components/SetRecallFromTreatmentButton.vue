@@ -11,6 +11,8 @@ const props = defineProps<{
     treatmentId?: string
     toothNumber?: number | null
     status?: string
+    /** Render as a full-width text button instead of an icon. */
+    labelled?: boolean
   }
 }>()
 
@@ -55,6 +57,17 @@ async function onClick() {
 <template>
   <div v-if="treatmentId">
     <UButton
+      v-if="ctx?.labelled"
+      color="primary"
+      variant="soft"
+      size="md"
+      block
+      @click="onClick"
+    >
+      {{ t('recalls.setRecall') }}
+    </UButton>
+    <UButton
+      v-else
       icon="i-lucide-bell-plus"
       size="xs"
       color="neutral"

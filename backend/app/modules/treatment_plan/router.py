@@ -3,13 +3,14 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import get_db
 
+from .prescriptions import PrescriptionService, ProfessionalNotFoundError
 from .proposals import PlanProposalService
 from .schemas import (
     AcceptProposalsRequest,
@@ -34,6 +35,8 @@ from .schemas import (
     PlanTemplateFromPlanRequest,
     PlanTemplateResponse,
     PlanTemplateUpdate,
+    PrescriptionCreate,
+    PrescriptionResponse,
     ReorderItemsRequest,
     SessionInput,
     TreatmentPlanCreate,
@@ -635,6 +638,33 @@ async def complete_plan_item(
     return ApiResponse(data=PlannedTreatmentItemResponse.model_validate(item))
 
 
+@router.patch(
+    "/treatment-plans/{plan_id}/items/{item_id}/reopen",
+    response_model=ApiResponse[PlannedTreatmentItemResponse],
+)
+async def reopen_plan_item(
+    plan_id: UUID,
+    item_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[PlannedTreatmentItemResponse]:
+    """Undo a completion: the item is pending again and its charge is dropped.
+
+    Same permission as completing it — this is the way back from that
+    click, not a separate privilege.
+    """
+    try:
+        item = await TreatmentPlanService.reopen_item(
+            db, ctx.clinic_id, plan_id, item_id, ctx.user_id
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not item:
+        raise HTTPException(status_code=404, detail="Treatment item not found")
+    return ApiResponse(data=PlannedTreatmentItemResponse.model_validate(item))
+
+
 # -----------------------------------------------------------------------------
 # Plan item sessions (multi-session billing)
 # -----------------------------------------------------------------------------
@@ -1193,3 +1223,84 @@ async def accept_plan_proposals(
 
     await db.commit()
     return ApiResponse(data=[PlannedTreatmentItemResponse.model_validate(i) for i in items])
+
+
+# -----------------------------------------------------------------------------
+# Prescriptions
+#
+# Written from a treatment's detail dialog and printed straight away. The row
+# keeps what was printed, so a reprint gives the same document.
+# -----------------------------------------------------------------------------
+
+
+@router.get(
+    "/treatment-plans/{plan_id}/items/{item_id}/prescriptions",
+    response_model=ApiResponse[list[PrescriptionResponse]],
+)
+async def list_item_prescriptions(
+    plan_id: UUID,
+    item_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.prescriptions.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[PrescriptionResponse]]:
+    """Prescriptions written for one plan treatment, newest first."""
+    rows = await PrescriptionService.list_for_item(db, ctx.clinic_id, plan_id, item_id)
+    if rows is None:
+        raise HTTPException(status_code=404, detail="Treatment item not found")
+    return ApiResponse(data=[PrescriptionResponse.model_validate(r) for r in rows])
+
+
+@router.post(
+    "/treatment-plans/{plan_id}/items/{item_id}/prescriptions",
+    response_model=ApiResponse[PrescriptionResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_item_prescription(
+    plan_id: UUID,
+    item_id: UUID,
+    data: PrescriptionCreate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.prescriptions.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[PrescriptionResponse]:
+    """Issue a prescription signed by ``professional_id``.
+
+    The doctor's name and licence are copied onto the prescription.
+    """
+    try:
+        prescription = await PrescriptionService.create(
+            db,
+            ctx.clinic_id,
+            ctx.user_id,
+            plan_id,
+            item_id,
+            data.body,
+            data.professional_id,
+        )
+    except ProfessionalNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if prescription is None:
+        raise HTTPException(status_code=404, detail="Treatment item not found")
+    await db.commit()
+    return ApiResponse(data=PrescriptionResponse.model_validate(prescription))
+
+
+@router.get("/prescriptions/{prescription_id}/pdf")
+async def prescription_pdf(
+    prescription_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.prescriptions.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    locale: str = Query(default="es", pattern="^(es|en)$"),
+) -> Response:
+    """The prescription as a print-ready PDF (served inline)."""
+    prescription = await PrescriptionService.get(db, ctx.clinic_id, prescription_id)
+    if prescription is None:
+        raise HTTPException(status_code=404, detail="Prescription not found")
+    pdf = await PrescriptionService.render_pdf(db, prescription, locale)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="receta_{prescription.id.hex[:8]}.pdf"'},
+    )

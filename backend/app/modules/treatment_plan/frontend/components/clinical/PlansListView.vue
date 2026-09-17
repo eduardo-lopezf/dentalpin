@@ -3,7 +3,8 @@
  * PlansListView - Display list of treatment plans for a patient
  *
  * Uses TreatmentPlanMiniCard for each plan.
- * Provides actions: view, activate, generate budget.
+ * Each card opens its plan; the remaining actions are activate and
+ * generate budget.
  */
 
 import type { TreatmentPlan } from '~~/app/types'
@@ -23,7 +24,6 @@ const emit = defineEmits<{
   'create-plan': []
   'activate-plan': [plan: TreatmentPlan]
   'generate-budget': [plan: TreatmentPlan]
-  'schedule': [plan: TreatmentPlan]
   'update:page': [value: number]
 }>()
 
@@ -135,7 +135,6 @@ const hasPlans = computed(() => visiblePlans.value.length > 0)
             @view="emit('view-plan', plan.id)"
             @activate="emit('activate-plan', plan)"
             @generate-budget="emit('generate-budget', plan)"
-            @schedule="emit('schedule', plan)"
           />
         </div>
       </div>
@@ -165,7 +164,6 @@ const hasPlans = computed(() => visiblePlans.value.length > 0)
             @view="emit('view-plan', plan.id)"
             @activate="emit('activate-plan', plan)"
             @generate-budget="emit('generate-budget', plan)"
-            @schedule="emit('schedule', plan)"
           />
         </div>
       </div>
@@ -188,7 +186,6 @@ const hasPlans = computed(() => visiblePlans.value.length > 0)
             :key="plan.id"
             :plan="plan"
             @view="emit('view-plan', plan.id)"
-            @schedule="emit('schedule', plan)"
           />
         </div>
       </div>
@@ -210,7 +207,6 @@ const hasPlans = computed(() => visiblePlans.value.length > 0)
               :plan="plan"
               @view="emit('view-plan', plan.id)"
               @generate-budget="emit('generate-budget', plan)"
-              @schedule="emit('schedule', plan)"
             />
           </div>
         </template>

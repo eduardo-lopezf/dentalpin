@@ -49,6 +49,7 @@ Routes mounted at `/api/v1/treatment-plans/`.
 - `POST  /treatment-plans/{id}/items`   — add item from catalog or odontogram tooth treatment
 - `PUT   /treatment-plans/{id}/items/reorder`
 - `POST  /treatment-plans/{id}/items/{item_id}/complete`
+- `PATCH /treatment-plans/{id}/items/{item_id}/reopen` — `plans.write`; completed → pending, drops the charge (see gotcha)
 - `POST  /treatment-plans/{id}/confirm`     — `plans.confirm`; draft → pending
 - `POST  /treatment-plans/{id}/reopen`      — pending|active → draft, cancels linked budget; admin or an assigned professional only
 - `POST  /treatment-plans/{id}/close`       — `plans.close`; any → closed
@@ -73,6 +74,13 @@ Routes mounted at `/api/v1/treatment-plans/`.
 - `POST  /treatment-plans/{id}/proposals`   — turn accepted findings into plan items
 - `POST  /treatment-plans/{id}/dismissed-findings` — findings this plan is
   deliberately not answering; `plans.write`. Idempotent per `(plan, finding)`.
+- `GET   /treatment-plans/{id}/items/{item_id}/prescriptions` — the
+  treatment's prescriptions, newest first; `prescriptions.read`
+- `POST  /treatment-plans/{id}/items/{item_id}/prescriptions` — write one
+  (`{body, professional_id}`); `prescriptions.write`. 400 when the
+  professional is not in this clinic's directory.
+- `GET   /prescriptions/{id}/pdf` — print-ready PDF, served `inline`;
+  `prescriptions.read`
 
 > **Notes endpoints moved.** Since issue #60 the `clinical_notes` module
 > owns every clinical-note CRUD path (`/api/v1/clinical_notes/*`). The
@@ -97,21 +105,30 @@ attributed to.
 
 `treatment_plan.plans.{read,write}`, plus `plans.{confirm,close,reactivate}`
 for the workflow transitions and `plans.templates` for curating the clinic's
-plan templates. Clinical-note permissions live in the `clinical_notes` module
-since issue #60.
+plan templates, and `prescriptions.{read,write}` — writing a prescription is
+a clinical act (admin, dentist); reading and reprinting is granted to
+hygienist, assistant and receptionist. Clinical-note permissions live in the
+`clinical_notes` module since issue #60.
 
 ## Frontend slots exposed
 
 - `treatment_plan.detail.sidebar` — rendered by `PlanDetailView.vue` above
   the treatment list. `payments` registers the collections card there. Slot
-  ctx: `{ planId, patientId, patientName, budgetId, planStatus }`.
+  ctx: `{ planId, patientId, patientName, budgetId, planStatus,
+  itemsRevision, planTotal, phaseTotals }`. `itemsRevision` changes on every
+  completion or reopen, and is the card's only cue to refetch the patient's
+  money — without it the sidebar kept the old figure until a reload.
 - `treatment_plan.item.collect` — one treatment's "Cobrar", rendered inside
   `PlanItemDetailModal` and in the prompt that follows completion.
   `payments` registers the button. Slot ctx: `{ patientId, patientName,
-  budgetId, amount, label?, block?, variant?, onCollected? }`. **The
+  budgetId, amount, label?, block?, variant?, labelled?, onCollected? }`. **The
   callback is in the ctx on purpose**: `ModuleSlot` renders a slot
   component without forwarding its events, so the ctx is the whole contract
   in both directions.
+- `odontogram.condition.actions` is **consumed** here too, in the
+  treatment dialog's footer. The dialog passes `labelled: true` (and so
+  does the collect ctx): the contributors render a text button instead of
+  the icon they draw in the odontogram's conditions list.
 
 ## Events emitted
 
@@ -126,6 +143,7 @@ since issue #60.
 | `treatment_plan.treatment_removed` | item removed | payload includes `budget_id`. Subscriber: `budget`. |
 | `treatment_plan.treatment_completed` | item marked done | consumed by `patient_timeline`, `recalls`. Payload includes `treatment_category_key` (snapshot, may be null) so subscribers can map a completed treatment to a follow-up policy without importing catalog or treatment_plan models (issue #62). Earned-ledger generation **moved out** of this event since the multi-session feature — see `item_session_completed` below. |
 | `treatment_plan.item_session_completed` | one session of a multi-session item marked done | payload: `{plan_id, item_id, session_id, sequence, label, amount, treatment_id, patient_id, completed_by, occurred_at}`. Consumed by `payments` (earned entry, idempotent on `(treatment_id, session_id)`). Fires for every completed session — single-session items publish it once on completion. |
+| `treatment_plan.item_session_reopened` | a completed item reopened, when the session that closed it was a completion | payload: `{plan_id, item_id, session_id, treatment_id, patient_id, clinic_id, reopened_by, occurred_at}`. Consumed by `payments`, which drops the earned entry for that session (and any whole-treatment row). The reverse of `item_session_completed`. |
 | `treatment_plan.budget_sync_requested` | manual resync | snapshot payload includes full `items[]`. Subscriber: `budget`. |
 | `treatment_plan.item_completed_without_note` | completion check | consumed by `patient_timeline` |
 
@@ -315,14 +333,31 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   in Finanzas un-closes the treatment with no second write. No `payments`
   read means no badge — "nothing pending" and "we cannot see the money" are
   different claims.
-- **"Reabrir" unlocks the dialog's actions and nothing else.** It does not
-  set the item back to `pending`, and it does not refund. Un-completing
-  would strand the `PatientEarnedEntry` that `on_session_completed` booked:
-  money the patient still appears to owe for work the plan no longer counts
-  as done, and `payments` has no handler that reverses it. Doing it
-  properly needs a reversal event consumed there; until then the button
-  does not promise what the ledger would not honour.
-- **Reopening is narrower than `plans.write`.** It throws away a budget the
+- **"Reabrir tratamiento" is a real undo, and the charge goes with it.**
+  `reopen_item` sets the item and its closing session back to `pending`,
+  turns the `Treatment` back to `planned` (clearing `performed_at`), moves
+  a `completed` plan back to `active`, and publishes
+  `item_session_reopened`; `payments.on_session_reopened` deletes the
+  earned entry that completion booked. It used to be a presentation
+  override that unlocked the dialog and left that entry behind — money the
+  patient still appeared to owe for work the plan no longer counted as
+  done. The rules:
+  - **Only the act that closed the item is undone** — its most recent
+    terminal session. On an eight-visit case, ticking the last visit by
+    mistake must not wipe the seven that happened. When a cancellation
+    closed it, the cancellation is what reverts, and no money moves.
+  - **Paid money is never refunded here.** Deleting the entry leaves the
+    payment alone; the FIFO walk finds one charge fewer and the money
+    becomes patient credit that covers the treatment when it is completed
+    for real. A refund is still Finanzas' job.
+  - **An event, not a direct call**, unlike the liquidation payout: this
+    module does not depend on `payments`, and the charge was booked by an
+    event in the first place — reversal takes the same road. The handler
+    re-raises so a failure lands in `core_event_failure` (ADR 0020).
+  - **Refused on a `closed` plan** — reactivation is that plan's door.
+  - An issued settlement in `liquidations` is a frozen snapshot and is not
+    touched: work already paid to an associate stays paid.
+- **Reopening a plan is narrower than `plans.write`.** It throws away a budget the
   patient may already have seen, so the endpoint also asks `stewards_of`:
   an administrator, or a professional assigned to the plan or to any of its
   items. The account↔professional bridge is the licence number
@@ -339,6 +374,19 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   not in budget — closing a plan is a treatment_plan write and budget
   is in this module's depends, so the read of `budgets` from the
   cron query is allowed.
+- **A prescription copies its doctor, not its clinic.**
+  `treatment_prescriptions` stores `professional_name` and
+  `professional_license` as they were when it was written — the printed
+  document is what the patient carried to the pharmacy, and a reprint must
+  say the same. The clinic block and the patient's name are read at print
+  time. `plan_item_id` is `SET NULL`: removing a treatment hard-deletes the
+  line, and the prescription is clinical history (`treatment_label` keeps
+  it readable). Exported and retained through `privacy.py` like the plans.
+- **The PDF opens in a tab reserved before the request.** `usePrescriptions`
+  calls `window.open` synchronously on the tap and fills it once the PDF
+  arrives; Safari on iPad drops a popup opened after a network round-trip.
+  Headless Chromium has no PDF viewer and downloads it instead, which is
+  why no e2e test asserts the tab's URL.
 
 ## Related ADRs
 

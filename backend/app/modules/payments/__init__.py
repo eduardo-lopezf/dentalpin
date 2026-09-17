@@ -21,7 +21,7 @@ from fastapi import APIRouter
 from app.core.events import EventType
 from app.core.plugins import BaseModule
 
-from .events import on_session_completed, on_treatment_performed
+from .events import on_session_completed, on_session_reopened, on_treatment_performed
 from .models import (
     PatientEarnedEntry,
     Payment,
@@ -115,4 +115,6 @@ class PaymentsModule(BaseModule):
             # ``treatment_plan.treatment_completed`` handler was removed
             # to avoid double-booking the same treatment.
             EventType.TREATMENT_PLAN_ITEM_SESSION_COMPLETED: on_session_completed,
+            # Its reverse: a completion undone drops the charge it booked.
+            EventType.TREATMENT_PLAN_ITEM_SESSION_REOPENED: on_session_reopened,
         }

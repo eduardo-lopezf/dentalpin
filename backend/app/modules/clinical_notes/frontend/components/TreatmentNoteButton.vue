@@ -18,6 +18,8 @@ const props = defineProps<{
     status?: string
     /** When provided, enables the inline attachment uploader on the composer. */
     patientId?: string | null
+    /** Render as a full-width text button ("Notas (2)") instead of an icon. */
+    labelled?: boolean
   }
 }>()
 
@@ -147,6 +149,18 @@ watch(() => props.ctx?.treatmentId, loadCount, { immediate: true })
     @update:open="handleOpen"
   >
     <UButton
+      v-if="ctx?.labelled"
+      color="primary"
+      variant="soft"
+      size="md"
+      block
+    >
+      {{ visibleCount > 0
+        ? t('clinicalNotes.treatmentButton.label', { n: visibleCount })
+        : t('clinicalNotes.treatmentButton.add') }}
+    </UButton>
+    <UButton
+      v-else
       :icon="visibleCount > 0 ? 'i-lucide-message-square-text' : 'i-lucide-message-square-plus'"
       size="xs"
       variant="ghost"

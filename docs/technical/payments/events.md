@@ -20,6 +20,7 @@ _This module does not publish any events._
 |-------|---------|--------|
 | `odontogram.treatment.performed` | _Handler module path._ | _What it does in response._ |
 | `treatment_plan.treatment_completed` | _Handler module path._ | _What it does in response._ |
+| `treatment_plan.item_session_reopened` | `app.modules.payments.events.on_session_reopened` | Deletes the `PatientEarnedEntry` for `(treatment_id, session_id)` and any whole-treatment row (`source_session_id` NULL) for that treatment. Payments are untouched: what covered the entry becomes patient credit. Raises on failure so the bus records it (ADR 0020). |
 
 ## Adding a new event
 

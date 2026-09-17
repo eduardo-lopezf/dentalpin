@@ -1,3 +1,8 @@
+import { loginLocation } from '~/utils/session'
+
+// Pages still name this, but `auth.global.ts` runs first and has already
+// redirected anyone it would stop — including idle sessions. Kept in step
+// so the two never disagree about where login sends someone back to.
 export default defineNuxtRouteMiddleware(async (to) => {
   const auth = useAuth()
 
@@ -9,8 +14,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const isPublicRoute = publicRoutes.some(route => to.path.startsWith(route))
 
   if (!auth.isAuthenticated.value && !isPublicRoute) {
-    // Redirect to login
-    return navigateTo('/login')
+    return navigateTo(loginLocation(to.fullPath))
   }
 
   if (auth.isAuthenticated.value && to.path === '/login') {

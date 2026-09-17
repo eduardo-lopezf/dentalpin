@@ -105,10 +105,6 @@ async function handleDetailGenerateBudget() {
   }
 }
 
-function handleSchedule(plan: TreatmentPlan) {
-  router.push(`/appointments?patient_id=${plan.patient_id}`)
-}
-
 /**
  * One screen creates plans now, and it opens on a blank chart. The patient
  * travels in the URL so the final step comes pre-answered.
@@ -177,7 +173,6 @@ watch(() => props.initialPlanId, (newId) => {
       @create-plan="handleCreatePlan"
       @activate-plan="handleActivatePlan"
       @generate-budget="handleGenerateBudget"
-      @schedule="handleSchedule"
     />
 
     <!-- Detail View -->

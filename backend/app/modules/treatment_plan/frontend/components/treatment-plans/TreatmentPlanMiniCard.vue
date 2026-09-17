@@ -1,4 +1,11 @@
 <script setup lang="ts">
+/**
+ * One plan in the patient's record. The whole card opens the plan — it
+ * used to hide that behind a small "Ver detalle" button, next to a
+ * "Programar cita" that only jumped to the agenda. The buttons left are
+ * the ones that change the plan, and they stop the click from reaching
+ * the card.
+ */
 import type { TreatmentPlan, TreatmentPlanStatus } from '~~/app/types'
 
 const props = defineProps<{
@@ -9,7 +16,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   'view': [plan: TreatmentPlan]
   'activate': [plan: TreatmentPlan]
-  'schedule': [plan: TreatmentPlan]
   'generate-budget': [plan: TreatmentPlan]
 }>()
 
@@ -39,6 +45,13 @@ function getStatusColor(status: TreatmentPlanStatus) {
   return statusColors[status] || 'neutral'
 }
 
+const canActivate = computed(() => props.plan.status === 'draft' && totalCount.value > 0)
+const canGenerateBudget = computed(() =>
+  ['active', 'completed'].includes(props.plan.status)
+  && (!props.plan.budget_id || props.plan.budget?.status === 'cancelled')
+  && totalCount.value > 0
+)
+
 // Format currency — clinic-wide via useCurrency.
 const { format: formatCurrency } = useCurrency()
 </script>
@@ -47,6 +60,11 @@ const { format: formatCurrency } = useCurrency()
   <div
     class="plan-mini-card"
     :class="{ 'is-active': isActive }"
+    role="link"
+    tabindex="0"
+    :aria-label="t('clinical.plans.item.open', { name: plan.title || plan.plan_number })"
+    @click="emit('view', plan)"
+    @keydown.enter.self="emit('view', plan)"
   >
     <!-- Header: Title + Status -->
     <div class="flex items-start justify-between gap-2 mb-3">
@@ -124,47 +142,31 @@ const { format: formatCurrency } = useCurrency()
       </UBadge>
     </div>
 
-    <!-- Actions -->
-    <div class="flex items-center gap-2 flex-wrap">
+    <!-- Actions that change the plan. Absent on most cards, so the row
+         is only drawn when one of them applies. -->
+    <div
+      v-if="canActivate || canGenerateBudget"
+      class="flex items-center gap-2 flex-wrap"
+    >
       <UButton
-        size="xs"
-        variant="soft"
-        color="neutral"
-        @click="emit('view', plan)"
-      >
-        {{ t('common.viewDetails') }}
-      </UButton>
-
-      <UButton
-        v-if="plan.status === 'draft' && totalCount > 0"
+        v-if="canActivate"
         size="xs"
         variant="soft"
         color="primary"
-        @click="emit('activate', plan)"
+        @click.stop="emit('activate', plan)"
       >
         {{ t('treatmentPlans.activate') }}
       </UButton>
 
       <UButton
-        v-if="['active', 'completed'].includes(plan.status) && (!plan.budget_id || plan.budget?.status === 'cancelled') && totalCount > 0"
+        v-if="canGenerateBudget"
         size="xs"
         variant="soft"
         color="neutral"
         icon="i-lucide-file-plus"
-        @click="emit('generate-budget', plan)"
+        @click.stop="emit('generate-budget', plan)"
       >
         {{ t('treatmentPlans.generateBudget') }}
-      </UButton>
-
-      <UButton
-        v-if="plan.status === 'active'"
-        size="xs"
-        variant="soft"
-        color="neutral"
-        icon="i-lucide-calendar-plus"
-        @click="emit('schedule', plan)"
-      >
-        {{ t('treatmentPlans.scheduleAppointment') }}
       </UButton>
     </div>
   </div>
@@ -177,6 +179,12 @@ const { format: formatCurrency } = useCurrency()
   border: 1px solid #E5E7EB;
   background-color: white;
   transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.plan-mini-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 :root.dark .plan-mini-card {

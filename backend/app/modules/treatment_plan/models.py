@@ -25,6 +25,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.privacy import PiiKind, pii
 from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
@@ -394,3 +395,34 @@ class PlanDismissedFinding(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("treatment_plan_id", "finding_id", name="uq_plan_dismissed_finding"),
     )
+
+
+class TreatmentPrescription(Base, TimestampMixin):
+    """A prescription written from one treatment of a plan.
+
+    A printed prescription is a legal document with the doctor's name and
+    licence on it, so both are **copied in** when it is issued: a doctor
+    renamed or re-licensed later must not change what a patient already
+    carried to the pharmacy. Reprinting gives the same doctor block.
+
+    ``plan_item_id`` is ``SET NULL`` rather than ``CASCADE``: removing a
+    treatment from a plan is a hard delete, and the prescription written for
+    it is clinical history that has to outlive the line. ``treatment_label``
+    keeps it readable once the line is gone.
+    """
+
+    __tablename__ = "treatment_prescriptions"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), nullable=False, index=True)
+    patient_id: Mapped[UUID] = mapped_column(ForeignKey("patients.id"), nullable=False, index=True)
+    plan_item_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("planned_treatment_items.id", ondelete="SET NULL"), index=True
+    )
+    treatment_label: Mapped[str | None] = mapped_column(String(200))
+    # `professionals` is in this module's `depends`, so the FK is allowed.
+    professional_id: Mapped[UUID | None] = mapped_column(ForeignKey("professionals.id"))
+    professional_name: Mapped[str] = mapped_column(String(200), info=pii(PiiKind.NAME))
+    professional_license: Mapped[str | None] = mapped_column(String(80))
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    issued_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))

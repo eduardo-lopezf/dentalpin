@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- feat(recalls): `SetRecallFromTreatmentButton` acepta `ctx.labelled` y se
+  pinta como botón de texto azul a todo el ancho **Programar
+  recordatorio** en el pie de la
+  ventana del tratamiento del plan. En el odontograma sigue el icono.
+
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

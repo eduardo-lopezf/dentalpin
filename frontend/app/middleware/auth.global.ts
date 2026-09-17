@@ -1,3 +1,5 @@
+import { loginLocation, safeRedirect } from '~/utils/session'
+
 const SETUP_PATH = '/setup'
 
 // Module-level cache. The system can only flip from uninitialized → initialized
@@ -24,18 +26,36 @@ async function isSystemInitialized(): Promise<boolean> {
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const auth = useAuth()
+  const activity = useSessionActivity()
 
   // ``/p/budget/<token>`` is the patient-facing budget view (ADR 0006),
   // authorized server-side via a token-scoped 2FA cookie; let it render.
   const publicRoutes = ['/login', SETUP_PATH, '/p/budget']
   const isPublicRoute = publicRoutes.some(route => to.path === route || to.path.startsWith(route + '/'))
 
+  // An idle session ends here, before `init()`: that would refresh the
+  // tokens — spending one — for a session this is about to end. On the
+  // server this is what keeps a tab reopened the next morning from
+  // rendering a single patient before it is sent to login (ADR 0030).
+  if (auth.hasStoredSession.value && activity.isExpired()) {
+    await auth.terminate()
+    if (isPublicRoute) return
+    return navigateTo(loginLocation(to.fullPath, 'idle'))
+  }
+
+  // Captured before `init()` clears a refused session, so the login screen
+  // can say the session ended rather than greet a stranger.
+  const hadSession = auth.hasStoredSession.value
+
   // Initialize auth state (fetch user if token exists) - works on server and client
   await auth.init()
 
   if (auth.isAuthenticated.value) {
     // Authenticated users skip both the login page and the first-run wizard.
-    if (to.path === '/login' || to.path === SETUP_PATH) return navigateTo('/')
+    // An open login tab that finds a session resumes where it was pointed.
+    if (to.path === '/login' || to.path === SETUP_PATH) {
+      return navigateTo(safeRedirect(to.query.redirect) ?? '/')
+    }
     return
   }
 
@@ -47,5 +67,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // System already initialized: the wizard is closed.
   if (to.path === SETUP_PATH) return navigateTo('/login')
 
-  if (!isPublicRoute) return navigateTo('/login')
+  // Carry the destination, so a bookmark or a link opened without a session
+  // lands there after login instead of on the dashboard.
+  if (!isPublicRoute) {
+    return navigateTo(loginLocation(to.fullPath, hadSession ? 'expired' : undefined))
+  }
 })

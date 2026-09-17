@@ -1,4 +1,5 @@
 import type { User, LoginCredentials, AuthResponse, MeResponse, ApiResponse } from '~/types'
+import { loginLocation, type SessionEndReason } from '~/utils/session'
 
 // Module-level dedupe slot for the in-flight refresh promise, on the client.
 // Storing a Promise inside useState() leaks it into the SSR payload, which
@@ -45,6 +46,20 @@ const clientRefreshSlot: RefreshSlot = {}
 interface RefreshContext {
   _authRefreshSlot?: RefreshSlot
 }
+
+/** How a session ended, and where the user was when it did. */
+export interface SessionEnd {
+  /** Resumed after the next login. Omitted when the user chose to leave. */
+  returnTo?: string
+  reason?: SessionEndReason
+}
+
+/**
+ * How long a logout waits for the server before giving up. The browser is
+ * already logged out by then; this only bounds how long the revocation is
+ * given, so a slow API cannot hold a render hostage.
+ */
+const LOGOUT_TIMEOUT_MS = 5_000
 
 // Did the backend actually reject this session, or could we just not ask?
 //
@@ -94,8 +109,16 @@ export function useAuth() {
     sameSite: 'lax'
   })
 
+  const activity = useSessionActivity()
+
   // Computed
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
+  /**
+   * The browser holds tokens, whether or not they still work. Tells the
+   * middleware that a session *ended* — worth saying on the login screen —
+   * apart from a visitor who never had one.
+   */
+  const hasStoredSession = computed(() => !!accessToken.value || !!refreshToken.value)
 
   // Actions
   async function login(credentials: LoginCredentials): Promise<void> {
@@ -115,31 +138,54 @@ export function useAuth() {
 
     accessToken.value = response.access_token
     refreshToken.value = response.refresh_token
+    // Before anything navigates: the middleware on the way to the page the
+    // user is returning to reads this stamp, and a stale one left by the
+    // session that just expired would end this one on arrival.
+    activity.touch()
 
     // Fetch user info after login
     await fetchUser()
   }
 
-  async function logout(): Promise<void> {
-    // Reach the server before dropping the cookie. Clearing it locally
-    // only hid the tokens: the refresh stayed valid for its full seven
-    // days, so "log out" ended the tab and not the session. Best effort
-    // on purpose — a network failure must still log the user out of this
-    // browser, and the server-side revocation is idempotent.
+  /**
+   * End this session on the server and in this browser. Does not navigate.
+   *
+   * The server has to hear about it: clearing the cookie alone only hid the
+   * tokens, and the refresh stayed valid for its full seven days. But the
+   * browser does not wait for the answer — the tokens are captured, dropped,
+   * and the revocation is sent behind them. Awaiting it first is what made a
+   * slow or unreachable API look like a hung logout. On the server the
+   * render would end before the request did, so there it is awaited, with a
+   * bound.
+   */
+  async function terminate(): Promise<void> {
     const token = refreshToken.value
-    if (token) {
-      try {
-        await $fetch('/api/v1/auth/logout', {
-          baseURL: apiBaseUrl.value,
-          method: 'POST',
-          body: { refresh_token: token }
-        })
-      } catch {
-        // Already expired, revoked, or unreachable — nothing to recover.
-      }
-    }
+    clearSession()
+    if (!token) return
 
-    await endSession()
+    const revocation = $fetch('/api/v1/auth/logout', {
+      baseURL: apiBaseUrl.value,
+      method: 'POST',
+      body: { refresh_token: token },
+      timeout: LOGOUT_TIMEOUT_MS
+    }).catch(() => {
+      // Already expired, revoked, or unreachable — nothing to recover, and
+      // the browser is logged out either way.
+    })
+    if (import.meta.server) await revocation
+  }
+
+  /**
+   * Log out and go to the login screen.
+   *
+   * `returnTo` is for sessions that *ended* — inactivity, a refused
+   * refresh — so the next login resumes the work. A user who chose to leave
+   * gets none: on a shared front-desk computer the next person to log in
+   * should not land on the previous one's patient.
+   */
+  async function logout(end: SessionEnd = {}): Promise<void> {
+    await terminate()
+    await goToLogin(end)
   }
 
   /** Drop this browser's session. Touches no server state. */
@@ -151,6 +197,15 @@ export function useAuth() {
     clinicTimezone.value = null
   }
 
+  async function goToLogin(end: SessionEnd): Promise<void> {
+    // SSR: skip router.push — calling it from middleware can crash the
+    // response. The global auth middleware redirects to /login once it
+    // sees isAuthenticated === false, and carries the destination itself.
+    if (import.meta.client) {
+      await router.push(loginLocation(end.returnTo, end.reason))
+    }
+  }
+
   /**
    * End the session locally and send the user to the login screen.
    *
@@ -159,14 +214,9 @@ export function useAuth() {
    * revoked server-side, and posting a logout only revokes it again. The
    * render that exposed this bug sent three of them.
    */
-  async function endSession(): Promise<void> {
+  async function endSession(end: SessionEnd = {}): Promise<void> {
     clearSession()
-    // SSR: skip router.push — calling it from middleware can crash the
-    // response. The global auth middleware redirects to /login once it
-    // sees isAuthenticated === false.
-    if (import.meta.client) {
-      await router.push('/login')
-    }
+    await goToLogin(end)
   }
 
   /**
@@ -210,15 +260,23 @@ export function useAuth() {
     // a spent token is what revokes the whole family. The exchange already
     // happened here; report what it concluded instead of repeating it.
     const presenting = refreshToken.value
-    if (presenting && slot.spent === presenting) {
-      // Adopt what the exchange minted before answering. Without this the
-      // caller retries its 401 with the same expired access token its own
-      // ref still holds, and fails a second time for no reason.
-      if (slot.access) accessToken.value = slot.access
-      if (slot.refresh) refreshToken.value = slot.refresh
-      return slot.outcome ?? false
+    if (presenting && slot.spent === presenting && slot.outcome !== undefined) {
+      if (slot.outcome) {
+        // Adopt what the exchange minted before answering. Without this the
+        // caller retries its 401 with the same expired access token its own
+        // ref still holds, and fails a second time for no reason.
+        if (slot.access) accessToken.value = slot.access
+        if (slot.refresh) refreshToken.value = slot.refresh
+      } else {
+        // The server refused this token and the session is over; the
+        // exchange already sent the user to login. Drop this instance's
+        // stale refs too, so it stops presenting them.
+        clearSession()
+      }
+      return slot.outcome
     }
     slot.spent = presenting ?? undefined
+    slot.outcome = undefined
 
     const run = (async (): Promise<boolean> => {
       let response: AuthResponse
@@ -235,7 +293,10 @@ export function useAuth() {
         if (!isAuthFailure(error)) {
           throw error
         }
-        await endSession()
+        await endSession({
+          returnTo: router.currentRoute.value.fullPath,
+          reason: 'expired'
+        })
         return false
       }
 
@@ -272,6 +333,14 @@ export function useAuth() {
       // token this exchange spent reads it instead of presenting it again.
       slot.outcome = outcome
       return outcome
+    } catch (error) {
+      // No answer from the server, so the token may well be unspent — and
+      // nothing is known about the session. Forget the attempt, or every
+      // later refresh in this tab answered `false` without trying and
+      // without ending the session: a page stuck on 401s that never reached
+      // login until it was reloaded.
+      slot.spent = undefined
+      throw error
     } finally {
       // Only the caller that started it clears it; everyone else returned
       // the shared promise above and never reaches this.
@@ -344,8 +413,10 @@ export function useAuth() {
     clinicTimezone: readonly(clinicTimezone),
     accessToken: readonly(accessToken),
     isAuthenticated,
+    hasStoredSession,
     login,
     logout,
+    terminate,
     refresh,
     fetchUser,
     init

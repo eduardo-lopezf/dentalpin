@@ -362,6 +362,38 @@ export function useTreatmentPlans() {
     }
   }
 
+  // Undo a completion. The server drops the charge it booked, so the
+  // caller refetches the money afterwards.
+  async function reopenItem(planId: string, itemId: string) {
+    loading.value = true
+    try {
+      const response = await api.patch<ApiResponse<PlannedTreatmentItem>>(
+        `/api/v1/treatment_plan/treatment-plans/${planId}/items/${itemId}/reopen`,
+        {}
+      )
+      if (currentPlan.value?.id === planId) {
+        const idx = currentPlan.value.items.findIndex(i => i.id === itemId)
+        if (idx !== -1) {
+          currentPlan.value.items[idx] = response.data
+        }
+      }
+      toast.add({
+        title: t('treatmentPlans.itemReopened'),
+        color: 'success'
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error reopening treatment item:', error)
+      toast.add({
+        title: t('errors.updateFailed'),
+        color: 'error'
+      })
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function completeSession(
     planId: string,
     itemId: string,
@@ -672,6 +704,7 @@ export function useTreatmentPlans() {
     removeItem,
     reorderItems,
     completeItem,
+    reopenItem,
     completeSession,
     cancelSession,
     changeItemDoctor,

@@ -45,6 +45,7 @@ const toast = useToast()
 
 const {
   completeItem,
+  reopenItem,
   completeSession,
   cancelSession,
   removeItem,
@@ -269,7 +270,8 @@ const HISTORY_COLORS: Record<string, HistoryColor> = {
   closed: 'error',
   reactivated: 'info',
   item_added: 'neutral',
-  item_removed: 'neutral'
+  item_removed: 'neutral',
+  item_reopened: 'warning'
 }
 
 function historyColor(action: string): HistoryColor {
@@ -512,6 +514,17 @@ async function handleCompleteItem(
   }
 }
 
+// Undoing a completion. The dialog has already asked; the charge is dropped
+// server-side, so the money is refetched like after any completion.
+async function handleReopenItem(itemId: string) {
+  const result = await reopenItem(props.plan.id, itemId)
+  if (!result) return
+  await odontogramRef.value?.refetchTreatments()
+  await notesTimelineRef.value?.refresh()
+  emit('updated')
+  await refreshCollections()
+}
+
 async function handleRemoveItem(itemId: string) {
   // Removal cascades into the odontogram and the budget line, and the
   // control is a bare trash icon in a list row.
@@ -667,6 +680,12 @@ const phaseTotalsForSlot = computed(() =>
     }))
 )
 
+// One string per state of the plan's work. The sidebar slot watches it to
+// refetch the patient's money after a completion or a reopen.
+const itemsRevision = computed(() =>
+  props.plan.items.map(i => `${i.id}:${i.status}:${(i.sessions ?? []).map(s => s.status).join('')}`).join('|')
+)
+
 async function refreshCollections() {
   await fetchCollections(props.plan.patient_id, props.plan.items)
 }
@@ -674,7 +693,7 @@ async function refreshCollections() {
 // Money follows the plan: completing a session earns it, so the numbers are
 // refetched whenever the item list changes rather than only on mount.
 watch(
-  () => props.plan.items.map(i => `${i.id}:${i.status}:${(i.sessions ?? []).map(s => s.status).join('')}`).join('|'),
+  itemsRevision,
   refreshCollections,
   { immediate: true }
 )
@@ -999,6 +1018,7 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
               : null,
             budgetId: plan.budget_id ?? null,
             planStatus: plan.status,
+            itemsRevision,
             planTotal,
             phaseTotals: phaseTotalsForSlot
           }"
@@ -1222,14 +1242,17 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
     <PlanItemDetailModal
       :open="openItemId !== null"
       :item="openItem"
+      :plan-id="plan.id"
       :patient-id="patientId"
       :patient-name="patientName"
       :budget-id="plan.budget_id ?? null"
       :collection="itemCollection(openItem)"
       :collection-status="itemCollectionStatus(openItem)"
       :can-complete="isLocked && !readonly"
+      :can-reopen="!readonly && plan.status !== 'closed'"
       @update:open="(v) => { if (!v) openItemId = null }"
       @complete="(itemId) => handleCompleteItem(itemId, { noteBody: null })"
+      @reopen="handleReopenItem"
       @collected="refreshCollections"
     />
 

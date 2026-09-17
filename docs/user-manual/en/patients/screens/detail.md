@@ -14,7 +14,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/patients/router.py
   - backend/app/modules/patients/frontend/pages/patients/[id].vue
-last_verified_commit: 3568519
+last_verified_commit: 2b664a5
 ---
 
 # Patient detail
@@ -62,6 +62,11 @@ one click reaches the detail.
   [/treatments/plans/new](../../treatment_plan/screens/treatments_plans_new.md)
   with the patient already filled in and the title already written. It is
   the same screen from everywhere, and it starts on a blank chart.
+- **Each plan under *Clinical → Plans* opens from anywhere on its
+  card.** The *View details* and *Schedule appointment* buttons are
+  gone; appointments are booked from the agenda or from **Appointment**
+  in the quick actions. The buttons that remain (*Activate*, *Generate
+  budget*) do their job without opening the plan.
 - **Mobile** — header condenses, cards stack to a single column and
   a sticky bottom bar surfaces the three core actions
   (Appointment · Collect · Note).

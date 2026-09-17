@@ -22,6 +22,7 @@ from .models import (
     PlanTemplateItem,
     TreatmentPlan,
     TreatmentPlanHistory,
+    TreatmentPrescription,
 )
 from .owner_resolvers import register as _register_attachment_owners
 from .router import router
@@ -65,10 +66,11 @@ class TreatmentPlanModule(BaseModule):
         "role_permissions": {
             "admin": ["*"],
             "dentist": ["*"],
-            "hygienist": ["plans.read"],
+            "hygienist": ["plans.read", "prescriptions.read"],
             "assistant": [
                 "plans.read",
                 "plans.write",
+                "prescriptions.read",
             ],
             # Reception drives the bandeja de planes: read + write notes
             # + close (terminal transitions tied to patient outcomes) +
@@ -79,6 +81,8 @@ class TreatmentPlanModule(BaseModule):
                 "plans.write",
                 "plans.close",
                 "plans.reactivate",
+                # Reprinting a prescription the doctor already wrote.
+                "prescriptions.read",
             ],
         },
         "frontend": {
@@ -97,6 +101,7 @@ class TreatmentPlanModule(BaseModule):
             PlanTemplate,
             PlanTemplateItem,
             TreatmentPlanHistory,
+            TreatmentPrescription,
         ]
 
     def get_router(self) -> APIRouter:
@@ -131,6 +136,10 @@ class TreatmentPlanModule(BaseModule):
             # Curating the clinic's plan templates. Reading them only needs
             # plans.read — everyone who builds a plan needs to see them.
             "plans.templates",
+            # Prescriptions written from a treatment. Writing one is a
+            # clinical act; reading (and reprinting) is not.
+            "prescriptions.read",
+            "prescriptions.write",
         ]
 
     def get_event_handlers(self) -> dict[str, Any]:

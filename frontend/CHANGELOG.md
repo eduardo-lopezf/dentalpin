@@ -1,6 +1,62 @@
 # Changelog — frontend
 
 ## Unreleased
+- i18n: textos de **Reabrir tratamiento** (`clinical.plans.item.reopen*`,
+  `treatmentPlans.itemReopened`, historial `item_reopened`) en es y en; el
+  aviso de tratamiento cerrado ya no dice que «Reabrir» solo desbloquea
+  acciones.
+- feat(auth): **la sesión se cierra tras una hora sin uso, y al volver a
+  entrar se retoma la pantalla donde estaba** ([ADR 0030](../docs/adr/0030-sessions-end-after-an-hour-idle.md)).
+
+  Antes una sesión no caducaba nunca por inactividad: el refresh duraba
+  siete días y cada access token caducado se renovaba solo. Y cuando la
+  sesión sí terminaba, nada en la página se enteraba hasta que fallaba una
+  petición — en una pantalla que no hace ninguna, mucho después —, así que
+  parecía colgada en vez de cerrada. `logout()` además esperaba la
+  respuesta de `/auth/logout` antes de navegar, y una API lenta retenía la
+  pantalla de login. Y todo login acababa en el inicio.
+
+  - **Inactividad es una persona, no una petición.** Puntero, teclado,
+    toque, rueda y scroll cuentan; las peticiones de fondo no. El tiempo es
+    `sessionIdleMinutes` (60), configurable con
+    `NUXT_PUBLIC_SESSION_IDLE_MINUTES`.
+  - **La última interacción vive en una cookie**, que comparten todas las
+    pestañas y que el servidor también lee: una pestaña reabierta al día
+    siguiente va al login **sin renderizar** la página.
+  - **En hora del servidor**, para que un navegador con el reloj
+    desajustado no se vea expulsado en cada recarga.
+  - **Se comprueba antes de sellar.** Al despertar un portátil lo primero
+    que llega es un movimiento de ratón; sellarlo primero resucitaría una
+    sesión ya caducada.
+  - **Caducar es un logout de verdad**: se revoca la familia en el
+    servidor. El navegador suelta los tokens primero y no espera la
+    respuesta.
+  - **`/login?redirect=…&reason=…`**: el login dice por qué estás ahí y te
+    devuelve a donde estabas. Solo se aceptan rutas de la propia
+    aplicación, para que el login no sea una redirección abierta.
+  - **Cerrar sesión a propósito no recuerda la página**: en el ordenador
+    compartido de recepción, quien entre después no debe abrir en el
+    paciente del anterior.
+  - Un enlace o marcador abierto sin sesión también vuelve a su destino
+    tras el login.
+
+- fix(auth): **una pestaña se quedaba colgada tras un fallo de red al
+  renovar la sesión.** El arreglo anterior del refresco recordaba el token
+  ya canjeado para no presentarlo dos veces, pero lo marcaba como gastado
+  *antes* de saber si el servidor había contestado. Si la petición no
+  llegaba, cada refresco posterior de esa pestaña devolvía `false` sin
+  intentarlo y sin cerrar la sesión: todas las peticiones daban 401 y nunca
+  se llegaba al login hasta recargar. Ahora un fallo de transporte olvida
+  el intento, y un token rechazado limpia también las referencias viejas de
+  quien llega tarde.
+- feat(permissions): `PERMISSIONS.treatmentPlans.prescriptionsRead` /
+  `prescriptionsWrite` para la receta médica del plan. Claves nuevas
+  `clinical.plans.prescription.*`; se retira `clinical.plans.item.actions`,
+  que ya no se usa.
+- test(a11y/touch): la ventana del tratamiento se comprueba con sus acciones
+  como texto, y la ventana de **receta médica** entra en la auditoría de
+  44 px en horizontal y vertical (sin enviarla: generar una receta escribe
+  en el expediente).
 - test(a11y/touch): la auditoría cubre también los **estados fríos** del
   presupuesto público —rechazado, caducado y bloqueado por intentos—, que
   son los que ve un paciente cuando algo ha salido mal y por eso los que

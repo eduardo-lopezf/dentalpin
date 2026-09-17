@@ -705,13 +705,63 @@ test.describe('touch adaptation', () => {
     await row.click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 30_000 })
-    // And present in the dialog, under a heading that says what they are.
-    await expect(dialog.getByText('Acciones')).toBeVisible()
-    await expect(dialog.getByLabel(/Notas del tratamiento/)).toBeVisible()
+    // And present in the dialog's footer, as words rather than icons.
+    await expect(dialog.getByRole('button', { name: /^(Añadir nota|Notas \(\d+\))$/ }))
+      .toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Programar recordatorio' })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Receta médica' })).toBeVisible()
+    // The dialog opens with a scale animation; measure once it has settled.
+    await page.waitForTimeout(1200)
 
     expect(
       await countUndersizedTargets(page),
       'undersized targets in the treatment dialog'
+    ).toEqual([])
+  })
+
+  /**
+   * "Receta médica" opens its own dialog: the signing doctor, preselected
+   * from the treatment and shown with their licence, and the text. It is
+   * not submitted — generating a prescription writes a clinical record.
+   */
+  test('a treatment opens a prescription dialog', async ({ loggedIn: page }) => {
+    test.setTimeout(180_000)
+    await page.route('**/prescriptions', (route) => {
+      if (route.request().method() === 'POST') return route.abort()
+      return route.continue()
+    })
+
+    await page.goto('/treatments/plans?tab=listado', {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+    const firstRow = page.locator('main a[href*="/treatments/plans/"]').first()
+    await expect(firstRow).toBeVisible({ timeout: 60_000 })
+    await page.goto((await firstRow.getAttribute('href'))!, {
+      waitUntil: 'domcontentloaded',
+      timeout: 120_000
+    })
+    await awaitDetection(page)
+    const row = page.locator('main .plan-item').first()
+    await expect(row).toBeVisible({ timeout: 60_000 })
+    await row.click()
+
+    await page.getByRole('dialog').getByRole('button', { name: 'Receta médica' }).click()
+    const prescription = page.getByRole('dialog').filter({ hasText: 'Doctor que firma' })
+    await expect(prescription).toBeVisible({ timeout: 30_000 })
+
+    const generate = prescription.getByRole('button', { name: 'Generar receta' })
+    await expect(generate).toBeDisabled()
+    await prescription.getByRole('textbox').fill('Ibuprofeno 400 mg cada 8 horas')
+    // Enabled once there is text — as long as the treatment names a doctor,
+    // which the seeded plans do.
+    await expect(generate).toBeEnabled()
+    await page.waitForTimeout(1200)
+
+    expect(
+      await countUndersizedTargets(page),
+      'undersized targets in the prescription dialog'
     ).toEqual([])
   })
 
@@ -721,7 +771,7 @@ test.describe('touch adaptation', () => {
    * write. Skipped rather than faked when the dataset has no such treatment:
    * it needs completed work that has also been collected.
    */
-  test('a treatment that is paid off reads as closed and can be reopened', async ({
+  test('a treatment that is paid off reads as closed and asks before reopening', async ({
     loggedIn: page
   }) => {
     test.setTimeout(180_000)
@@ -758,12 +808,16 @@ test.describe('touch adaptation', () => {
       await expect(dialog).toBeVisible({ timeout: 30_000 })
       await expect(dialog.getByText('Tratamiento cerrado')).toBeVisible()
 
-      const reopen = dialog.getByRole('button', { name: 'Reabrir' })
+      const reopen = dialog.getByRole('button', { name: 'Reabrir tratamiento' })
       await expect(reopen).toBeVisible()
       await reopen.click()
-      // Reopening changes what the dialog offers and nothing else — the
-      // actions come back, the money is untouched.
-      await expect(dialog.getByText('Acciones')).toBeVisible()
+      // Reopening is a real undo — the item goes back to pending and its
+      // charge is withdrawn — so it asks first. The test stops at the
+      // question: answering it would write to the dataset.
+      await expect(dialog.getByText('¿Reabrir este tratamiento?')).toBeVisible()
+      await expect(dialog.getByRole('button', { name: 'Sí, reabrir' })).toBeVisible()
+      await dialog.getByRole('button', { name: 'Cancelar' }).click()
+      await expect(dialog.getByText('Tratamiento cerrado')).toBeVisible()
       return
     }
 

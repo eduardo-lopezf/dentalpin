@@ -26,13 +26,13 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `patient_timeline` | 0.1.0 | official | patients | auto | no | 1 | 0 | 35 | yes |
 | `patients` | 0.1.0 | official | — | auto | no | 2 | 3 | 0 | yes |
 | `patients_clinical` | 0.1.0 | official | patients | auto | no | 4 | 1 | 0 | yes |
-| `payments` | 0.1.0 | official | patients, budget | auto | no | 4 | 3 | 2 | yes |
+| `payments` | 0.1.0 | official | patients, budget | auto | no | 4 | 3 | 3 | yes |
 | `periodontogram` | 0.1.0 | official | patients, odontogram | manual | yes | 2 | 1 | 2 | yes |
 | `professionals` | 0.1.0 | official | media, catalog | auto | yes | 2 | 0 | 0 | yes |
 | `recalls` | 0.1.0 | official | patients, agenda, professionals | auto | yes | 3 | 4 | 5 | yes |
 | `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments, professionals | auto | no | 3 | 0 | 0 | yes |
 | `schedules` | 0.1.0 | official | agenda, professionals | auto | yes | 8 | 0 | 3 | yes |
-| `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media, professionals | auto | no | 6 | 13 | 6 | yes |
+| `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media, professionals | auto | no | 8 | 14 | 6 | yes |
 | `verifactu` | 0.1.0 | official | billing, catalog | manual | yes | 5 | 1 | 1 | yes |
 | `whatsapp_kapso` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | yes |
 
@@ -468,6 +468,7 @@ Patient-centric collections, allocations to budgets / on-account, refunds, patie
 - **Events consumed:**
   - `odontogram.treatment.performed`
   - `treatment_plan.item_session_completed`
+  - `treatment_plan.item_session_reopened`
 - **Module CLAUDE.md:** [`backend/app/modules/payments/CLAUDE.md`](../backend/app/modules/payments/CLAUDE.md)
 
 ### `periodontogram` — v0.1.0
@@ -595,6 +596,8 @@ Patient treatment plans with budget + odontogram sync.
   - `treatment_plan.plans.read`
   - `treatment_plan.plans.templates`
   - `treatment_plan.plans.write`
+  - `treatment_plan.prescriptions.read`
+  - `treatment_plan.prescriptions.write`
 - **Events emitted:**
   - `treatment_plan.budget_sync_requested`
   - `treatment_plan.closed`
@@ -602,6 +605,7 @@ Patient treatment plans with budget + odontogram sync.
   - `treatment_plan.created`
   - `treatment_plan.item_completed_without_note`
   - `treatment_plan.item_session_completed`
+  - `treatment_plan.item_session_reopened`
   - `treatment_plan.items_reordered`
   - `treatment_plan.reactivated`
   - `treatment_plan.status_changed`

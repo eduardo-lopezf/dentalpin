@@ -7,9 +7,14 @@ import { describe, expect, it, vi } from 'vitest'
 // (no mounted `<NuxtPage>` for the navigation to resolve against). This
 // suite is about `useAuth`'s own state transitions, not full-app routing
 // integration, so stub the router rather than let a real navigation run.
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }))
+
 mockNuxtImport('useRouter', () => {
   return () => ({
-    push: vi.fn().mockResolvedValue(undefined)
+    push: routerPush.mockResolvedValue(undefined),
+    // An ended session carries the page it ended on to the login screen,
+    // so the stub needs somewhere to have been.
+    currentRoute: { value: { fullPath: '/patients?page=2' } }
   })
 })
 
@@ -114,6 +119,42 @@ describe('useAuth composable', () => {
       await auth.init()
 
       expect(auth.accessToken.value).toBeFalsy()
+      // Sent to login, told why, and carrying the page to resume.
+      expect(routerPush).toHaveBeenLastCalledWith({
+        path: '/login',
+        query: { redirect: '/patients?page=2', reason: 'expired' }
+      })
+
+      vi.unstubAllGlobals()
+    })
+
+    // The token that failed to reach the server may well be unspent. Refusing
+    // to present it again left a tab answering every request with 401 and
+    // never reaching login — the session looked hung until a full reload.
+    it('refresh() tries again after a transport failure instead of giving up', async () => {
+      const { useAuth } = await import('~/composables/useAuth')
+      document.cookie = 'access_token=expired-access'
+      document.cookie = 'refresh_token=unspent-refresh'
+
+      const user = { id: 'u1', email: 'a@b.c', first_name: 'A', last_name: 'B' }
+      const fetchMock = vi.fn()
+        .mockRejectedValueOnce(new Error('fetch failed'))
+        .mockResolvedValueOnce({
+          access_token: 'new-access',
+          refresh_token: 'new-refresh',
+          user,
+          clinics: []
+        })
+        .mockResolvedValueOnce({ data: { user, permissions: [], clinics: [] } })
+      vi.stubGlobal('$fetch', fetchMock)
+
+      const auth = useAuth()
+      await expect(auth.refresh()).rejects.toThrow('fetch failed')
+
+      await expect(auth.refresh()).resolves.toBe(true)
+      expect(auth.accessToken.value).toBe('new-access')
+      const refreshCalls = fetchMock.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')
+      expect(refreshCalls).toHaveLength(2)
 
       vi.unstubAllGlobals()
     })

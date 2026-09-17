@@ -33,7 +33,8 @@
       "title": "Notas del tratamiento",
       "add": "Añadir nota",
       "empty": "Sin notas para este tratamiento.",
-      "aria": "Notas del tratamiento ({n})"
+      "aria": "Notas del tratamiento ({n})",
+      "label": "Notas ({n})"
     },
     "timeline": {
       "addPlanNote": "Nota del plan",

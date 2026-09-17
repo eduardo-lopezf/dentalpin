@@ -74,3 +74,4 @@ Triggers (any one):
 | 0027 | [Egress is declared in the manifest, and reported before it is blocked](0027-egress-is-declared-in-the-manifest.md) | accepted | 2026-08-29 |
 | 0028 | [Self-hosting is the premium tier, activated by a signed key](0028-self-hosting-is-the-premium-tier.md) | accepted | 2026-08-31 |
 | 0029 | [Security is a set of invariants with chokepoints, not a list of practices](0029-security-invariants-with-chokepoints.md) | proposed | 2026-09-01 |
+| 0030 | [A session ends after an hour without interaction, and login resumes it](0030-sessions-end-after-an-hour-idle.md) | accepted | 2026-09-16 |

@@ -33,7 +33,8 @@
       "title": "Treatment notes",
       "add": "Add note",
       "empty": "No notes on this treatment yet.",
-      "aria": "Treatment notes ({n})"
+      "aria": "Treatment notes ({n})",
+      "label": "Notes ({n})"
     },
     "timeline": {
       "addPlanNote": "Plan note",

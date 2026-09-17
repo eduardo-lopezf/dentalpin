@@ -1212,6 +1212,120 @@ class TreatmentPlanService:
         )
 
     @staticmethod
+    async def reopen_item(
+        db: AsyncSession,
+        clinic_id: UUID,
+        plan_id: UUID,
+        item_id: UUID,
+        user_id: UUID,
+    ) -> PlannedTreatmentItem | None:
+        """Undo the completion of an item: it goes back to ``pending``.
+
+        What is undone is **the act that closed the item** — its most
+        recent terminal session — not every session it ever had. On a
+        single-session treatment that is the only one; on an eight-visit
+        orthodontic case, ticking the last visit by mistake must not wipe
+        the seven the patient really attended, nor the money they earned.
+
+        The charge goes with it. ``item_session_reopened`` is published for
+        the session, and ``payments`` drops the earned entry it booked; if
+        the patient had already paid, that money stays theirs as credit and
+        covers the treatment again when it is completed for real. An event
+        and not a direct call because the charge was booked by an event in
+        the first place and this module does not depend on ``payments`` —
+        reversal takes the same road as creation.
+
+        Refused on a ``closed`` plan: the plan is over, and reactivating it
+        is the door back in. A ``completed`` plan returns to ``active``,
+        because it now has work outstanding.
+        """
+        plan = await TreatmentPlanService.get(db, clinic_id, plan_id)
+        if not plan:
+            return None
+        if plan.status == "closed":
+            raise ValueError("The plan is closed. Reactivate it before reopening a treatment.")
+
+        item = await TreatmentPlanService._load_item_with_sessions(db, clinic_id, plan_id, item_id)
+        if not item:
+            return None
+        if item.status != "completed":
+            raise ValueError("Only a completed treatment can be reopened")
+
+        terminal = [s for s in item.sessions if s.status in ("completed", "cancelled")]
+        if not terminal:
+            raise ValueError("No completed session to reopen")
+        session = max(
+            terminal, key=lambda s: (s.completed_at or datetime.min.replace(tzinfo=UTC), s.sequence)
+        )
+        previous_session_status = session.status
+
+        session.status = "pending"
+        session.completed_at = None
+        session.completed_by = None
+
+        item.status = "pending"
+        item.completed_at = None
+        item.completed_by = None
+        item.completed_without_appointment = False
+
+        from app.modules.odontogram.service import TreatmentService
+
+        await TreatmentService.update(
+            db,
+            clinic_id=clinic_id,
+            treatment_id=item.treatment_id,
+            user_id=user_id,
+            status="planned",
+        )
+
+        previous_plan_status = plan.status
+        if plan.status == "completed":
+            plan.status = "active"
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan_id,
+            action="item_reopened",
+            actor_user_id=user_id,
+            from_status=previous_plan_status if plan.status != previous_plan_status else None,
+            to_status=plan.status if plan.status != previous_plan_status else None,
+            payload={"treatment": _item_label(item)},
+        )
+
+        await db.flush()
+
+        now = datetime.now(UTC)
+        if previous_session_status == "completed":
+            event_bus.publish_after_commit(
+                db,
+                EventType.TREATMENT_PLAN_ITEM_SESSION_REOPENED,
+                {
+                    "clinic_id": str(clinic_id),
+                    "plan_id": str(plan_id),
+                    "item_id": str(item_id),
+                    "session_id": str(session.id),
+                    "treatment_id": str(item.treatment_id),
+                    "patient_id": str(item.treatment.patient_id) if item.treatment else None,
+                    "reopened_by": str(user_id),
+                    "occurred_at": now.isoformat(),
+                },
+            )
+        if plan.status != previous_plan_status:
+            event_bus.publish_after_commit(
+                db,
+                EventType.TREATMENT_PLAN_STATUS_CHANGED,
+                {
+                    "plan_id": str(plan.id),
+                    "old_status": previous_plan_status,
+                    "new_status": plan.status,
+                    "clinic_id": str(clinic_id),
+                },
+            )
+
+        return item
+
+    @staticmethod
     async def cancel_session(
         db: AsyncSession,
         clinic_id: UUID,

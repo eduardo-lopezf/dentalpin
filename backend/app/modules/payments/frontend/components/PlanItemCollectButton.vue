@@ -32,7 +32,9 @@ interface ItemCollectCtx {
   label?: string | null
   block?: boolean
   /** Weight of the button. The prompt after completion wants the primary. */
-  variant?: 'ghost' | 'soft' | 'solid'
+  variant?: 'ghost' | 'soft' | 'solid' | 'outline'
+  /** Text only, no icon, full width — the treatment dialog's footer. */
+  labelled?: boolean
   /**
    * Called once a payment is recorded. A callback and not an emit because
    * `ModuleSlot` renders the component without forwarding its events — the
@@ -57,11 +59,11 @@ function onRecorded() {
 <template>
   <span v-if="can(PERMISSIONS.payments.recordWrite)">
     <UButton
-      :size="props.ctx.block ? 'md' : 'xs'"
+      :size="props.ctx.block || props.ctx.labelled ? 'md' : 'xs'"
       :variant="props.ctx.variant ?? 'ghost'"
       color="primary"
-      icon="i-lucide-hand-coins"
-      :block="props.ctx.block"
+      :icon="props.ctx.labelled ? undefined : 'i-lucide-hand-coins'"
+      :block="props.ctx.block || props.ctx.labelled"
       @click.stop="showCreate = true"
     >
       {{ props.ctx.label || t('payments.plan.charge') }}

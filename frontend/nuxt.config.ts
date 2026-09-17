@@ -87,7 +87,11 @@ export default defineNuxtConfig({
       demoMode: process.env.NUXT_PUBLIC_DEMO_MODE === 'true',
       // Documentation portal origin used by the in-app help drawer
       // (Fase 5 of issue #75). Empty disables the help button.
-      docsUrl: process.env.NUXT_PUBLIC_DOCS_URL || 'https://docs.dentalpin.com'
+      docsUrl: process.env.NUXT_PUBLIC_DOCS_URL || 'https://docs.dentalpin.com',
+      // Minutes without interaction before a session ends and the user is
+      // sent to login (ADR 0030). Overridable at runtime with
+      // NUXT_PUBLIC_SESSION_IDLE_MINUTES.
+      sessionIdleMinutes: 60
     }
   },
   srcDir: 'app',

@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+- feat(treatment_plan): en *Paciente → Clínica → Planes* **toda la tarjeta
+  del plan abre el plan** (clic o Enter; `role="link"`). Se quitan los
+  botones *Ver detalle* y *Programar cita* de `TreatmentPlanMiniCard`;
+  *Activar* y *Generar presupuesto* se quedan y no propagan el clic. El
+  evento `schedule` de la tarjeta y de `PlansListView`, y
+  `handleSchedule` en `PlansMode`, desaparecen con el botón.
+
+- feat(treatment_plan): **reabrir un tratamiento completado por error.**
+  Nuevo `PATCH /treatment-plans/{id}/items/{item_id}/reopen`
+  (`plans.write`): la línea y la sesión que la cerró vuelven a
+  `pending`, el tratamiento del odontograma vuelve a `planned`, un plan
+  `completed` vuelve a `active` y el historial anota `item_reopened`.
+  Publica `treatment_plan.item_session_reopened` y `payments` retira el
+  cargo, así que **ya no queda como pendiente de cobro**; lo cobrado queda
+  como saldo a favor. En varias sesiones solo se reabre la última. Rechazado
+  en un plan cerrado. El botón **Reabrir tratamiento** de la ventana del
+  tratamiento sale ahora en cualquier tratamiento completado (antes solo en
+  los cerrados, y solo desbloqueaba acciones) y pide confirmación diciendo
+  qué cargo se retira y qué pasa con lo cobrado.
+
+- feat(treatment_plan): **receta médica** desde la ventana del tratamiento.
+  Se elige el doctor que firma (por defecto el asignado, con su cédula a la
+  vista), se escriben las indicaciones y **Generar receta** abre un PDF
+  listo para imprimir con los datos de la clínica, nombre y cédula del
+  doctor, paciente, edad y fecha. Queda guardada en la tabla nueva
+  `treatment_prescriptions` (migración `tp_0013`) con el doctor copiado,
+  para que la reimpresión diga lo mismo; sobrevive a quitar el tratamiento
+  del plan y entra en la exportación del paciente. Permisos nuevos
+  `prescriptions.read` / `prescriptions.write`. Endpoints:
+  `GET|POST /treatment-plans/{id}/items/{item_id}/prescriptions` y
+  `GET /prescriptions/{id}/pdf`.
+
+- change(treatment_plan): las acciones de la ventana del tratamiento ya no
+  son iconos bajo **Acciones**: van al pie como botones de texto azules
+  del mismo tamaño, en una rejilla de columnas iguales con el texto
+  centrado. **Marcar como completado** sigue en verde y ocupa la última
+  celda (un tratamiento pendiente queda en un 2×2); **Reabrir tratamiento**
+  ocupa ese sitio cuando ya está completado. El diálogo pide la forma de
+  texto a los módulos que las aportan con `labelled: true`.
+
 - change(treatment_plan): **cada tratamiento del plan tiene su propia
   ventana**, y la fila se queda solo con lo que cambia el plan.
 

@@ -778,6 +778,11 @@ class TreatmentService:
             if status == TreatmentStatus.PERFORMED.value:
                 treatment.performed_at = now
                 treatment.performed_by = user_id
+            elif old_status == TreatmentStatus.PERFORMED.value:
+                # Undone: a planned treatment carrying a performed date
+                # would still read as done to anything dating the work.
+                treatment.performed_at = None
+                treatment.performed_by = None
             event_bus.publish_after_commit(
                 db,
                 EventType.ODONTOGRAM_TREATMENT_STATUS_CHANGED,

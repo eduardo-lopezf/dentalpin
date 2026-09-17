@@ -31,7 +31,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.database import async_session_maker
@@ -197,3 +197,43 @@ async def on_session_completed(data: dict[str, Any]) -> None:
         description=description if isinstance(description, str) else None,
         performed_at_override=data.get("occurred_at"),
     )
+
+
+async def on_session_reopened(data: dict[str, Any]) -> None:
+    """Handler for ``treatment_plan.item_session_reopened``.
+
+    A completion undone is a charge that should never have existed, so the
+    row goes — not a negative entry beside it. Money the patient already
+    paid is untouched: the FIFO walk simply finds one entry fewer, and what
+    covered it becomes credit that covers the treatment again once it is
+    really done.
+
+    The whole-treatment row (``source_session_id`` NULL) goes too: the
+    treatment is planned again, and a row saying it was performed is as
+    wrong as the per-session one.
+    """
+    clinic_id = _parse_uuid(data.get("clinic_id"))
+    treatment_id = _parse_uuid(data.get("treatment_id"))
+    session_id = _parse_uuid(data.get("session_id"))
+    if not (clinic_id and treatment_id and session_id):
+        logger.debug("item_session_reopened: missing required fields (data=%s)", data)
+        return
+
+    async with async_session_maker() as db:
+        try:
+            await db.execute(
+                delete(PatientEarnedEntry).where(
+                    PatientEarnedEntry.clinic_id == clinic_id,
+                    PatientEarnedEntry.treatment_id == treatment_id,
+                    or_(
+                        PatientEarnedEntry.source_session_id == session_id,
+                        PatientEarnedEntry.source_session_id.is_(None),
+                    ),
+                )
+            )
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            # Re-raised so the bus records it (ADR 0020): a reopened
+            # treatment still billed is exactly what this handler prevents.
+            raise

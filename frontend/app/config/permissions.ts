@@ -82,7 +82,9 @@ export const PERMISSIONS = {
     write: 'treatment_plan.plans.write',
     confirm: 'treatment_plan.plans.confirm',
     close: 'treatment_plan.plans.close',
-    reactivate: 'treatment_plan.plans.reactivate'
+    reactivate: 'treatment_plan.plans.reactivate',
+    prescriptionsRead: 'treatment_plan.prescriptions.read',
+    prescriptionsWrite: 'treatment_plan.prescriptions.write'
   },
   clinicalNotes: {
     read: 'clinical_notes.notes.read',

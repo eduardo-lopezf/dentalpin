@@ -9,19 +9,24 @@
  * plan (complete, remove). Now the row carries only what changes the plan,
  * and everything you *open* lives here, with room to say what it is first.
  *
- * The three links are contributed, not owned: notes and recall arrive through
+ * The actions sit in the footer as an even grid of blue text buttons, with
+ * "Marcar como completado" (green) or "Reabrir" as its last cell. Notes and recall are contributed through
  * `odontogram.condition.actions` (clinical_notes, recalls) and the charge
- * button through `treatment_plan.item.collect` (payments). This component
- * imports none of them.
+ * button through `treatment_plan.item.collect` (payments) — this component
+ * imports none of them, and asks for the text form with `labelled: true`.
+ * The prescription is this module's own.
  */
 import type { PlannedTreatmentItem } from '~~/app/types'
 import type { CollectionState, CollectionStatus } from '../../../composables/usePlanCollections'
+import { PERMISSIONS } from '~~/app/config/permissions'
 import { planItemName } from '../planItemName'
 import PlanItemDoctorChip from '../PlanItemDoctorChip.vue'
+import PlanItemPrescriptionModal from './PlanItemPrescriptionModal.vue'
 
 const props = defineProps<{
   open: boolean
   item: PlannedTreatmentItem | null
+  planId: string
   /** Plan-level context handed to the payments slot. */
   patientId: string
   patientName: string | null
@@ -36,16 +41,27 @@ const props = defineProps<{
    * the button ends up visible in the list and missing here.
    */
   canComplete?: boolean
+  /** Same idea for undoing a completion: the plan is not closed and the
+   *  view is not read-only. The write permission is checked here. */
+  canReopen?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
   'complete': [itemId: string]
+  'reopen': [itemId: string]
   'collected': []
 }>()
 
 const { t, locale } = useI18n()
 const { format: formatCurrency } = useCurrency()
+const { can } = usePermissions()
+
+const prescriptionOpen = ref(false)
+const canPrescribe = computed(() =>
+  can(PERMISSIONS.treatmentPlans.prescriptionsWrite)
+  || can(PERMISSIONS.treatmentPlans.prescriptionsRead)
+)
 
 const isOpen = computed({
   get: () => props.open,
@@ -53,16 +69,15 @@ const isOpen = computed({
 })
 
 /**
- * Manual override of the closed presentation. It changes what this dialog
- * offers and nothing else: no status moves, no money moves. Reverting the
- * charge itself is a refund, and refunds live in Finanzas — once one is
- * recorded the treatment stops reading as closed on its own, because
- * "closed" is derived from the money rather than stored.
+ * Reopening is a real undo — the item goes back to pending and the server
+ * drops the charge its completion booked — so it asks first, in place,
+ * saying what moves and what does not.
  */
-const reopened = ref(false)
+const confirmingReopen = ref(false)
 
 watch(() => props.item?.id, () => {
-  reopened.value = false
+  confirmingReopen.value = false
+  prescriptionOpen.value = false
 })
 
 const name = computed(() =>
@@ -96,8 +111,40 @@ const isCompleted = computed(() => props.item?.status === 'completed')
  * closed with no second write anywhere.
  */
 const isClosed = computed(() =>
-  isCompleted.value && props.collectionStatus === 'collected' && !reopened.value
+  isCompleted.value && props.collectionStatus === 'collected'
 )
+
+const showReopen = computed(() =>
+  isCompleted.value
+  && !!props.canReopen
+  && can(PERMISSIONS.treatmentPlans.write)
+)
+
+/**
+ * The session the server will reopen: the most recent one that closed the
+ * item. Mirrors `TreatmentPlanService.reopen_item` so the dialog names the
+ * charge that actually goes, not the treatment's whole price.
+ */
+const reopenedSession = computed(() => {
+  const terminal = sessions.value.filter(s => s.status === 'completed' || s.status === 'cancelled')
+  return terminal.reduce<typeof terminal[number] | null>((last, s) => {
+    if (!last) return s
+    const a = last.completed_at ? Date.parse(last.completed_at) : 0
+    const b = s.completed_at ? Date.parse(s.completed_at) : 0
+    return b > a || (b === a && s.sequence > last.sequence) ? s : last
+  }, null)
+})
+
+const withdrawnAmount = computed(() =>
+  reopenedSession.value?.status === 'completed' ? Number(reopenedSession.value.amount) : 0
+)
+
+/** Money already paid against the charge that is being withdrawn. */
+const paidOnWithdrawn = computed(() => {
+  if (!props.collection) return 0
+  const kept = Number(props.collection.earned) - withdrawnAmount.value
+  return Math.max(0, Math.min(withdrawnAmount.value, Number(props.collection.collected) - kept))
+})
 
 const pendingAmount = computed(() => Number(props.collection?.pending ?? 0))
 
@@ -117,18 +164,28 @@ const collectCtx = computed(() => ({
   budgetId: props.budgetId,
   amount: pendingAmount.value,
   label: t('clinical.plans.item.collect'),
+  labelled: true,
+  variant: 'soft' as const,
   onCollected: () => emit('collected')
 }))
 
 const noteCtx = computed(() => ({
   treatmentId: props.item?.treatment_id,
   toothNumber: teeth.value[0] ?? null,
-  status: props.item?.status
+  status: props.item?.status,
+  labelled: true
 }))
 
 function complete() {
   if (!props.item) return
   emit('complete', props.item.id)
+  isOpen.value = false
+}
+
+function reopen() {
+  if (!props.item) return
+  emit('reopen', props.item.id)
+  confirmingReopen.value = false
   isOpen.value = false
 }
 </script>
@@ -236,70 +293,123 @@ function complete() {
             </ol>
           </div>
 
-          <!-- The three things you can open on a treatment, all contributed
-               by the modules that own them: notes and recall through
-               `odontogram.condition.actions`, the charge through
-               `treatment_plan.item.collect`. They used to be icons in the
-               list row, indistinguishable from the ones that change the
-               plan. -->
-          <div v-if="!isClosed">
-            <p class="detail-label mb-1">
-              {{ t('clinical.plans.item.actions') }}
-            </p>
-            <div class="flex flex-wrap items-center gap-2">
-              <ModuleSlot
-                name="odontogram.condition.actions"
-                :ctx="noteCtx"
-              />
-              <ModuleSlot
-                v-if="isCompleted && pendingAmount > 0"
-                name="treatment_plan.item.collect"
-                :ctx="collectCtx"
-              />
-            </div>
-          </div>
-
           <!-- A closed treatment says so, and says what would undo it. The
                dialog cannot revert a payment and should not pretend to. -->
           <UAlert
-            v-if="isClosed"
+            v-if="isClosed && !confirmingReopen"
             color="neutral"
             variant="subtle"
             icon="i-lucide-lock"
             :title="t('clinical.plans.item.closedTitle')"
             :description="t('clinical.plans.item.closedHint')"
           />
+
+          <UAlert
+            v-if="confirmingReopen"
+            color="warning"
+            variant="subtle"
+            icon="i-lucide-rotate-ccw"
+            :title="t('clinical.plans.item.reopenTitle')"
+          >
+            <template #description>
+              <div class="space-y-1">
+                <p>{{ t('clinical.plans.item.reopenBody') }}</p>
+                <p v-if="withdrawnAmount > 0">
+                  {{ t('clinical.plans.item.reopenCharge', { amount: formatCurrency(withdrawnAmount) }) }}
+                </p>
+                <p v-if="paidOnWithdrawn > 0">
+                  {{ t('clinical.plans.item.reopenBodyPaid', { paid: formatCurrency(paidOnWithdrawn) }) }}
+                </p>
+                <p v-if="sessions.length > 1">
+                  {{ t('clinical.plans.item.reopenSessions') }}
+                </p>
+              </div>
+            </template>
+          </UAlert>
         </div>
 
-        <!-- Only rendered when it has something in it: a completed treatment
-             that is not closed yet has nothing to offer here, and an empty
-             grey bar reads as a control that failed to load. -->
-        <template
-          v-if="isClosed || (!isCompleted && canComplete)"
-          #footer
-        >
-          <div class="flex flex-wrap items-center gap-2">
+        <!-- The actions in an even grid of blue buttons; the one that changes
+             the plan — complete (green), or reopen — takes the last cell, so a
+             pending treatment reads as a square 2×2.
+             Notes, recall and the charge are hidden once the treatment is
+             closed; the prescription is not — it is often written after the
+             work. -->
+        <template #footer>
+          <div
+            v-if="confirmingReopen"
+            class="flex flex-wrap items-center justify-end gap-2"
+          >
             <UButton
-              v-if="isClosed"
               color="neutral"
-              variant="outline"
-              icon="i-lucide-unlock"
-              @click="reopened = true"
+              variant="ghost"
+              @click="confirmingReopen = false"
             >
-              {{ t('clinical.plans.item.reopen') }}
+              {{ t('common.cancel') }}
             </UButton>
             <UButton
-              v-else-if="!isCompleted && canComplete"
-              color="success"
-              variant="soft"
-              icon="i-lucide-check"
-              class="ml-auto"
-              @click="complete"
+              color="warning"
+              icon="i-lucide-rotate-ccw"
+              @click="reopen"
             >
-              {{ t('clinical.plans.markComplete') }}
+              {{ t('clinical.plans.item.reopenConfirm') }}
             </UButton>
           </div>
+          <template v-else>
+            <div class="item-actions">
+              <template v-if="!isClosed">
+                <ModuleSlot
+                  name="odontogram.condition.actions"
+                  :ctx="noteCtx"
+                />
+                <ModuleSlot
+                  v-if="isCompleted && pendingAmount > 0"
+                  name="treatment_plan.item.collect"
+                  :ctx="collectCtx"
+                />
+              </template>
+              <UButton
+                v-if="canPrescribe"
+                color="primary"
+                variant="soft"
+                size="md"
+                block
+                @click="prescriptionOpen = true"
+              >
+                {{ t('clinical.plans.prescription.open') }}
+              </UButton>
+              <UButton
+                v-if="showReopen"
+                color="neutral"
+                variant="outline"
+                size="md"
+                block
+                icon="i-lucide-rotate-ccw"
+                @click="confirmingReopen = true"
+              >
+                {{ t('clinical.plans.item.reopen') }}
+              </UButton>
+              <UButton
+                v-else-if="!isCompleted && canComplete"
+                color="success"
+                variant="soft"
+                size="md"
+                block
+                icon="i-lucide-check"
+                @click="complete"
+              >
+                {{ t('clinical.plans.markComplete') }}
+              </UButton>
+            </div>
+          </template>
         </template>
+
+        <PlanItemPrescriptionModal
+          v-model:open="prescriptionOpen"
+          :plan-id="planId"
+          :item="item"
+          :treatment-name="name"
+          :patient-name="patientName"
+        />
       </UCard>
     </template>
   </UModal>
@@ -324,6 +434,14 @@ function complete() {
   margin: 2px 0 0;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* Equal columns, as many as fit: four actions make a 2×2 block at the
+   dialog's width, so every label sits centred in a box of the same size. */
+.item-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 8px;
 }
 
 .session-list {

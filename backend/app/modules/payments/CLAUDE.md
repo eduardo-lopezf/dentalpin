@@ -82,9 +82,10 @@ returning. Enforced by tests in `tests/test_module_tools.py`.
 | Event | Handler | Effect |
 |---|---|---|
 | `odontogram.treatment.performed` | `on_treatment_performed` | Upsert `PatientEarnedEntry` (single-session row, `source_session_id=NULL`) |
+| `treatment_plan.item_session_reopened` | `on_session_reopened` | Delete the `PatientEarnedEntry` for `(treatment_id, session_id)` and any `source_session_id=NULL` row of that treatment. A completion undone is a charge that never existed — the row goes, no negative entry. Payments stay; what covered it becomes patient credit. Re-raises on failure (ADR 0020). |
 | `treatment_plan.item_session_completed` | `on_session_completed` | Upsert per-session `PatientEarnedEntry` keyed on `(treatment_id, source_session_id)`. Replaces the legacy `treatment_plan.treatment_completed` subscription since the multi-session feature — see ADR/changelog. |
 
-Both handlers require `unit_price`/`price_snapshot` in the payload. If
+The two upsert handlers require `unit_price`/`price_snapshot` in the payload. If
 the publisher omits it, the entry is skipped with a warning — see
 gotchas below.
 

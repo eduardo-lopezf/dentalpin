@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- feat(clinical_notes): `TreatmentNoteButton` acepta `ctx.labelled` y se
+  pinta como botón de texto azul a todo el ancho (**Añadir nota** /
+  **Notas (n)**) en lugar del icono. Lo usa el pie de la ventana del tratamiento del plan; la lista de
+  hallazgos del odontograma sigue con el icono. Clave nueva
+  `clinicalNotes.treatmentButton.label`.
+
 - fix(i18n): `clinicalNotes.composer.attach` y `actions.remove` faltaban;
   el valor por defecto de `t()` las tapaba y la interfaz se veía bien
   mientras intlify avisaba en cada render. Añadidas —la primera al fichero

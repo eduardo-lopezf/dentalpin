@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { safeRedirect } from '~/utils/session'
+
 definePageMeta({
   layout: 'guest'
 })
@@ -6,6 +8,18 @@ definePageMeta({
 const { t } = useI18n()
 const auth = useAuth()
 const toast = useToast()
+const route = useRoute()
+
+// Why the user is here, when it was not their choice. Without it an
+// expired session reads as a crash: one moment a patient, the next a
+// login form.
+const sessionNotice = computed(() => {
+  switch (route.query.reason) {
+    case 'idle': return t('auth.sessionIdle')
+    case 'expired': return t('auth.sessionExpired')
+    default: return ''
+  }
+})
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -107,7 +121,9 @@ async function onSubmit() {
     color: 'success'
   })
 
-  await navigateTo('/')
+  // Back to where the session ended, if it ended somewhere. `safeRedirect`
+  // refuses anything outside this app: the parameter arrives in the URL.
+  await navigateTo(safeRedirect(route.query.redirect) ?? '/')
 }
 
 watch(() => formState.email, () => {
@@ -145,6 +161,21 @@ watch(() => formState.password, () => {
         class="space-y-4"
         @submit.prevent="onSubmit"
       >
+        <div
+          v-if="sessionNotice && !errorMessage"
+          class="alert-surface-info rounded-token-md px-3 py-2 flex items-start gap-2"
+          role="status"
+        >
+          <UIcon
+            name="i-lucide-clock"
+            class="w-4 h-4 mt-0.5 shrink-0"
+            :style="{ color: 'var(--color-info-accent)' }"
+          />
+          <span class="text-body">
+            {{ sessionNotice }}
+          </span>
+        </div>
+
         <!-- Error message — pastel danger (DESIGN §2.4) -->
         <div
           v-if="errorMessage"

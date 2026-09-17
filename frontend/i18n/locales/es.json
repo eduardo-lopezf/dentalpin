@@ -31,6 +31,8 @@
     "invoices": "Facturas"
   },
   "auth": {
+    "sessionIdle": "Tu sesión se cerró por inactividad. Inicia sesión para continuar donde lo dejaste.",
+    "sessionExpired": "Tu sesión ha caducado. Inicia sesión para continuar donde lo dejaste.",
     "login": "Iniciar sesión",
     "logout": "Cerrar sesión",
     "email": "Correo electrónico",
@@ -920,8 +922,14 @@
         "pending": "Pendiente",
         "closed": "Cerrado",
         "closedTitle": "Tratamiento cerrado",
-        "closedHint": "Está completado y cobrado. Para deshacer el cobro, registra la devolución en Finanzas; al hacerlo dejará de estar cerrado. «Reabrir» solo desbloquea las acciones aquí, no toca el dinero.",
-        "reopen": "Reabrir",
+        "closedHint": "Está completado y cobrado. Si se completó por error, «Reabrir tratamiento» lo devuelve a pendiente; lo cobrado queda como saldo a favor del paciente.",
+        "reopen": "Reabrir tratamiento",
+        "reopenTitle": "¿Reabrir este tratamiento?",
+        "reopenBody": "Vuelve a pendiente y deja de contar como hecho, también en el odontograma.",
+        "reopenCharge": "Se retira su cargo de {amount}, así que no quedará pendiente de cobro.",
+        "reopenBodyPaid": "Lo ya cobrado ({paid}) no se devuelve: queda como saldo a favor del paciente y cubrirá el tratamiento cuando se complete de verdad.",
+        "reopenSessions": "Solo se reabre la última sesión completada; las anteriores siguen hechas y cobradas.",
+        "reopenConfirm": "Sí, reabrir",
         "teeth": "Pieza {teeth}",
         "price": "Precio",
         "collect": "Cobrar",
@@ -929,8 +937,22 @@
         "leavePending": "Dejar pendiente",
         "completedTitle": "Tratamiento completado",
         "collectPrompt": "Quedan {amount} por cobrar de este tratamiento. Puedes cobrarlo ahora o dejarlo pendiente.",
-        "collectPromptNoAmount": "No queda nada por cobrar de este tratamiento.",
-        "actions": "Acciones"
+        "collectPromptNoAmount": "No queda nada por cobrar de este tratamiento."
+      },
+      "prescription": {
+        "open": "Receta médica",
+        "title": "Receta médica",
+        "doctor": "Doctor que firma",
+        "doctorPlaceholder": "Elige un profesional",
+        "license": "Cédula profesional: {license}",
+        "noLicense": "Este profesional no tiene cédula registrada; la receta saldrá sin ella.",
+        "body": "Indicaciones",
+        "bodyPlaceholder": "Medicamento, dosis, frecuencia y duración",
+        "generate": "Generar receta",
+        "print": "Imprimir",
+        "history": "Recetas anteriores",
+        "empty": "Todavía no hay recetas para este tratamiento.",
+        "error": "No se pudo generar la receta."
       }
     },
     "tooth": "Diente"
@@ -1923,6 +1945,7 @@
       "itemsAdded": "Tratamientos añadidos al plan"
     },
     "itemCompleted": "Tratamiento completado",
+    "itemReopened": "Tratamiento reabierto",
     "budgetGenerated": "Presupuesto generado",
     "created": "Plan de tratamiento creado",
     "updated": "Plan de tratamiento actualizado",
@@ -2047,7 +2070,8 @@
         "closed": "Cerrado",
         "reactivated": "Reactivado",
         "item_added": "Tratamiento añadido",
-        "item_removed": "Tratamiento eliminado"
+        "item_removed": "Tratamiento eliminado",
+        "item_reopened": "Tratamiento reabierto"
       }
     }
   },
