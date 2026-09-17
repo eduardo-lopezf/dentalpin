@@ -173,6 +173,26 @@ class PlanLockedError(ValueError):
     """Raised when a mutation is attempted on a plan locked by an active budget."""
 
 
+class PlanHasCollectionsError(ValueError):
+    """The patient has paid into this plan, so it can only be closed.
+
+    Deleting it would take its budgets with it, and cancelling it says the
+    clinic called the work off — neither is true of a plan somebody paid
+    for. The router answers 409 with ``PLAN_HAS_COLLECTIONS`` so the client
+    can say so in its own words.
+    """
+
+    CODE = "PLAN_HAS_COLLECTIONS"
+
+    def __init__(self) -> None:
+        super().__init__(self.CODE)
+
+
+# Closing for this reason is the "cancel" of the UI, and is refused on a
+# plan with money in it; every other reason is an ordinary close.
+CANCEL_CLOSURE_REASON = "cancelled_by_clinic"
+
+
 def _item_label(item: PlannedTreatmentItem) -> str | None:
     """Human name of the treatment behind a plan item, for the history.
 
@@ -596,9 +616,53 @@ class TreatmentPlanService:
         if not plan:
             return False
 
+        await TreatmentPlanService._guard_collections(db, clinic_id, plan)
         await TreatmentPlanService._cleanup_orphan_planned_treatments(db, clinic_id, plan, user_id)
+
+        # The budget goes with its plan, every version of it — and this is
+        # the only way it goes (the budget endpoint refuses a plan's budget).
+        # Direct call, same carve-out as `confirm`/`reopen`: `budget` is in
+        # `manifest.depends` and the two must not be left half-deleted.
+        from app.modules.budget.service import BudgetService
+
+        await BudgetService.delete_for_plan(
+            db, clinic_id, plan.plan_number, plan.budget_id, user_id
+        )
+
         plan.deleted_at = datetime.now(UTC)
         return True
+
+    @staticmethod
+    async def _guard_collections(db: AsyncSession, clinic_id: UUID, plan: TreatmentPlan) -> None:
+        """Refuse to delete or cancel a plan the patient has paid into.
+
+        Asks `payments` directly (it is in `manifest.depends`): this is a
+        precondition of the write, and an event could only report the
+        mistake after it was made. The plan's budgets are every one it
+        produced — the current link plus any carrying its number, so money
+        on a budget cancelled by a reopen still counts.
+        """
+        from app.modules.budget.models import Budget
+        from app.modules.payments.service import LedgerService
+
+        conditions = [Budget.plan_number_snapshot == plan.plan_number]
+        if plan.budget_id is not None:
+            conditions.append(Budget.id == plan.budget_id)
+        budget_ids = list(
+            (
+                await db.execute(
+                    select(Budget.id).where(Budget.clinic_id == clinic_id, or_(*conditions))
+                )
+            )
+            .scalars()
+            .all()
+        )
+        treatment_ids = [item.treatment_id for item in plan.items if item.treatment_id]
+
+        if await LedgerService.plan_has_collections(
+            db, clinic_id, plan.patient_id, budget_ids, treatment_ids
+        ):
+            raise PlanHasCollectionsError()
 
     @staticmethod
     async def _cleanup_orphan_planned_treatments(
@@ -2144,6 +2208,8 @@ class TreatmentPlanService:
             raise ValueError("Plan not found")
         if "closed" not in VALID_PLAN_TRANSITIONS.get(plan.status, set()):
             raise ValueError(f"Cannot close plan in status '{plan.status}'")
+        if closure_reason == CANCEL_CLOSURE_REASON:
+            await TreatmentPlanService._guard_collections(db, clinic_id, plan)
 
         previous_status = plan.status
         plan.status = "closed"

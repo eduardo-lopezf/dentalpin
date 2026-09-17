@@ -254,6 +254,55 @@ test.describe('touch adaptation', () => {
   })
 
   /**
+   * The budget's sidebar opens on its treatment plan, where the money is
+   * followed — the collections card that used to sit there is gone. The
+   * plan is found through the API because it is the one pair the seed
+   * guarantees: a plan under way carrying a budget.
+   */
+  test('the budget detail links to its plan and meets the 44 px minimum', async ({
+    loggedIn: page
+  }) => {
+    test.setTimeout(180_000)
+    const planId = await findLockedPlanId(page)
+    expect(planId, 'the seed has no plan in progress carrying a budget').toBeTruthy()
+    const plan = await page.request.get(
+      `${API_BASE}/api/v1/treatment_plan/treatment-plans/${planId}`,
+      { headers: { authorization: `Bearer ${await tokenFor(page)}` } }
+    )
+    const budgetId = ((await plan.json()) as { data: { budget_id: string } }).data.budget_id
+
+    await page.goto(`/budgets/${budgetId}`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+    await awaitDetection(page)
+    await expect(page.locator(`main a[href="/treatments/plans/${planId}"]`)).toBeVisible({
+      timeout: 60_000
+    })
+    await expect(page.getByText('Cobros del presupuesto')).toHaveCount(0)
+    await page.waitForTimeout(1000)
+
+    expect(await countUndersizedTargets(page), 'undersized targets on the budget detail').toEqual([])
+  })
+
+  /**
+   * Finanzas' tabs come from client-only slot registrations. Rendered on
+   * the server the page took its empty-state branch, and hydration left
+   * the tabs inside that state's centred box: every finance list read
+   * centred under a 48 px gap. The tab strip must never sit in it.
+   */
+  test('the finance tabs are not rendered inside the empty state', async ({ loggedIn: page }) => {
+    test.setTimeout(180_000)
+    await page.goto('/finanzas?tab=budget', { waitUntil: 'domcontentloaded', timeout: 120_000 })
+    await awaitDetection(page)
+    const tabs = page.getByRole('tablist').first()
+    await expect(tabs).toBeVisible({ timeout: 60_000 })
+    expect(await tabs.evaluate(el => el.closest('.text-center') !== null)).toBe(false)
+
+    // A budget is deleted only with its treatment plan, so the list offers
+    // no delete — it used to, on accepted budgets too.
+    await expect(page.locator('main a[href^="/budgets/"]').first()).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByRole('button', { name: 'Eliminar presupuesto' })).toHaveCount(0)
+  })
+
+  /**
    * The in-clinic acceptance is signed with a finger, so its dialog is
    * the one surface here that has to survive touch: a signature canvas
    * plus a name field plus two actions, on the short side of a tablet.

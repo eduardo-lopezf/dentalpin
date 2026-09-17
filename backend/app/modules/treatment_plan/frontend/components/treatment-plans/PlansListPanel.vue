@@ -67,7 +67,9 @@ async function handleDelete(plan: TreatmentPlan, event: Event) {
   if (!confirm(t('treatmentPlans.confirmations.delete'))) return
 
   try {
-    await deletePlan(plan.id)
+    // `deletePlan` toasts its own failure (a plan with payments is refused)
+    // and returns false; saying "deleted" over it was a lie.
+    if (!await deletePlan(plan.id)) return
     toast.add({
       title: t('common.success'),
       description: t('treatmentPlans.messages.deleted'),

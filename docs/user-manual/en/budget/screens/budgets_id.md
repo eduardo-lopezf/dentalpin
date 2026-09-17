@@ -37,14 +37,14 @@ related_permissions:
 related_paths:
   - backend/app/modules/budget/frontend/pages/budgets/[id].vue
   - backend/app/modules/budget/router.py
-last_verified_commit: 3568519
+last_verified_commit: 2b664a5
 ---
 
 # Budget detail
 
 Full view of one budget: header with patient info, a main column
 with the line items and totals, and a sidebar with actions, metadata,
-and the payments card contributed by the payments module. This is
+the treatment plan, totals and metadata. This is
 where the budget moves through `draft → sent → accepted` and gets
 signed, invoiced, or renegotiated.
 
@@ -52,9 +52,14 @@ signed, invoiced, or renegotiated.
 
 - **Two-column layout.** Left: budget line items with catalog item,
   tooth, surfaces, quantity, discount, and VAT. Right (top to
-  bottom): **payments** card (slot `budget.detail.sidebar`, filled
-  by `payments`), **totals** (subtotal, discount, VAT, total),
-  **info** (number, version, validity, creator, linked plan).
+  bottom): **treatment plan** (when the budget has one; the whole row
+  is a link that opens the plan), **totals** (subtotal, discount, VAT,
+  total) and **info** (number, version, validity, creator).
+- **Payments are followed on the plan.** This screen no longer shows
+  “Cobros del presupuesto”: what was collected and what is outstanding
+  live on the plan's *Cobros del paciente* card, and in Finanzas → Cobros.
+- **On a tablet** the sidebar drops below the line items when the
+  tablet is upright; in landscape it stays on the right.
 - **Status chip** in the header. Available actions depend on it.
 - **Versioning.** Each renegotiation creates a new version linked
   via `parent_budget_id`; history is shown under *Version history*.
@@ -127,7 +132,7 @@ signed, invoiced, or renegotiated.
 - **Cannot edit lines.** The budget is no longer in `draft`. To
   change prices or quantities on a sent/accepted budget you must
   **renegotiate** (requires `budget.renegotiate`).
-- **No payments card.** The `payments` module is not installed.
-  The sidebar shows only totals and info.
+- **No plan card.** The budget is not linked to a treatment plan
+  (for example, it was created by hand from Finanzas).
 - **Signed PDF returns 404.** The budget is not accepted yet — the
   signed PDF only exists from the `accepted` state on.

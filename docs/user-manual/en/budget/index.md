@@ -33,7 +33,7 @@ patient accepts a budget, you can issue the invoice from the
 |--------|---------------------|
 | View budgets and download PDFs | `budget.read` |
 | Create, edit, send, accept (in-clinic requires extra permission) | `budget.write` |
-| Delete a budget | `budget.admin` |
+| Delete a budget with no plan (a plan's budget goes with the plan) | `budget.admin` |
 | Renegotiate (create a new version without losing history) | `budget.renegotiate` |
 | Accept by signing in-clinic (tablet) | `budget.accept_in_clinic` |
 

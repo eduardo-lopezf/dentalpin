@@ -46,7 +46,12 @@ from .schemas import (
     TreatmentPlanUpdate,
     UpdateSessionRequest,
 )
-from .service import PlanLockedError, TreatmentPlanService, stewards_of
+from .service import (
+    PlanHasCollectionsError,
+    PlanLockedError,
+    TreatmentPlanService,
+    stewards_of,
+)
 from .templates_service import PlanLine, PlanTemplateService, TemplateNeedsTeethError
 
 router = APIRouter()
@@ -426,7 +431,11 @@ async def close_treatment_plan(
     _: Annotated[None, Depends(require_permission("treatment_plan.plans.close"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[TreatmentPlanResponse]:
-    """Move the plan to terminal ``closed`` state with a reason."""
+    """Move the plan to terminal ``closed`` state with a reason.
+
+    Cancelling (``cancelled_by_clinic``) a plan the patient paid into is
+    refused with 409; any other reason still closes it.
+    """
     try:
         plan = await TreatmentPlanService.close(
             db,
@@ -436,6 +445,8 @@ async def close_treatment_plan(
             closure_reason=data.closure_reason,
             closure_note=data.closure_note,
         )
+    except PlanHasCollectionsError as e:
+        raise HTTPException(status_code=409, detail=e.CODE) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return ApiResponse(data=TreatmentPlanResponse.model_validate(plan))
@@ -497,8 +508,11 @@ async def delete_treatment_plan(
     _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> None:
-    """Soft delete (archive) a treatment plan."""
-    deleted = await TreatmentPlanService.delete(db, ctx.clinic_id, plan_id, ctx.user_id)
+    """Soft delete (archive) a treatment plan — refused once it holds money."""
+    try:
+        deleted = await TreatmentPlanService.delete(db, ctx.clinic_id, plan_id, ctx.user_id)
+    except PlanHasCollectionsError as e:
+        raise HTTPException(status_code=409, detail=e.CODE) from e
     if not deleted:
         raise HTTPException(status_code=404, detail="Treatment plan not found")
 

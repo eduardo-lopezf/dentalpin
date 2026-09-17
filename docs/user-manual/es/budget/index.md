@@ -33,7 +33,7 @@ la factura desde el módulo `billing` y cobrarlo desde `payments`.
 |--------|-------------------|
 | Ver presupuestos y descargar PDF | `budget.read` |
 | Crear, editar, enviar, aceptar (en clínica solo con permiso explícito) | `budget.write` |
-| Borrar presupuesto | `budget.admin` |
+| Borrar un presupuesto sin plan (los de un plan se borran con el plan) | `budget.admin` |
 | Renegociar (crear nueva versión sin perder historial) | `budget.renegotiate` |
 | Aceptar un presupuesto firmando en clínica (tablet) | `budget.accept_in_clinic` |
 

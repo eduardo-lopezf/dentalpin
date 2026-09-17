@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -639,6 +639,62 @@ class BudgetService:
         )
 
         await db.flush()
+
+    @staticmethod
+    async def belongs_to_plan(db: AsyncSession, budget: Budget) -> bool:
+        """Whether a treatment plan owns this budget.
+
+        A budget made from a plan carries `plan_number_snapshot`, and so do
+        its later versions; the live link is checked too, for one that was
+        attached to a plan afterwards. Raw SQL for the same reason as
+        `get_budget`'s router: this module does not import treatment_plan.
+        """
+        if budget.plan_number_snapshot:
+            return True
+        row = (
+            await db.execute(
+                text(
+                    "SELECT 1 FROM treatment_plans "
+                    "WHERE budget_id = :bid AND clinic_id = :cid AND deleted_at IS NULL "
+                    "LIMIT 1"
+                ),
+                {"bid": budget.id, "cid": budget.clinic_id},
+            )
+        ).first()
+        return row is not None
+
+    @staticmethod
+    async def delete_for_plan(
+        db: AsyncSession,
+        clinic_id: UUID,
+        plan_number: str,
+        budget_id: UUID | None,
+        deleted_by: UUID,
+    ) -> int:
+        """Soft-delete every budget a plan produced, because the plan went.
+
+        The only way a plan-owned budget is deleted: the plan is the
+        document the budget prices, and a budget left behind would be a
+        quote for work nobody is planning. Not only the current one goes —
+        a renegotiation keeps older versions, and a reopen + confirm mints a
+        fresh budget beside the cancelled one. All of them carry the plan's
+        number in `plan_number_snapshot`; the current link is included for
+        a budget attached by hand. Returns how many were deleted.
+        """
+        conditions = [Budget.plan_number_snapshot == plan_number]
+        if budget_id is not None:
+            conditions.append(Budget.id == budget_id)
+        result = await db.execute(
+            select(Budget).where(
+                Budget.clinic_id == clinic_id,
+                Budget.deleted_at.is_(None),
+                or_(*conditions),
+            )
+        )
+        budgets = list(result.scalars().all())
+        for budget in budgets:
+            await BudgetService.delete_budget(db, budget, deleted_by)
+        return len(budgets)
 
     @staticmethod
     async def add_item(

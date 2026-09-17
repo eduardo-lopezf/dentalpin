@@ -208,10 +208,20 @@ async def delete_budget(
     _: Annotated[None, Depends(require_permission("budget.admin"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> None:
-    """Soft-delete a budget."""
+    """Soft-delete a budget that no treatment plan owns.
+
+    A plan's budget is deleted with the plan and only then
+    (`BudgetService.delete_for_plan`): deleting it here would leave the plan
+    pointing at a quote that no longer exists.
+    """
     budget = await BudgetService.get_budget(db, ctx.clinic_id, budget_id, include_items=False)
     if not budget:
         raise HTTPException(status_code=404, detail="Budget not found")
+    if await BudgetService.belongs_to_plan(db, budget):
+        raise HTTPException(
+            status_code=409,
+            detail="This budget belongs to a treatment plan and is deleted with the plan.",
+        )
 
     await BudgetService.delete_budget(db, budget, ctx.user_id)
 

@@ -501,17 +501,8 @@ const infoItems = computed<InfoItem[]>(() => {
     label: t('common.date'),
     value: formatDate(budget.created_at)
   })
-  if (budget.treatment_plan) {
-    const plan = budget.treatment_plan
-    items.push({
-      key: 'plan',
-      label: t('budget.treatmentPlan'),
-      link: {
-        to: `/treatments/plans/${plan.id}`,
-        label: plan.title ? `${plan.plan_number} — ${plan.title}` : plan.plan_number
-      }
-    })
-  }
+  // The linked plan is not listed here: it has its own card at the top
+  // of the sidebar.
   return items
 })
 
@@ -787,6 +778,52 @@ function getItemName(item: DeepReadonly<BudgetItem>): string {
              ``registerSlot('budget.detail.sidebar', ...)``. Budget
              never imports them; the registry is the only contract. -->
         <div class="space-y-6">
+          <!-- The plan this budget prices. Where the collections card used
+               to be: what the patient has paid is followed on the plan. -->
+          <UCard v-if="currentBudget.treatment_plan">
+            <template #header>
+              <h2 class="text-h2 text-default flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-clipboard-list"
+                  class="w-5 h-5 text-muted shrink-0"
+                />
+                {{ t('budget.treatmentPlan') }}
+              </h2>
+            </template>
+            <NuxtLink
+              :to="`/treatments/plans/${currentBudget.treatment_plan.id}`"
+              class="plan-link"
+            >
+              <span class="min-w-0">
+                <span class="block font-medium text-default break-words">
+                  {{ currentBudget.treatment_plan.title || currentBudget.treatment_plan.plan_number }}
+                </span>
+                <span class="flex flex-wrap items-center gap-2 mt-1">
+                  <span
+                    v-if="currentBudget.treatment_plan.title"
+                    class="text-caption text-subtle"
+                  >
+                    {{ currentBudget.treatment_plan.plan_number }}
+                  </span>
+                  <UBadge
+                    size="xs"
+                    variant="subtle"
+                    color="neutral"
+                  >
+                    {{ t(`treatmentPlans.status.${currentBudget.treatment_plan.status}`) }}
+                  </UBadge>
+                </span>
+              </span>
+              <span class="flex items-center gap-1 text-primary-accent font-medium shrink-0">
+                {{ t('budget.openPlan') }}
+                <UIcon
+                  name="i-lucide-arrow-right"
+                  class="w-4 h-4"
+                />
+              </span>
+            </NuxtLink>
+          </UCard>
+
           <ModuleSlot
             name="budget.detail.sidebar"
             :ctx="{ budget: currentBudget }"
@@ -1001,3 +1038,28 @@ function getItemName(item: DeepReadonly<BudgetItem>): string {
     </UModal>
   </div>
 </template>
+
+<style scoped>
+/* The whole row is the link: a finger on a tablet should not have to find
+   the words. */
+.plan-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: -8px;
+  padding: 8px;
+  border-radius: 8px;
+  min-height: 44px;
+}
+
+.plan-link:hover {
+  background: var(--color-surface-muted, rgba(0, 0, 0, 0.03));
+}
+
+.plan-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+</style>

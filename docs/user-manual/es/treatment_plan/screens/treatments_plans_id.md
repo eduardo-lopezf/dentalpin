@@ -297,6 +297,15 @@ añadirlos al plan se crea automáticamente una sesión por cada paso.
 2. **Reactivar** — vuelve al estado `draft`. Publica
    `treatment_plan.reactivated`.
 
+**Un plan con cobros solo se puede cerrar.** Si el paciente ya pagó algo
+de este plan —a su presupuesto, o dinero a cuenta que cubre tratamientos
+ya hechos— el plan **no se puede cancelar** (*Cancelar plan* con el
+motivo *Cancelado por la clínica*) **ni borrar**. Sale el aviso *«Error,
+hay algún cobro en el plan de tratamiento. Favor de cerrar este plan de
+tratamiento»* y la ventana sigue abierta: elige otro motivo (por ejemplo
+*Paciente abandonó* u *Otro motivo*) y pulsa **Cerrar plan**. Un cobro
+devuelto por completo ya no cuenta.
+
 ## Permisos
 
 | Lo que ves / puedes hacer | Permiso |

@@ -157,6 +157,7 @@ defineExpose({
     <UInput
       ref="inputRef"
       v-model="searchQuery"
+      class="w-full"
       :placeholder="placeholder || t('selector.typeToSearch')"
       icon="i-lucide-search"
       :loading="isSearching"

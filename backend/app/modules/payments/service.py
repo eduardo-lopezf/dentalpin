@@ -782,6 +782,61 @@ class LedgerService:
         return {"treatments": treatments, "sessions": sessions}
 
     @staticmethod
+    async def plan_has_collections(
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_id: UUID,
+        budget_ids: list[UUID],
+        treatment_ids: list[UUID],
+    ) -> bool:
+        """Whether any money the patient paid sits in a treatment plan.
+
+        `treatment_plan` asks before a plan is deleted or cancelled: a plan
+        somebody paid into can only be closed. Money reaches a plan by two
+        roads and either counts:
+
+        - **allocated to one of its budgets** — an anticipo is paid before
+          any work exists, so the earned walk alone would miss it. Net of
+          refunds: an allocation whose payment was fully refunded is no
+          money at all.
+        - **covering its work** — a payment left on account still settles
+          the plan's treatments through the FIFO walk.
+        """
+        if budget_ids:
+            allocations = await db.execute(
+                select(PaymentAllocation.amount, Payment.amount, Payment.id)
+                .join(Payment, Payment.id == PaymentAllocation.payment_id)
+                .where(
+                    PaymentAllocation.clinic_id == clinic_id,
+                    PaymentAllocation.target_type == "budget",
+                    PaymentAllocation.budget_id.in_(budget_ids),
+                )
+            )
+            rows = allocations.all()
+            if rows:
+                refunded = dict(
+                    (
+                        await db.execute(
+                            select(Refund.payment_id, func.sum(Refund.amount))
+                            .where(Refund.payment_id.in_({r[2] for r in rows}))
+                            .group_by(Refund.payment_id)
+                        )
+                    ).all()
+                )
+                for allocated, paid, payment_id in rows:
+                    left = paid - (refunded.get(payment_id) or Decimal("0"))
+                    if min(allocated, left) > 0:
+                        return True
+
+        if treatment_ids:
+            state = await LedgerService.collection_state_by_treatments(
+                db, clinic_id, patient_id, treatment_ids
+            )
+            if any(v["collected"] > 0 for v in state["treatments"].values()):
+                return True
+        return False
+
+    @staticmethod
     async def coverage_by_earned_entry(
         db: AsyncSession,
         clinic_id: UUID,

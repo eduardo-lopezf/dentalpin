@@ -24,17 +24,6 @@ const sessionNotice = computed(() => {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const isLoading = ref(false)
-// Until Vue hydrates, the SSR markup is a plain HTML form and `@submit.prevent`
-// is not attached yet. Enter (or a password manager that autofills and submits)
-// would then run the browser's native submission. `method="post"` in the
-// template keeps the credentials out of the URL if that ever happens; this flag
-// stops it happening at all, because a form whose default button is disabled
-// does not implicit-submit. Otherwise the user was bounced by a stray request
-// and had to retype everything.
-const hydrated = ref(false)
-onMounted(() => {
-  hydrated.value = true
-})
 
 const formState = reactive({
   email: '',
@@ -156,10 +145,29 @@ watch(() => formState.password, () => {
     </div>
 
     <UCard>
+      <!--
+        No submit button, on purpose — see the `type="button"` below.
+
+        Until Vue hydrates this is a plain HTML form, and a native submission
+        would post it and bounce the user back with empty fields. The browser
+        only submits implicitly on Enter when the form *has* a submit button,
+        so a form with none cannot do it, with or without our JavaScript. Vue
+        then drives both paths itself: `@keydown.enter` for the keyboard and
+        `@click` for the button.
+
+        This replaces a `hydrated` flag that disabled the button until
+        `onMounted` ran. It worked, but it made the one page a user must always
+        be able to use depend on hydration finishing: when it did not, the form
+        took typing and the button stayed dead, and only a reload got them in.
+        An inline `onsubmit="return false"` was tried instead and is worse —
+        Vue overwrites the attribute on hydration, so Enter then did nothing at
+        all.
+      -->
       <form
         method="post"
         class="space-y-4"
         @submit.prevent="onSubmit"
+        @keydown.enter.prevent="onSubmit"
       >
         <div
           v-if="sessionNotice && !errorMessage"
@@ -225,12 +233,13 @@ watch(() => formState.password, () => {
         </UFormField>
 
         <UButton
-          type="submit"
+          type="button"
           color="primary"
           variant="soft"
           block
           :loading="isLoading"
-          :disabled="isLoading || !hydrated"
+          :disabled="isLoading"
+          @click="onSubmit"
         >
           {{ t('auth.loginButton') }}
         </UButton>

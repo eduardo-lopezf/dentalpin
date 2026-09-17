@@ -1,6 +1,20 @@
 # Changelog — frontend
 
 ## Unreleased
+- i18n: `treatmentPlans.errors.hasCollections` («Error, hay algún cobro en el plan de tratamiento. Favor de cerrar este plan de tratamiento»).
+- fix(finanzas): las pestañas se renderizan solo en cliente (`<ClientOnly>`).
+  Sus slots se registran en `slots.client.ts`, así que el SSR pintaba el
+  estado vacío y la hidratación dejaba las pestañas **dentro** de su caja
+  centrada: todos los listados de Finanzas salían centrados (el nombre del
+  paciente flotando a mitad de fila), con un hueco de 48 px encima y el
+  aviso «Hydration completed but contains mismatches». Pineado en
+  `tablet-touch.spec.ts`.
+- fix(ui): el campo de búsqueda de `VisualSelector` ocupa el ancho de su
+  contenedor (el selector de paciente se veía estrecho en formularios).
+- test(e2e): `tablet-touch.spec.ts` cubre el detalle de presupuesto (enlace
+  al plan, sin cobros, 44 px) y que las pestañas de Finanzas no queden
+  dentro del estado vacío.
+- i18n: `budget.openPlan`.
 - i18n: textos de **Reabrir tratamiento** (`clinical.plans.item.reopen*`,
   `treatmentPlans.itemReopened`, historial `item_reopened`) en es y en; el
   aviso de tratamiento cerrado ya no dice que «Reabrir» solo desbloquea

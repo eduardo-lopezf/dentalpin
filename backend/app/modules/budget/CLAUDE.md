@@ -78,7 +78,7 @@ only — never combined with payments data.
 
 | Slot | Ctx | Consumer |
 |---|---|---|
-| `budget.detail.sidebar` | `{ budget }` | `payments` registers `BudgetPaymentsCard` (cobrado vs pendiente, "Cobrar" action). Other modules may add follow-up reminders, signature blocks, etc. |
+| `budget.detail.sidebar` | `{ budget }` | Nobody registers here today — `payments` withdrew `BudgetPaymentsCard`. Rendered **below** the page's own plan card (the linked treatment plan, read from `treatment_plan` in the detail response). Modules may add follow-up reminders, signature blocks, etc. |
 
 Budget never imports its slot consumers — the registry is the only
 contract.
@@ -88,6 +88,17 @@ contract.
 - `removable=False`. Billing depends on accepted budgets.
 
 ## Gotchas
+
+- **A plan's budget is deleted with the plan, and only then.**
+  `DELETE /budgets/{id}` answers 409 for any budget
+  `BudgetService.belongs_to_plan` recognises — `plan_number_snapshot` set,
+  or a live `treatment_plans.budget_id` link. Deleting the plan calls
+  `BudgetService.delete_for_plan` synchronously (`treatment_plan` depends on
+  this module), which soft-deletes **every** budget carrying that plan's
+  number: renegotiated versions and the cancelled budget a reopen +
+  confirm leaves behind included. The list has no trash can any more; it
+  was offering one on accepted budgets. Payment allocations still point at a
+  soft-deleted budget — the money is untouched.
 
 - **Budget → treatment_plan is event-driven, never direct.** Don't
   import treatment_plan services or models from here. The reverse

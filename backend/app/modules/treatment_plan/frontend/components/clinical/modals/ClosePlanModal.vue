@@ -82,6 +82,7 @@ watch(
           <UFormField :label="t('treatmentPlans.modals.close.noteLabel')">
             <UTextarea
               v-model="note"
+              class="w-full"
               :rows="3"
               :maxlength="2000"
             />

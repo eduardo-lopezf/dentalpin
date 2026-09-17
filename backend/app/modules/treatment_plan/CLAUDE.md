@@ -90,8 +90,9 @@ Routes mounted at `/api/v1/treatment-plans/`.
 
 ## Dependencies
 
-`manifest.depends = ["patients", "agenda", "odontogram", "catalog", "budget", "media", "professionals"]`.
-Seven dependencies. Anything not on this list is off-limits — no imports,
+`manifest.depends = ["patients", "agenda", "odontogram", "catalog", "budget", "media", "professionals", "payments"]`.
+Eight dependencies. `payments` is read-only and has one use: asking whether
+the patient paid into a plan before it is deleted or cancelled. Anything not on this list is off-limits — no imports,
 no FKs.
 
 `assigned_professional_id` (on `TreatmentPlan` and `PlannedTreatmentItem`)
@@ -367,6 +368,21 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   derived from the current assignment, so reassignment transfers them with
   no extra bookkeeping. The client never reproduces this rule — it reads
   `permissions` off the history endpoint.
+- **Deleting a plan deletes its budgets.** `delete` calls
+  `BudgetService.delete_for_plan(plan_number, budget_id)` in the same
+  transaction — every budget the plan produced, cancelled and renegotiated
+  versions included. It is the only way those budgets are deleted: the
+  budget endpoint refuses them. Same direct-call carve-out as
+  `confirm`/`reopen`.
+- **A plan with money in it can only be closed.** `delete` and
+  `close(reason="cancelled_by_clinic")` call `_guard_collections`, which asks
+  `payments.LedgerService.plan_has_collections` directly (a precondition, so
+  not an event) and raises `PlanHasCollectionsError` → 409
+  `PLAN_HAS_COLLECTIONS`. Money counts if it is allocated to any budget the
+  plan produced (net of refunds — an anticipo exists before any work) or if
+  on-account money covers the plan's treatments in the FIFO walk. Any other
+  closure reason still works, which is what the client's message tells the
+  user to do. `PUT /status` to `closed` carries no reason and is not guarded.
 - **History rows share the caller's transaction.** `record_history` is not a
   coroutine and does not flush: a log line that outlives a rolled-back edit
   describes something that never happened.

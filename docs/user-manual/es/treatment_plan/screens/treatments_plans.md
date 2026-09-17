@@ -33,7 +33,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/index.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 3568519
+last_verified_commit: 2b664a5
 ---
 
 # Bandeja de planes
@@ -84,6 +84,10 @@ Bandeja de planes de tratamiento de la clínica. Se organiza en
   con filtro por estado. Es la vista de catálogo: aquí aparece
   cualquier plan, incluidos borradores y archivados que no entran en
   ninguna cola.
+- **Borrar un plan borra también su presupuesto**, con todas sus
+  versiones. Es la única forma de borrar el presupuesto de un plan: en
+  Finanzas → Presupuestos ya no hay papelera. **Un plan con cobros no se
+  puede borrar**: sale un aviso y hay que cerrarlo.
 - **Los borradores sólo viven aquí.** La pestaña *Clínico* de la ficha
   del paciente no los lista: esa vista responde a «en qué punto está el
   tratamiento de este paciente», y un plan a medio escribir no es una

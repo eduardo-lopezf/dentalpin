@@ -131,6 +131,7 @@ async function handleCreate() {
             <UInput
               v-model="form.valid_from"
               type="date"
+              class="w-full"
               required
             />
           </UFormField>
@@ -138,6 +139,7 @@ async function handleCreate() {
             <UInput
               v-model="form.valid_until"
               type="date"
+              class="w-full"
             />
             <p class="text-caption text-subtle mt-1">
               {{ t('budget.validUntilHint') }}
@@ -149,6 +151,7 @@ async function handleCreate() {
         <UFormField :label="t('budget.patientNotes')">
           <UTextarea
             v-model="form.patient_notes"
+            class="w-full"
             :placeholder="t('budget.patientNotesPlaceholder')"
             :rows="3"
           />
@@ -157,6 +160,7 @@ async function handleCreate() {
         <UFormField :label="t('budget.internalNotes')">
           <UTextarea
             v-model="form.internal_notes"
+            class="w-full"
             :placeholder="t('budget.internalNotesPlaceholder')"
             :rows="3"
           />

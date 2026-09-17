@@ -1162,8 +1162,11 @@ async def test_complete_first_session_does_not_finalize_item(
         assert session_events[0]["amount"] == "200.00"
         assert treatment_events == []
     finally:
-        event_bus._handlers.pop("treatment_plan.item_session_completed", None)  # noqa: SLF001
-        event_bus._handlers.pop("treatment_plan.treatment_completed", None)  # noqa: SLF001
+        # Only the capture: popping the key also dropped the real
+        # subscribers (payments books earned entries on this event), and
+        # every test after this one ran without them.
+        event_bus.unsubscribe("treatment_plan.item_session_completed", _capture)
+        event_bus.unsubscribe("treatment_plan.treatment_completed", _capture)
 
 
 @pytest.mark.asyncio
@@ -1194,7 +1197,10 @@ async def test_complete_last_session_finalizes_item(
         assert item["status"] == "completed"
         assert len(events) == 1  # treatment_completed fires exactly once
     finally:
-        event_bus._handlers.pop("treatment_plan.treatment_completed", None)  # noqa: SLF001
+        # Only the capture: popping the key also dropped the real
+        # subscribers (payments books earned entries on this event), and
+        # every test after this one ran without them.
+        event_bus.unsubscribe("treatment_plan.treatment_completed", _capture)
 
 
 @pytest.mark.asyncio
@@ -1232,7 +1238,10 @@ async def test_cancel_session_blocks_earned(
         # Only the completed session fired an earned event; cancelled didn't
         assert len(session_events) == 1
     finally:
-        event_bus._handlers.pop("treatment_plan.item_session_completed", None)  # noqa: SLF001
+        # Only the capture: popping the key also dropped the real
+        # subscribers (payments books earned entries on this event), and
+        # every test after this one ran without them.
+        event_bus.unsubscribe("treatment_plan.item_session_completed", _capture)
 
 
 @pytest.mark.asyncio

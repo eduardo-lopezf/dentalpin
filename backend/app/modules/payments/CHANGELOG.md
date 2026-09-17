@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- feat(payments): `LedgerService.plan_has_collections(budget_ids, treatment_ids)` — si hay dinero en un plan: asignado a sus presupuestos (neto de devoluciones) o cubriendo sus tratamientos por FIFO. Lo usa `treatment_plan` para impedir borrar o cancelar un plan con cobros.
+- feat(payments): se retira «Cobros del presupuesto» (`BudgetPaymentsCard`) del lateral del detalle de presupuesto: el registro en `budget.detail.sidebar` desaparece y el componente queda en el árbol sin usar. Los cobros se siguen en el plan (*Cobros del paciente*).
+
 - feat(payments): nuevo handler `on_session_reopened` para
   `treatment_plan.item_session_reopened`: borra el devengo de esa sesión
   (y la fila de tratamiento completo, si la hubiera). Un tratamiento

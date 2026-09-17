@@ -33,7 +33,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/index.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 3568519
+last_verified_commit: 2b664a5
 ---
 
 # Plans inbox
@@ -82,6 +82,10 @@ of every plan.
   date, newest first, with a status filter. This is the catalogue
   view: any plan shows up here, including drafts and archived ones
   that belong to no queue.
+- **Deleting a plan deletes its budget too**, every version of it. It
+  is the only way a plan's budget is deleted: Finanzas → Presupuestos
+  has no trash can any more. **A plan with payments cannot be deleted**:
+  a message says so, and it has to be closed instead.
 - **Drafts live only here.** The patient record's *Clinical* tab does
   not list them: that view answers "where does this patient's treatment
   stand", and a half-written plan is not an answer — it also pushed the

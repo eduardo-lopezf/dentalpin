@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- feat(budget): **un presupuesto de un plan solo se borra con su plan.** `DELETE /budgets/{id}` responde 409 si el presupuesto pertenece a un plan (`BudgetService.belongs_to_plan`); nuevo `BudgetService.delete_for_plan`, que borra todos los presupuestos del plan (versiones y cancelados incluidos). El listado ya no muestra la papelera (salía también en presupuestos aceptados).
+- feat(budget): el lateral del detalle abre con una tarjeta **Plan de tratamiento** —toda la fila enlaza al plan (`Abrir plan`), con número y estado— en el sitio de la antigua tarjeta de cobros. El enlace al plan sale de la tarjeta de información para no duplicarlo.
+- fix(budget): en *Nuevo presupuesto* las fechas y las notas ocupan el ancho del formulario (se veían como cajas estrechas en tablet).
+
 - fix(i18n): el botón de volver de los presupuestos usaba `actions.back`,
   inexistente en ambos idiomas, así que mostraba la clave en crudo. Pasa a
   `common.back`, que ya existe.

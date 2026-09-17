@@ -19,18 +19,11 @@ export default defineNuxtPlugin(() => {
     order: 10
   })
 
-  // Cobros vinculados al presupuesto. Renders inside the budget-detail
-  // sidebar with `ctx = { budget }`. Shows total / cobrado / pendiente
-  // plus the allocation history and a "Cobrar" CTA that opens the
-  // shared `PaymentCreateModal` pre-filled with budget + patient ids.
-  registerSlot('budget.detail.sidebar', {
-    id: 'payments.budget.detail.sidebar.collected',
-    component: defineAsyncComponent(
-      () => import('../components/BudgetPaymentsCard.vue')
-    ),
-    permission: 'payments.record.read',
-    order: 10
-  })
+  // No card in `budget.detail.sidebar` any more. The budget's money is
+  // followed from its treatment plan, which the budget page now links to
+  // in that spot; two places showing the same collections disagreed as
+  // soon as a payment covered work outside the budget.
+  // `BudgetPaymentsCard.vue` is left unregistered, not deleted.
 
   // Money view of a treatment plan. The plan exposes the slot name and
   // hands over `{ planId, patientId, budgetId, planStatus }`; it renders

@@ -37,7 +37,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/budget/frontend/pages/budgets/index.vue
   - backend/app/modules/budget/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 2b664a5
 ---
 
 # Listado de presupuestos
@@ -97,7 +97,11 @@ detalle para trabajar sobre cada uno.
 
 - **Descargar PDF** — del presupuesto en su estado actual.
 - **Duplicar** — crea un nuevo borrador con los mismos ítems.
-- **Cancelar / Borrar** — admin only.
+- **Cancelar** — admin only.
+- **No hay papelera.** Un presupuesto que sale de un plan de
+  tratamiento **solo se borra al borrar el plan**, y se van con él todas
+  sus versiones. Si un presupuesto ya no vale, cancélalo o reabre el
+  plan.
 
 ## Permisos
 
@@ -105,7 +109,7 @@ detalle para trabajar sobre cada uno.
 |---------------------------|---------|
 | Navegar y buscar, descargar PDF | `budget.read` |
 | Crear, editar, enviar, duplicar | `budget.write` |
-| Borrar | `budget.admin` |
+| Borrar un presupuesto sin plan (solo por API) | `budget.admin` |
 | Renegociar (nueva versión) | `budget.renegotiate` |
 | Aceptar en clínica (tablet con firma) | `budget.accept_in_clinic` |
 

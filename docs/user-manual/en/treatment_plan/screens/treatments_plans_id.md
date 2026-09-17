@@ -290,6 +290,15 @@ added to a plan, one session is created per step.
 2. **Reactivate** — back to `draft`. Publishes
    `treatment_plan.reactivated`.
 
+**A plan with payments can only be closed.** Once the patient has paid
+anything into this plan — to its budget, or money on account that covers
+treatments already done — the plan **cannot be cancelled** (*Cancel plan*
+with the *Cancelled by clinic* reason) **or deleted**. The screen shows
+*“Error, hay algún cobro en el plan de tratamiento. Favor de cerrar este
+plan de tratamiento”* and the dialog stays open: pick another reason (for
+example *Patient abandoned* or *Other reason*) and press **Close plan**. A fully
+refunded payment no longer counts.
+
 ## Permissions
 
 | What you see / can do | Permission |

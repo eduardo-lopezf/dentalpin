@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- feat(treatment_plan): **un plan con cobros solo se puede cerrar.** `DELETE /treatment-plans/{id}` y `POST /close` con motivo `cancelled_by_clinic` responden 409 `PLAN_HAS_COLLECTIONS` si el paciente pagó algo del plan; el cliente muestra «Error, hay algún cobro en el plan de tratamiento. Favor de cerrar este plan de tratamiento» y la ventana de cierre sigue abierta para elegir otro motivo. `payments` entra en `manifest.depends` (solo lectura). `PlansListPanel` ya no dice «eliminado» cuando el borrado falla.
+- test(treatment_plan): las pruebas de sesiones quitaban su captura con `event_bus._handlers.pop(...)`, que borraba también los handlers reales (el de `payments` que genera los cargos); las pruebas que corrían después lo hacían sin ellos. Ahora usan `event_bus.unsubscribe(evento, _capture)`.
+- feat(treatment_plan): borrar un plan borra también sus presupuestos, en la misma transacción (`BudgetService.delete_for_plan`).
 - feat(treatment_plan): en *Paciente → Clínica → Planes* **toda la tarjeta
   del plan abre el plan** (clic o Enter; `role="link"`). Se quitan los
   botones *Ver detalle* y *Programar cita* de `TreatmentPlanMiniCard`;

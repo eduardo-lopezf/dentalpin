@@ -100,6 +100,23 @@ from app.modules.verifactu.models import (  # noqa: F401
 load_modules(app)
 
 
+@pytest.fixture(autouse=True)
+def _restore_event_subscriptions():
+    """Put the bus back as ``load_modules`` left it, after every test.
+
+    Tests subscribe spies to real events. One that cleaned up with
+    ``_handlers.pop(event)`` dropped ``payments``' subscribers along with
+    its spy, and the reopen tests that ran next booked no per-session
+    charges — failing only in the full suite, never on their own. The
+    subscriptions are session-wide, so no test may leave them changed.
+    """
+    from app.core.events import event_bus
+
+    saved = {k: list(v) for k, v in event_bus._handlers.items()}
+    yield
+    event_bus._handlers = saved
+
+
 @pytest.fixture
 def isolated_runtime(tmp_path):
     """Hand a test an empty runtime to mount into, then restore.

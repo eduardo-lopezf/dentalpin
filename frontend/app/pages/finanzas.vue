@@ -57,23 +57,35 @@ const active = computed<string>({
   <div>
     <PageHeader :title="t('nav.finance')" />
 
-    <UTabs
-      v-if="items.length"
-      v-model="active"
-      :items="items"
-      :ui="{ content: 'overflow-visible' }"
-    >
-      <template #content="{ item }">
-        <div class="mt-4 overflow-visible">
-          <component :is="item.component" />
-        </div>
-      </template>
-    </UTabs>
+    <!-- Client-only: the tabs come from `slots.client.ts` registrations,
+         which do not exist during SSR. Rendered on the server, this block
+         always took the empty-state branch, and hydration then put the
+         tabs *inside* the empty state's centred box — every finance list
+         read centred, under a 48 px gap, with a hydration-mismatch
+         warning in the console. -->
+    <ClientOnly>
+      <UTabs
+        v-if="items.length"
+        v-model="active"
+        :items="items"
+        :ui="{ content: 'overflow-visible' }"
+      >
+        <template #content="{ item }">
+          <div class="mt-4 overflow-visible">
+            <component :is="item.component" />
+          </div>
+        </template>
+      </UTabs>
 
-    <EmptyState
-      v-else
-      icon="i-lucide-receipt"
-      :title="t('finance.empty')"
-    />
+      <EmptyState
+        v-else
+        icon="i-lucide-receipt"
+        :title="t('finance.empty')"
+      />
+
+      <template #fallback>
+        <USkeleton class="h-10 w-full rounded-md" />
+      </template>
+    </ClientOnly>
   </div>
 </template>

@@ -213,6 +213,59 @@ test.describe('session inactivity', () => {
     await context.close()
   })
 
+  // Login is the one page a user must always be able to use, so nothing on it
+  // may depend on hydration having finished. The submit button used to be
+  // disabled until `onMounted` ran: when hydration did not complete, the form
+  // took typing and the button stayed dead, and only a reload got anyone in.
+  test('the login button does not wait for hydration to become usable', async ({
+    browser
+  }) => {
+    // JavaScript off is that state made permanent: whatever the client does
+    // later, this is the button the server sent.
+    const context = await browser.newContext({
+      baseURL: 'http://localhost:3000',
+      javaScriptEnabled: false
+    })
+    const page = await context.newPage()
+    await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 120_000 })
+
+    await expect(
+      page.getByRole('button', { name: 'Entrar' }),
+      'the submit button must not arrive disabled'
+    ).toBeEnabled()
+
+    // And the hazard the old gate existed for is gone structurally, not by a
+    // handler: a form with no submit button cannot be submitted implicitly, so
+    // Enter can never fire the browser's own submission and bounce the user
+    // back with empty fields. With scripting off, nothing of ours could have
+    // stopped it — which is exactly why it must not depend on us.
+    await page.getByPlaceholder('Correo electrónico').fill('admin@demo.clinic')
+    await page.getByPlaceholder('Contraseña').fill('demo1234')
+    await page.getByPlaceholder('Contraseña').press('Enter')
+    await page.waitForTimeout(1500)
+
+    expect(page.url(), 'Enter must not submit the form natively').toContain('/login')
+    await expect(page.getByPlaceholder('Correo electrónico')).toHaveValue('admin@demo.clinic')
+
+    await context.close()
+  })
+
+  test('the login form still submits once Vue is listening', async ({ browser }) => {
+    // The other half: the inline `return false` must not swallow the real
+    // submit. Enter, not a click, because that is the path it guards.
+    const context = await freshContext(browser)
+    const page = await context.newPage()
+    await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 120_000 })
+
+    await page.getByPlaceholder('Correo electrónico').fill('admin@demo.clinic')
+    await page.getByPlaceholder('Contraseña').fill('demo1234')
+    await page.getByPlaceholder('Contraseña').press('Enter')
+
+    await expect(page).toHaveURL(/localhost:3000\/$/, { timeout: 60_000 })
+
+    await context.close()
+  })
+
   test('recent activity keeps the session', async ({ browser }) => {
     const context = await freshContext(browser)
     const tokens = await apiLogin(context)

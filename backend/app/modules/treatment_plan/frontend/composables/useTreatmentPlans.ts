@@ -14,6 +14,16 @@ import type {
   TreatmentPlanUpdate
 } from '~~/app/types'
 
+/**
+ * The server refuses to delete or cancel a plan the patient has paid into
+ * (409 `PLAN_HAS_COLLECTIONS`); the plan can still be closed for any other
+ * reason, so the message says exactly that.
+ */
+function hasCollections(error: unknown): boolean {
+  const e = error as { statusCode?: number, data?: { message?: string } }
+  return e?.statusCode === 409 && e?.data?.message === 'PLAN_HAS_COLLECTIONS'
+}
+
 export function useTreatmentPlans() {
   const api = useApi()
   const toast = useToast()
@@ -188,10 +198,9 @@ export function useTreatmentPlans() {
       return true
     } catch (error) {
       console.error('Error deleting treatment plan:', error)
-      toast.add({
-        title: t('errors.deleteFailed'),
-        color: 'error'
-      })
+      toast.add(hasCollections(error)
+        ? { title: t('treatmentPlans.errors.hasCollections'), color: 'error' }
+        : { title: t('errors.deleteFailed'), color: 'error' })
       return false
     } finally {
       loading.value = false
@@ -590,7 +599,9 @@ export function useTreatmentPlans() {
       return response.data
     } catch (error) {
       console.error('Error closing plan:', error)
-      toast.add({ title: t('errors.updateFailed'), color: 'error' })
+      toast.add(hasCollections(error)
+        ? { title: t('treatmentPlans.errors.hasCollections'), color: 'error' }
+        : { title: t('errors.updateFailed'), color: 'error' })
       return null
     } finally {
       loading.value = false

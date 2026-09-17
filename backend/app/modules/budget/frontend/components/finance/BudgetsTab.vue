@@ -37,7 +37,7 @@ const router = useRouter()
 const toast = useToast()
 const api = useApi()
 const { can } = usePermissions()
-const { downloadPDF, deleteBudget } = useBudgets()
+const { downloadPDF } = useBudgets()
 
 // --- Filters --------------------------------------------------------------
 interface BudgetListFilters {
@@ -157,8 +157,7 @@ const {
   isLoading,
   error,
   setFilter,
-  resetFilters,
-  refresh
+  resetFilters
 } = useListQuery<BudgetListFilters, BudgetListItem>({
   defaults,
   pageSize: 20,
@@ -287,18 +286,6 @@ async function handleDownloadPDF(b: BudgetListItem, ev: Event) {
   }
 }
 
-async function handleDelete(b: BudgetListItem, ev: Event) {
-  ev.preventDefault()
-  ev.stopPropagation()
-  if (!confirm(t('budget.confirmations.delete'))) return
-  try {
-    await deleteBudget(b.id)
-    toast.add({ title: t('common.success'), description: t('budget.messages.deleted'), color: 'success' })
-    await refresh()
-  } catch {
-    toast.add({ title: t('common.error'), description: t('budget.errors.delete'), color: 'error' })
-  }
-}
 </script>
 
 <template>
@@ -454,16 +441,8 @@ async function handleDelete(b: BudgetListItem, ev: Event) {
               :title="t('budget.actions.downloadPdf')"
               @click="handleDownloadPDF(b, $event)"
             />
-            <UButton
-              v-if="can(PERMISSIONS.budget.admin)"
-              variant="ghost"
-              color="error"
-              icon="i-lucide-trash-2"
-              size="xs"
-              :aria-label="t('budget.delete')"
-              :title="t('budget.delete')"
-              @click="handleDelete(b, $event)"
-            />
+            <!-- No delete here: a budget is deleted only with its
+                 treatment plan (the API refuses it otherwise). -->
             <UIcon
               name="i-lucide-chevron-right"
               class="text-subtle"

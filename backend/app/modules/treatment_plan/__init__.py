@@ -59,6 +59,9 @@ class TreatmentPlanModule(BaseModule):
             "budget",
             "media",
             "professionals",
+            # Read-only: a plan the patient paid into cannot be deleted or
+            # cancelled, and only payments knows (`_guard_collections`).
+            "payments",
         ],
         "installable": True,
         "auto_install": True,

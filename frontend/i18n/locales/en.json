@@ -1957,7 +1957,8 @@
       "load": "Error loading treatment plans",
       "create": "Error creating treatment plan",
       "update": "Error updating treatment plan",
-      "delete": "Error deleting treatment plan"
+      "delete": "Error deleting treatment plan",
+      "hasCollections": "Error: there are payments on this treatment plan. Please close the treatment plan instead"
     },
     "notes": {
       "title": "Clinical notes",
@@ -2129,6 +2130,7 @@
     "budgetNumber": "Number",
     "version": "Version",
     "treatmentPlan": "Treatment plan",
+    "openPlan": "Open plan",
     "patient": "Patient",
     "selectPatient": "Select patient",
     "selectPatientHint": "Search and select the patient for this quote",

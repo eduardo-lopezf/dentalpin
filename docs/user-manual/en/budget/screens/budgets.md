@@ -37,7 +37,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/budget/frontend/pages/budgets/index.vue
   - backend/app/modules/budget/router.py
-last_verified_commit: b1b82f5
+last_verified_commit: 2b664a5
 ---
 
 # Budget list
@@ -96,7 +96,10 @@ budget.
 
 - **Download PDF** — for the current budget state.
 - **Duplicate** — creates a new draft with the same items.
-- **Cancel / Delete** — admin only.
+- **Cancel** — admin only.
+- **No trash can.** A budget that comes from a treatment plan is
+  **deleted only by deleting the plan**, and every version of it goes
+  too. If a budget no longer applies, cancel it or reopen the plan.
 
 ## Permissions
 
@@ -104,7 +107,7 @@ budget.
 |-----------------------|------------|
 | Browse, search, and download PDFs | `budget.read` |
 | Create, edit, send, duplicate | `budget.write` |
-| Delete | `budget.admin` |
+| Delete a budget with no plan (API only) | `budget.admin` |
 | Renegotiate (create a new version) | `budget.renegotiate` |
 | Accept in-clinic (tablet signature) | `budget.accept_in_clinic` |
 

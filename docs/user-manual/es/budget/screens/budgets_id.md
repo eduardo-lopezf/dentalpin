@@ -37,14 +37,14 @@ related_permissions:
 related_paths:
   - backend/app/modules/budget/frontend/pages/budgets/[id].vue
   - backend/app/modules/budget/router.py
-last_verified_commit: 3568519
+last_verified_commit: 2b664a5
 ---
 
 # Detalle del presupuesto
 
 Vista completa de un presupuesto: cabecera con datos del paciente,
 columna principal con las líneas y totales, y columna lateral con
-acciones, info y la tarjeta de cobros que aporta el módulo de pagos.
+acciones, el plan de tratamiento, totales e info.
 Desde aquí se mueve el presupuesto por todo su flujo
 `borrador → enviado → aceptado` y se firma, factura o renegocia.
 
@@ -52,10 +52,15 @@ Desde aquí se mueve el presupuesto por todo su flujo
 
 - **Layout en dos columnas.** Izquierda: líneas del presupuesto con
   ítem del catálogo, diente, superficies, cantidad, descuento e IVA.
-  Derecha (de arriba abajo): tarjeta de **cobros** (slot
-  `budget.detail.sidebar` rellenado por `payments`), **totales**
-  (subtotal, descuento, IVA, total), **info** (número, versión,
-  validez, creador, plan asociado).
+  Derecha (de arriba abajo): **plan de tratamiento** (si el
+  presupuesto tiene uno; toda la fila es un enlace que abre el plan),
+  **totales** (subtotal, descuento, IVA, total) e **info** (número,
+  versión, validez, creador).
+- **Los cobros se siguen en el plan.** Esta pantalla ya no muestra
+  «Cobros del presupuesto»: lo cobrado y lo pendiente están en la
+  tarjeta *Cobros del paciente* del plan, y en Finanzas → Cobros.
+- **En tablet** la columna lateral pasa debajo de las líneas cuando la
+  tablet está en vertical; en horizontal se ve a la derecha.
 - **Estado del presupuesto** — chip de color en la cabecera. Las
   acciones disponibles dependen del estado.
 - **Versionado.** Cada renegociación crea una versión nueva
@@ -134,7 +139,8 @@ Desde aquí se mueve el presupuesto por todo su flujo
   `draft`. Para cambiar precios o cantidades de un presupuesto
   enviado/aceptado debes **renegociar** (requiere
   `budget.renegotiate`).
-- **No aparece la tarjeta de cobros.** El módulo `payments` no está
-  instalado. La columna lateral muestra solo totales e info.
+- **No aparece la tarjeta del plan.** El presupuesto no está enlazado
+  a ningún plan de tratamiento (por ejemplo, se creó a mano desde
+  Finanzas).
 - **El PDF firmado da 404.** El presupuesto no está aceptado todavía.
   El PDF firmado solo existe a partir del estado `accepted`.

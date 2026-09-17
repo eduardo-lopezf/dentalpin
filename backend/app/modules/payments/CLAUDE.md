@@ -93,11 +93,15 @@ gotchas below.
 
 | Slot | Component | Permission |
 |---|---|---|
-| `budget.detail.sidebar` | `BudgetPaymentsCard` (cobrado / pendiente / allocations + "Cobrar" CTA) | `payments.record.read` |
 | `treatment_plan.detail.sidebar` | `PlanCollectionsCard` (pendiente de cobrar del paciente + "Cobrar") | `payments.record.read` |
 | `treatment_plan.detail.sidebar` | `PaymentScheduleCard` (calendario pactado + plazos) | `payments.record.read` |
 | `reports.categories` | `PaymentsReportEntry` (card on `/reports` linking to `/reports/payments`) | `payments.reports.read` |
 | `patient.detail.administracion.payments` | `PatientPaymentsPanel` (patient ledger inside the Administración tab — KPIs + timeline + refund row menu + "Pendiente de cobrar" card) | `payments.record.read` |
+
+`budget.detail.sidebar` is **not** filled any more: the budget page links
+to its treatment plan there, and the plan's `PlanCollectionsCard` is where
+its money is followed. `BudgetPaymentsCard.vue` stays in the tree,
+unregistered.
 
 Registered in `frontend/plugins/slots.client.ts`. Cards receive `ctx`
 from the host page (`{ budget }`, `{ patient, patientId }`) and never
@@ -170,6 +174,11 @@ the public endpoints.
   contradice el recibo que tiene el paciente delante. Vale igual para la
   hora: «Pendiente de cobrar» enseña la hora de la sesión para que recepción
   la coteje con la cita, y esa hora es la de la consulta.
+- **`LedgerService.plan_has_collections` es la pregunta de `treatment_plan`**
+  antes de borrar o cancelar un plan (lo lee directamente: `payments` está en
+  su `depends`). Cuenta lo asignado a cualquiera de los presupuestos del plan,
+  neto de devoluciones —un anticipo existe antes que el trabajo— y lo que el
+  recorrido FIFO cubre de sus tratamientos con dinero a cuenta.
 - **No `is_voided` flag.** Total reverso is `Refund(amount=Payment.amount)`.
   Don't reintroduce the legacy flag — the report stack relies on
   Refund rows being the only adjustment vector.
