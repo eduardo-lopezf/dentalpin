@@ -146,28 +146,24 @@ watch(() => formState.password, () => {
 
     <UCard>
       <!--
-        No submit button, on purpose — see the `type="button"` below.
+        The form has **no submit button** — the control below is a
+        `type="button"`. A browser only submits a form implicitly when it has
+        one, so this form cannot be submitted by the browser at all: not on
+        Enter, not by a password manager, and not in the moment before Vue
+        hydrates. Vue drives both paths itself, from the button's `@click` and
+        the fields' `@keydown.enter`.
 
-        Until Vue hydrates this is a plain HTML form, and a native submission
-        would post it and bounce the user back with empty fields. The browser
-        only submits implicitly on Enter when the form *has* a submit button,
-        so a form with none cannot do it, with or without our JavaScript. Vue
-        then drives both paths itself: `@keydown.enter` for the keyboard and
-        `@click` for the button.
-
-        This replaces a `hydrated` flag that disabled the button until
-        `onMounted` ran. It worked, but it made the one page a user must always
-        be able to use depend on hydration finishing: when it did not, the form
-        took typing and the button stayed dead, and only a reload got them in.
-        An inline `onsubmit="return false"` was tried instead and is worse —
-        Vue overwrites the attribute on hydration, so Enter then did nothing at
-        all.
+        What this replaces: the submit button used to be disabled until
+        `onMounted` ran, which prevented the same stray submission but made the
+        one page a user must always be able to use depend on hydration
+        finishing. When it did not finish, the form accepted typing and the
+        button stayed dead — only a reload got them in. `method="post"` stays
+        as the last line of defence for the credentials.
       -->
       <form
         method="post"
         class="space-y-4"
         @submit.prevent="onSubmit"
-        @keydown.enter.prevent="onSubmit"
       >
         <div
           v-if="sessionNotice && !errorMessage"
@@ -213,6 +209,7 @@ watch(() => formState.password, () => {
             icon="i-lucide-mail"
             autocomplete="email"
             :disabled="isLoading"
+            @keydown.enter="onSubmit"
           />
         </UFormField>
 
@@ -229,6 +226,7 @@ watch(() => formState.password, () => {
             icon="i-lucide-lock"
             autocomplete="current-password"
             :disabled="isLoading"
+            @keydown.enter="onSubmit"
           />
         </UFormField>
 

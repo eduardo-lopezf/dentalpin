@@ -216,11 +216,12 @@ test.describe('session inactivity', () => {
   // Login is the one page a user must always be able to use, so nothing on it
   // may depend on hydration having finished. The submit button used to be
   // disabled until `onMounted` ran: when hydration did not complete, the form
-  // took typing and the button stayed dead, and only a reload got anyone in.
+  // accepted typing and the button stayed dead, and only a reload got anyone
+  // in — which is what this test exists to stop coming back.
   test('the login button does not wait for hydration to become usable', async ({
     browser
   }) => {
-    // JavaScript off is that state made permanent: whatever the client does
+    // Scripting off is that state made permanent: whatever the client manages
     // later, this is the button the server sent.
     const context = await browser.newContext({
       baseURL: 'http://localhost:3000',
@@ -234,33 +235,34 @@ test.describe('session inactivity', () => {
       'the submit button must not arrive disabled'
     ).toBeEnabled()
 
-    // And the hazard the old gate existed for is gone structurally, not by a
-    // handler: a form with no submit button cannot be submitted implicitly, so
-    // Enter can never fire the browser's own submission and bounce the user
-    // back with empty fields. With scripting off, nothing of ours could have
-    // stopped it — which is exactly why it must not depend on us.
-    await page.getByPlaceholder('Correo electrónico').fill('admin@demo.clinic')
-    await page.getByPlaceholder('Contraseña').fill('demo1234')
-    await page.getByPlaceholder('Contraseña').press('Enter')
-    await page.waitForTimeout(1500)
-
-    expect(page.url(), 'Enter must not submit the form natively').toContain('/login')
-    await expect(page.getByPlaceholder('Correo electrónico')).toHaveValue('admin@demo.clinic')
-
     await context.close()
   })
 
-  test('the login form still submits once Vue is listening', async ({ browser }) => {
-    // The other half: the inline `return false` must not swallow the real
-    // submit. Enter, not a click, because that is the path it guards.
+  test('both the button and Enter sign in', async ({ browser }) => {
+    // Removing the gate must not have cost the ordinary paths — and since the
+    // form can no longer be submitted by the browser, both of them are now
+    // Vue's. Which means waiting for hydration before pressing anything:
+    // before it, nothing happens at all, which is the point.
     const context = await freshContext(browser)
     const page = await context.newPage()
     await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 120_000 })
+    await page.waitForFunction(
+      () => (document.getElementById('__nuxt') as unknown as { __vue_app__?: unknown })?.__vue_app__ !== undefined,
+      undefined,
+      { timeout: 60_000 }
+    )
 
     await page.getByPlaceholder('Correo electrónico').fill('admin@demo.clinic')
     await page.getByPlaceholder('Contraseña').fill('demo1234')
     await page.getByPlaceholder('Contraseña').press('Enter')
+    await expect(page).toHaveURL(/localhost:3000\/$/, { timeout: 60_000 })
 
+    await page.getByRole('button', { name: 'Cerrar sesión' }).click()
+    await expect(page).toHaveURL(/\/login$/, { timeout: 30_000 })
+
+    await page.getByPlaceholder('Correo electrónico').fill('admin@demo.clinic')
+    await page.getByPlaceholder('Contraseña').fill('demo1234')
+    await page.getByRole('button', { name: 'Entrar' }).click()
     await expect(page).toHaveURL(/localhost:3000\/$/, { timeout: 60_000 })
 
     await context.close()

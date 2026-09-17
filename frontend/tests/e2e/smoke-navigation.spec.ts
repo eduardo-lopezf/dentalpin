@@ -29,6 +29,13 @@ const ADMIN_ROUTES = [
   { path: '/settings/notifications', selector: /notifications|notificaciones/i }
 ]
 
+// This suite drives the Nuxt **dev** server, which compiles a route the first
+// time it is asked for: a cold /finanzas took 8.4 s to show its tabs here,
+// against an 8 s budget, so the finance routes failed or passed depending on
+// what had warmed them earlier in the run. The budgets below are sized for a
+// compile, not for a render — a real breakage still fails, just later.
+test.describe.configure({ timeout: 120_000 })
+
 test.describe('admin navigation smoke', () => {
   test.use({ role: 'admin' })
 
@@ -50,7 +57,7 @@ test.describe('admin navigation smoke', () => {
       const link = main.getByRole('link', { name: selector })
       const button = main.getByRole('button', { name: selector })
       const tab = main.getByRole('tab', { name: selector })
-      await expect(heading.or(link).or(button).or(tab).first()).toBeVisible({ timeout: 8_000 })
+      await expect(heading.or(link).or(button).or(tab).first()).toBeVisible({ timeout: 45_000 })
     })
   }
 })

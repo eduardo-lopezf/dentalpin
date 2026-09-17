@@ -62,11 +62,26 @@ async function openAgenda(page: Page, path = '/appointments'): Promise<void> {
  * hittable, which hand-computed coordinates are not once a grid is
  * scrolled sideways in portrait.
  */
-async function longPress(page: Page, target: Locator): Promise<void> {
+async function longPress(page: Page, target: Locator, until?: () => Promise<unknown>): Promise<void> {
   await target.scrollIntoViewIfNeeded()
   await target.hover()
   await page.mouse.down()
+  if (until) {
+    // Hold until the app says the press registered, rather than for a fixed
+    // 500 ms against a 300 ms threshold. The margin looks generous and is
+    // not: the timer is a `setTimeout`, and a busy dev server can run it
+    // late — releasing first turns the long press into a plain click, which
+    // opens the appointment instead of selecting it.
+    await until()
+    return
+  }
   await page.waitForTimeout(500)
+}
+
+/** Selected: `touch-action: none` is what stops the browser scrolling instead
+ *  of dragging on the next press, so it is also the proof the press landed. */
+function selected(target: Locator): Promise<unknown> {
+  return expect(target).toHaveCSS('touch-action', 'none', { timeout: 15_000 })
 }
 
 /** The first appointment block rendered in the week grid. */
@@ -85,11 +100,10 @@ test.describe('agenda by touch', () => {
     const block = firstBlock(page)
     await expect(block).toBeVisible()
 
-    await longPress(page, block)
+    await longPress(page, block, () => selected(block))
     await page.mouse.up()
 
-    // Selected: the block takes `touch-action: none`, which is what stops
-    // the browser scrolling instead of dragging on the next press.
+    // Still selected after the release — the point of the gesture.
     await expect(block).toHaveCSS('touch-action', 'none')
 
     // And the release did not also open the appointment.
@@ -102,7 +116,7 @@ test.describe('agenda by touch', () => {
     const block = firstBlock(page)
     await expect(block).toBeVisible()
 
-    await longPress(page, block)
+    await longPress(page, block, () => selected(block))
     await page.mouse.up()
     await expect(block).toHaveCSS('touch-action', 'none')
 

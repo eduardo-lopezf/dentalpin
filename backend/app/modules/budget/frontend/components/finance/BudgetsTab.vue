@@ -285,7 +285,6 @@ async function handleDownloadPDF(b: BudgetListItem, ev: Event) {
     })
   }
 }
-
 </script>
 
 <template>
