@@ -1010,9 +1010,10 @@
       "no_show": "Mark no show"
     },
     "timer": {
-      "startsIn": "starts in {minutes} min",
-      "startsInOverdue": "{minutes} min late",
-      "waiting": "waiting {minutes} min",
+      "unit": { "minutes": "{n} min", "hours": "{n} h", "hoursMinutes": "{h} h {m} min", "days": "{n} d" },
+      "startsIn": "starts in {duration}",
+      "startsInOverdue": "{duration} late",
+      "waiting": "waiting {duration}",
       "inTreatment": "{elapsed}/{planned} min",
       "completedAt": "finished {time}",
       "cancelledAt": "cancelled",

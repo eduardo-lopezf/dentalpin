@@ -13,8 +13,15 @@ const {
 
 const planId = computed(() => route.params.id as string)
 
+// "No encontrado" is an answer, so it waits for a question: until the
+// first fetch has returned, the page shows the skeleton. Before this the
+// server render and the first client frame both said "not found" for a
+// plan that was merely not loaded yet.
+const attempted = ref(false)
+
 onMounted(async () => {
   await fetchPlan(planId.value)
+  attempted.value = true
 })
 
 watch(planId, async (newId) => {
@@ -59,7 +66,7 @@ function handleCancelled() {
   <div class="space-y-6">
     <!-- Loading state -->
     <div
-      v-if="loading && !currentPlan"
+      v-if="!currentPlan && (loading || !attempted)"
       class="space-y-4"
     >
       <USkeleton class="h-12 w-1/3" />

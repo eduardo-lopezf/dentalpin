@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Appointment } from '~~/app/types'
-import { formatWallClockTime, wallClockDate } from '../../utils/date'
+import { formatDurationShort, formatWallClockTime, wallClockDate } from '../../utils/date'
 
 interface Cabinet {
   id?: string
@@ -95,12 +95,13 @@ const timerLabel = computed(() => {
 
   if (apt.status === 'scheduled' || apt.status === 'confirmed') {
     const diffMin = Math.round((startMs - nowMs) / 60_000)
-    if (diffMin >= 0) return t('appointments.timer.startsIn', { minutes: diffMin })
-    return t('appointments.timer.startsInOverdue', { minutes: Math.abs(diffMin) })
+    const duration = formatDurationShort(Math.abs(diffMin), t)
+    if (diffMin >= 0) return t('appointments.timer.startsIn', { duration })
+    return t('appointments.timer.startsInOverdue', { duration })
   }
   if (apt.status === 'checked_in') {
     const waiting = Math.max(0, Math.round((nowMs - sinceMs) / 60_000))
-    return t('appointments.timer.waiting', { minutes: waiting })
+    return t('appointments.timer.waiting', { duration: formatDurationShort(waiting, t) })
   }
   if (apt.status === 'in_treatment') {
     const elapsed = Math.max(0, Math.round((nowMs - sinceMs) / 60_000))

@@ -2,7 +2,9 @@
 
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from typing import Annotated
 
+from fastapi import Depends
 from sqlalchemy import DateTime
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -93,7 +95,14 @@ class TimestampMixin:
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency that provides a database session."""
+    """Dependency that provides a database session.
+
+    Its exit runs **after the response has been sent** — a generator
+    dependency defaults to FastAPI's ``"request"`` scope — so the commit
+    here is only the fallback for work done while a response streams.
+    Every endpoint's own work is committed earlier, by
+    :func:`commit_before_response`.
+    """
     async with async_session_maker() as session:
         try:
             yield session
@@ -103,6 +112,27 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             raise
         finally:
             await session.close()
+
+
+async def commit_before_response(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AsyncGenerator[None, None]:
+    """Commit the request's session before the client hears the result.
+
+    Mounted app-wide with ``scope="function"``, whose exit runs as the
+    endpoint returns — before the response is sent. Left to ``get_db``,
+    a client was told ``201`` while the row was still uncommitted: an
+    immediate read could miss it (the quick-create e2e did, on CI's slower
+    disk), and a commit that failed afterwards reported success for data
+    that was rolled back. Now that failure is the response.
+
+    Same cached session as the endpoint's ``Depends(get_db)``; ``get_db``
+    still opens and closes it at request scope, so a streaming response
+    keeps its session while it streams. On an exception the ``yield``
+    raises, nothing is committed, and ``get_db`` rolls back.
+    """
+    yield
+    await db.commit()
 
 
 async def init_db() -> None:

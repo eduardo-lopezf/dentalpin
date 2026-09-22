@@ -383,6 +383,12 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   on-account money covers the plan's treatments in the FIFO walk. Any other
   closure reason still works, which is what the client's message tells the
   user to do. `PUT /status` to `closed` carries no reason and is not guarded.
+- **Link to `/treatments/plans/{id}`, never `/treatment-plans/{id}`.** The
+  old path survives only as a `routeRules` redirect in this layer's
+  `nuxt.config.ts`, for bookmarks. The server substitutes the `**`; the
+  client router does not, so an in-app link to the old path lands on
+  `/treatments/plans/**` and a plan with id `**`. The summary card did this
+  and only a reload rescued it.
 - **History rows share the caller's transaction.** `record_history` is not a
   coroutine and does not flush: a log line that outlives a rolled-back edit
   describes something that never happened.

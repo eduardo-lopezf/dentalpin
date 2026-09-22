@@ -54,7 +54,11 @@ const progress = computed(() => {
 
 const planHref = computed(() =>
   activePlan.value
-    ? `/treatment-plans/${activePlan.value.id}?from=patient&patientId=${patientId.value}`
+    // The canonical path. `/treatment-plans/**` is only a server-side
+    // redirect for old bookmarks: followed from inside the app, the client
+    // applied it literally and landed on `/treatments/plans/**` — a plan
+    // with id `**`, "No encontrado", fixed only by a reload.
+    ? `/treatments/plans/${activePlan.value.id}?from=patient&patientId=${patientId.value}`
     : `/patients/${patientId.value}?tab=clinical&action=createPlan`
 )
 

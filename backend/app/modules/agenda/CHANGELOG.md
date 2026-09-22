@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- fix(agenda): cerrar la ficha de una cita lanzaba «Must be called at the
+  top of a `setup` function». El `watch` de `open` en `AppointmentModal`
+  llamaba a `useAppointmentNotesIndicator()` dentro del callback, y ese
+  composable llega a `useApi` → `useI18n`. Además de ensuciar la consola,
+  el indicador de notas que quería refrescar nunca se refrescaba. Ahora se
+  resuelve en el `setup`.
+- fix(agenda): el temporizador de la tarjeta de cita ya no cuenta en
+  minutos sin techo. Mirando otro día decía «retrasada 8749 min»; ahora
+  pasa a horas a partir de hora y media y a días a partir de 24 h
+  («retrasada 6 d»). Nuevo `formatDurationShort` en `utils/date.ts`, con
+  pruebas en `frontend/tests/agenda/formatDurationShort.test.ts`.
+
 - fix(touch): una pulsación larga sobre una cita ya **no la abre al
   soltar** si el dedo se queda apoyado un poco más. El click que sigue a la
   liberación se suprimía durante 300 ms contados desde que la pulsación se

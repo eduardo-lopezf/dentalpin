@@ -1010,9 +1010,10 @@
       "no_show": "Marcar no asistencia"
     },
     "timer": {
-      "startsIn": "empieza en {minutes} min",
-      "startsInOverdue": "retrasada {minutes} min",
-      "waiting": "esperando {minutes} min",
+      "unit": { "minutes": "{n} min", "hours": "{n} h", "hoursMinutes": "{h} h {m} min", "days": "{n} d" },
+      "startsIn": "empieza en {duration}",
+      "startsInOverdue": "retrasada {duration}",
+      "waiting": "esperando {duration}",
       "inTreatment": "{elapsed}/{planned} min",
       "completedAt": "finalizada {time}",
       "cancelledAt": "cancelada",

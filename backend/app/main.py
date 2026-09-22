@@ -33,7 +33,7 @@ from app.core.privacy.egress import log_egress_audit
 from app.core.scheduler import init_scheduler, shutdown_scheduler
 from app.core.schemas import ErrorResponse
 from app.core.tenancy import SingleTenantResolver
-from app.database import async_session_maker, engine, get_db
+from app.database import async_session_maker, commit_before_response, engine, get_db
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +170,9 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
     redirect_slashes=False,
+    # Every route, module routers included: they are mounted onto
+    # ``app.router`` and inherit its dependencies.
+    dependencies=[Depends(commit_before_response, scope="function")],
     docs_url="/docs" if settings.ENVIRONMENT == "development" else None,
     redoc_url="/redoc" if settings.ENVIRONMENT == "development" else None,
 )

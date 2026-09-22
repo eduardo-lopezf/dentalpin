@@ -97,6 +97,17 @@ shell), not from another module, so `manifest.depends` stays at
 
 ## Gotchas
 
+- **The demo seed looks up the directory by the account's id first.**
+  `scripts/seed_demo.py` creates one `Professional` per clinical user
+  carrying the account's own id, and the whole demo points at it.
+  `_ensure_demo_professional` used to derive an id and look only there, so
+  every seed minted a duplicate person and hung this module's weekly hours
+  off the copy nobody books — availability then found no hours for the
+  professional who has the appointments. The derived id remains for an
+  account with no directory record.
+  `scripts/merge_duplicate_demo_professionals.py` repairs databases seeded
+  before the fix.
+
 - **Direction of integration.** Agenda must not import or depend on
   schedules. The data flow is one-way: schedules consumes agenda's
   events; agenda's UI calls schedules' HTTP endpoint with a fallback.

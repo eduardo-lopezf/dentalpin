@@ -78,6 +78,9 @@ allowed to do it; every other publish must defer.
   request-scoped publishes: they run at `get_db`'s commit, during
   teardown. A publisher can no longer read what a handler wrote in the
   same request — nothing did, and relying on it was the bug.
+  *Amended by [ADR 0031](0031-writes-commit-before-the-response.md):* that
+  commit now runs as the endpoint returns, before the response is sent, so
+  handlers finish before the client hears back.
 - Handler failures now happen strictly after the commit, so they can no
   longer fail the request. They never could — the bus swallows handler
   exceptions — but that makes handler-failure visibility (audit S5) more

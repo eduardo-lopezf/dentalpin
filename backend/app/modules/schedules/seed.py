@@ -234,8 +234,22 @@ async def _ensure_demo_professional(
 
     The demo input still exposes account IDs, so use a deterministic UUID to
     keep the record stable while all scheduling data points to the directory.
+
+    **The account's own id is checked first**, because that is the id
+    `scripts/seed_demo.py` gives the directory record it creates for each
+    clinical user, and what every appointment, plan item and commission in
+    the demo points at. Deriving without looking made a *second* record for
+    the same person on every seed — a duplicate in every professional
+    picker, with this module's weekly hours hanging off the copy nobody
+    books, so the dentist carrying 28 appointments had no working hours at
+    all. The derived id stays for the case it was written for: a demo
+    account with no directory record yet.
     """
     from uuid import NAMESPACE_URL, uuid5
+
+    by_account = await db.get(Professional, legacy_user_id)
+    if by_account is not None and by_account.clinic_id == clinic_id:
+        return by_account.id
 
     professional_id = uuid5(
         NAMESPACE_URL, f"dentalpin:legacy-professional:{clinic_id}:{legacy_user_id}"

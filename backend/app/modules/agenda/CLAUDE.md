@@ -66,6 +66,17 @@ None.
 
 ## Gotchas
 
+- **Resolve composables in `setup`, never inside a watcher or handler.**
+  Anything reaching `useApi` also reaches `useI18n`, which throws "Must be
+  called at the top of a `setup` function" from a callback — and the
+  callback's remaining work is silently lost. `AppointmentModal` did this
+  with `useAppointmentNotesIndicator()` on close, so the note indicator it
+  meant to refresh never refreshed.
+- **The card timer is a duration, not a minute count.** `formatDurationShort`
+  rolls up to hours past 90 minutes and to days past a day: the agenda is
+  browsed on days that are not today, where an unbounded minute count
+  ("retrasada 8749 min") is a number nobody can read.
+
 - **Schedules must NOT be a dependency.** The `schedules` module depends
   on agenda; the data flow is one-way. Never declare
   `depends: ["schedules"]` here. See `schedules/CLAUDE.md`.

@@ -97,3 +97,31 @@ export function toWallClockIso(date: Date): string {
     + `.${pad(date.getMilliseconds(), 3)}Z`
   )
 }
+
+/**
+ * A wait or a countdown, in units a person reads at a glance.
+ *
+ * The card's timer answers "how long until this starts" and is written
+ * for today, where minutes are the right unit. Browsing another day made
+ * it say "retrasada 8749 min" — six days, spelled in minutes, which is a
+ * number nobody can convert in their head. Minutes up to 90, then hours,
+ * then whole days.
+ *
+ * `t` is passed in so the helper stays pure: `useI18n` only works inside
+ * a component's setup.
+ */
+export function formatDurationShort(
+  minutes: number,
+  t: (key: string, named: Record<string, unknown>) => string
+): string {
+  const total = Math.max(0, Math.round(minutes))
+  if (total < 90) return t('appointments.timer.unit.minutes', { n: total })
+  const hours = Math.floor(total / 60)
+  if (hours < 24) {
+    const rest = total % 60
+    return rest === 0
+      ? t('appointments.timer.unit.hours', { n: hours })
+      : t('appointments.timer.unit.hoursMinutes', { h: hours, m: rest })
+  }
+  return t('appointments.timer.unit.days', { n: Math.round(total / 1440) })
+}

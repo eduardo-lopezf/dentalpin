@@ -283,6 +283,45 @@ test.describe('touch adaptation', () => {
   })
 
   /**
+   * Agenda → patient record → the summary's active-plan card. The card
+   * linked to the legacy `/treatment-plans/{id}`, which exists only as a
+   * server redirect: followed inside the app the client applied it
+   * literally and landed on `/treatments/plans/**` — a plan with id `**`,
+   * "No encontrado", and a reload was the only way out. The path is walked
+   * client-side on purpose; a fresh `goto` would hide the bug.
+   */
+  test('the active-plan card opens the plan when reached from the agenda', async ({
+    loggedIn: page
+  }) => {
+    test.setTimeout(240_000)
+    const planId = await findLockedPlanId(page)
+    expect(planId, 'the seed has no plan in progress carrying a budget').toBeTruthy()
+    const plan = await page.request.get(
+      `${API_BASE}/api/v1/treatment_plan/treatment-plans/${planId}`,
+      { headers: { authorization: `Bearer ${await tokenFor(page)}` } }
+    )
+    const patientId = ((await plan.json()) as { data: { patient_id: string } }).data.patient_id
+
+    await page.goto('/appointments', { waitUntil: 'domcontentloaded', timeout: 120_000 })
+    await awaitDetection(page)
+    await page.evaluate(
+      (id) => {
+        const app = (document.querySelector('#__nuxt') as unknown as {
+          __vue_app__: { config: { globalProperties: { $router: { push: (p: string) => void } } } }
+        }).__vue_app__
+        app.config.globalProperties.$router.push(`/patients/${id}`)
+      },
+      patientId
+    )
+
+    const card = page.locator(`main a[href^="/treatments/plans/${planId}"]`).first()
+    await expect(card).toBeVisible({ timeout: 90_000 })
+    await card.click()
+    await expect(page).toHaveURL(new RegExp(`/treatments/plans/${planId}`), { timeout: 60_000 })
+    await expect(page.getByText('No encontrado')).toHaveCount(0)
+  })
+
+  /**
    * Finanzas' tabs come from client-only slot registrations. Rendered on
    * the server the page took its empty-state branch, and hydration left
    * the tabs inside that state's centred box: every finance list read

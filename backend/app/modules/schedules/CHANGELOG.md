@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- fix(schedules): el sembrado demo creaba una **segunda ficha de
+  profesional** para la misma persona. `_ensure_demo_professional` derivaba
+  un id de la cuenta y solo buscaba por ese id, sin ver la ficha que
+  `scripts/seed_demo.py` ya había creado con el id de la cuenta (la que
+  llevan citas, planes y comisiones). Resultado: un duplicado en todos los
+  selectores de profesional y **los horarios colgados de la copia que nadie
+  reserva**, así que la dentista con 28 citas no tenía jornada. Ahora se
+  busca primero por el id de la cuenta; el id derivado sigue sirviendo a una
+  cuenta sin ficha. Pruebas en
+  `backend/tests/modules/schedules/test_schedules_seed_professionals.py`.
+- chore(scripts): `scripts/merge_duplicate_demo_professionals.py` repara las
+  bases sembradas antes del arreglo: mueve horarios y excepciones a la ficha
+  buena y borra el duplicado. En seco por defecto; salta cualquier duplicado
+  con trabajo clínico encima.
+
 - chore(security): the six `/professionals/{professional_id}/…` routes now
   carry `@declares_permissions("schedules.professional.read"|"…write")`.
   They already enforced those permissions through

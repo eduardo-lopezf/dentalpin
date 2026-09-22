@@ -253,6 +253,10 @@ async def create_resource(
 
 Business logic only, no HTTP concerns. Static methods on a `ResourceService` class. Routers stay thin.
 
+### Transactions
+
+An endpoint's writes are committed as it returns, **before** the response is sent, by the app-wide `commit_before_response` dependency ([ADR 0031](./docs/adr/0031-writes-commit-before-the-response.md)). Do not add a per-endpoint `db.commit()` for that. `get_db`'s own commit runs after the response, so it only catches work done while a response streams.
+
 ### Multi-tenancy (mandatory)
 
 Every query MUST filter by `clinic_id`:

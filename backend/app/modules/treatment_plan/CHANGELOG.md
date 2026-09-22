@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- fix(treatment_plan): la tarjeta *Plan activo* del resumen del paciente enlazaba a la ruta antigua `/treatment-plans/{id}`, que solo existe como redirección del servidor. Navegando dentro de la app (p. ej. agenda → ficha → plan) el cliente aplicaba la regla literalmente y acababa en `/treatments/plans/**`: error al cargar y «No encontrado» hasta refrescar. Ahora enlaza a `/treatments/plans/{id}`. Además, la página del plan muestra el esqueleto de carga hasta que responde la primera petición, en vez de pintar «No encontrado» antes de haber cargado. Pineado en `tablet-touch.spec.ts`.
+
 - feat(treatment_plan): **un plan con cobros solo se puede cerrar.** `DELETE /treatment-plans/{id}` y `POST /close` con motivo `cancelled_by_clinic` responden 409 `PLAN_HAS_COLLECTIONS` si el paciente pagó algo del plan; el cliente muestra «Error, hay algún cobro en el plan de tratamiento. Favor de cerrar este plan de tratamiento» y la ventana de cierre sigue abierta para elegir otro motivo. `payments` entra en `manifest.depends` (solo lectura). `PlansListPanel` ya no dice «eliminado» cuando el borrado falla.
 - test(treatment_plan): las pruebas de sesiones quitaban su captura con `event_bus._handlers.pop(...)`, que borraba también los handlers reales (el de `payments` que genera los cargos); las pruebas que corrían después lo hacían sin ellos. Ahora usan `event_bus.unsubscribe(evento, _capture)`.
 - feat(treatment_plan): borrar un plan borra también sus presupuestos, en la misma transacción (`BudgetService.delete_for_plan`).

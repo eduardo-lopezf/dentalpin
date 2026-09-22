@@ -38,6 +38,11 @@ const { isMobile } = useBreakpoint()
 const { createAppointment, updateAppointment, cancelAppointment } = useAppointments()
 const { professionals, fetchProfessionals, getProfessionalColor } = useProfessionals()
 const { fetchSettings, getAutoSendStatus } = useNotificationSettings()
+// Resolved here, not inside the watcher below: it reaches `useApi` and so
+// `useI18n`, which throws "Must be called at the top of a `setup`
+// function" from a callback. Closing an appointment raised exactly that,
+// and the note indicator it was refreshing never refreshed.
+const notesIndicator = useAppointmentNotesIndicator()
 const { sendConfirmation, sendReminder, isSending: isSendingEmail } = useNotificationSend()
 const scheduleAvailability = useScheduleAvailability()
 
@@ -274,7 +279,7 @@ watch(() => props.open, async (isOpen) => {
     // sticky-note icon appears immediately after the user creates a
     // note from the slot panel. Bounded — single id round-trip.
     if (props.appointment?.id) {
-      useAppointmentNotesIndicator().fetchFor([props.appointment.id])
+      notesIndicator.fetchFor([props.appointment.id])
     }
     return
   }

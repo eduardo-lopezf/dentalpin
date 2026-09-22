@@ -156,6 +156,15 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Changed
 
+- **A request's writes are committed before its response is sent**
+  ([ADR 0031](docs/adr/0031-writes-commit-before-the-response.md)).
+  `get_db` committed on its way out, and FastAPI runs that exit after the
+  response. A client could get `201` and read back nothing: the quick
+  patient-create e2e did on CI. A failed commit came too late to change the
+  status. An app-wide `commit_before_response` dependency now commits as
+  the endpoint returns. Event handlers therefore finish before the response
+  instead of after it. Pinned by `tests/test_commit_before_response.py`.
+
 - **`LICENSE` gains a real Additional Use Grant.** The file carried a
   non-standard "Use Limitation" field and no Additional Use Grant at all,
   so its Terms granted only non-production use while ADR 0004 and the
