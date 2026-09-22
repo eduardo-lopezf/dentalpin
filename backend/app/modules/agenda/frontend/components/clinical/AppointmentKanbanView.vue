@@ -225,9 +225,26 @@ const { isTouch, isPortrait } = useDevice()
 const LONG_PRESS_MS = 300
 /** Movement that cancels a pending long press — the user is scrolling. */
 const LONG_PRESS_SLOP_PX = 10
+/** Movement past which a mouse press is a drag, not a click. */
+const DRAG_SLOP_PX = 5
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
 let pressOrigin: { x: number, y: number } | null = null
+/** Where the card was picked up, to tell a drag from a plain click. */
+let dragOrigin: { x: number, y: number } | null = null
+/** The gesture in progress picked the card up, by holding or by moving. */
+let pickedUp = false
+/**
+ * Set on the release of a gesture that picked a card up. The browser still
+ * fires a click on that card afterwards, and it would open the appointment
+ * the user only meant to move — or to put back where it was.
+ */
+const suppressClick = ref(false)
+
+function onCardClick(apt: Appointment) {
+  if (suppressClick.value) return
+  emit('appointment-click', apt)
+}
 let capturedEl: HTMLElement | null = null
 let capturedPointerId: number | null = null
 
@@ -258,6 +275,7 @@ function cancelLongPress() {
 }
 
 function beginDrag(apt: Appointment, event: PointerEvent) {
+  dragOrigin = { x: event.clientX, y: event.clientY }
   drag.value = {
     appointmentId: apt.id,
     targetColumnId: null,
@@ -312,6 +330,9 @@ function pressCardByTouch(apt: Appointment, event: PointerEvent) {
     longPressTimer = null
     armTouchScrollBlock()
     beginDrag(apt, event)
+    // Held long enough to lift the card: whatever the release does next,
+    // it is not a tap.
+    pickedUp = true
   }, LONG_PRESS_MS)
 }
 
@@ -333,6 +354,12 @@ function onDragPointerMove(event: PointerEvent) {
   const state = drag.value
   if (!state) return
 
+  // A mouse lifts the card on press, so only movement says it was dragged
+  // rather than clicked.
+  if (dragOrigin && Math.hypot(event.clientX - dragOrigin.x, event.clientY - dragOrigin.y) > DRAG_SLOP_PX) {
+    pickedUp = true
+  }
+
   const apt = props.appointments.find(a => a.id === state.appointmentId)
   if (!apt) return
 
@@ -351,6 +378,7 @@ function onDragPointerMove(event: PointerEvent) {
 function endPointerGesture() {
   cancelLongPress()
   releaseTouchScrollBlock()
+  dragOrigin = null
   if (capturedEl && capturedPointerId !== null && capturedEl.hasPointerCapture(capturedPointerId)) {
     capturedEl.releasePointerCapture(capturedPointerId)
   }
@@ -360,6 +388,13 @@ function endPointerGesture() {
 
 async function onDragPointerUp() {
   const state = drag.value
+  if (pickedUp) {
+    pickedUp = false
+    suppressClick.value = true
+    setTimeout(() => {
+      suppressClick.value = false
+    }, 300)
+  }
   endPointerGesture()
   if (!state) return
 
@@ -373,6 +408,7 @@ async function onDragPointerUp() {
 }
 
 function onDragPointerCancel() {
+  pickedUp = false
   endPointerGesture()
   drag.value = null
 }
@@ -677,7 +713,7 @@ function isInvalidHint(col: ColumnDef): boolean {
                   :cabinets="cabinets"
                   :professionals="professionals"
                   :class="drag?.appointmentId === entry.appointment.id ? 'opacity-40' : ''"
-                  @click="emit('appointment-click', entry.appointment as Appointment)"
+                  @click="onCardClick(entry.appointment as Appointment)"
                   @pointerdown="onCardPointerDown(entry.appointment as Appointment, $event)"
                 />
                 <div
@@ -700,7 +736,7 @@ function isInvalidHint(col: ColumnDef): boolean {
                 :cabinets="cabinets"
                 :professionals="professionals"
                 :class="drag?.appointmentId === apt.id ? 'opacity-40' : ''"
-                @click="emit('appointment-click', apt)"
+                @click="onCardClick(apt)"
                 @pointerdown="onCardPointerDown(apt, $event)"
               />
               <div

@@ -138,6 +138,8 @@ export function useSlotGridDrag(options: SlotGridDragOptions) {
 
   let longPressTimer: ReturnType<typeof setTimeout> | null = null
   let longPressOrigin: { x: number, y: number } | null = null
+  /** The press in progress already selected its block by holding. */
+  let longPressFired = false
   let activePointerId: number | null = null
   let activeElement: HTMLElement | null = null
 
@@ -301,12 +303,15 @@ export function useSlotGridDrag(options: SlotGridDragOptions) {
     }
 
     longPressOrigin = { x: event.clientX, y: event.clientY }
+    longPressFired = false
     longPressTimer = setTimeout(() => {
       longPressTimer = null
       selectedId.value = intent.appointmentId
       // The release that follows still fires a click, which would open
-      // the appointment the user was only trying to pick up.
-      suppressNextClick()
+      // the appointment the user was only trying to pick up. It is
+      // swallowed on release, not from here: a finger held past the
+      // suppression window used to open the appointment after all.
+      longPressFired = true
     }, LONG_PRESS_MS)
   }
 
@@ -367,6 +372,10 @@ export function useSlotGridDrag(options: SlotGridDragOptions) {
   function onPointerUp() {
     cancelLongPress()
     releasePointer()
+    if (longPressFired) {
+      longPressFired = false
+      suppressNextClick()
+    }
 
     if (createDragState.value) {
       const { columnIndex, startSlot, currentSlot } = createDragState.value
@@ -408,6 +417,7 @@ export function useSlotGridDrag(options: SlotGridDragOptions) {
   function onPointerCancel() {
     cancelLongPress()
     releasePointer()
+    longPressFired = false
     createDragState.value = null
     dragState.value = null
     hasMoved.value = false

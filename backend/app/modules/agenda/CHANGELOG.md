@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- fix(touch): una pulsación larga sobre una cita ya **no la abre al
+  soltar** si el dedo se queda apoyado un poco más. El click que sigue a la
+  liberación se suprimía durante 300 ms contados desde que la pulsación se
+  registraba, no desde que se soltaba: sostener más de ~600 ms en total —
+  la forma natural de hacer una pulsación larga — abría la cita que
+  acababa de seleccionarse, y el modal tapaba el arrastre siguiente.
+  `useSlotGridDrag` suprime ahora ese click en el `pointerup`, como ya
+  hacía tras un arrastre. Cubierto en
+  `frontend/tests/agenda/useSlotGridDrag.test.ts` y en
+  `tablet-agenda.spec.ts`.
+
+  El kanban tenía el mismo defecto sin ninguna guarda: una tarjeta
+  levantada con pulsación larga y soltada en su sitio (o arrastrada con
+  ratón y devuelta) abría la cita, porque el `click` de la tarjeta emitía
+  siempre. Ahora se suprime tras cualquier gesto que levantó la tarjeta —
+  por pulsación larga o por moverla más de 5 px —; un toque o un click
+  simple siguen abriéndola. Cubierto por dos casos nuevos en
+  `tablet-agenda.spec.ts`.
+
 - fix(a11y/i18n): las flechas del navegador de fechas dicen ahora **qué
   hacen**. Eran iconos sin texto con `aria-label="Anterior"` y
   `"Siguiente"`, que a un lector de pantalla no le dice si mueve un día o

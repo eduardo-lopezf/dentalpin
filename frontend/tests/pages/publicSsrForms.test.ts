@@ -43,12 +43,18 @@ describe('public SSR forms', () => {
 })
 
 describe('pre-hydration submit guards', () => {
-  // A form whose default button is disabled does not implicit-submit, so
-  // Enter is a no-op instead of a stray request that loses what was typed.
-  it('login keeps its submit button disabled until hydrated', () => {
+  // Login goes further than a guard: a form with no submit button cannot be
+  // submitted by the browser at all, before hydration or after. It used to
+  // disable its submit button until `onMounted`, and when hydration never
+  // finished the only way in stayed dead. Vue now drives both paths.
+  it('login has no submit button, so the browser never submits it', () => {
     const source = read(PUBLIC_SSR_FORMS.login)
-    expect(source).toMatch(/:disabled="isLoading \|\| !hydrated"/)
-    expect(source).toMatch(/onMounted\(\(\) => \{\s*hydrated\.value = true/)
+    expect(source).not.toMatch(/type="submit"/)
+    expect(source).toMatch(/type="button"[\s\S]*?@click="onSubmit"/)
+    // Enter must still log in, from either field.
+    expect(source.match(/@keydown\.enter="onSubmit"/g)).toHaveLength(2)
+    // And the button must not wait on hydration again.
+    expect(source).not.toMatch(/!hydrated/)
   })
 
   it('setup guards step 1, the step rendered from SSR', () => {

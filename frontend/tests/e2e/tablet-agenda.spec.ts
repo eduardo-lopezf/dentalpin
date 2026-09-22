@@ -254,4 +254,35 @@ test.describe('agenda by touch', () => {
     await page.mouse.up()
     await expect(ghost).toHaveCount(0)
   })
+
+  test('a kanban card picked up and put back does not open', async ({ loggedIn: page }) => {
+    await openAgenda(page, `/appointments?date=${await dayWithAppointment(page)}`)
+    await page.getByRole('tab', { name: 'Kanban', exact: true }).click()
+    await page.waitForTimeout(3000)
+
+    const card = page.locator('[data-kanban-column] .group.relative').first()
+    await expect(card).toBeVisible()
+
+    // Hold until the drag has begun, then let go on the spot: the user
+    // changed their mind. The release still fires a click on the card.
+    const ghost = page.locator('body > div.pointer-events-none.fixed')
+    await longPress(page, card, () => expect(ghost).toBeVisible({ timeout: 15_000 }))
+    await page.mouse.up()
+    await expect(ghost).toHaveCount(0)
+
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+
+  test('a tapped kanban card still opens', async ({ loggedIn: page }) => {
+    await openAgenda(page, `/appointments?date=${await dayWithAppointment(page)}`)
+    await page.getByRole('tab', { name: 'Kanban', exact: true }).click()
+    await page.waitForTimeout(3000)
+
+    const card = page.locator('[data-kanban-column] .group.relative').first()
+    await expect(card).toBeVisible()
+
+    // The other side of the rule above: only a pick-up swallows the click.
+    await card.click()
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
+  })
 })
