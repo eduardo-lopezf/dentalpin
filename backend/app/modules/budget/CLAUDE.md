@@ -89,6 +89,14 @@ contract.
 
 ## Gotchas
 
+- **Budgets are produced by confirming a treatment plan, and the UI offers
+  no other way.** `BudgetsTab` and the patient record dropped their "new
+  budget" entry points: a budget prices a plan, and a stand-alone one is a
+  price for work nobody planned. The `/budgets/new` screen is gone with it.
+  `POST /budgets` still exists and still works — `BudgetService.create` is
+  what `create_from_plan_snapshot` builds on — but no client calls it, and
+  `useBudgets().createBudget` is left without callers.
+
 - **A plan's budget is deleted with the plan, and only then.**
   `DELETE /budgets/{id}` answers 409 for any budget
   `BudgetService.belongs_to_plan` recognises — `plan_number_snapshot` set,

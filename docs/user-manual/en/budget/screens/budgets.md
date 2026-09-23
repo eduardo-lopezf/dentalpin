@@ -37,7 +37,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/budget/frontend/pages/budgets/index.vue
   - backend/app/modules/budget/router.py
-last_verified_commit: 2b664a5
+last_verified_commit: bddda82
 ---
 
 # Budget list
@@ -82,13 +82,16 @@ budget.
 2. Combine with the status or payment filters to narrow down.
 3. Click a row to open the [detail](./budgets_id.md).
 
-## Create a budget
+## Where budgets come from
 
-> Requires `budget.write`.
+**A budget is produced by confirming a treatment plan.** There is no
+*New budget* button on this screen or on the patient record any more: a
+budget prices a plan, and one made on its own is a price for work nobody
+has planned.
 
-1. Click **New budget**. It takes you to `/budgets/new`.
-2. Select the patient and add catalog items, discounts, and VAT.
-   See [New budget](./budgets_new.md).
+To make one: *Tratamientos → Planes* (or the patient's **Clínica** tab),
+build the plan with its treatments and press **Confirmar**. The budget
+shows up in this list and is edited from [its detail](./budgets_id.md).
 
 ## Row actions
 

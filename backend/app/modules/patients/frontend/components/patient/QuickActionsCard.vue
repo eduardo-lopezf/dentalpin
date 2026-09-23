@@ -28,10 +28,6 @@ function newAppointment() {
   router.push(`/appointments?patient_id=${patientId.value}`)
 }
 
-function newBudget() {
-  router.push(`/budgets/new?patient_id=${patientId.value}&from=patient`)
-}
-
 function uploadDocument() {
   router.push(`/patients/${patientId.value}?tab=gallery&action=upload`)
 }
@@ -54,16 +50,8 @@ function uploadDocument() {
       >
         {{ t('patientDetail.actions.newAppointment', 'Cita') }}
       </UButton>
-      <UButton
-        variant="soft"
-        color="neutral"
-        size="sm"
-        icon="i-lucide-file-text"
-        block
-        @click="newBudget"
-      >
-        {{ t('patientDetail.actions.newBudget', 'Presupuesto') }}
-      </UButton>
+      <!-- No "Presupuesto" action: a budget is produced by confirming a
+           treatment plan, never on its own. -->
       <UButton
         variant="soft"
         color="neutral"

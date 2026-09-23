@@ -53,7 +53,11 @@ async function openAgenda(page: Page, path = '/appointments'): Promise<void> {
   // async chunks and a cold dev server compiles them on first request,
   // which a fixed sleep loses to.
   await page.waitForSelector('[data-dense]', { timeout: 60_000 })
-  await page.waitForTimeout(1500)
+  // Populated, not merely present: the grid paints its frame before the
+  // day's data arrives, and a cell is what every test here goes on to
+  // click, drag or count. The 1.5 s sleep this replaces was a guess that
+  // CI lost — twice.
+  await expect(page.locator('[data-dense] .cursor-cell').first()).toBeVisible({ timeout: 60_000 })
 }
 
 /**
@@ -198,11 +202,25 @@ test.describe('agenda by touch', () => {
   test('tapping an empty slot opens the create modal', async ({ loggedIn: page }) => {
     await openAgenda(page)
 
-    const cell = page.locator('[data-dense] .cursor-cell').nth(120)
+    // Wait for the grid to be filled, not for a duration: the cells only
+    // exist once the professionals have loaded, and each one is a column.
+    // A fixed index into them was a bet on how many there would be — 121
+    // of an expected 132 — and it lost on CI, where the grid was still
+    // empty. The last cell is the latest slot of the last column, which
+    // is also the least likely to have an appointment sitting on it.
+    const cells = page.locator('[data-dense] .cursor-cell')
+    await expect(cells.first()).toBeVisible({ timeout: 30_000 })
+    expect(await cells.count(), 'the day grid should have slots to tap').toBeGreaterThan(20)
+
+    const cell = cells.last()
     await cell.scrollIntoViewIfNeeded()
     await cell.click()
 
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
+    // The create modal specifically: tapping an appointment opens the
+    // edit one, and both are dialogs.
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible({ timeout: 10_000 })
+    await expect(dialog.getByText(/Nueva cita|New appointment/i).first()).toBeVisible()
   })
 
   test('the kanban lays out for the orientation it is held in', async ({ loggedIn: page }) => {

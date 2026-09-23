@@ -37,7 +37,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/budget/frontend/pages/budgets/index.vue
   - backend/app/modules/budget/router.py
-last_verified_commit: 2b664a5
+last_verified_commit: bddda82
 ---
 
 # Listado de presupuestos
@@ -82,13 +82,17 @@ detalle para trabajar sobre cada uno.
 2. Combina con los filtros de estado o cobro para acotar.
 3. Pulsa la fila para abrir el [detalle](./budgets_id.md).
 
-## Crear un presupuesto
+## De dónde salen los presupuestos
 
-> Requiere `budget.write`.
+**Un presupuesto se genera al confirmar un plan de tratamiento.** Ya no
+hay botón *Nuevo presupuesto* en esta pantalla ni en la ficha del
+paciente: el presupuesto pone precio a un plan, y uno creado suelto es
+un precio de un trabajo que nadie ha planificado.
 
-1. Pulsa **Nuevo presupuesto**. Te lleva a `/budgets/new`.
-2. Selecciona paciente y añade ítems del catálogo, descuentos e IVA.
-   Ver [Nuevo presupuesto](./budgets_new.md).
+Para hacer uno: *Tratamientos → Planes* (o la pestaña **Clínica** del
+paciente), crea el plan con sus tratamientos y pulsa **Confirmar**. El
+presupuesto aparece en esta lista y se edita desde
+[su detalle](./budgets_id.md).
 
 ## Acciones por fila
 

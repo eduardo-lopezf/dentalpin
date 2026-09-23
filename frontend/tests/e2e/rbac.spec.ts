@@ -55,7 +55,11 @@ test.describe('receptionist sees patients + schedule + invoices', () => {
   test('reaches invoices and budgets through the Finanzas tabs', async ({ loggedIn }) => {
     await loggedIn.goto('/finanzas')
     const tabs = loggedIn.getByRole('tab')
-    await expect(tabs.filter({ hasText: LABELS.invoices })).toBeVisible()
+    // Each tab is a module's slot registration pointing at an async
+    // component, and the dev server compiles those on first request: the
+    // tabs appeared at ~7.5 s here, against the 5 s default. The wait is
+    // for the compiler, not for the app.
+    await expect(tabs.filter({ hasText: LABELS.invoices })).toBeVisible({ timeout: 60_000 })
     await expect(tabs.filter({ hasText: LABELS.quotes })).toBeVisible()
   })
 })

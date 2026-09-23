@@ -21,8 +21,6 @@ patient accepts a budget, you can issue the invoice from the
 - [Budget detail](./screens/budgets_id.md) — edit lines, totals,
   send, accept/reject, renegotiate, see the signature, and download
   the PDF.
-- [New budget](./screens/budgets_new.md) — create a budget from
-  scratch or from a treatment plan.
 - [Public patient acceptance](./screens/p_budget_token.md) — public
   view for the patient (no app session) with 2FA verification,
   accept or reject from a phone.

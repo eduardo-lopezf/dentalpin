@@ -14,7 +14,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/patients/router.py
   - backend/app/modules/patients/frontend/pages/patients/[id].vue
-last_verified_commit: 2b664a5
+last_verified_commit: bddda82
 ---
 
 # Ficha del paciente
@@ -49,7 +49,7 @@ también deep-links — un click llega al detalle.
     odontograma en modo diagnóstico.
   - **Historial médico** *(patients_clinical)* — alergias,
     enfermedades sistémicas, medicación. Click → editar historial.
-  - **Acciones rápidas** *(patients)* — Cita, Presupuesto, Documento
+  - **Acciones rápidas** *(patients)* — Cita, Documento
     y el slot `patient.summary.actions` para módulos hermanos
     (recalls *Set recall*, notificaciones, etc.).
 - **Pestañas** — Datos, Clínica, Administración, Galería, Histórico.
@@ -66,6 +66,10 @@ también deep-links — un click llega al detalle.
   las citas se dan desde la agenda o desde **Cita** en las acciones
   rápidas. Los botones que quedan (*Activar*, *Generar presupuesto*)
   hacen lo suyo sin abrir el plan.
+- **Crear un presupuesto suelto ya no está en la interfaz.** Se genera al
+  confirmar un plan de tratamiento; ni la pestaña *Presupuestos* de
+  Administración ni las acciones rápidas ofrecen *Presupuesto*. Cuando el
+  paciente no tiene ninguno, la tarjeta lleva a sus planes.
 - **Mobile** — la cabecera se condensa, las cards se apilan a una
   columna y aparece una barra inferior fija (Cita · Cobrar · Nota).
 

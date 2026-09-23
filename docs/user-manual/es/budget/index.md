@@ -21,8 +21,6 @@ la factura desde el módulo `billing` y cobrarlo desde `payments`.
 - [Detalle del presupuesto](./screens/budgets_id.md) — editar
   líneas, totales, enviar, aceptar/rechazar, renegociar, ver firma
   y descargar el PDF.
-- [Nuevo presupuesto](./screens/budgets_new.md) — crear un
-  presupuesto desde cero o desde un plan de tratamiento.
 - [Aceptación pública del paciente](./screens/p_budget_token.md) —
   vista pública para el paciente (sin sesión de la app) con
   verificación 2FA, aceptación o rechazo desde su móvil.

@@ -307,7 +307,6 @@ class InsuranceModule(BaseModule):
 ### Pages
 
 - `/budgets` - List with search and filters
-- `/budgets/new` - Create with patient selection
 - `/budgets/[id]` - Detail/editor view
 
 ### Components

@@ -33,7 +33,6 @@ interface PatientBrief {
 }
 
 const { t, locale } = useI18n()
-const router = useRouter()
 const toast = useToast()
 const api = useApi()
 const { can } = usePermissions()
@@ -268,10 +267,6 @@ function validityBadge(b: BudgetListItem): { label: string, color: 'success' | '
   return null
 }
 
-function createBudget() {
-  router.push('/budgets/new')
-}
-
 async function handleDownloadPDF(b: BudgetListItem, ev: Event) {
   ev.preventDefault()
   ev.stopPropagation()
@@ -300,17 +295,9 @@ async function handleDownloadPDF(b: BudgetListItem, ev: Event) {
     :total-pages="totalPages"
     @update:page="(v) => (page = v)"
   >
-    <template #actions>
-      <UButton
-        v-if="can(PERMISSIONS.budget.write)"
-        color="primary"
-        variant="soft"
-        icon="i-lucide-plus"
-        @click="createBudget"
-      >
-        {{ t('budget.new') }}
-      </UButton>
-    </template>
+    <!-- No "new budget" action: a budget is produced by confirming a
+         treatment plan, so creating one here would be a quote for work
+         nobody planned. -->
 
     <template #toolbar>
       <FilterBar
@@ -372,16 +359,17 @@ async function handleDownloadPDF(b: BudgetListItem, ev: Event) {
       <EmptyState
         icon="i-lucide-file-text"
         :title="activeFilterCount || filters.q ? t('budget.noItems') : t('budget.empty')"
+        :description="activeFilterCount || filters.q ? undefined : t('budget.emptyFromPlan')"
       >
         <template
-          v-if="!activeFilterCount && !filters.q && can(PERMISSIONS.budget.write)"
+          v-if="!activeFilterCount && !filters.q && can(PERMISSIONS.treatmentPlans.read)"
           #actions
         >
           <UButton
             color="primary"
             variant="soft"
-            icon="i-lucide-plus"
-            @click="createBudget"
+            icon="i-lucide-clipboard-list"
+            to="/treatments/plans"
           >
             {{ t('budget.emptyAction') }}
           </UButton>

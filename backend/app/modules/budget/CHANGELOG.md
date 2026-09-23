@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(budget): **se quita crear un presupuesto suelto.** Un presupuesto se genera al confirmar un plan de tratamiento, así que desaparecen el botón *Nuevo presupuesto* de la pestaña Presupuestos y su acción del estado vacío, que ahora lleva a los planes. Se elimina también la pantalla `/budgets/new` con su manual y el caso que la usaba en `forms-keyboard-room.spec.ts`. `POST /budgets` sigue existiendo (y con él `useBudgets().createBudget`, ya sin llamantes).
+- fix(budget): el detalle de un presupuesto que no existe ya no se queda en blanco. Un id que el servidor rechaza (422) hacía fallar la carga antes de su propia redirección —justo lo que es ahora un enlace viejo a `/budgets/new`—; ahora se captura y la pantalla muestra «No encontrado» hasta que la redirección a la lista ocurre. El esqueleto de carga se muestra hasta que responde la primera petición, en vez de pintar el vacío antes de preguntar.
 - feat(budget): **un presupuesto de un plan solo se borra con su plan.** `DELETE /budgets/{id}` responde 409 si el presupuesto pertenece a un plan (`BudgetService.belongs_to_plan`); nuevo `BudgetService.delete_for_plan`, que borra todos los presupuestos del plan (versiones y cancelados incluidos). El listado ya no muestra la papelera (salía también en presupuestos aceptados).
 - feat(budget): el lateral del detalle abre con una tarjeta **Plan de tratamiento** —toda la fila enlaza al plan (`Abrir plan`), con número y estado— en el sitio de la antigua tarjeta de cobros. El enlace al plan sale de la tarjeta de información para no duplicarlo.
 - fix(budget): en *Nuevo presupuesto* las fechas y las notas ocupan el ancho del formulario (se veían como cajas estrechas en tablet).

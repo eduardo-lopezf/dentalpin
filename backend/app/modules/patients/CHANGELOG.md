@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(patients): la ficha ya no ofrece crear un presupuesto: fuera el botón de la cabecera y del estado vacío de *Administración → Presupuestos* (ahora lleva a los planes del paciente) y la acción rápida *Presupuesto*. Los presupuestos se generan al confirmar un plan de tratamiento.
 - fix(i18n): la pestaña **Galería** de la ficha no tenía clave en ningún
   idioma. No se notaba porque el segundo argumento de `t()` la tapaba —la
   interfaz mostraba «Galería» mientras intlify avisaba en cada render, 36

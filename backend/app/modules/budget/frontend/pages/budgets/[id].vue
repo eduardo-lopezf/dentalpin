@@ -90,8 +90,21 @@ async function loadBudget() {
   }
 }
 
-onMounted(() => {
-  loadBudget()
+// "No encontrado" is an answer, so it waits for the question. Without it
+// this page renders nothing at all for an id that is not a budget — which
+// is what a stale `/budgets/new` link now is, since that screen is gone.
+const attempted = ref(false)
+
+onMounted(async () => {
+  try {
+    // An id the server rejects outright (422) throws rather than
+    // answering null, so `loadBudget`'s own redirect never runs.
+    await loadBudget()
+  } catch {
+    // The not-found card below is the answer.
+  } finally {
+    attempted.value = true
+  }
 })
 
 // Modal states
@@ -516,12 +529,31 @@ function getItemName(item: DeepReadonly<BudgetItem>): string {
   <div class="space-y-6">
     <!-- Loading -->
     <div
-      v-if="isLoading"
+      v-if="!currentBudget && (isLoading || !attempted)"
       class="space-y-4"
     >
       <USkeleton class="h-12 w-1/3" />
       <USkeleton class="h-64 w-full" />
     </div>
+
+    <UCard
+      v-else-if="!currentBudget"
+      class="text-center py-12"
+    >
+      <UIcon
+        name="i-lucide-file-x"
+        class="w-12 h-12 text-subtle mx-auto mb-4"
+      />
+      <p class="text-subtle">
+        {{ t('common.notFound') }}
+      </p>
+      <UButton
+        class="mt-4"
+        to="/finanzas?tab=budget"
+      >
+        {{ t('budget.title') }}
+      </UButton>
+    </UCard>
 
     <template v-else-if="currentBudget">
       <!-- Header -->

@@ -152,19 +152,8 @@ const { format: formatCurrency } = useCurrency()
         >
           {{ budgetsTotal }}
         </UBadge>
-        <template
-          v-if="can(PERMISSIONS.budget.write)"
-          #action
-        >
-          <UButton
-            size="sm"
-            icon="i-lucide-plus"
-            color="primary"
-            :to="`/budgets/new?patient_id=${patientId}&from=patient`"
-          >
-            {{ t('patientDetail.createBudget') }}
-          </UButton>
-        </template>
+        <!-- No "new budget" action: budgets come from confirming a
+             treatment plan, on the Clínica tab. -->
       </SectionHeader>
 
       <!-- Loading -->
@@ -188,15 +177,18 @@ const { format: formatCurrency } = useCurrency()
           name="i-lucide-file-text"
           class="w-12 h-12 text-subtle mx-auto mb-3"
         />
-        <p class="text-muted mb-4">
+        <p class="text-muted mb-2">
           {{ t('patientDetail.noBudgets') }}
         </p>
+        <p class="text-caption text-subtle mb-4">
+          {{ t('patientDetail.budgetsComeFromPlan') }}
+        </p>
         <UButton
-          v-if="can(PERMISSIONS.budget.write)"
-          :to="`/budgets/new?patient_id=${patientId}&from=patient`"
-          icon="i-lucide-plus"
+          v-if="can(PERMISSIONS.treatmentPlans.read)"
+          :to="`/patients/${patientId}?tab=clinical&clinicalMode=plans`"
+          icon="i-lucide-clipboard-list"
         >
-          {{ t('patientDetail.createBudget') }}
+          {{ t('patientDetail.goToPlans') }}
         </UButton>
       </UCard>
 

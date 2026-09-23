@@ -120,9 +120,10 @@ const MIN_ROOM = 150
 test.describe.configure({ timeout: 120_000 })
 
 test.describe('page forms leave room for the keyboard', () => {
+  // `/budgets/new` was the second case here until the screen was removed:
+  // a budget is produced by confirming a treatment plan, never on its own.
   for (const [name, route] of [
-    ['new treatment plan', '/treatments/plans/new'],
-    ['new budget', '/budgets/new']
+    ['new treatment plan', '/treatments/plans/new']
   ] as const) {
     test(`${name} keeps its submit clear of a short viewport's bottom`, async ({ loggedIn: page }) => {
       await page.setViewportSize(SHORT_LANDSCAPE)

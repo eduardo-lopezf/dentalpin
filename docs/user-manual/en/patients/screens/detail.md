@@ -14,7 +14,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/patients/router.py
   - backend/app/modules/patients/frontend/pages/patients/[id].vue
-last_verified_commit: 2b664a5
+last_verified_commit: bddda82
 ---
 
 # Patient detail
@@ -50,7 +50,7 @@ one click reaches the detail.
     Click → dental chart in diagnosis mode.
   - **Medical history** *(patients_clinical)* — allergies, systemic
     diseases, medication. Click → edit history.
-  - **Quick actions** *(patients)* — Appointment, Budget, Document
+  - **Quick actions** *(patients)* — Appointment, Document
     and the `patient.summary.actions` slot for sibling modules
     (recalls *Set recall*, notifications, etc.).
 - **Tabs** — Info, Clinical, Administration, Gallery, History. In
@@ -67,6 +67,10 @@ one click reaches the detail.
   gone; appointments are booked from the agenda or from **Appointment**
   in the quick actions. The buttons that remain (*Activate*, *Generate
   budget*) do their job without opening the plan.
+- **Creating a stand-alone budget is no longer in the UI.** One is produced
+  by confirming a treatment plan; neither the Administration *Presupuestos*
+  tab nor the quick actions offer *Presupuesto*. With no budgets yet, the
+  card points at the patient's plans.
 - **Mobile** — header condenses, cards stack to a single column and
   a sticky bottom bar surfaces the three core actions
   (Appointment · Collect · Note).

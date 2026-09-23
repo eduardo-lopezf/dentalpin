@@ -41,7 +41,11 @@ async function openAgenda(page: Page, path = '/appointments'): Promise<void> {
   // async chunks and a cold dev server compiles them on first request,
   // which a fixed sleep loses to.
   await page.waitForSelector('[data-dense]', { timeout: 60_000 })
-  await page.waitForTimeout(1500)
+  // Populated, not merely present: the grid paints its frame before the
+  // day's data arrives, and a cell is what every test here goes on to
+  // click, drag or count. The 1.5 s sleep this replaces was a guess that
+  // CI lost — twice.
+  await expect(page.locator('[data-dense] .cursor-cell').first()).toBeVisible({ timeout: 60_000 })
 }
 
 // A cold dev server compiles these routes on first request.
