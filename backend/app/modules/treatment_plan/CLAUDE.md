@@ -389,6 +389,22 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
   client router does not, so an in-app link to the old path lands on
   `/treatments/plans/**` and a plan with id `**`. The summary card did this
   and only a reload rescued it.
+- **The plan's status gates its treatments, not its budget.**
+  `effectiveReadonly` is now `readonly || status !== 'draft'`: structural
+  edits belong to a draft. It used to key off `isLocked` (a live budget),
+  which left an `active` plan with no budget fully editable — work under way
+  that anyone could rewrite — while a draft that had been reopened was
+  frozen. The three doors follow from it, and each offers the transition
+  instead of refusing: completing or charging on a draft opens
+  `ConfirmPlanModal` (with a `reason` line) and carries the intent out
+  afterwards (`pendingItemIntent`); editing or removing on a plan in
+  progress opens `ReopenPlanModal`, gated on the server's own
+  `permissions.can_reopen` — without it the user gets the error, not a door
+  they cannot open. `payments` hides the sidebar's *Cobrar* on a draft,
+  reading `ctx.planStatus`; it is the only plan rule that module knows.
+- **`onConfirmPlan` calls `completeItemNow`, not `handleCompleteItem`.**
+  Right after confirming, this view still holds the pre-confirm props, so
+  the gate would bounce the user back into the dialog they just answered.
 - **History rows share the caller's transaction.** `record_history` is not a
   coroutine and does not flush: a log line that outlives a rolled-back edit
   describes something that never happened.

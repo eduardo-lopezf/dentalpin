@@ -48,7 +48,7 @@ related_paths:
   - backend/app/modules/treatment_plan/prescriptions.py
   - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 2b664a5
+last_verified_commit: bddda82
 ---
 
 # Detalle del plan de tratamiento
@@ -181,9 +181,36 @@ pasó.
 3. Si no había presupuesto enlazado, **Generar presupuesto** crea
    uno nuevo en el módulo `budget`.
 
+## Qué se puede hacer según el estado del plan
+
+Lo que ofrece un tratamiento depende de dónde esté el plan, no de si
+tiene presupuesto:
+
+| El plan está… | En el tratamiento puedes… |
+|---|---|
+| **Borrador** | Editarlo y **eliminarlo** (desde su ventana o la papelera de la fila). Completar o cobrar **pide confirmar el plan** primero. |
+| **En proceso** (en curso o activo) | **Completar** y **cobrar**. Editar o eliminar **pide reabrir el plan**. |
+| Completado o cerrado | Consultar; reactivar el plan es la puerta de vuelta. |
+
+- **Cobrar o completar en un borrador** abre la ventana *Confirmar plan*
+  con el motivo escrito: «Para completar o cobrar un tratamiento, primero
+  hay que confirmar todo el plan». Si **confirmas**, el plan pasa a *En
+  curso*, se genera su presupuesto borrador y se hace lo que habías
+  pedido. Si **cancelas**, el plan sigue en borrador y no se toca nada.
+- **Editar o eliminar en un plan en proceso** abre *Reabrir plan para
+  editar*, que avisa de que **se cancelará el presupuesto vigente**. Al
+  reabrir, el plan vuelve a borrador y habrá que confirmarlo de nuevo.
+- Reabrir el plan es de un administrador o del profesional asignado al
+  caso. Quien no lo sea ve el aviso *«No tienes permisos para reabrir
+  este plan»* y el plan no se mueve.
+- Notas, recordatorios y recetas funcionan en cualquiera de los dos
+  estados: son actos clínicos, no cambios del plan.
+- La tarjeta **Cobros del paciente** no ofrece *Cobrar* mientras el plan
+  sea un borrador; dice qué falta.
+
 ## Marcar ítems como ejecutados
 
-> Requiere `treatment_plan.plans.write`.
+> Requiere `treatment_plan.plans.write` y un plan **en proceso**.
 
 1. En el ítem, pulsa el ✓ de la fila o **Marcar como completado**
    dentro de su ventana.

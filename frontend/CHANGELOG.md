@@ -1,6 +1,8 @@
 # Changelog — frontend
 
 ## Unreleased
+- i18n: `clinical.plans.item.{remove,editOrRemove,needsConfirm,locked.*}` y `payments.plan.chargeNeedsConfirm`.
+- test(e2e): `tablet-plan-gates.spec.ts` recorre borrador → confirmar → en proceso → reabrir en las dos orientaciones, creando y borrando su propio plan.
 - i18n: `budget.emptyFromPlan`, `patientDetail.budgetsComeFromPlan` y `patientDetail.goToPlans`; `budget.emptyAction` pasa a «Ir a planes de tratamiento». `patientDetail.createBudget` y `patientDetail.actions.newBudget` quedan sin uso.
 - i18n: `treatmentPlans.errors.hasCollections` («Error, hay algún cobro en el plan de tratamiento. Favor de cerrar este plan de tratamiento»).
 - fix(finanzas): las pestañas se renderizan solo en cliente (`<ClientOnly>`).

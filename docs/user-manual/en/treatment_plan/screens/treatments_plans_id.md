@@ -48,7 +48,7 @@ related_paths:
   - backend/app/modules/treatment_plan/prescriptions.py
   - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 2b664a5
+last_verified_commit: bddda82
 ---
 
 # Treatment plan detail
@@ -178,9 +178,35 @@ of what happened.
 3. If no budget was linked, **Generate budget** creates a new one
    on the `budget` module.
 
+## What a treatment offers, by plan status
+
+It depends on where the plan is, not on whether it has a budget:
+
+| The plan is… | On a treatment you can… |
+|---|---|
+| **Draft** | Edit and **remove** it (from its dialog or the row's trash). Completing or charging **asks to confirm the plan** first. |
+| **In progress** (pending or active) | **Complete** and **charge**. Editing or removing **asks to reopen the plan**. |
+| Completed or closed | Read it; reactivating the plan is the way back. |
+
+- **Charging or completing on a draft** opens *Confirmar plan* with the
+  reason written on it: "to complete or charge a treatment, the whole plan
+  has to be confirmed first". **Confirm** and the plan moves to *En curso*,
+  its draft budget is produced, and what you asked for is carried out.
+  **Cancel** and the plan stays a draft, untouched.
+- **Editing or removing on a plan in progress** opens *Reabrir plan para
+  editar*, which warns that **the current budget will be cancelled**.
+  Reopening puts the plan back to draft, to be confirmed again.
+- Reopening is for an administrator or the professional the case is
+  assigned to. Anyone else sees "you do not have permission to reopen this
+  plan" and the plan does not move.
+- Notes, recalls and prescriptions work in either state: they are clinical
+  acts, not changes to the plan.
+- The **Cobros del paciente** card offers no *Cobrar* while the plan is a
+  draft; it says what is missing.
+
 ## Mark items as performed
 
-> Requires `treatment_plan.plans.write`.
+> Requires `treatment_plan.plans.write` and a plan **in progress**.
 
 1. On the item, click the ✓ on the row or **Mark as completed** inside
    its dialog.

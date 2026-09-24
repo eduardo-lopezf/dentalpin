@@ -926,6 +926,10 @@
         "closedTitle": "Tratamiento cerrado",
         "closedHint": "Está completado y cobrado. Si se completó por error, «Reabrir tratamiento» lo devuelve a pendiente; lo cobrado queda como saldo a favor del paciente.",
         "reopen": "Reabrir tratamiento",
+        "remove": "Eliminar tratamiento",
+        "editOrRemove": "Editar o eliminar",
+        "needsConfirm": "Para completar o cobrar un tratamiento, primero hay que confirmar todo el plan.",
+        "locked": { "title": "Plan en proceso", "noPermission": "No tienes permisos para reabrir este plan. Pídeselo a un administrador o al profesional asignado." },
         "reopenTitle": "¿Reabrir este tratamiento?",
         "reopenBody": "Vuelve a pendiente y deja de contar como hecho, también en el odontograma.",
         "reopenCharge": "Se retira su cargo de {amount}, así que no quedará pendiente de cobro.",
@@ -3272,7 +3276,8 @@
       "nothingPending": "No hay nada pendiente de cobrar.",
       "pendingLabel": "Pendiente de cobrar",
       "pendingHint": "{count} concepto(s) ejecutados y sin cobrar",
-      "charge": "Cobrar"
+      "charge": "Cobrar",
+      "chargeNeedsConfirm": "Confirma el plan de tratamiento para poder cobrar."
     },
     "schedule": {
       "title": "Calendario de pagos",

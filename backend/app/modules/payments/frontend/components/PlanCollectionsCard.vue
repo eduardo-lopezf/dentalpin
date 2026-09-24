@@ -124,8 +124,18 @@ function onRecorded() {
         </p>
       </div>
 
+      <!-- A draft plan is a proposal, not work the clinic has committed
+           to: there is nothing to charge against it yet. The plan screen
+           offers the way forward (confirm it); this card only says why the
+           button is not here. -->
+      <p
+        v-if="ctx.planStatus === 'draft'"
+        class="text-caption text-subtle"
+      >
+        {{ t('payments.plan.chargeNeedsConfirm') }}
+      </p>
       <UButton
-        v-if="can(PERMISSIONS.payments.recordWrite)"
+        v-else-if="can(PERMISSIONS.payments.recordWrite)"
         block
         icon="i-lucide-hand-coins"
         @click="showCreate = true"

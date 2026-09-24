@@ -10,6 +10,12 @@ defineProps<{
   itemCount?: number
   totalEstimated?: number | null
   loading?: boolean
+  /**
+   * Why the dialog opened, when it was not the header button — completing
+   * or charging a treatment on a draft plan asks for this first. Shown
+   * above the usual description so the answer arrives with its question.
+   */
+  reason?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -36,6 +42,12 @@ const { format: formatCurrency } = useCurrency()
         </template>
 
         <div class="space-y-4 text-sm">
+          <p
+            v-if="reason"
+            class="font-medium"
+          >
+            {{ reason }}
+          </p>
           <p>{{ t('treatmentPlans.modals.confirm.description') }}</p>
           <div
             v-if="planNumber || itemCount || totalEstimated"

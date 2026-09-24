@@ -76,3 +76,5 @@ Triggers (any one):
 | 0029 | [Security is a set of invariants with chokepoints, not a list of practices](0029-security-invariants-with-chokepoints.md) | proposed | 2026-09-01 |
 | 0030 | [A session ends after an hour without interaction, and login resumes it](0030-sessions-end-after-an-hour-idle.md) | accepted | 2026-09-16 |
 | 0031 | [A request's writes are committed before its response is sent](0031-writes-commit-before-the-response.md) | accepted | 2026-09-22 |
+| 0032 | [The clinical record is append-only, and every entry names a licensed author](0032-clinical-record-is-append-only.md) | proposed | 2026-09-22 |
+| 0033 | [Disclosure requires a recorded authorisation, and the authorisation is part of the record](0033-disclosure-requires-a-recorded-authorisation.md) | proposed | 2026-09-22 |

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(payments): `PlanCollectionsCard` no ofrece *Cobrar* cuando el plan es un borrador (lee `ctx.planStatus`): dice que hay que confirmarlo. Cobrar va contra trabajo que la clínica ha asumido, y un borrador todavía no lo es.
 - feat(payments): `LedgerService.plan_has_collections(budget_ids, treatment_ids)` — si hay dinero en un plan: asignado a sus presupuestos (neto de devoluciones) o cubriendo sus tratamientos por FIFO. Lo usa `treatment_plan` para impedir borrar o cancelar un plan con cobros.
 - feat(payments): se retira «Cobros del presupuesto» (`BudgetPaymentsCard`) del lateral del detalle de presupuesto: el registro en `budget.detail.sidebar` desaparece y el componente queda en el árbol sin usar. Los cobros se siguen en el plan (*Cobros del paciente*).
 

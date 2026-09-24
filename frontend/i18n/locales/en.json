@@ -926,6 +926,10 @@
         "closedTitle": "Treatment closed",
         "closedHint": "It is completed and paid for. If it was completed by mistake, “Reopen treatment” sets it back to pending; what was paid stays as the patient's credit.",
         "reopen": "Reopen treatment",
+        "remove": "Remove treatment",
+        "editOrRemove": "Edit or remove",
+        "needsConfirm": "To complete or charge a treatment, the whole plan has to be confirmed first.",
+        "locked": { "title": "Plan in progress", "noPermission": "You do not have permission to reopen this plan. Ask an administrator or the assigned professional." },
         "reopenTitle": "Reopen this treatment?",
         "reopenBody": "It goes back to pending and no longer counts as done, on the chart too.",
         "reopenCharge": "Its {amount} charge is withdrawn, so nothing is left outstanding for it.",
@@ -3272,7 +3276,8 @@
       "nothingPending": "Nothing pending to collect.",
       "pendingLabel": "Pending to collect",
       "pendingHint": "{count} item(s) performed and unpaid",
-      "charge": "Charge"
+      "charge": "Charge",
+      "chargeNeedsConfirm": "Confirm the treatment plan before charging."
     },
     "schedule": {
       "title": "Payment schedule",

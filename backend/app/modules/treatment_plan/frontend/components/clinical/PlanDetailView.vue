@@ -12,6 +12,7 @@
 import type { BadgeProps, DropdownMenuItem } from '@nuxt/ui'
 import type { PlannedTreatmentItem, TreatmentPhase, TreatmentPlanDetail } from '~~/app/types'
 import { phaseLabelKey, phaseRank } from '~~/app/config/treatmentPhases'
+import { PERMISSIONS } from '~~/app/config/permissions'
 
 import ConfirmPlanModal from './modals/ConfirmPlanModal.vue'
 import ReopenPlanModal from './modals/ReopenPlanModal.vue'
@@ -42,6 +43,7 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const toast = useToast()
+const { can } = usePermissions()
 
 const {
   completeItem,
@@ -98,6 +100,15 @@ async function onConfirmPlan() {
     if (result) {
       showConfirmModal.value = false
       await refreshPlan()
+      emit('updated')
+      // Carry out what they asked for before the dialog interrupted them.
+      const intent = pendingItemIntent.value
+      pendingItemIntent.value = null
+      if (intent?.type === 'complete') {
+        await completeItemNow(intent.itemId, { noteBody: null })
+      } else if (intent?.type === 'collect') {
+        openItemId.value = intent.itemId
+      }
     }
   } finally {
     transitioning.value = false
@@ -181,7 +192,31 @@ const isLocked = computed(() => {
   return status !== 'cancelled'
 })
 
-const effectiveReadonly = computed(() => props.readonly || isLocked.value)
+/**
+ * Structural edits belong to a draft, and to nothing else.
+ *
+ * This used to key off the *budget* (`isLocked`), which left an `active`
+ * plan with no budget fully editable — a plan under way that anyone could
+ * rewrite. The plan's own status is the rule now: draft edits, everything
+ * else asks to reopen first.
+ */
+const effectiveReadonly = computed(() => props.readonly || props.plan.status !== 'draft')
+
+/** Confirmed and under way: what the clinic has committed to doing. */
+const inProgress = computed(() =>
+  props.plan.status === 'pending' || props.plan.status === 'active'
+)
+
+/**
+ * Completing and charging belong to a plan in progress; a draft is a
+ * proposal. Offered on a draft too, because refusing in silence teaches
+ * nobody — pressing either opens the confirm dialog (`pendingItemIntent`).
+ */
+const canCompleteItems = computed(() =>
+  !props.readonly
+  && can(PERMISSIONS.treatmentPlans.write)
+  && (isDraft.value || inProgress.value)
+)
 
 /**
  * A tooth was clicked on a chart this view has frozen.
@@ -487,7 +522,64 @@ const canConfirm = computed(() => isDraft.value && pendingCount.value > 0)
 const odontogramRef = ref<{ refetchTreatments: () => Promise<void> } | null>(null)
 const notesTimelineRef = ref<{ refresh: () => Promise<void> } | null>(null)
 
+/**
+ * What the user asked for on a draft plan, kept while they answer the
+ * confirm dialog. Completing and charging both need a plan the clinic has
+ * committed to; the dialog explains that, and the intent is carried out on
+ * the other side rather than making them press twice.
+ */
+const pendingItemIntent = ref<{ type: 'complete' | 'collect', itemId: string } | null>(null)
+
+function askToConfirmPlan(type: 'complete' | 'collect', itemId: string) {
+  pendingItemIntent.value = { type, itemId }
+  openItemId.value = null
+  showConfirmModal.value = true
+}
+
+/**
+ * Editing or removing a treatment of a plan in progress.
+ *
+ * Reopening throws away a budget the patient may have seen, so it is for an
+ * administrator or a professional the case is assigned to — the same server
+ * answer the header button is gated on. Without it, say so: a dialog that
+ * offers a door the person cannot open is worse than a refusal.
+ */
+function handleItemEditBlocked() {
+  if (planPermissions.value.can_reopen) {
+    showReopenModal.value = true
+    return
+  }
+  toast.add({
+    id: 'plan-item-locked',
+    title: t('clinical.plans.item.locked.title'),
+    description: t('clinical.plans.item.locked.noPermission'),
+    color: 'error',
+    icon: 'i-lucide-lock'
+  })
+}
+
 async function handleCompleteItem(
+  itemId: string,
+  payload: { noteBody: string | null }
+) {
+  // A draft is a proposal: nothing is completed or charged against it until
+  // the clinic confirms the plan.
+  if (isDraft.value) {
+    askToConfirmPlan('complete', itemId)
+    return
+  }
+  await completeItemNow(itemId, payload)
+}
+
+/**
+ * The completion itself, with the gate above already answered.
+ *
+ * Separate because `onConfirmPlan` calls it straight after confirming, and
+ * at that moment this view still holds the pre-confirm props — asking
+ * `isDraft` again would bounce the user back into the dialog they just
+ * answered.
+ */
+async function completeItemNow(
   itemId: string,
   payload: { noteBody: string | null }
 ) {
@@ -1051,7 +1143,7 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
             :items="plan.items"
             :highlighted-items="highlightedItems"
             :readonly="effectiveReadonly"
-            :allow-complete="isLocked && !readonly"
+            :allow-complete="canCompleteItems"
             :plan-status="plan.status"
             :plan-professional-id="plan.assigned_professional_id ?? null"
             :collections="collectionsAvailable ? sessionCollections : undefined"
@@ -1162,9 +1254,10 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
       :item-count="planSummary.count"
       :total-estimated="planSummary.total"
       :loading="transitioning"
-      @update:open="(v) => (showConfirmModal = v)"
+      :reason="pendingItemIntent ? t('clinical.plans.item.needsConfirm') : undefined"
+      @update:open="(v) => { showConfirmModal = v; if (!v) pendingItemIntent = null }"
       @confirm="onConfirmPlan"
-      @cancel="showConfirmModal = false"
+      @cancel="showConfirmModal = false; pendingItemIntent = null"
     />
     <!-- The change log closes the page: a plan is a contract whose price
          moves with it, so "who changed this, and when" has to be
@@ -1248,10 +1341,16 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
       :budget-id="plan.budget_id ?? null"
       :collection="itemCollection(openItem)"
       :collection-status="itemCollectionStatus(openItem)"
-      :can-complete="isLocked && !readonly"
+      :can-complete="canCompleteItems"
+      :can-collect="inProgress"
+      :can-edit-items="!readonly && isDraft"
+      :can-request-edit="!readonly && inProgress"
       :can-reopen="!readonly && plan.status !== 'closed'"
       @update:open="(v) => { if (!v) openItemId = null }"
       @complete="(itemId) => handleCompleteItem(itemId, { noteBody: null })"
+      @remove="handleRemoveItem"
+      @collect-blocked="(itemId) => askToConfirmPlan('collect', itemId)"
+      @edit-blocked="handleItemEditBlocked"
       @reopen="handleReopenItem"
       @collected="refreshCollections"
     />

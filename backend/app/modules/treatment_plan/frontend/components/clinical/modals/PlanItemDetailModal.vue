@@ -44,12 +44,32 @@ const props = defineProps<{
   /** Same idea for undoing a completion: the plan is not closed and the
    *  view is not read-only. The write permission is checked here. */
   canReopen?: boolean
+  /**
+   * Whether charging is allowed right now. False on a draft plan: money is
+   * collected against work the clinic has committed to, and a draft is not
+   * that. The button stays and explains the prerequisite instead of
+   * disappearing.
+   */
+  canCollect?: boolean
+  /** Draft plan: the treatment can be removed from here. */
+  canEditItems?: boolean
+  /**
+   * Plan in progress: editing and removing are not refused outright — they
+   * ask to reopen the plan. The host owns that decision (it knows who may
+   * reopen); this only offers the door.
+   */
+  canRequestEdit?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
   'complete': [itemId: string]
   'reopen': [itemId: string]
+  'remove': [itemId: string]
+  /** Charging asked for while the plan is still a draft. */
+  'collect-blocked': [itemId: string]
+  /** Editing or removing asked for on a plan in progress. */
+  'edit-blocked': [itemId: string]
   'collected': []
 }>()
 
@@ -179,6 +199,17 @@ const noteCtx = computed(() => ({
 function complete() {
   if (!props.item) return
   emit('complete', props.item.id)
+  isOpen.value = false
+}
+
+/** Hands the intent to the host, which owns what happens next. */
+function ask(event: 'remove' | 'collect-blocked' | 'edit-blocked') {
+  const id = props.item?.id
+  if (!id) return
+  // Spelled out per event: the emit overloads do not accept a union key.
+  if (event === 'remove') emit('remove', id)
+  else if (event === 'collect-blocked') emit('collect-blocked', id)
+  else emit('edit-blocked', id)
   isOpen.value = false
 }
 
@@ -362,10 +393,22 @@ function reopen() {
                   :ctx="noteCtx"
                 />
                 <ModuleSlot
-                  v-if="isCompleted && pendingAmount > 0"
+                  v-if="isCompleted && pendingAmount > 0 && canCollect"
                   name="treatment_plan.item.collect"
                   :ctx="collectCtx"
                 />
+                <!-- Same button one step earlier: on a draft plan it opens
+                     the "confirm the plan first" dialog, not the till. -->
+                <UButton
+                  v-else-if="isCompleted && pendingAmount > 0 && !canCollect"
+                  color="primary"
+                  variant="outline"
+                  size="md"
+                  block
+                  @click="ask('collect-blocked')"
+                >
+                  {{ t('clinical.plans.item.collect') }}
+                </UButton>
               </template>
               <UButton
                 v-if="canPrescribe"
@@ -376,6 +419,30 @@ function reopen() {
                 @click="prescriptionOpen = true"
               >
                 {{ t('clinical.plans.prescription.open') }}
+              </UButton>
+              <UButton
+                v-if="canEditItems"
+                color="error"
+                variant="ghost"
+                size="md"
+                block
+                icon="i-lucide-trash-2"
+                @click="ask('remove')"
+              >
+                {{ t('clinical.plans.item.remove') }}
+              </UButton>
+              <!-- In progress: the same intent, answered by the plan's own
+                   door rather than by a refusal. -->
+              <UButton
+                v-else-if="canRequestEdit"
+                color="neutral"
+                variant="outline"
+                size="md"
+                block
+                icon="i-lucide-pencil"
+                @click="ask('edit-blocked')"
+              >
+                {{ t('clinical.plans.item.editOrRemove') }}
               </UButton>
               <UButton
                 v-if="showReopen"
