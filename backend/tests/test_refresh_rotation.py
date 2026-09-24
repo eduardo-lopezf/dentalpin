@@ -18,20 +18,38 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import sessions
-from app.core.auth.models import Clinic, User
+from app.core.auth.models import Clinic, ClinicMembership, User
 from app.core.auth.service import create_refresh_token, hash_password
 
 PASSWORD = "TestPass1234"
 
 
 async def _make_user(db: AsyncSession, email: str) -> User:
+    """A user who can sign in — which now means one with a clinic.
+
+    ``/auth/login`` refuses an account with no membership: removing
+    someone from a clinic has to take their sign-in with it. These tests
+    are about what happens *after* a login, so each probe gets a clinic
+    of its own rather than a shared one, and nothing here depends on
+    another test's fixtures.
+    """
     user = User(
         email=email,
         password_hash=hash_password(PASSWORD),
         first_name="Session",
         last_name="Probe",
     )
-    db.add(user)
+    clinic = Clinic(
+        name=f"Clinic for {email}",
+        tax_id="A28000000",
+        timezone="Europe/Madrid",
+        currency="EUR",
+        settings={},
+        account_tier="clinic",
+    )
+    db.add_all([user, clinic])
+    await db.flush()
+    db.add(ClinicMembership(user_id=user.id, clinic_id=clinic.id, role="admin"))
     await db.commit()
     return user
 
@@ -147,7 +165,7 @@ async def test_a_refresh_token_naming_no_session_is_refused(
 
 @pytest.mark.asyncio
 async def test_logging_out_one_device_leaves_the_other_alone(
-    client: AsyncClient, db_session: AsyncSession, test_clinic: Clinic
+    client: AsyncClient, db_session: AsyncSession
 ) -> None:
     """The whole reason this is not `token_version`.
 
