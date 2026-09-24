@@ -17,6 +17,8 @@ from .schemas import (
     AddCatalogItemsRequest,
     ApplyTemplateRequest,
     ApplyTemplateResult,
+    BudgetAddendumResponse,
+    BudgetBrief,
     ClosePlanRequest,
     CompleteItemRequest,
     CompleteSessionRequest,
@@ -29,6 +31,7 @@ from .schemas import (
     PlannedTreatmentItemCreate,
     PlannedTreatmentItemResponse,
     PlannedTreatmentItemUpdate,
+    PlanNextAction,
     PlanPermissionsResponse,
     PlanProposal,
     PlanTemplateCreate,
@@ -233,7 +236,19 @@ async def get_treatment_plan(
     plan = await TreatmentPlanService.get(db, ctx.clinic_id, plan_id)
     if not plan:
         raise HTTPException(status_code=404, detail="Treatment plan not found")
-    return ApiResponse(data=TreatmentPlanDetailResponse.model_validate(plan))
+    response = TreatmentPlanDetailResponse.model_validate(plan)
+    # Not part of the ORM row: computed here so the screen can say what
+    # to do next without a second round trip and a second set of rules.
+    next_action = await TreatmentPlanService.next_action(db, ctx.clinic_id, plan)
+    response.next_action = PlanNextAction(**next_action) if next_action else None
+    response.unbudgeted_count = len(
+        await TreatmentPlanService.unbudgeted_items(db, ctx.clinic_id, plan)
+    )
+    response.other_budgets = [
+        BudgetBrief.model_validate(b)
+        for b in await TreatmentPlanService.other_live_budgets(db, ctx.clinic_id, plan)
+    ]
+    return ApiResponse(data=response)
 
 
 @router.post(
@@ -864,6 +879,39 @@ async def sync_plan_with_budget(
             detail="Cannot sync: plan not found or no budget linked",
         )
     return ApiResponse(data={"synced": True})
+
+
+@router.post(
+    "/treatment-plans/{plan_id}/budget-addendum",
+    response_model=ApiResponse[BudgetAddendumResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def budget_plan_addendum(
+    plan_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[BudgetAddendumResponse]:
+    """Price the treatments added since the plan was confirmed.
+
+    Leaves the budget the patient was shown alone and quotes the new work
+    on its own document — unless that budget is still a draft, in which
+    case the lines simply join it.
+    """
+    try:
+        budget, created, item_count = await TreatmentPlanService.budget_the_addendum(
+            db, ctx.clinic_id, plan_id, ctx.user_id
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return ApiResponse(
+        data=BudgetAddendumResponse(
+            budget_id=budget.id,
+            budget_number=budget.budget_number,
+            created=created,
+            item_count=item_count,
+        )
+    )
 
 
 @router.post(

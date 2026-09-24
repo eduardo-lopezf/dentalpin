@@ -111,14 +111,50 @@ a clinical act (admin, dentist); reading and reprinting is granted to
 hygienist, assistant and receptionist. Clinical-note permissions live in the
 `clinical_notes` module since issue #60.
 
+## Adding to a plan already under way
+
+`_is_plan_locked` guards **changing** a plan, not filling it. `add_item`
+deliberately skips it: a treatment added to a confirmed plan takes nothing
+away from what the patient agreed to, and the old route — reopen, which
+cancels the signed budget, then reconfirm and have it accepted again — cost
+far more than the caries that prompted it. `update_item`, `remove_item` and
+`reorder_items` still refuse.
+
+What the new work costs is answered by `unbudgeted_items`, **derived, never
+stored**: a budget line already names the odontogram `Treatment` it prices
+(`budget_items.treatment_id`), which is the treatment the plan item points
+at, so "unpriced" is a join. No column means nothing to drift and no
+backfill — plans written before this answer correctly from the first
+request. The plan's budgets are the ones carrying its number plus the
+current link, the rule `delete_for_plan` and `_guard_collections` already
+use.
+
+`budget_the_addendum` then calls `BudgetService.create_addendum_for_plan`
+(the documented plan→budget carve-out). **Gotcha:** while the plan's budget
+is a draft, `budget`'s own `_on_treatment_added_to_plan` already mirrors
+every addition into it and stops at anything that is not a draft — so the
+addendum only ever has work to do past that point, and the draft branch in
+`budget_the_addendum` is a repair path for a handler that raised (ADR 0020
+records, never retries), not the usual one.
+
+`plan.budget_id` keeps meaning "the budget this plan was agreed on". An
+addendum is beside it, not instead of it; `other_live_budgets` is what
+finds it.
+
 ## Frontend slots exposed
 
 - `treatment_plan.detail.sidebar` — rendered by `PlanDetailView.vue` above
   the treatment list. `payments` registers the collections card there. Slot
   ctx: `{ planId, patientId, patientName, budgetId, planStatus,
-  itemsRevision, planTotal, phaseTotals }`. `itemsRevision` changes on every
-  completion or reopen, and is the card's only cue to refetch the patient's
-  money — without it the sidebar kept the old figure until a reload.
+  itemsRevision, planTotal, planMoney, phaseTotals }`. `itemsRevision`
+  changes on every completion or reopen, and is the card's only cue to
+  refetch the patient's money — without it the sidebar kept the old figure
+  until a reload. `planMoney` is **this plan's** four figures (planned,
+  earned, collected, pending), summed here from `usePlanCollections`; it is
+  `{...zeros}` for a plan with no items (the composable does not call out
+  for one, and the card would otherwise fall back to the patient's whole
+  debt on a plan that cannot owe anything) and `null` only when the ledger
+  could not be read at all.
 - `treatment_plan.item.collect` — one treatment's "Cobrar", rendered inside
   `PlanItemDetailModal` and in the prompt that follows completion.
   `payments` registers the button. Slot ctx: `{ patientId, patientName,

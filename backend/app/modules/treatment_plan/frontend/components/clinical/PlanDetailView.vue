@@ -10,7 +10,7 @@
  */
 
 import type { BadgeProps, DropdownMenuItem } from '@nuxt/ui'
-import type { PlannedTreatmentItem, TreatmentPhase, TreatmentPlanDetail } from '~~/app/types'
+import type { ApiResponse, PlannedTreatmentItem, TreatmentPhase, TreatmentPlanDetail } from '~~/app/types'
 import { phaseLabelKey, phaseRank } from '~~/app/config/treatmentPhases'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
@@ -22,6 +22,7 @@ import ReactivatePlanModal from './modals/ReactivatePlanModal.vue'
 import ContactLogModal from './modals/ContactLogModal.vue'
 import PlanItemDetailModal from './modals/PlanItemDetailModal.vue'
 import PlanItemCollectPrompt from './modals/PlanItemCollectPrompt.vue'
+import PlanNextActionBar from './PlanNextActionBar.vue'
 import { planItemName } from './planItemName'
 
 const props = withDefaults(defineProps<{
@@ -43,6 +44,7 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const toast = useToast()
+const api = useApi()
 const { can } = usePermissions()
 
 const {
@@ -179,18 +181,57 @@ async function createTreatmentNote(treatmentId: string, body: string) {
 }
 
 // ============================================================================
-// Lock state — a plan with a non-cancelled budget is locked for editing.
-// Mutations require explicit transitions: ``Reabrir`` (pending → draft) for
-// pre-acceptance edits, or ``Renegociar`` from the budget UI for an
-// already-accepted budget. The ``isLocked`` flag drives the read-only banner
-// and gates inline mutations.
+// Lock state — the banner that says the plan's shape is settled.
+//
+// It used to key off the budget: a plan with any non-cancelled budget was
+// "bloqueado". That disagreed with the rule the screen actually enforces
+// (`effectiveReadonly`, below), in both directions — an `active` plan with
+// no budget was locked and said nothing, and the banner kept shouting at a
+// `completed` plan where there is nothing left to lock.
+//
+// It also shouted in amber. A plan in progress with a signed budget is the
+// healthy, everyday state, not a warning; painting it the colour of a
+// problem every single day is how a warning stops being read.
 // ============================================================================
 
-const isLocked = computed(() => {
-  if (!props.plan.budget_id) return false
-  const status = props.plan.budget?.status
-  return status !== 'cancelled'
+/** Structural edits are off: true for everything that is not a draft. */
+const isLocked = computed(() => !props.readonly && props.plan.status !== 'draft')
+
+/**
+ * Three sentences, because "settled", "finished" and "closed" are not the
+ * same lock — and only the last one has a button. Telling a *completed*
+ * plan to "reactivate" pointed at a control that is only drawn for a closed
+ * one; the way back from completed is reopening a treatment.
+ */
+const lockedCopy = computed(() => {
+  const status = props.plan.status
+  const number = props.plan.budget?.budget_number
+
+  if (status === 'closed') {
+    return {
+      title: t('clinical.plans.locked.overTitle'),
+      subtitle: t('clinical.plans.locked.closedSubtitle')
+    }
+  }
+  if (status === 'completed') {
+    return {
+      title: t('clinical.plans.locked.overTitle'),
+      subtitle: t('clinical.plans.locked.completedSubtitle')
+    }
+  }
+  return {
+    title: t('clinical.plans.locked.title'),
+    subtitle: t(
+      number ? 'clinical.plans.locked.subtitle' : 'clinical.plans.locked.subtitleNoBudget',
+      { number }
+    )
+  }
 })
+
+/** The link is only worth offering while the budget is still a live document. */
+const liveBudgetId = computed(() =>
+  props.plan.budget_id && props.plan.budget?.status !== 'cancelled' ? props.plan.budget_id : null
+)
 
 /**
  * Structural edits belong to a draft, and to nothing else.
@@ -231,10 +272,32 @@ const canCompleteItems = computed(() =>
  * never offers `Reabrir` unless the header is offering it too, because a
  * toast that proposes an action the user cannot take is worse than silence.
  */
-function handleReadonlyChartClick() {
+function handleReadonlyChartClick(toothNumber: number) {
   // A stable id merges repeat clicks into the one toast instead of stacking
   // a column of them (Nuxt UI `mergeDuplicate`).
   const id = 'plan-chart-locked'
+
+  // A plan under way is closed for editing but open for **adding**: the
+  // caries found today is not a change to what the patient agreed, and the
+  // chart is where a dentist points at it. What it costs is priced later by
+  // an addendum; the signed budget is never touched.
+  //
+  // Offered as a second action rather than by unlocking the chart, because
+  // an unlocked chart also deletes, and deleting is the thing being
+  // protected.
+  const canAdd
+    = !props.readonly
+      && can(PERMISSIONS.treatmentPlans.write)
+      && (props.plan.status === 'pending' || props.plan.status === 'active')
+  const addAction = canAdd
+    ? [{
+        label: t('clinical.plans.chartLocked.addHere', { tooth: toothNumber }),
+        icon: 'i-lucide-plus',
+        color: 'primary' as const,
+        variant: 'soft' as const,
+        onClick: () => openAddTreatment(toothNumber)
+      }]
+    : []
 
   if (props.readonly) {
     toast.add({
@@ -254,16 +317,19 @@ function handleReadonlyChartClick() {
       description: t('clinical.plans.chartLocked.reopenToEdit'),
       color: 'warning',
       icon: 'i-lucide-lock',
-      actions: [{
-        label: t('treatmentPlans.actions.reopen'),
-        icon: 'i-lucide-undo-2',
-        color: 'warning',
-        variant: 'soft',
-        // Opens the same confirmation modal as the header button. Reopening
-        // throws away a budget the patient may have seen, so the toast is a
-        // shortcut to the decision, never the decision itself.
-        onClick: () => { showReopenModal.value = true }
-      }]
+      actions: [
+        ...addAction,
+        {
+          label: t('treatmentPlans.actions.reopen'),
+          icon: 'i-lucide-undo-2',
+          color: 'warning' as const,
+          variant: 'soft' as const,
+          // Opens the same confirmation modal as the header button. Reopening
+          // throws away a budget the patient may have seen, so the toast is a
+          // shortcut to the decision, never the decision itself.
+          onClick: () => { showReopenModal.value = true }
+        }
+      ]
     })
     return
   }
@@ -276,7 +342,10 @@ function handleReadonlyChartClick() {
       ? t('clinical.plans.chartLocked.reopenNotYours')
       : t('clinical.plans.chartLocked.closed'),
     color: 'neutral',
-    icon: 'i-lucide-lock'
+    icon: 'i-lucide-lock',
+    // Adding does not need the reopen right: it takes nothing away from
+    // what the patient agreed to.
+    actions: addAction
   })
 }
 
@@ -661,6 +730,98 @@ function handleGenerateBudget() {
   emit('generate-budget')
 }
 
+/**
+ * Put a price on what was added after the plan was confirmed.
+ *
+ * The server decides whether that means a second document or lines joining
+ * a draft, and says which in `created` — the toast has to be honest about
+ * it, because "se ha creado un presupuesto" when none was is how a
+ * receptionist goes looking for a document that does not exist.
+ */
+const addendumPending = ref(false)
+
+/**
+ * Adding one treatment to a plan already under way.
+ *
+ * Reuses the builder's own search panel, so the catalog, the templates and
+ * the wording are the ones the dentist already knows. The tooth comes from
+ * the chart tap that opened it, which is what makes a per-tooth treatment
+ * land somewhere instead of arriving blank.
+ */
+const addToothNumber = ref<number | null>(null)
+const addSearchOpen = ref(false)
+
+function openAddTreatment(toothNumber: number) {
+  addToothNumber.value = toothNumber
+  addSearchOpen.value = true
+}
+
+async function addTreatmentToPlan(item: { id: string }) {
+  const tooth = addToothNumber.value
+  addSearchOpen.value = false
+  if (tooth === null) return
+  try {
+    await api.post(
+      `/api/v1/treatment_plan/treatment-plans/${props.plan.id}/catalog-items`,
+      { lines: [{ catalog_item_id: item.id, tooth_numbers: [tooth], surfaces: [], phase: null, notes: null }] }
+    )
+    toast.add({
+      id: 'plan-item-added',
+      title: t('clinical.plans.addTreatment.added', { tooth }),
+      description: t('clinical.plans.addTreatment.needsBudget'),
+      color: 'success',
+      icon: 'i-lucide-plus'
+    })
+    emit('updated')
+  } catch {
+    toast.add({
+      id: 'plan-item-added',
+      title: t('clinical.plans.addTreatment.failed'),
+      color: 'error',
+      icon: 'i-lucide-triangle-alert'
+    })
+  }
+}
+
+async function handleBudgetAddendum() {
+  if (addendumPending.value) return
+  addendumPending.value = true
+  try {
+    const response = await api.post<ApiResponse<{
+      budget_id: string
+      budget_number: string
+      created: boolean
+      item_count: number
+    }>>(`/api/v1/treatment_plan/treatment-plans/${props.plan.id}/budget-addendum`)
+    const result = response.data
+    if (!result) return
+
+    toast.add({
+      id: 'plan-addendum',
+      title: t(result.created
+        ? 'clinical.plans.addendum.created'
+        : 'clinical.plans.addendum.extended', { number: result.budget_number }),
+      description: t('clinical.plans.addendum.description', { count: result.item_count }),
+      color: 'success',
+      icon: 'i-lucide-file-plus-2',
+      actions: [{
+        label: t('clinical.plans.nextAction.viewBudget'),
+        onClick: () => navigateTo(`/budgets/${result.budget_id}`)
+      }]
+    })
+    emit('updated')
+  } catch {
+    toast.add({
+      id: 'plan-addendum',
+      title: t('clinical.plans.addendum.failed'),
+      color: 'error',
+      icon: 'i-lucide-triangle-alert'
+    })
+  } finally {
+    addendumPending.value = false
+  }
+}
+
 // ============================================================================
 // Plan templates
 //
@@ -753,12 +914,54 @@ const phaseMoney = computed(() => phaseTotals(props.plan.items))
  * payment schedule that does not add up to the treatment is how a clinic
  * discovers two years in that it agreed to collect less than it is doing.
  */
+/**
+ * Treatments the catalog gives no price for. `planTotal` counts them as
+ * zero — the only arithmetic there is — and confirming turns that figure
+ * into the budget the patient signs, so the dialog says how many went in
+ * at nothing.
+ */
+const unpricedCount = computed(
+  () => props.plan.items.filter(item => item.treatment?.price_snapshot == null).length
+)
+
 const planTotal = computed(() =>
   props.plan.items.reduce((sum, item) => {
     const price = Number(item.treatment?.price_snapshot ?? 0)
     return sum + (Number.isFinite(price) ? price : 0)
   }, 0)
 )
+
+/**
+ * The plan's own money, in one place.
+ *
+ * The sidebar card answers "what does this patient owe", which is the right
+ * question at the counter and the wrong one with the plan open: a patient
+ * owes what they owe across every plan, so the figure there could never be
+ * read as "what this treatment has earned". These four can.
+ *
+ * `null` when `payments` did not answer — no module, or no permission to
+ * read the ledger. The card then falls back to what it showed before.
+ */
+const planMoney = computed(() => {
+  // An empty plan is worth nothing and has earned nothing, and that is an
+  // answer rather than a missing one. `usePlanCollections` does not call
+  // out for a plan with no treatments, so without this the card fell back
+  // to the patient's whole debt — 560 MXN of other work, on a plan that
+  // cannot owe a peso. Exactly the confusion these four figures exist for.
+  if (props.plan.items.length === 0) {
+    return { planned: 0, earned: 0, collected: 0, pending: 0 }
+  }
+  if (!collectionsAvailable.value) return null
+  let earned = 0
+  let collected = 0
+  let pending = 0
+  for (const totals of phaseMoney.value.values()) {
+    earned += totals.earned
+    collected += totals.collected
+    pending += totals.pending
+  }
+  return { planned: planTotal.value, earned, collected, pending }
+})
 
 const phaseTotalsForSlot = computed(() =>
   [...phaseMoney.value.entries()]
@@ -1025,7 +1228,25 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
       </div>
     </div>
 
-    <!-- Locked banner — shown whenever plan has a live budget attached. -->
+    <!-- What moves the plan on. Server-computed, one step at a time; see
+         PlanNextActionBar. Renders in the patient record too, where the
+         same buttons work — `readonly` there means no write access, not
+         "embedded". -->
+    <PlanNextActionBar
+      :action="plan.next_action"
+      :budget-id="plan.budget_id ?? null"
+      :readonly="readonly"
+      :can-generate-budget="canGenerateBudget"
+      :can-write="can(PERMISSIONS.treatmentPlans.write)"
+      @confirm="openActivateModal"
+      @generate-budget="handleGenerateBudget"
+      @budget-addendum="handleBudgetAddendum"
+      @schedule="emit('schedule')"
+    />
+
+    <!-- The plan's shape is settled. A statement of the rule, not an alarm:
+         the way to edit anyway is in the treatment's own dialog and in the
+         chart's toast, both of which offer Reabrir where it is allowed. -->
     <div
       v-if="isLocked"
       class="plan-locked-banner"
@@ -1036,17 +1257,17 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
       />
       <div class="plan-locked-text">
         <div class="plan-locked-title">
-          {{ t('clinical.plans.locked.title') }}
+          {{ lockedCopy.title }}
         </div>
         <div class="plan-locked-subtitle">
-          {{ t('clinical.plans.locked.subtitle', { number: plan.budget?.budget_number || '' }) }}
+          {{ lockedCopy.subtitle }}
         </div>
       </div>
       <UButton
-        v-if="plan.budget_id"
-        :to="`/budgets/${plan.budget_id}`"
+        v-if="liveBudgetId"
+        :to="`/budgets/${liveBudgetId}`"
         size="xs"
-        color="warning"
+        color="neutral"
         variant="soft"
         icon="i-lucide-external-link"
         trailing
@@ -1112,6 +1333,7 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
             planStatus: plan.status,
             itemsRevision,
             planTotal,
+            planMoney,
             phaseTotals: phaseTotalsForSlot
           }"
         />
@@ -1255,6 +1477,7 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
       :total-estimated="planSummary.total"
       :loading="transitioning"
       :reason="pendingItemIntent ? t('clinical.plans.item.needsConfirm') : undefined"
+      :unpriced-count="unpricedCount"
       @update:open="(v) => { showConfirmModal = v; if (!v) pendingItemIntent = null }"
       @confirm="onConfirmPlan"
       @cancel="showConfirmModal = false; pendingItemIntent = null"
@@ -1306,6 +1529,16 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
         </li>
       </ol>
     </UCard>
+
+    <!-- The builder's search panel, reused to add one treatment to a plan
+         already under way. Opened from the chart, so it always knows the
+         tooth. -->
+    <PlanTreatmentSearch
+      v-model:open="addSearchOpen"
+      :tooth-number="addToothNumber"
+      :surface="null"
+      @select="addTreatmentToPlan"
+    />
 
     <ReopenPlanModal
       :open="showReopenModal"
@@ -1730,16 +1963,20 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
   100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
 }
 
-/* Locked banner */
+/* The plan's shape is settled.
+   Quiet on purpose, and in theme tokens rather than the hard-coded amber it
+   used to carry: this is the state a plan spends most of its life in, and a
+   banner the colour of a warning that is right every day teaches the eye to
+   skip warnings. The hex values also ignored dark mode. */
 .plan-locked-banner {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 10px 14px;
-  background: #FEF3C7;
-  border: 1px solid #FCD34D;
+  background: var(--ui-bg-muted, transparent);
+  border: 1px solid var(--ui-border);
   border-radius: 8px;
-  color: #92400E;
+  color: var(--ui-text-muted);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -1761,6 +1998,7 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
 
 .plan-locked-title {
   font-weight: 600;
+  color: var(--ui-text-toned);
 }
 
 .plan-locked-subtitle {

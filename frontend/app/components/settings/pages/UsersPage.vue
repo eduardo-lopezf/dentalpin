@@ -5,7 +5,7 @@ import type { ClinicUser } from '~/composables/useUsers'
 const { t } = useI18n()
 const auth = useAuth()
 const { isAdmin } = usePermissions()
-const { users, isLoading, availableRoles, fetchUsers, createUser, updateUser, deleteUser } = useUsers()
+const { users, isLoading, availableRoles, fetchUsers, createUser, updateUser, setUserActive, removeFromClinic } = useUsers()
 
 const translatedRoles = computed(() =>
   availableRoles.map(role => ({
@@ -24,9 +24,12 @@ const ROLE_ORDER: Record<UserRole, number> = {
 
 const sortedUsers = computed(() => {
   return [...users.value].sort((a, b) => {
+    // Accounts without access here sink to the bottom: they are the ones
+    // to act on, but they are not staff of this clinic.
+    if (a.has_clinic_access !== b.has_clinic_access) return a.has_clinic_access ? -1 : 1
     if (a.is_active !== b.is_active) return a.is_active ? -1 : 1
-    const ra = ROLE_ORDER[a.role] ?? 99
-    const rb = ROLE_ORDER[b.role] ?? 99
+    const ra = a.role ? ROLE_ORDER[a.role] ?? 99 : 99
+    const rb = b.role ? ROLE_ORDER[b.role] ?? 99 : 99
     if (ra !== rb) return ra - rb
     const na = `${a.first_name} ${a.last_name}`.toLowerCase()
     const nb = `${b.first_name} ${b.last_name}`.toLowerCase()
@@ -63,7 +66,8 @@ function isCurrentUser(userId: string): boolean {
 
 type BadgeColor = 'error' | 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'neutral'
 
-function getRoleBadgeColor(role: UserRole): BadgeColor {
+function getRoleBadgeColor(role: UserRole | null): BadgeColor {
+  if (!role) return 'neutral'
   const colors: Record<UserRole, BadgeColor> = {
     admin: 'error',
     dentist: 'info',
@@ -74,8 +78,8 @@ function getRoleBadgeColor(role: UserRole): BadgeColor {
   return colors[role] || 'neutral'
 }
 
-function getRoleLabel(role: UserRole): string {
-  return t(`settings.roles.${role}`)
+function getRoleLabel(role: UserRole | null): string {
+  return role ? t(`settings.roles.${role}`) : t('settings.noClinicAccess')
 }
 
 function openCreate() {
@@ -100,7 +104,9 @@ function openEdit(user: ClinicUser) {
     last_name: user.last_name,
     is_active: user.is_active
   }
-  editSelectedRole.value = user.role
+  // Only reachable for members — the controls are hidden otherwise — but
+  // the role is nullable, so it needs a floor.
+  editSelectedRole.value = user.role ?? 'receptionist'
   showEdit.value = true
 }
 
@@ -130,7 +136,7 @@ function openDelete(user: ClinicUser) {
 async function handleDelete() {
   if (!toDelete.value) return
   isDeleting.value = true
-  const result = await deleteUser(toDelete.value.id)
+  const result = await removeFromClinic(toDelete.value.id)
   isDeleting.value = false
   if (result) {
     showDelete.value = false
@@ -199,9 +205,13 @@ async function handleDelete() {
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
+          <!-- An account with no membership here can still sign in, so it is
+               listed and labelled rather than hidden. -->
           <UBadge
             :color="getRoleBadgeColor(user.role)"
             variant="subtle"
+            :icon="user.has_clinic_access ? undefined : 'i-lucide-user-x'"
+            :title="user.has_clinic_access ? undefined : t('settings.noClinicAccessHint')"
           >
             {{ getRoleLabel(user.role) }}
           </UBadge>
@@ -212,7 +222,23 @@ async function handleDelete() {
           >
             {{ t('common.inactive') }}
           </UBadge>
+          <!-- Editing and deleting resolve the user through a membership
+               here and answer 404 for these accounts, so the only control
+               offered is the one that works: whether they can sign in.
+               Reversible, which is why it asks for no confirmation. -->
           <UButton
+            v-if="!user.has_clinic_access"
+            :icon="user.is_active ? 'i-lucide-ban' : 'i-lucide-rotate-ccw'"
+            size="xs"
+            variant="ghost"
+            :color="user.is_active ? 'error' : 'neutral'"
+            :loading="isLoading"
+            :aria-label="user.is_active ? t('settings.blockAccess') : t('settings.allowAccess')"
+            :title="user.is_active ? t('settings.blockAccess') : t('settings.allowAccess')"
+            @click="setUserActive(user.id, !user.is_active)"
+          />
+          <UButton
+            v-if="user.has_clinic_access"
             icon="i-lucide-pencil"
             size="xs"
             variant="ghost"
@@ -220,13 +246,15 @@ async function handleDelete() {
             :aria-label="t('settings.editUser')"
             @click="openEdit(user)"
           />
+          <!-- `user-minus`, not a bin: this takes the person off this
+               clinic's staff and leaves the account alone. -->
           <UButton
-            v-if="!isCurrentUser(user.id)"
-            icon="i-lucide-trash-2"
+            v-if="user.has_clinic_access && !isCurrentUser(user.id)"
+            icon="i-lucide-user-minus"
             size="xs"
             variant="ghost"
             color="error"
-            :aria-label="t('settings.deleteUser')"
+            :aria-label="t('settings.removeFromClinic')"
             @click="openDelete(user)"
           />
         </div>
@@ -411,19 +439,19 @@ async function handleDelete() {
                 class="w-5 h-5 text-danger-accent"
               />
               <h3 class="font-semibold text-default">
-                {{ t('settings.deleteUser') }}
+                {{ t('settings.removeFromClinic') }}
               </h3>
             </div>
           </template>
 
           <p class="text-muted dark:text-subtle">
-            {{ t('settings.deleteUserConfirm') }}
+            {{ t('settings.removeFromClinicConfirm') }}
             <strong class="text-default">
               {{ toDelete?.first_name }} {{ toDelete?.last_name }}
             </strong>?
           </p>
           <p class="mt-2 text-caption text-subtle">
-            {{ t('settings.deleteUserNote') }}
+            {{ t('settings.removeFromClinicNote') }}
           </p>
 
           <div class="flex justify-end gap-2 pt-6">
@@ -438,7 +466,7 @@ async function handleDelete() {
               :loading="isDeleting"
               @click="handleDelete"
             >
-              {{ t('common.delete') }}
+              {{ t('settings.removeFromClinicAction') }}
             </UButton>
           </div>
         </UCard>

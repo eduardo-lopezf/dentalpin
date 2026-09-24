@@ -80,6 +80,8 @@ ADRs) for the full story.
 | Credit note | Factura rectificativa | An invoice correction document. |
 | Payment | Pago | Money received against an invoice. Can be partial. |
 | Catalog | Catálogo | Module that holds priced services and products. |
+| To collect | Por cobrar | Money **earned and not yet collected**: a treatment has been performed and nothing has covered it. Reserved wording — *Pendiente* is left for work not done yet (a treatment) and for an instalment not yet due, so the three never wear the same word on one screen. |
+| Awaiting acceptance | Esperando aceptación | The plan status `pending`: the dentist confirmed it, the patient has not accepted the budget. It used to read "En curso", which claimed treatment was under way on a plan whose budget had not even been sent. |
 
 ## Compliance (ES)
 

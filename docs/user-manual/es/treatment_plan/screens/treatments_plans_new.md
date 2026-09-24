@@ -15,7 +15,7 @@ related_paths:
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanTreatmentSearch.vue
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanDraftLines.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: f2ce026
+last_verified_commit: 75cd119
 ---
 
 # Nuevo plan de tratamiento
@@ -97,6 +97,25 @@ tratamiento en sí, quita la línea y añade la correcta.
 > ámbar como *Falta la pieza* y bloquea **Continuar** nombrándola. Es a
 > propósito: durante una corrección tiene que poder quedarse vacía un
 > momento, y el bloqueo es lo que evita que el plan salga así.
+
+### Tratamientos sin precio
+
+El catálogo es de donde el plan saca lo que cuesta cada cosa. Si un
+tratamiento **no tiene precio**, su línea lo muestra como «-» y el total
+lo cuenta como **cero** — no hay otra aritmética posible, pero es una
+omisión que importa: cuatro tratamientos de los que dos no tienen precio
+suman una cifra que **parece completa**, y esa cifra es la que *Confirmar*
+convierte en el presupuesto que el paciente firma.
+
+Por eso, junto al total aparece un aviso con cuántas líneas van sin precio
+y un enlace a **Catálogo** para ponérselo (si tienes permiso para
+editarlo). El aviso se repite en el paso 2, que es donde está el botón
+*Crear*, y otra vez en la ventana de **Confirmar plan**: «N tratamientos
+entran sin precio, así que el presupuesto no los cobrará».
+
+**Avisa, no impide.** Una clínica presupuesta legítimamente algunos
+trabajos caso por caso, y aquí vale la misma regla que para los conflictos
+del odontograma: quien mira la boca sabe más que una regla sobre ella.
 
 ## Paso 2 — De quién es la boca
 

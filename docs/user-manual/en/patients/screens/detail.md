@@ -126,11 +126,11 @@ clinically relevant.
 4. To restore, run an SQL update on the `status` column — there is no
    in-app un-archive flow yet.
 
-## Payments tab — "Pending to charge"
+## Payments tab — "To collect"
 
 The **Administration → Payments** tab shows the patient ledger
 (total paid, debt, on-account balance) and, when there is real debt,
-a **Pending to charge** card at the top.
+a **To collect** card at the top.
 
 - The card lists the recently completed sessions that net payments
   haven't covered yet (FIFO).

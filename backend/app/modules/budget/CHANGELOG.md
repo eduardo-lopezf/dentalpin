@@ -1,6 +1,7 @@
 # Changelog — budget module
 
 ## Unreleased
+- feat(budget): `BudgetService.create_addendum_for_plan` — valora el trabajo añadido a un plan cuyo presupuesto ya está enviado o firmado, sin tocarlo. Es el hermano de `create_from_plan_snapshot`, que se niega precisamente cuando ya hay uno vivo. No es una versión del anterior (`parent_budget_id`/`version` son la cadena de renegociación, donde uno sustituye al otro): estos dos conviven, ambos vivos, unidos al plan por `plan_number_snapshot`. Mientras el presupuesto es borrador no hace falta, porque `_on_treatment_added_to_plan` ya refleja cada alta en él.
 
 - feat(budget): **se quita crear un presupuesto suelto.** Un presupuesto se genera al confirmar un plan de tratamiento, así que desaparecen el botón *Nuevo presupuesto* de la pestaña Presupuestos y su acción del estado vacío, que ahora lleva a los planes. Se elimina también la pantalla `/budgets/new` con su manual y el caso que la usaba en `forms-keyboard-room.spec.ts`. `POST /budgets` sigue existiendo (y con él `useBudgets().createBudget`, ya sin llamantes).
 - fix(budget): el detalle de un presupuesto que no existe ya no se queda en blanco. Un id que el servidor rechaza (422) hacía fallar la carga antes de su propia redirección —justo lo que es ahora un enlace viejo a `/budgets/new`—; ahora se captura y la pantalla muestra «No encontrado» hasta que la redirección a la lista ocurre. El esqueleto de carga se muestra hasta que responde la primera petición, en vez de pintar el vacío antes de preguntar.

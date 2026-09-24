@@ -126,11 +126,11 @@ también es un dato clínico.
 4. Para restaurar, ejecuta un `UPDATE` SQL sobre la columna `status` —
    no hay flujo en la app para des-archivar todavía.
 
-## Pestaña Pagos — "Pendiente de cobrar"
+## Pestaña Pagos — "Por cobrar"
 
 La pestaña **Administración → Pagos** muestra el ledger del paciente
 (total pagado, deuda, saldo a cuenta) y, cuando hay deuda real, una
-tarjeta de **Pendiente de cobrar** al principio.
+tarjeta de **Por cobrar** al principio.
 
 - La tarjeta lista las sesiones recién completadas que aún no están
   cubiertas por los pagos del paciente (FIFO).

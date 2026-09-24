@@ -14,6 +14,7 @@ related_endpoints:
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/reopen
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/status
   - POST /api/v1/treatment_plan/treatment-plans
+  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/budget-addendum
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/close
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/apply-template
   - GET /api/v1/treatment_plan/treatment-plans/{plan_id}/proposals
@@ -42,13 +43,14 @@ related_permissions:
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/[id].vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue
+  - backend/app/modules/treatment_plan/frontend/components/clinical/PlanNextActionBar.vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/modals/PlanItemDetailModal.vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/modals/PlanItemPrescriptionModal.vue
   - backend/app/modules/treatment_plan/prescriptions.py
   - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: bddda82
+last_verified_commit: 75cd119
 ---
 
 # Detalle del plan de tratamiento
@@ -172,6 +174,36 @@ pasó.
   (completar, quitar), que es lo que evita confundir «abrir algo» con
   «cambiar el plan» a un dedo de distancia.
 
+## Qué toca ahora
+
+Bajo el título, una franja dice **la única cosa** que hace avanzar el
+plan, y lleva el botón que la hace. Existe porque un plan cambia de
+manos tres veces —el dentista lo planifica, el paciente acepta el
+presupuesto, recepción reserva el sillón— y el paso de una a otra no se
+veía: planes confirmados se quedaban parados con el presupuesto sin
+enviar, sin que nadie supiera que le tocaba.
+
+| La franja dice… | Porque… | Y el botón lleva a… |
+|---|---|---|
+| **Añade los tratamientos** | el borrador está vacío | — (el odontograma o una plantilla) |
+| **Confirma el plan** | hay tratamientos y sigue en borrador | *Confirmar plan* |
+| **Genera el presupuesto** | el plan avanzó sin presupuesto | *Generar presupuesto* |
+| **Envía el presupuesto al paciente** | existe pero está sin enviar | el presupuesto |
+| **Esperando respuesta del paciente** | está enviado; le toca a él | el presupuesto |
+| **El presupuesto ha caducado / lo rechazó / está anulado** | hay que renovarlo o renegociarlo | el presupuesto |
+| **N tratamientos sin presupuestar** | se añadieron después de confirmar | *Presupuestar lo añadido* |
+| **Agenda la primera / la próxima cita** | quedan tratamientos y no hay cita futura | *Programar cita* |
+| **Próxima cita: …** | todo en orden | — |
+| **Todos los tratamientos están hechos** | solo queda cobrar y cerrar | — |
+
+Es siempre **una sola**: una lista de todo lo pendiente es un informe, y
+el informe es justo lo que nadie leía. En un plan terminado o cerrado la
+franja no aparece. En la ficha del paciente sale igual, botones incluidos;
+quien no pueda escribir en la historia clínica ve la frase sin ellos.
+
+El color dice de quién es el turno: azul, tuyo; ámbar, algo que se ha
+torcido; verde o gris, nada que hacer.
+
 ## Confirmar un plan
 
 > Requiere `treatment_plan.plans.confirm`.
@@ -189,24 +221,81 @@ tiene presupuesto:
 | El plan está… | En el tratamiento puedes… |
 |---|---|
 | **Borrador** | Editarlo y **eliminarlo** (desde su ventana o la papelera de la fila). Completar o cobrar **pide confirmar el plan** primero. |
-| **En proceso** (en curso o activo) | **Completar** y **cobrar**. Editar o eliminar **pide reabrir el plan**. |
+| **En proceso** (en curso o activo) | **Completar**, **cobrar** y **añadir** tratamientos nuevos. Editar o eliminar uno ya aceptado **pide reabrir el plan**. |
 | Completado o cerrado | Consultar; reactivar el plan es la puerta de vuelta. |
 
 - **Cobrar o completar en un borrador** abre la ventana *Confirmar plan*
   con el motivo escrito: «Para completar o cobrar un tratamiento, primero
-  hay que confirmar todo el plan». Si **confirmas**, el plan pasa a *En
-  curso*, se genera su presupuesto borrador y se hace lo que habías
-  pedido. Si **cancelas**, el plan sigue en borrador y no se toca nada.
+  hay que confirmar todo el plan». Si **confirmas**, el plan pasa a
+  *Esperando aceptación*, se genera su presupuesto borrador y se hace lo
+  que habías pedido. Si **cancelas**, el plan sigue en borrador y no se toca nada.
 - **Editar o eliminar en un plan en proceso** abre *Reabrir plan para
   editar*, que avisa de que **se cancelará el presupuesto vigente**. Al
   reabrir, el plan vuelve a borrador y habrá que confirmarlo de nuevo.
 - Reabrir el plan es de un administrador o del profesional asignado al
   caso. Quien no lo sea ve el aviso *«No tienes permisos para reabrir
   este plan»* y el plan no se mueve.
+- Bajo la franja de *qué toca ahora*, una nota gris recuerda que **los
+  tratamientos de un plan confirmado ya no se editan ahí** y qué cuesta
+  cambiarlos (reabrir anula el presupuesto). Aparece por el **estado** del
+  plan, no por si tiene presupuesto: un plan activo sin presupuesto también
+  está fijado y antes no decía nada. En un plan terminado o cerrado cambia
+  a *Plan terminado*, y solo el cerrado remite a reactivarlo, porque es el
+  único que tiene ese botón. Es gris a propósito: es el estado normal de un plan
+  durante casi toda su vida, y un aviso ámbar que acierta todos los días
+  deja de leerse.
 - Notas, recordatorios y recetas funcionan en cualquiera de los dos
   estados: son actos clínicos, no cambios del plan.
-- La tarjeta **Cobros del paciente** no ofrece *Cobrar* mientras el plan
+- La tarjeta **Cobros de este plan** no ofrece *Cobrar* mientras el plan
   sea un borrador; dice qué falta.
+
+### Cobros de este plan
+
+La tarjeta lleva cuatro cifras, y todas son **de este plan**:
+
+- **Por cobrar de este plan**, arriba y en grande: lo único que exige
+  una acción.
+- **Presupuestado**: lo que vale el plan entero.
+- **Realizado**: la parte que ya se ha ejecutado, que es lo que se puede
+  cobrar. Un plan de 19.020 con 120 realizados sólo puede cobrar 120.
+- **Cobrado**: lo que de eso ya ha entrado.
+
+Debajo, y **sólo cuando aporta algo**, una línea dice lo que el paciente
+debe *en total*, contando otros planes. Puede ser mayor que la del plan:
+un paciente debe lo que debe en toda la clínica, y confundir las dos
+cifras es como se acaba pidiendo el importe equivocado.
+
+Si el plan aún no tiene nada ejecutado, la tarjeta explica la regla:
+*se va pudiendo cobrar a medida que completas tratamientos*. Esa frase
+responde a la pregunta que deja un 0 sobre un plan de miles.
+
+### Añadir a un plan en curso
+
+Encontrar una caries nueva a mitad de tratamiento es lo normal, y antes
+salía caro: había que reabrir el plan, lo que **anulaba el presupuesto que
+el paciente ya había firmado**, reconfirmarlo y hacérselo aceptar otra vez.
+
+Ahora **añadir está permitido con el plan en curso**. No cambia ninguna de
+las líneas que el paciente aceptó, así que su presupuesto no se toca.
+
+1. Toca la pieza en el odontograma. Como el plan está confirmado, el
+   odontograma está en solo lectura y responde con un aviso: ahí aparece
+   **Añadir tratamiento en el {pieza}**.
+2. Se abre el mismo buscador del constructor, ya fijado en esa pieza.
+   Eliges el tratamiento y entra en el plan.
+3. La franja de arriba pasa a decir **«N tratamientos sin presupuestar»**,
+   con el botón **Presupuestar lo añadido**.
+4. Al pulsarlo se crea un **presupuesto aparte** solo con lo nuevo, en
+   borrador, que el paciente acepta por su cuenta. El firmado sigue
+   intacto, y los dos quedan colgados del plan.
+
+Si el presupuesto del plan todavía está en **borrador** no hace falta nada
+de esto: lo que añades entra en él solo, porque nadie ha visto aún ninguna
+cifra.
+
+**Editar o eliminar** un tratamiento ya aceptado sigue pidiendo reabrir el
+plan. Esa es la diferencia: añadir no le quita nada al paciente, cambiar el
+precio o quitar una línea sí.
 
 ## Marcar ítems como ejecutados
 

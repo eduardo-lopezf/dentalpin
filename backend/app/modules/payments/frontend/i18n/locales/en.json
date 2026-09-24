@@ -71,7 +71,7 @@
       "patientPlaceholder": "Search patient...",
       "unknownPatient": "Unknown patient",
       "amount": "Amount",
-      "suggestedHint": "Pending to charge: {amount}",
+      "suggestedHint": "To collect: {amount}",
       "useSuggested": "use this amount",
       "method": "Method",
       "moreMethods": "More options",
@@ -167,7 +167,7 @@
       "noteToOnAccount": "go to patient on-account credit."
     },
     "pendingCharges": {
-      "title": "Pending to charge",
+      "title": "To collect",
       "count": "{n} sessions",
       "more": "+ {n} more",
       "collect": "Collect {amount}",

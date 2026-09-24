@@ -571,6 +571,107 @@ class BudgetService:
         return budget
 
     @staticmethod
+    async def create_addendum_for_plan(
+        db: AsyncSession,
+        clinic_id: UUID,
+        user_id: UUID,
+        snapshot: dict,
+    ) -> Budget:
+        """Price work added to a plan whose budget the patient already signed.
+
+        The sibling of ``create_from_plan_snapshot``, and the difference is
+        the whole point: that one refuses when the plan already has a live
+        budget, because it mints *the* budget. This one is called precisely
+        when there is one — a caries found mid-treatment is normal, and the
+        old answer was to cancel the signed document and make the patient
+        accept everything again.
+
+        So the signed budget is not touched. A second draft carries only the
+        lines nobody has priced yet, and the patient accepts that on its
+        own. Both belong to the plan through ``plan_number_snapshot``, which
+        is already how ``delete_for_plan`` and the collections guard find
+        every budget a plan produced.
+
+        The caller decides what counts as unpriced and passes those items;
+        see ``TreatmentPlanService.unbudgeted_items``.
+        """
+        from .workflow import (
+            DEFAULT_BUDGET_VALIDITY_DAYS,
+            BudgetWorkflowService,
+            _resolve_clinic_settings,
+        )
+
+        patient_id_raw = snapshot.get("patient_id")
+        items = snapshot.get("items") or []
+        if not patient_id_raw or not items:
+            raise ValueError("An addendum needs a patient and at least one item")
+
+        clinic_settings = await _resolve_clinic_settings(db, clinic_id)
+        validity_days = int(clinic_settings.get("budget_expiry_days", DEFAULT_BUDGET_VALIDITY_DAYS))
+        today = date.today()
+
+        budget = Budget(
+            clinic_id=clinic_id,
+            patient_id=UUID(patient_id_raw),
+            budget_number=await BudgetNumberService.generate_number(db, clinic_id),
+            # Not a version of the signed budget: `version`/`parent_budget_id`
+            # are the renegotiation chain, where a later version replaces an
+            # earlier one. These two stand side by side, both live.
+            version=1,
+            status="draft",
+            valid_from=today,
+            valid_until=today + timedelta(days=validity_days),
+            created_by=user_id,
+            plan_number_snapshot=snapshot.get("plan_number"),
+            plan_status_snapshot=snapshot.get("plan_status"),
+            public_auth_method=await BudgetWorkflowService.resolve_public_auth_method(
+                db,
+                clinic_id=clinic_id,
+                patient_id=UUID(patient_id_raw),
+                clinic_settings=clinic_settings,
+            ),
+        )
+        db.add(budget)
+        await db.flush()
+
+        for item_snapshot in items:
+            catalog_item_id_raw = item_snapshot.get("catalog_item_id")
+            treatment_id_raw = item_snapshot.get("treatment_id")
+            if not catalog_item_id_raw or not treatment_id_raw:
+                continue
+            unit_price_raw = item_snapshot.get("unit_price")
+            await BudgetItemService.create_item(
+                db,
+                clinic_id,
+                budget.id,
+                {
+                    "catalog_item_id": UUID(catalog_item_id_raw),
+                    "quantity": 1,
+                    "treatment_id": UUID(treatment_id_raw),
+                    "tooth_number": item_snapshot.get("tooth_number"),
+                    "surfaces": item_snapshot.get("surfaces"),
+                    "unit_price": (Decimal(unit_price_raw) if unit_price_raw is not None else None),
+                },
+            )
+
+        await BudgetService._recalculate_totals(db, budget)
+        await BudgetHistoryService.add_entry(
+            db,
+            clinic_id=clinic_id,
+            budget_id=budget.id,
+            action="created",
+            changed_by=user_id,
+            new_state={
+                "status": "draft",
+                "from_plan_number": snapshot.get("plan_number"),
+                "addendum": True,
+            },
+            notes="Addendum for treatments added after the plan was confirmed",
+        )
+        await db.flush()
+        return budget
+
+    @staticmethod
     async def update_budget(
         db: AsyncSession,
         budget: Budget,

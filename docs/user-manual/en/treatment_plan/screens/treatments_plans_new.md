@@ -15,7 +15,7 @@ related_paths:
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanTreatmentSearch.vue
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanDraftLines.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: f2ce026
+last_verified_commit: 75cd119
 ---
 
 # New treatment plan
@@ -96,6 +96,25 @@ treatment itself, remove the line and add the right one.
 > yet* and blocks **Continue**, naming it. That is deliberate: a correction
 > has to be allowed to leave the line empty for a moment, and the block is
 > what stops the plan going out that way.
+
+### Treatments with no price
+
+The catalog is where a plan reads what each thing costs. A treatment with
+**no price** shows as "-" on its line and counts as **zero** in the total —
+there is no other arithmetic available, but the omission matters: four
+treatments of which two have no price add up to a figure that **looks
+complete**, and that figure is what *Confirmar* turns into the budget the
+patient signs.
+
+So next to the total there is a notice saying how many lines carry no
+price, with a link to **Catálogo** to give them one (if you may edit it).
+It repeats on step 2, where the *Crear* button is, and again in the
+**Confirmar plan** dialog: "N treatments go in without a price, so the
+budget will not charge for them".
+
+**It warns, it does not refuse.** A clinic legitimately quotes some work
+case by case, and the same rule applies here as to the chart's conflicts:
+whoever looked in the mouth knows more than a rule about it.
 
 ## Step 2 — Whose mouth it was
 

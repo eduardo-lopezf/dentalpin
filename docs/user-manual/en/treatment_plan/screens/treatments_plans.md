@@ -32,8 +32,9 @@ related_permissions:
   - treatment_plan.plans.reactivate
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/index.vue
+  - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlansFirstRun.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 2b664a5
+last_verified_commit: 75cd119
 ---
 
 # Plans inbox
@@ -41,6 +42,31 @@ last_verified_commit: 2b664a5
 Inbox of the clinic's treatment plans. Organized into **seven tabs**:
 six follow-up queues served by `GET /pipeline`, and a closing *List*
 of every plan.
+
+## The first day
+
+While the clinic has **no plans at all**, this screen does not show the
+tabs. Seven empty queues, written in reception's vocabulary for a clinic
+with a hundred live plans, answer a question nobody has yet and hide the
+only one they do: *where do I start?*
+
+In their place: one instruction — **Create the first plan** — and the three
+things a plan is built out of, ticked **from real data** rather than from
+wizard steps somebody clicked through:
+
+| | What for |
+|---|---|
+| **Treatment catalog** | it is where a plan reads what each thing costs |
+| **Professionals** | who does the work, so it can be assigned and booked |
+| **Patients** | a plan belongs to someone; you can also create them as you go |
+
+What already exists shows as *Listo* with its count; what is missing
+carries a button to the screen that loads it. **With no catalog a plan
+cannot be created** and the button is disabled saying why: the builder
+would open a chart with nothing to put on it.
+
+The first plan makes the card disappear for good. It is a beginning, not a
+dashboard.
 
 ## At a glance
 

@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import threading
 from collections.abc import AsyncGenerator
 
 # Set TESTING before importing settings
@@ -289,9 +290,82 @@ async def _reset_test_schema() -> None:
         await engine.dispose()
 
 
+# --- one session at a time --------------------------------------------
+#
+# Every test drops and recreates the whole schema, so two pytest sessions
+# pointed at the same test database destroy each other's tables mid-run.
+# What that looks like is not "two runs collided": it is a duplicate
+# ``test@example.com`` in a fixture, or ``table "x" does not exist`` in a
+# teardown, landing on whichever test happened to be running. It reads as
+# flakiness, and it sent this investigation after an ordering bug that was
+# never there.
+#
+# A Postgres advisory lock is the right shape for the guard: it lives on
+# the connection, so it is released the moment the process ends — a killed
+# run leaves nothing to clean up, unlike a lock row. It is held on a thread
+# of its own because the suite has no synchronous driver, and a connection
+# cannot outlive the ``asyncio.run`` that opened it.
+
+_SESSION_LOCK_KEY = 0x44454E54  # "DENT"
+_lock_release = threading.Event()
+_lock_settled = threading.Event()
+_lock_error: list[str] = []
+
+
+def _asyncpg_dsn() -> str:
+    """``postgresql+asyncpg://…`` is SQLAlchemy's spelling; asyncpg wants its own."""
+    return (
+        make_url(TEST_DATABASE_URL)
+        .set(drivername="postgresql")
+        .render_as_string(hide_password=False)
+    )
+
+
+def _hold_session_lock() -> None:
+    import asyncpg
+
+    async def run() -> None:
+        try:
+            conn = await asyncpg.connect(_asyncpg_dsn())
+        except Exception as exc:  # noqa: BLE001 - reported, not swallowed
+            _lock_error.append(f"could not reach the test database to lock it: {exc}")
+            _lock_settled.set()
+            return
+        try:
+            if not await conn.fetchval("SELECT pg_try_advisory_lock($1)", _SESSION_LOCK_KEY):
+                _lock_error.append(
+                    "another pytest session is already using "
+                    f"{make_url(TEST_DATABASE_URL).database}. Running two at once "
+                    "corrupts both: every test drops and recreates the schema. "
+                    "Wait for it to finish, or point this run at another database "
+                    "with TEST_DATABASE_URL (the name must end in '_test')."
+                )
+                _lock_settled.set()
+                return
+            _lock_settled.set()
+            # Hold it until the session ends. The lock goes with the
+            # connection, so a killed run releases it on its own.
+            await asyncio.get_running_loop().run_in_executor(None, _lock_release.wait)
+        finally:
+            await conn.close()
+
+    asyncio.run(run())
+
+
 def pytest_sessionstart(session) -> None:  # noqa: ARG001
     """Provision the dedicated test database before any fixture runs."""
     asyncio.run(_ensure_test_database())
+
+    # Claim the database before touching its schema, so a second session
+    # stops here instead of halfway through someone else's run.
+    threading.Thread(target=_hold_session_lock, daemon=True).start()
+    _lock_settled.wait(timeout=30)
+    if _lock_error:
+        # `pytest.exit`, not `raise`: this is a usage problem with a clear
+        # remedy, and it should read as one rather than as a crash in the
+        # test harness.
+        pytest.exit(_lock_error[0], returncode=pytest.ExitCode.USAGE_ERROR)
+
     asyncio.run(_reset_test_schema())
     # Announce the target: the suite drops every table it touches, so which
     # database that is should never be something you have to go and check.
@@ -299,7 +373,8 @@ def pytest_sessionstart(session) -> None:  # noqa: ARG001
 
 
 def pytest_sessionfinish(session, exitstatus) -> None:  # noqa: ARG001
-    """Release the redirected global engine's connections."""
+    """Release the redirected global engine's connections, and the lock."""
+    _lock_release.set()
     asyncio.run(_global_test_engine.dispose())
 
 

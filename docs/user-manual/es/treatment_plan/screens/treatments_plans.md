@@ -32,8 +32,9 @@ related_permissions:
   - treatment_plan.plans.reactivate
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/index.vue
+  - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlansFirstRun.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 2b664a5
+last_verified_commit: 75cd119
 ---
 
 # Bandeja de planes
@@ -41,6 +42,31 @@ last_verified_commit: 2b664a5
 Bandeja de planes de tratamiento de la clínica. Se organiza en
 **siete pestañas**: seis colas de seguimiento servidas por
 `GET /pipeline` y un *Listado* final con todos los planes.
+
+## El primer día
+
+Mientras la clínica **no tenga ningún plan**, esta pantalla no enseña las
+pestañas. Siete colas vacías, escritas en el vocabulario de recepción para
+una clínica con cien planes vivos, responden una pregunta que todavía nadie
+tiene y esconden la única que sí: *¿por dónde empiezo?*
+
+En su lugar sale una tarjeta con una instrucción —**Crear el primer
+plan**— y las tres cosas de las que se construye un plan, marcadas **con
+los datos reales**, no con pasos que alguien fue pulsando:
+
+| | Para qué |
+|---|---|
+| **Catálogo de tratamientos** | de ahí saca el plan lo que cuesta cada cosa |
+| **Profesionales** | quién hace el trabajo, para asignarlo y agendarlo |
+| **Pacientes** | un plan es de alguien; también puedes crearlo sobre la marcha |
+
+Lo que ya existe aparece como *Listo* con su número; lo que falta lleva un
+botón a la pantalla donde se carga. **Sin catálogo no se puede crear el
+plan** y el botón queda apagado diciendo por qué: el constructor abriría un
+odontograma en el que no hay nada que añadir.
+
+El primer plan hace desaparecer la tarjeta para siempre. Es un comienzo, no
+un panel.
 
 ## De un vistazo
 

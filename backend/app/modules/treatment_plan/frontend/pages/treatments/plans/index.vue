@@ -61,6 +61,38 @@ const tabItems = computed(() => [
 function createPlan() {
   router.push('/treatments/plans/new')
 }
+
+/**
+ * Has this clinic ever made a plan?
+ *
+ * Not "is this tab empty" — every tab is empty on day one, and answering
+ * the narrow question is how the screen ended up showing a seven-lane
+ * commercial queue to someone with nothing in any of them. One count over
+ * every plan, whatever its status, decides between the bandeja and the
+ * first-run card.
+ *
+ * Held behind a skeleton rather than defaulting to the bandeja, because
+ * defaulting means the tabs paint first and are then yanked away — the
+ * flash of exactly the screen this replaces.
+ */
+const api = useApi()
+const planCount = ref<number | null>(null)
+
+onMounted(async () => {
+  try {
+    const response = await api.get<{ total?: number }>(
+      '/api/v1/treatment_plan/treatment-plans?page_size=1'
+    )
+    planCount.value = response.total ?? 0
+  } catch {
+    // Unreachable or forbidden: fall back to the bandeja, which has its
+    // own error and empty states. A first-run card shown because a request
+    // failed would tell a busy clinic it has no plans.
+    planCount.value = 1
+  }
+})
+
+const firstRun = computed(() => planCount.value === 0)
 </script>
 
 <template>
@@ -69,11 +101,11 @@ function createPlan() {
 
     <PageHeader
       :title="t('treatmentPlans.title')"
-      :subtitle="t('pipeline.description')"
+      :subtitle="firstRun ? undefined : t('pipeline.description')"
     >
       <template #actions>
         <UButton
-          v-if="can(PERMISSIONS.treatmentPlans.write)"
+          v-if="!firstRun && can(PERMISSIONS.treatmentPlans.write)"
           color="primary"
           variant="soft"
           icon="i-lucide-plus"
@@ -82,7 +114,10 @@ function createPlan() {
           {{ t('treatmentPlans.new') }}
         </UButton>
       </template>
-      <template #tabs>
+      <template
+        v-if="!firstRun"
+        #tabs
+      >
         <!-- Seven tabs do not fit across a tablet held upright: Nuxt UI
              shares the width out and every label collapses to an
              ellipsis ("En…", "Por pre…", "Ce…"), which is worse than
@@ -100,23 +135,40 @@ function createPlan() {
       </template>
     </PageHeader>
 
-    <div class="mb-[var(--density-gap,1rem)]">
-      <UInput
-        v-model="searchQuery"
-        :placeholder="t('pipeline.search')"
-        icon="i-lucide-search"
-        class="max-w-sm"
-      />
+    <!-- One round trip decides which screen this is; until it answers,
+         neither is drawn. -->
+    <div
+      v-if="planCount === null"
+      class="space-y-3"
+    >
+      <USkeleton class="h-10 w-full max-w-sm" />
+      <USkeleton class="h-40 w-full" />
     </div>
 
-    <PlansListPanel
-      v-if="activeTab === 'listado'"
-      :q="debouncedSearch"
+    <PlansFirstRun
+      v-else-if="firstRun"
+      @create="createPlan"
     />
-    <PipelineTabPanel
-      v-else
-      :tab="activeTab"
-      :q="debouncedSearch"
-    />
+
+    <template v-else>
+      <div class="mb-[var(--density-gap,1rem)]">
+        <UInput
+          v-model="searchQuery"
+          :placeholder="t('pipeline.search')"
+          icon="i-lucide-search"
+          class="max-w-sm"
+        />
+      </div>
+
+      <PlansListPanel
+        v-if="activeTab === 'listado'"
+        :q="debouncedSearch"
+      />
+      <PipelineTabPanel
+        v-else
+        :tab="activeTab"
+        :q="debouncedSearch"
+      />
+    </template>
   </div>
 </template>

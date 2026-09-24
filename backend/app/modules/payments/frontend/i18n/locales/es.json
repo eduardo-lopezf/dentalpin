@@ -71,7 +71,7 @@
       "patientPlaceholder": "Buscar paciente...",
       "unknownPatient": "Paciente desconocido",
       "amount": "Importe",
-      "suggestedHint": "Pendiente de cobrar: {amount}",
+      "suggestedHint": "Por cobrar: {amount}",
       "useSuggested": "usar este importe",
       "method": "Método",
       "moreMethods": "Más opciones",
@@ -167,7 +167,7 @@
       "noteToOnAccount": "se ingresarán a cuenta del paciente."
     },
     "pendingCharges": {
-      "title": "Pendiente de cobrar",
+      "title": "Por cobrar",
       "count": "{n} sesiones",
       "more": "+ {n} más",
       "collect": "Cobrar {amount}",

@@ -804,15 +804,87 @@
         "empty": "Add at least one treatment to confirm the plan"
       },
       "ghostHint": "Available after confirming the plan",
+      "addTreatment": {
+        "added": "Treatment added on {tooth}",
+        "needsBudget": "The signed budget was left alone; you can price the addition afterwards.",
+        "failed": "Could not add the treatment"
+      },
+      "addendum": {
+        "created": "Budget {number} created for the added work",
+        "extended": "The added work joined budget {number}",
+        "description": "{count} treatment(s). The signed budget was left alone.",
+        "failed": "Could not price the added work"
+      },
+      "nextAction": {
+        "viewBudget": "View budget",
+        "add_treatments": {
+          "title": "Add the treatments",
+          "hint": "Tap a tooth on the chart, or apply a template to start faster."
+        },
+        "confirm_plan": {
+          "title": "Confirm the plan",
+          "hint": "Confirming produces the budget and unlocks scheduling and charging."
+        },
+        "generate_budget": {
+          "title": "Generate the budget",
+          "hint": "This plan has no budget, so there is nothing for the patient to accept."
+        },
+        "send_budget": {
+          "title": "Send the budget to the patient",
+          "hint": "It exists but has not been sent, so the patient has had no chance to accept it."
+        },
+        "budget_addendum": {
+          "title": "1 treatment without a price | {count} treatments without a price",
+          "hint": "Added after the plan was confirmed, so the signed budget does not cover it. | Added after the plan was confirmed, so the signed budget does not cover them.",
+          "cta": "Price the addition"
+        },
+        "awaiting_patient": {
+          "title": "Waiting on the patient",
+          "hint": "The budget is sent. From it you can remind them or record their acceptance."
+        },
+        "budget_expired": {
+          "title": "The budget has expired",
+          "hint": "Renew it so the patient can accept it again."
+        },
+        "budget_rejected": {
+          "title": "The patient rejected the budget",
+          "hint": "Renegotiate it from the budget, or close the plan."
+        },
+        "budget_cancelled": {
+          "title": "The budget is cancelled",
+          "hint": "Generate a new one so the plan can move on."
+        },
+        "schedule_first": {
+          "title": "Book the first appointment",
+          "hint": "The plan is approved and has no appointment yet."
+        },
+        "schedule_next": {
+          "title": "Book the next appointment",
+          "hint": "Treatments are still to do and there is no future appointment."
+        },
+        "next_appointment": {
+          "title": "Next appointment: {date}",
+          "hint": "All set. The remaining treatments happen at that visit."
+        },
+        "all_done": {
+          "title": "Every treatment is done",
+          "hint": "All that is left is collecting what is owed and closing the plan."
+        }
+      },
       "addedToPlan": "Added to plan",
       "addingToPlan": "Adding to this plan",
       "cancelPlan": "Cancel plan",
       "locked": {
-        "title": "Plan locked",
-        "subtitle": "Quote {number} has been issued. To edit treatments, use Reopen (if pending) or Renegotiate the quote.",
+        "title": "Plan confirmed",
+        "subtitle": "Treatments are no longer edited here. Changing them means reopening the plan, which cancels budget {number}.",
+        "subtitleNoBudget": "Treatments are no longer edited here. Changing them means reopening the plan.",
+        "overTitle": "Plan finished",
+        "closedSubtitle": "It stays as a record. Reactivate it to pick it up again.",
+        "completedSubtitle": "Every treatment is done. It stays as a record; if one was closed by mistake, reopen it from its own dialog.",
         "viewBudget": "View quote"
       },
       "chartLocked": {
+        "addHere": "Add a treatment on {tooth}",
         "title": "Odontogram locked",
         "reopenToEdit": "This plan is under way. Reopen it to draw treatments on the odontogram again.",
         "reopenNotYours": "This plan is under way. To edit the odontogram it has to be reopened by an administrator or a professional assigned to the case.",
@@ -903,6 +975,8 @@
         "pickingTeeth": "Tap the teeth for “{name}”. Tap one again to take it off.",
         "dropTooth": "Remove tooth {tooth}",
         "needsTooth": "No tooth yet",
+        "unpriced": "1 treatment has no price in the catalog, so it adds nothing to the total. | {count} treatments have no price in the catalog, so they add nothing to the total.",
+        "unpricedFix": "Give them a price in the catalog",
         "continue": "Continue",
         "backToChart": "Back to the chart",
         "defaultTitle": "Treatment Plan for {name}",
@@ -1260,7 +1334,7 @@
       }
     },
     "cabinetsDescription": "Rooms or boxes where patients are treated.",
-    "usersDescription": "Accounts with access to this clinic and their roles.",
+    "usersDescription": "Accounts that can sign in, with their role in this clinic.",
     "profileDescription": "Your personal information in this clinic.",
     "clinic": "Clinic",
     "profile": "Profile",
@@ -1291,9 +1365,14 @@
     "newUser": "New User",
     "createUser": "Create User",
     "editUser": "Edit User",
-    "deleteUser": "Delete User",
-    "deleteUserConfirm": "Are you sure you want to remove",
-    "deleteUserNote": "The user will lose access to this clinic but their account will not be deleted.",
+    "removeFromClinic": "Remove from clinic",
+    "removeFromClinicAction": "Remove",
+    "removeFromClinicConfirm": "Remove from this clinic:",
+    "removeFromClinicNote": "They lose access to this clinic. The account is not deleted: if they should not get in anywhere, deactivate it.",
+    "blockAccess": "Block this account from signing in",
+    "allowAccess": "Let this account sign in again",
+    "noClinicAccess": "No access to this clinic",
+    "noClinicAccessHint": "This account can sign in but does not belong to this clinic. Deactivate it if it should no longer get in.",
     "noUsers": "No users registered",
     "youTag": "(you)",
     "userActive": "User active",
@@ -1318,7 +1397,7 @@
       "loadUsers": "Error loading users",
       "createUser": "Error creating user",
       "updateUser": "Error updating user",
-      "deleteUser": "Error deleting user",
+      "removeFromClinic": "Could not remove the user from the clinic",
       "emailExists": "Email already exists",
       "userNotFound": "User not found",
       "operationNotAllowed": "Operation not allowed",
@@ -1326,8 +1405,10 @@
     },
     "messages": {
       "userCreated": "User created successfully",
+      "accessBlocked": "This account can no longer sign in.",
+      "accessAllowed": "This account can sign in again.",
       "userUpdated": "User updated successfully",
-      "userDeleted": "User removed from clinic"
+      "userRemoved": "User removed from the clinic"
     },
     "modules": {
       "title": "Modules",
@@ -1873,7 +1954,7 @@
     "scheduleAppointment": "Schedule appointment",
     "status": {
       "draft": "Draft",
-      "pending": "In progress",
+      "pending": "Awaiting acceptance",
       "active": "Active",
       "completed": "Completed",
       "closed": "Closed",
@@ -2037,7 +2118,8 @@
     "modals": {
       "confirm": {
         "title": "Confirm plan",
-        "description": "The plan will move to Pending and a draft quote will be auto-created. Treatments become read-only once confirmed.",
+        "unpriced": "1 treatment goes in without a price, so the budget will not charge for it. | {count} treatments go in without a price, so the budget will not charge for them.",
+        "description": "The plan will move to Awaiting acceptance and a draft quote will be auto-created. You can keep adding treatments after that, but changing or removing the ones already in it asks to reopen the plan.",
         "submit": "Confirm plan"
       },
       "reopen": {
@@ -2080,6 +2162,30 @@
         "item_added": "Treatment added",
         "item_removed": "Treatment removed",
         "item_reopened": "Treatment reopened"
+      }
+    }
+  },
+  "plansFirstRun": {
+    "title": "No treatment plans yet",
+    "subtitle": "A plan gathers what a patient needs, and the budget, the appointments and the charges all come from it. Start with the first one.",
+    "create": "Create the first plan",
+    "ready": "Done · {count}",
+    "needsCatalog": "With no catalog there is nothing to put in a plan: load the treatments and their prices first.",
+    "steps": {
+      "catalog": {
+        "title": "Treatment catalog",
+        "hint": "With prices: it is where a plan reads what each thing costs.",
+        "action": "Load the catalog"
+      },
+      "professionals": {
+        "title": "Professionals",
+        "hint": "Who does the work, so it can be assigned and booked.",
+        "action": "Add them"
+      },
+      "patients": {
+        "title": "Patients",
+        "hint": "A plan belongs to someone. You can also create them while drawing the plan.",
+        "action": "Add patients"
       }
     }
   },
@@ -3272,12 +3378,18 @@
   },
   "payments": {
     "plan": {
-      "title": "Patient collections",
-      "nothingPending": "Nothing pending to collect.",
-      "pendingLabel": "Pending to collect",
+      "title": "This plan's charges",
+      "nothingPending": "Nothing to collect.",
+      "pendingLabel": "To collect",
       "pendingHint": "{count} item(s) performed and unpaid",
       "charge": "Charge",
-      "chargeNeedsConfirm": "Confirm the treatment plan before charging."
+      "chargeNeedsConfirm": "Confirm the treatment plan before charging.",
+      "planPendingLabel": "To collect for this plan",
+      "planned": "Planned",
+      "done": "Performed",
+      "collected": "Collected",
+      "earnedRule": "It becomes chargeable as you complete treatments.",
+      "patientOwes": "This patient owes {amount} in total, across every plan."
     },
     "schedule": {
       "title": "Payment schedule",

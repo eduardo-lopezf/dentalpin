@@ -16,6 +16,13 @@ defineProps<{
    * above the usual description so the answer arrives with its question.
    */
   reason?: string | null
+  /**
+   * Treatments in the plan the catalog gives no price for. The total above
+   * counts them as zero, and confirming turns that total into the budget
+   * the patient is asked to sign — so this is the last moment the figure
+   * can be questioned without a renegotiation.
+   */
+  unpricedCount?: number
 }>()
 
 const emit = defineEmits<{
@@ -61,6 +68,18 @@ const { format: formatCurrency } = useCurrency()
             </div>
             <div v-if="totalEstimated !== null && totalEstimated !== undefined">
               {{ formatCurrency(totalEstimated) }}
+            </div>
+            <div
+              v-if="unpricedCount"
+              class="flex items-start gap-2 text-warning pt-1"
+            >
+              <UIcon
+                name="i-lucide-circle-alert"
+                class="w-4 h-4 shrink-0 mt-0.5"
+              />
+              <span>
+                {{ t('treatmentPlans.modals.confirm.unpriced', { count: unpricedCount }, unpricedCount) }}
+              </span>
             </div>
           </div>
         </div>

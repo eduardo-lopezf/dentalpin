@@ -1,6 +1,64 @@
 # Changelog — frontend
 
 ## Unreleased
+
+- feat(treatment_plan): claves `clinical.plans.draft.unpriced*` y `treatmentPlans.modals.confirm.unpriced` para los avisos de tratamientos sin precio.
+- feat(treatment_plan): nuevo `PlansFirstRun` y claves `plansFirstRun.*` para la bandeja de una clínica sin planes.
+
+- feat(treatment_plan): la franja del plan gana *N tratamientos sin presupuestar* con *Presupuestar lo añadido*, y el aviso del odontograma bloqueado ofrece *Añadir tratamiento en el {pieza}*. Nuevos tipos `unbudgeted_count` / `other_budgets` y claves `clinical.plans.addendum.*` y `clinical.plans.addTreatment.*`.
+- fix(ui): **"Eliminar Usuario" no eliminaba a nadie.** `DELETE
+  /auth/users/{id}` quita la membresía de la clínica y conserva la cuenta,
+  así que el botón, el título del diálogo y el icono de papelera prometían
+  algo que no ocurría — y hasta el arreglo del login, además dejaban a esa
+  persona con su acceso intacto.
+
+  Ahora se llama **Quitar de la clínica**, el icono es `user-minus` en vez
+  de una papelera, el botón del diálogo dice «Quitar», y la nota explica la
+  salida real: la cuenta sigue existiendo, y si no debe poder entrar en
+  ningún sitio hay que desactivarla. La función del composable también deja
+  de llamarse `deleteUser`.
+- feat(treatment_plan): vocabulario del plan — `treatmentPlans.status.pending` pasa a *Esperando aceptación*, `clinical.plans.locked.*` se reescribe por estado (confirmado / terminado / cerrado) y el dinero sin cobrar es *Por cobrar*. Nuevas entradas en `docs/glossary.md`.
+
+- feat(treatment_plan): la franja *qué toca ahora* del detalle del plan añade `PlanNextAction` a los tipos y `clinical.plans.nextAction.*` a los locales; `payments.plan.*` gana las cuatro etiquetas de las cifras del plan y la tarjeta pasa a llamarse *Cobros de este plan*.
+- feat(auth): **sin clínica no se entra, y una cuenta ajena se puede
+  cortar.** Dos mitades del mismo agujero que dejó un acceso vivo e
+  invisible en producción.
+
+  `/auth/login` solo pedía contraseña y cuenta activa, así que una cuenta
+  sin ninguna membresía entraba con `clinic_id = None`: incapaz de hacer
+  nada y ausente de la única pantalla que podía pararla. Y no es un estado
+  raro — `DELETE /auth/users/{id}` **borra la membresía y conserva la
+  cuenta**, de modo que "quitar del equipo" dejaba un login funcionando.
+  Ahora sin membresía no hay sesión, lo que además hace que quitar a
+  alguien signifique lo que dice.
+
+  Eso no alcanza a una cuenta varada en **otra** clínica —lo que deja
+  sembrar sobre una instalación que ya tenía la suya—, así que la pantalla
+  gana un interruptor para esas filas: bloquear o permitir el inicio de
+  sesión, y nada más. Ni nombre, ni correo, ni rol: quien no es personal de
+  esta clínica no es nuestro para editarlo. Es reversible, y al bloquear
+  sube `token_version`, que es lo que corta la sesión ya abierta.
+- fix(auth): **una cuenta que puede entrar pero que nadie veía.** La lista
+  de usuarios se construía uniendo `ClinicMembership` de la clínica de
+  quien pregunta, mientras que `/auth/login` nunca ha exigido membresía.
+  El resultado es el peor par posible: una cuenta invisible, sin forma de
+  desactivarla, con una contraseña que funciona.
+
+  No es hipotético. Una instalación tiene una sola clínica —nada crea una
+  segunda salvo `/auth/setup` y `seed_demo.py`—, así que sembrar sobre una
+  instalación que ya tenía la suya deja a los usuarios originales detrás de
+  una clínica que el administrador ya no está mirando. Así acabó un
+  servidor en producción con un acceso que no podía ver ni cortar.
+
+  Ahora la lista enseña **todas** las cuentas que pueden iniciar sesión y
+  marca cuáles no tienen acceso a esta clínica. Es una excepción
+  deliberada a la regla de filtrar por `clinic_id`, y está acotada: se dice
+  quién puede entrar y si tiene acceso aquí, nunca a qué otra clínica
+  pertenece ni con qué rol.
+
+  Las filas sin acceso **no ofrecen editar ni borrar**: ambas resuelven el
+  usuario a través de una membresía en esta clínica y responderían 404, así
+  que serían botones que mienten.
 - i18n: `clinical.plans.item.{remove,editOrRemove,needsConfirm,locked.*}` y `payments.plan.chargeNeedsConfirm`.
 - test(e2e): `tablet-plan-gates.spec.ts` recorre borrador → confirmar → en proceso → reabrir en las dos orientaciones, creando y borrando su propio plan.
 - i18n: `budget.emptyFromPlan`, `patientDetail.budgetsComeFromPlan` y `patientDetail.goToPlans`; `budget.emptyAction` pasa a «Ir a planes de tratamiento». `patientDetail.createBudget` y `patientDetail.actions.newBudget` quedan sin uso.

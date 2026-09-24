@@ -804,15 +804,87 @@
         "empty": "Añade al menos un tratamiento para confirmar el plan"
       },
       "ghostHint": "Disponible tras confirmar el plan",
+      "addTreatment": {
+        "added": "Tratamiento añadido en el {tooth}",
+        "needsBudget": "El presupuesto firmado no se ha tocado; después podrás presupuestar lo añadido.",
+        "failed": "No se ha podido añadir el tratamiento"
+      },
+      "addendum": {
+        "created": "Presupuesto {number} creado para lo añadido",
+        "extended": "Lo añadido se ha incluido en el presupuesto {number}",
+        "description": "{count} tratamiento(s). El presupuesto firmado no se ha tocado.",
+        "failed": "No se ha podido presupuestar lo añadido"
+      },
+      "nextAction": {
+        "viewBudget": "Ver presupuesto",
+        "add_treatments": {
+          "title": "Añade los tratamientos",
+          "hint": "Toca una pieza del odontograma, o aplica una plantilla para empezar más rápido."
+        },
+        "confirm_plan": {
+          "title": "Confirma el plan",
+          "hint": "Al confirmar se genera el presupuesto y se pueden agendar citas y cobrar."
+        },
+        "generate_budget": {
+          "title": "Genera el presupuesto",
+          "hint": "Este plan no tiene presupuesto: sin él el paciente no puede aceptar nada."
+        },
+        "send_budget": {
+          "title": "Envía el presupuesto al paciente",
+          "hint": "Está creado pero sin enviar, así que el paciente todavía no ha podido aceptarlo."
+        },
+        "budget_addendum": {
+          "title": "1 tratamiento sin presupuestar | {count} tratamientos sin presupuestar",
+          "hint": "Añadido después de confirmar el plan, así que el presupuesto firmado no lo incluye. | Añadidos después de confirmar el plan, así que el presupuesto firmado no los incluye.",
+          "cta": "Presupuestar lo añadido"
+        },
+        "awaiting_patient": {
+          "title": "Esperando respuesta del paciente",
+          "hint": "El presupuesto está enviado. Desde él puedes recordárselo o registrar que lo acepta."
+        },
+        "budget_expired": {
+          "title": "El presupuesto ha caducado",
+          "hint": "Renuévalo para que el paciente pueda volver a aceptarlo."
+        },
+        "budget_rejected": {
+          "title": "El paciente rechazó el presupuesto",
+          "hint": "Puedes renegociarlo desde el presupuesto o cerrar el plan."
+        },
+        "budget_cancelled": {
+          "title": "El presupuesto está anulado",
+          "hint": "Genera uno nuevo para que el plan pueda seguir."
+        },
+        "schedule_first": {
+          "title": "Agenda la primera cita",
+          "hint": "El plan está aprobado y todavía no tiene ninguna cita."
+        },
+        "schedule_next": {
+          "title": "Agenda la próxima cita",
+          "hint": "Quedan tratamientos por hacer y no hay ninguna cita futura."
+        },
+        "next_appointment": {
+          "title": "Próxima cita: {date}",
+          "hint": "Todo en orden. Los tratamientos pendientes se harán en esa cita."
+        },
+        "all_done": {
+          "title": "Todos los tratamientos están hechos",
+          "hint": "Ya solo queda cobrar lo que falte y cerrar el plan."
+        }
+      },
       "addedToPlan": "Añadido al plan",
       "addingToPlan": "Añadiendo a este plan",
       "cancelPlan": "Cancelar plan",
       "locked": {
-        "title": "Plan bloqueado",
-        "subtitle": "Presupuesto {number} emitido. Para editar tratamientos, usa Reabrir (si está pendiente) o Renegociar el presupuesto.",
+        "title": "Plan confirmado",
+        "subtitle": "Los tratamientos ya no se editan aquí. Para cambiarlos hay que reabrir el plan, y eso anula el presupuesto {number}.",
+        "subtitleNoBudget": "Los tratamientos ya no se editan aquí. Para cambiarlos hay que reabrir el plan.",
+        "overTitle": "Plan terminado",
+        "closedSubtitle": "Queda como registro. Para retomarlo, reactívalo.",
+        "completedSubtitle": "Todos sus tratamientos están hechos. Queda como registro; si alguno se cerró por error, reábrelo desde su ficha.",
         "viewBudget": "Ver presupuesto"
       },
       "chartLocked": {
+        "addHere": "Añadir tratamiento en el {tooth}",
         "title": "Odontograma bloqueado",
         "reopenToEdit": "El plan está en curso. Reábrelo para volver a dibujar tratamientos en el odontograma.",
         "reopenNotYours": "El plan está en curso. Para modificar el odontograma tiene que reabrirlo un administrador o un profesional asignado al caso.",
@@ -903,6 +975,8 @@
         "pickingTeeth": "Toca las piezas de «{name}». Vuelve a tocar una para quitarla.",
         "dropTooth": "Quitar la pieza {tooth}",
         "needsTooth": "Falta la pieza",
+        "unpriced": "1 tratamiento sin precio en el catálogo: no suma al total. | {count} tratamientos sin precio en el catálogo: no suman al total.",
+        "unpricedFix": "Ponerles precio en el catálogo",
         "continue": "Continuar",
         "backToChart": "Volver al odontograma",
         "defaultTitle": "Plan de Tratamiento para {name}",
@@ -1260,7 +1334,7 @@
       }
     },
     "cabinetsDescription": "Salas o boxes donde se atiende a pacientes.",
-    "usersDescription": "Cuentas con acceso a esta clínica y sus roles.",
+    "usersDescription": "Cuentas que pueden iniciar sesión, con su rol en esta clínica.",
     "profileDescription": "Tu información personal en esta clínica.",
     "clinic": "Clínica",
     "profile": "Perfil",
@@ -1291,9 +1365,14 @@
     "newUser": "Nuevo Usuario",
     "createUser": "Crear Usuario",
     "editUser": "Editar Usuario",
-    "deleteUser": "Eliminar Usuario",
-    "deleteUserConfirm": "¿Estás seguro de que deseas eliminar a",
-    "deleteUserNote": "El usuario perderá acceso a esta clínica pero su cuenta no será eliminada.",
+    "removeFromClinic": "Quitar de la clínica",
+    "removeFromClinicAction": "Quitar",
+    "removeFromClinicConfirm": "¿Quitar de esta clínica a",
+    "removeFromClinicNote": "Pierde el acceso a esta clínica. La cuenta no se elimina: si no debe poder entrar en ningún sitio, desactívala.",
+    "blockAccess": "Bloquear el acceso de esta cuenta",
+    "allowAccess": "Permitir el acceso de esta cuenta",
+    "noClinicAccess": "Sin acceso a esta clínica",
+    "noClinicAccessHint": "Esta cuenta puede iniciar sesión pero no pertenece a esta clínica. Desactívala si ya no debe entrar.",
     "noUsers": "No hay usuarios registrados",
     "youTag": "(tú)",
     "userActive": "Usuario activo",
@@ -1318,7 +1397,7 @@
       "loadUsers": "Error al cargar usuarios",
       "createUser": "Error al crear usuario",
       "updateUser": "Error al actualizar usuario",
-      "deleteUser": "Error al eliminar usuario",
+      "removeFromClinic": "No se pudo quitar al usuario de la clínica",
       "emailExists": "El email ya existe",
       "userNotFound": "Usuario no encontrado",
       "operationNotAllowed": "Operación no permitida",
@@ -1326,8 +1405,10 @@
     },
     "messages": {
       "userCreated": "Usuario creado correctamente",
+      "accessBlocked": "Esta cuenta ya no puede iniciar sesión.",
+      "accessAllowed": "Esta cuenta vuelve a poder iniciar sesión.",
       "userUpdated": "Usuario actualizado correctamente",
-      "userDeleted": "Usuario eliminado de la clínica"
+      "userRemoved": "Usuario quitado de la clínica"
     },
     "modules": {
       "title": "Módulos",
@@ -1873,7 +1954,7 @@
     "scheduleAppointment": "Programar cita",
     "status": {
       "draft": "Borrador",
-      "pending": "En curso",
+      "pending": "Esperando aceptación",
       "active": "Activo",
       "completed": "Completado",
       "closed": "Cerrado",
@@ -2037,7 +2118,8 @@
     "modals": {
       "confirm": {
         "title": "Confirmar plan",
-        "description": "El plan pasará a Pendiente y se generará un presupuesto borrador para que recepción lo revise. Una vez confirmado, los tratamientos quedan bloqueados.",
+        "unpriced": "1 tratamiento entra sin precio, así que el presupuesto no lo cobrará. | {count} tratamientos entran sin precio, así que el presupuesto no los cobrará.",
+        "description": "El plan pasará a Esperando aceptación y se generará un presupuesto borrador para que recepción lo revise. A partir de ahí podrás seguir añadiendo tratamientos, pero cambiar o quitar los que ya están pedirá reabrir el plan.",
         "submit": "Confirmar plan"
       },
       "reopen": {
@@ -2080,6 +2162,30 @@
         "item_added": "Tratamiento añadido",
         "item_removed": "Tratamiento eliminado",
         "item_reopened": "Tratamiento reabierto"
+      }
+    }
+  },
+  "plansFirstRun": {
+    "title": "Aún no hay planes de tratamiento",
+    "subtitle": "Un plan reúne lo que un paciente necesita, y de él salen el presupuesto, las citas y los cobros. Empieza por el primero.",
+    "create": "Crear el primer plan",
+    "ready": "Listo · {count}",
+    "needsCatalog": "Sin catálogo no hay nada que añadir al plan: carga los tratamientos y sus precios primero.",
+    "steps": {
+      "catalog": {
+        "title": "Catálogo de tratamientos",
+        "hint": "Con sus precios: de ahí saca el plan lo que cuesta cada cosa.",
+        "action": "Cargar el catálogo"
+      },
+      "professionals": {
+        "title": "Profesionales",
+        "hint": "Quién hace el trabajo, para poder asignarlo y agendarlo.",
+        "action": "Dar de alta"
+      },
+      "patients": {
+        "title": "Pacientes",
+        "hint": "Un plan es de alguien. También puedes crearlo mientras dibujas el plan.",
+        "action": "Añadir pacientes"
       }
     }
   },
@@ -3272,12 +3378,18 @@
   },
   "payments": {
     "plan": {
-      "title": "Cobros del paciente",
-      "nothingPending": "No hay nada pendiente de cobrar.",
-      "pendingLabel": "Pendiente de cobrar",
+      "title": "Cobros de este plan",
+      "nothingPending": "No hay nada por cobrar.",
+      "pendingLabel": "Por cobrar",
       "pendingHint": "{count} concepto(s) ejecutados y sin cobrar",
       "charge": "Cobrar",
-      "chargeNeedsConfirm": "Confirma el plan de tratamiento para poder cobrar."
+      "chargeNeedsConfirm": "Confirma el plan de tratamiento para poder cobrar.",
+      "planPendingLabel": "Por cobrar de este plan",
+      "planned": "Presupuestado",
+      "done": "Realizado",
+      "collected": "Cobrado",
+      "earnedRule": "Se va pudiendo cobrar a medida que completas tratamientos.",
+      "patientOwes": "El paciente debe {amount} en total, contando otros planes."
     },
     "schedule": {
       "title": "Calendario de pagos",

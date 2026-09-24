@@ -14,6 +14,7 @@ related_endpoints:
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/reopen
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/status
   - POST /api/v1/treatment_plan/treatment-plans
+  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/budget-addendum
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/close
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/apply-template
   - GET /api/v1/treatment_plan/treatment-plans/{plan_id}/proposals
@@ -42,13 +43,14 @@ related_permissions:
 related_paths:
   - backend/app/modules/treatment_plan/frontend/pages/treatments/plans/[id].vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/PlanDetailView.vue
+  - backend/app/modules/treatment_plan/frontend/components/clinical/PlanNextActionBar.vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/PlanTreatmentList.vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/modals/PlanItemDetailModal.vue
   - backend/app/modules/treatment_plan/frontend/components/clinical/modals/PlanItemPrescriptionModal.vue
   - backend/app/modules/treatment_plan/prescriptions.py
   - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: bddda82
+last_verified_commit: 75cd119
 ---
 
 # Treatment plan detail
@@ -168,6 +170,35 @@ of what happened.
   plan (complete, remove), which is what stops "open something" and
   "change the plan" sitting a finger apart.
 
+## What happens next
+
+Under the title, a bar names **the one thing** that moves the plan on,
+and carries the button that does it. It exists because a plan changes
+hands three times — the dentist plans it, the patient accepts the budget,
+reception books the chair — and the handover was invisible: confirmed
+plans sat still with the budget unsent, nobody aware it was theirs.
+
+| The bar says… | Because… | And the button goes to… |
+|---|---|---|
+| **Add the treatments** | the draft is empty | — (the chart, or a template) |
+| **Confirm the plan** | it has treatments and is still a draft | *Confirmar plan* |
+| **Generate the budget** | the plan moved on without one | *Generar presupuesto* |
+| **Send the budget to the patient** | it exists but has not been sent | the budget |
+| **Waiting on the patient** | it is sent; their turn | the budget |
+| **The budget expired / was rejected / is cancelled** | it needs renewing or renegotiating | the budget |
+| **N treatments without a price** | they were added after confirmation | *Price the addition* |
+| **Book the first / the next appointment** | treatments remain and no future visit | *Programar cita* |
+| **Next appointment: …** | all set | — |
+| **Every treatment is done** | only collecting and closing are left | — |
+
+Always **one**: a list of everything outstanding is a report, and the
+report is exactly what nobody read. On a completed or closed plan the bar
+is absent. It renders in the patient record too, buttons and all; someone
+without write access to the record sees the sentence without them.
+
+Colour says whose turn it is: blue, yours; amber, something went wrong;
+green or grey, nothing to do.
+
 ## Confirm a plan
 
 > Requires `treatment_plan.plans.confirm`.
@@ -185,13 +216,14 @@ It depends on where the plan is, not on whether it has a budget:
 | The plan is… | On a treatment you can… |
 |---|---|
 | **Draft** | Edit and **remove** it (from its dialog or the row's trash). Completing or charging **asks to confirm the plan** first. |
-| **In progress** (pending or active) | **Complete** and **charge**. Editing or removing **asks to reopen the plan**. |
+| **In progress** (pending or active) | **Complete**, **charge** and **add** new treatments. Editing or removing one already accepted **asks to reopen the plan**. |
 | Completed or closed | Read it; reactivating the plan is the way back. |
 
 - **Charging or completing on a draft** opens *Confirmar plan* with the
   reason written on it: "to complete or charge a treatment, the whole plan
-  has to be confirmed first". **Confirm** and the plan moves to *En curso*,
-  its draft budget is produced, and what you asked for is carried out.
+  has to be confirmed first". **Confirm** and the plan moves to *Awaiting
+  acceptance*, its draft budget is produced, and what you asked for is
+  carried out.
   **Cancel** and the plan stays a draft, untouched.
 - **Editing or removing on a plan in progress** opens *Reabrir plan para
   editar*, which warns that **the current budget will be cancelled**.
@@ -199,10 +231,66 @@ It depends on where the plan is, not on whether it has a budget:
 - Reopening is for an administrator or the professional the case is
   assigned to. Anyone else sees "you do not have permission to reopen this
   plan" and the plan does not move.
+- Under the *what happens next* bar, a grey note recalls that **a confirmed
+  plan's treatments are no longer edited there** and what changing them
+  costs (reopening cancels the budget). It follows the plan's **status**,
+  not whether a budget exists: an active plan with no budget is settled too
+  and used to say nothing. On a finished plan it reads *Plan terminado*, and only a closed one is
+  pointed at reactivating, since that is the only one with the button.
+  Grey on purpose: this is where a plan spends most of its life, and an
+  amber warning that is right every day stops being read.
 - Notes, recalls and prescriptions work in either state: they are clinical
   acts, not changes to the plan.
-- The **Cobros del paciente** card offers no *Cobrar* while the plan is a
+- The **Cobros de este plan** card offers no *Cobrar* while the plan is a
   draft; it says what is missing.
+
+### This plan's charges
+
+The card carries four figures, and every one of them is **this plan's**:
+
+- **To charge for this plan**, large and on top: the only one that calls
+  for an action.
+- **Planned**: what the whole plan is worth.
+- **Performed**: the part actually carried out, which is what may be
+  charged. A 19,020 plan with 120 performed can charge 120.
+- **Collected**: how much of that is in.
+
+Below, and **only when it adds something**, a line gives what the patient
+owes *in total*, across every plan. It can exceed the plan's own: a
+patient owes what they owe across the practice, and reading one figure as
+the other is how the wrong amount gets asked for.
+
+While nothing has been performed, the card states the rule: *it becomes
+chargeable as you complete treatments*. That sentence answers the
+question a 0 on a plan worth thousands otherwise raises.
+
+### Adding to a plan in progress
+
+Finding a second caries halfway through a plan is ordinary, and it used to
+be expensive: you had to reopen the plan, which **cancelled the budget the
+patient had already signed**, confirm it again and have them accept it all
+over.
+
+**Adding is now allowed while the plan is in progress.** It changes none of
+the lines the patient agreed to, so their budget is left alone.
+
+1. Tap the tooth on the chart. The plan is confirmed, so the chart is
+   read-only and answers with a notice — and on it, **Añadir tratamiento en
+   el {tooth}**.
+2. The builder's own search panel opens, already fixed on that tooth. Pick
+   the treatment and it joins the plan.
+3. The bar at the top turns into **"N treatments without a price"**, with
+   **Price the addition**.
+4. That produces a **separate budget** holding only the new work, in draft,
+   which the patient accepts on its own. The signed one is untouched, and
+   both hang off the plan.
+
+None of this is needed while the plan's budget is still a **draft**: what
+you add joins it by itself, because nobody has been shown a figure yet.
+
+**Editing or removing** a treatment already accepted still asks to reopen
+the plan. That is the difference: adding takes nothing away from the
+patient, changing a price or dropping a line does.
 
 ## Mark items as performed
 

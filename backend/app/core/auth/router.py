@@ -42,6 +42,7 @@ from .schemas import (
     SystemSetup,
     TokenRefresh,
     TokenResponse,
+    UserAccessUpdate,
     UserCreate,
     UserResponse,
     UserUpdate,
@@ -225,10 +226,24 @@ async def login(
             detail="User account is inactive",
         )
 
-    # Get first clinic ID if user has any membership
-    clinic_id = None
-    if user.memberships:
-        clinic_id = user.memberships[0].clinic_id
+    # No clinic, no sign-in.
+    #
+    # This used to let the account in with ``clinic_id = None``, able to do
+    # nothing — every endpoint resolves a clinic — but holding a working
+    # password that no screen showed: ``GET /users`` lists by membership,
+    # so an account without one was invisible.
+    #
+    # Accounts reach that state through the product, not by accident:
+    # ``DELETE /auth/users/{id}`` removes the membership and keeps the
+    # account, so "remove from the clinic" left a login behind. This is
+    # what makes that removal mean what it says.
+    if not user.memberships:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is not assigned to a clinic",
+        )
+
+    clinic_id = user.memberships[0].clinic_id
 
     # Generate tokens. The session row is what makes this login endable
     # later — by logout, or by reuse detection killing its family.
@@ -444,26 +459,53 @@ async def list_users(
     _: Annotated[None, Depends(require_permission("admin.users.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> PaginatedApiResponse[UserWithRoleResponse]:
-    """List all users in the current clinic (admin only)."""
-    # Fetch all memberships for this clinic with user data
-    result = await db.execute(
-        select(ClinicMembership)
-        .options(selectinload(ClinicMembership.user))
-        .where(ClinicMembership.clinic_id == ctx.clinic_id)
+    """Every account that can sign in, and its role here (admin only).
+
+    **Not scoped to the clinic, on purpose.** Every other query filters by
+    ``clinic_id`` (`CLAUDE.md`); this one cannot, because the thing an
+    admin needs to see is precisely the account that is *not* in their
+    clinic and can still log in. ``/auth/login`` never required a
+    membership, so a user stranded outside the clinic keeps a working
+    password while being absent from the only screen that could
+    deactivate it.
+
+    That is how a live server ended up with an invisible, working login:
+    a deployment holds one clinic — nothing creates a second but
+    ``/auth/setup`` and ``seed_demo.py`` — and seeding over an
+    installation that already had one leaves its users behind a clinic
+    the admin is no longer looking at.
+
+    What crosses the boundary is bounded to what an operator must act on:
+    who can sign in, whether they are active, and whether they have access
+    here. Not which other clinic they belong to, nor their role in it.
+    """
+    memberships = (
+        (
+            await db.execute(
+                select(ClinicMembership).where(ClinicMembership.clinic_id == ctx.clinic_id)
+            )
+        )
+        .scalars()
+        .all()
     )
-    memberships = result.scalars().all()
+    role_here = {m.user_id: m.role for m in memberships}
+
+    # Every account, so one row per user rather than one per membership:
+    # a user who belongs here *and* elsewhere is one person.
+    all_users = (await db.execute(select(User).order_by(User.created_at))).scalars().all()
 
     users = [
         UserWithRoleResponse(
-            id=m.user.id,
-            email=m.user.email,
-            first_name=m.user.first_name,
-            last_name=m.user.last_name,
-            is_active=m.user.is_active,
-            role=m.role,
-            created_at=m.user.created_at.isoformat(),
+            id=u.id,
+            email=u.email,
+            first_name=u.first_name,
+            last_name=u.last_name,
+            is_active=u.is_active,
+            role=role_here.get(u.id),
+            has_clinic_access=u.id in role_here,
+            created_at=u.created_at.isoformat(),
         )
-        for m in memberships
+        for u in all_users
     ]
 
     return PaginatedApiResponse(
@@ -664,6 +706,80 @@ async def list_professionals(
         total=len(professionals),
         page=1,
         page_size=len(professionals),
+    )
+
+
+@router.patch("/users/{user_id}/active", response_model=ApiResponse[UserWithRoleResponse])
+async def set_user_active(
+    user_id: UUID,
+    data: UserAccessUpdate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("admin.users.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[UserWithRoleResponse]:
+    """Turn sign-in on or off for an account with no access to this clinic.
+
+    The companion to listing those accounts (`GET /users`). Refusing them
+    at login covers the ones that belong to no clinic at all; it cannot
+    reach one stranded in *another* clinic row, which is what seeding over
+    an existing installation leaves behind. Only an operator can decide
+    such an account should stop working, so this is the operator's switch.
+
+    **Deliberately narrow.** It sets one flag and nothing else: not the
+    name, not the email, not a role. Editing the details of somebody who
+    is not this clinic's staff is not an operator decision, and granting
+    them a role here is `POST /users` or `PUT /users/{id}`.
+
+    It assumes what the product already assumes: one clinic per
+    deployment. Nothing creates a second but `/auth/setup` and
+    `seed_demo.py`, so an account outside this clinic is residue of the
+    same installation rather than another tenant's staff.
+    """
+    if user_id == ctx.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change your own access",
+        )
+
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    member_here = (
+        await db.execute(
+            select(ClinicMembership)
+            .where(ClinicMembership.user_id == user_id)
+            .where(ClinicMembership.clinic_id == ctx.clinic_id)
+        )
+    ).scalar_one_or_none()
+    if member_here is not None:
+        # One way to do a thing: this clinic's staff are managed through the
+        # endpoint that also carries their role and profile.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This user belongs to your clinic; update them with PUT /auth/users/{id}",
+        )
+
+    user.is_active = data.is_active
+    if not data.is_active:
+        # Same switch `update_user` throws: access tokens are stateless and
+        # live 15 minutes, and this is what stops the one already issued.
+        # The refresh path checks `is_active` on its own.
+        user.token_version += 1
+    await db.commit()
+    await db.refresh(user)
+
+    return ApiResponse(
+        data=UserWithRoleResponse(
+            id=user.id,
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            is_active=user.is_active,
+            role=None,
+            has_clinic_access=False,
+            created_at=user.created_at.isoformat(),
+        )
     )
 
 

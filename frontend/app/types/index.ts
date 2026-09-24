@@ -2461,12 +2461,43 @@ export interface TreatmentPlan {
   budget?: BudgetBrief
 }
 
+/**
+ * The one thing that has to happen for a plan to move on, computed per
+ * request by the backend. The key is the contract; the copy lives in the
+ * locales. `null` once the plan is over.
+ */
+export interface PlanNextAction {
+  key:
+    | 'add_treatments'
+    | 'confirm_plan'
+    | 'generate_budget'
+    | 'send_budget'
+    | 'awaiting_patient'
+    | 'budget_expired'
+    | 'budget_rejected'
+    | 'budget_cancelled'
+    | 'budget_addendum'
+    | 'schedule_first'
+    | 'schedule_next'
+    | 'next_appointment'
+    | 'all_done'
+  budget_status?: string | null
+  next_appointment_at?: string | null
+  /** Only for `budget_addendum`: treatments added after confirmation. */
+  unbudgeted_count?: number | null
+}
+
 export interface TreatmentPlanDetail extends TreatmentPlan {
   diagnosis_notes?: string
   internal_notes?: string
   items: PlannedTreatmentItem[]
   patient?: PatientBrief
   budget?: BudgetBrief
+  next_action?: PlanNextAction | null
+  /** Treatments added after the plan was confirmed that no budget prices. */
+  unbudgeted_count?: number
+  /** The plan's other live budgets — its addenda. */
+  other_budgets?: BudgetBrief[]
 }
 
 export interface TreatmentPlanCreate {

@@ -388,10 +388,18 @@ async def test_delete_plan_keeps_performed_treatments(
 
 
 @pytest.mark.asyncio
-async def test_add_item_blocked_when_budget_generated(
+async def test_add_item_allowed_after_the_budget_exists(
     client: AsyncClient, auth_headers: dict, setup: dict
 ) -> None:
-    """Generating a budget locks the plan — further items are rejected with 409."""
+    """The lock guards *changing* a plan, not filling it.
+
+    This used to assert 409: a budget locked the plan against everything,
+    so a caries found mid-treatment could only be planned by reopening —
+    which cancels the budget the patient signed. Adding takes nothing away
+    from what they agreed to, so it is allowed, and the new work is priced
+    by an addendum (`test_treatment_plan_addendum.py`). Removing and
+    editing still refuse; the two tests below pin that.
+    """
     plan_id, _ = await _create_plan_with_items(client, auth_headers, setup, [16])
 
     # Confirm the plan (auto-creates budget) and activate.
@@ -407,14 +415,13 @@ async def test_add_item_blocked_when_budget_generated(
     )
     assert r.status_code == 200, r.text
 
-    # Try to add another item — should be 409 locked.
     new_treatment_id = await _create_treatment(client, auth_headers, setup, tooth_number=15)
     r = await client.post(
         f"/api/v1/treatment_plan/treatment-plans/{plan_id}/items",
         headers=auth_headers,
         json={"treatment_id": new_treatment_id},
     )
-    assert r.status_code == 409, r.text
+    assert r.status_code == 201, r.text
 
 
 @pytest.mark.asyncio

@@ -6,7 +6,15 @@ export interface ClinicUser {
   first_name: string
   last_name: string
   is_active: boolean
-  role: UserRole
+  /**
+   * The role in *this* clinic, or null for an account that has none.
+   *
+   * Such an account can still sign in — `/auth/login` never required a
+   * membership — so the list shows it rather than leaving a working
+   * password nobody can see. Its role elsewhere is not reported.
+   */
+  role: UserRole | null
+  has_clinic_access: boolean
   created_at: string
 }
 
@@ -142,7 +150,15 @@ export function useUsers() {
     }
   }
 
-  async function deleteUser(userId: string): Promise<boolean> {
+  /**
+   * Take someone off this clinic's staff.
+   *
+   * `DELETE /auth/users/{id}` removes the clinic membership and leaves the
+   * account, so this is not a deletion and is no longer named like one —
+   * the screen used to call it "Eliminar usuario" and it left the person's
+   * login intact.
+   */
+  async function removeFromClinic(userId: string): Promise<boolean> {
     isLoading.value = true
     error.value = null
 
@@ -150,7 +166,7 @@ export function useUsers() {
       await api.del(`/api/v1/auth/users/${userId}`)
       toast.add({
         title: t('common.success'),
-        description: t('settings.messages.userDeleted'),
+        description: t('settings.messages.userRemoved'),
         color: 'success'
       })
       // Refresh the user list
@@ -173,14 +189,49 @@ export function useUsers() {
           color: 'error'
         })
       } else {
-        error.value = t('settings.errors.deleteUser')
+        error.value = t('settings.errors.removeFromClinic')
         toast.add({
           title: t('common.error'),
-          description: t('settings.errors.deleteUser'),
+          description: t('settings.errors.removeFromClinic'),
           color: 'error'
         })
       }
       console.error('Failed to delete user:', e)
+      return false
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * Turn sign-in on or off for an account with no access to this clinic.
+   *
+   * Separate from `updateUser`, which resolves the user through a
+   * membership here and answers 404 for exactly these accounts. This one
+   * sets the flag and nothing else — a stranded account is not this
+   * clinic's staff, so its name, email and role are not ours to edit.
+   */
+  async function setUserActive(userId: string, isActive: boolean): Promise<boolean> {
+    isLoading.value = true
+    error.value = null
+    try {
+      await api.patch<ApiResponse<ClinicUser>>(
+        `/api/v1/auth/users/${userId}/active`,
+        { is_active: isActive }
+      )
+      toast.add({
+        title: t('common.success'),
+        description: t(isActive ? 'settings.messages.accessAllowed' : 'settings.messages.accessBlocked'),
+        color: 'success'
+      })
+      await fetchUsers()
+      return true
+    } catch (e: unknown) {
+      const fetchError = e as { data?: { message?: string, detail?: string } }
+      error.value = fetchError.data?.message
+        || fetchError.data?.detail
+        || t('settings.errors.operationNotAllowed')
+      toast.add({ title: t('common.error'), description: error.value, color: 'error' })
       return false
     } finally {
       isLoading.value = false
@@ -195,6 +246,7 @@ export function useUsers() {
     fetchUsers,
     createUser,
     updateUser,
-    deleteUser
+    setUserActive,
+    removeFromClinic
   }
 }

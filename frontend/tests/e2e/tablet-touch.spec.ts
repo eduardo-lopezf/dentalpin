@@ -572,7 +572,9 @@ test.describe('touch adaptation', () => {
       timeout: 120_000
     })
     await awaitDetection(page)
-    await expect(page.getByText('Plan bloqueado')).toBeVisible({ timeout: 60_000 })
+    // "Plan confirmado", not "Plan bloqueado": the banner names the state
+    // rather than shouting, and follows the plan's status now, not its budget.
+    await expect(page.getByText('Plan confirmado')).toBeVisible({ timeout: 60_000 })
 
     // The chart says it is frozen...
     await expect(page.getByText('Solo lectura')).toBeVisible()

@@ -93,7 +93,7 @@ gotchas below.
 
 | Slot | Component | Permission |
 |---|---|---|
-| `treatment_plan.detail.sidebar` | `PlanCollectionsCard` (pendiente de cobrar del paciente + "Cobrar") | `payments.record.read` |
+| `treatment_plan.detail.sidebar` | `PlanCollectionsCard` (las cuatro cifras del plan + "Cobrar"; el total del paciente, en segunda línea) | `payments.record.read` |
 | `treatment_plan.detail.sidebar` | `PaymentScheduleCard` (calendario pactado + plazos) | `payments.record.read` |
 | `reports.categories` | `PaymentsReportEntry` (card on `/reports` linking to `/reports/payments`) | `payments.reports.read` |
 | `patient.detail.administracion.payments` | `PatientPaymentsPanel` (patient ledger inside the Administración tab — KPIs + timeline + refund row menu + "Pendiente de cobrar" card) | `payments.record.read` |

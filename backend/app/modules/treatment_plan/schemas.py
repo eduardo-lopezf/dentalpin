@@ -195,12 +195,46 @@ class TreatmentPlanResponse(BaseModel):
     budget: BudgetBrief | None = None
 
 
+class BudgetAddendumResponse(BaseModel):
+    """Result of pricing the treatments added after a plan was confirmed."""
+
+    budget_id: UUID
+    budget_number: str
+    #: False when the lines joined the plan's existing draft instead of
+    #: becoming a document of their own.
+    created: bool
+    item_count: int
+
+
+class PlanNextAction(BaseModel):
+    """What has to happen next for the plan to move on.
+
+    ``key`` is the whole contract; the rest is what the sentence needs to
+    read naturally (the date of the booked visit, the budget's state).
+    The wording lives in the frontend locales, so a clinic that renames
+    "presupuesto" does not need a backend release.
+    """
+
+    key: str
+    budget_status: str | None = None
+    next_appointment_at: datetime | None = None
+    #: Only for ``budget_addendum``: how many treatments carry no price.
+    unbudgeted_count: int | None = None
+
+
 class TreatmentPlanDetailResponse(TreatmentPlanResponse):
     """Detailed response with nested items."""
 
     diagnosis_notes: str | None = None
     internal_notes: str | None = None
     items: list["PlannedTreatmentItemResponse"] = []
+    #: Computed per request — never stored. ``None`` once the plan is over.
+    next_action: PlanNextAction | None = None
+    #: Treatments added after confirmation that no budget prices yet.
+    unbudgeted_count: int = 0
+    #: The plan's other live budgets — today, its addenda. ``budget`` above
+    #: stays the one the plan was agreed on.
+    other_budgets: list[BudgetBrief] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

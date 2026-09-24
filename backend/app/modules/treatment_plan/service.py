@@ -263,9 +263,14 @@ def _is_plan_locked(plan: TreatmentPlan) -> bool:
     """A plan is locked once it has a non-cancelled budget attached.
 
     Rationale: generating/sending/accepting a budget turns the plan into a
-    contract with the patient. Any structural change would silently invalidate
-    that contract, so mutations must go through the explicit unlock flow
-    (which cancels the budget).
+    contract with the patient. Changing a line the patient agreed to — its
+    price, its presence — would silently invalidate that contract, so those
+    go through the explicit unlock flow (which cancels the budget).
+
+    **Adding is exempt and does not consult this.** A treatment added to a
+    confirmed plan alters none of the agreed lines; what it costs is priced
+    separately (``unbudgeted_items`` and ``budget_the_addendum``). Callers:
+    ``update_item``, ``remove_item`` and ``reorder_items``.
     """
     if not plan.budget_id or plan.budget is None:
         return False
@@ -417,6 +422,295 @@ class TreatmentPlanService:
             )
         )
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def unbudgeted_items(
+        db: AsyncSession,
+        clinic_id: UUID,
+        plan: TreatmentPlan,
+    ) -> list[PlannedTreatmentItem]:
+        """The plan's treatments no live budget of its own has priced.
+
+        Since adding to a plan in progress no longer cancels the signed
+        budget, a plan can carry work nobody has quoted. This is how much:
+        the screen counts them, and the addendum is built from exactly this
+        list.
+
+        Derived rather than stored, and that is the point — no column to
+        drift, and every plan written before this existed answers correctly
+        from the first request. A budget line already names the odontogram
+        `Treatment` it prices (`budget_items.treatment_id`), which is the
+        same treatment the plan item points at, so "priced" is a join that
+        was always available.
+
+        The plan's budgets are the ones carrying its number plus the
+        current link — the same rule `delete_for_plan` and the collections
+        guard use. Cancelled ones do not count: a reopen cancels a budget,
+        and its lines stop being a quote anybody owes.
+        """
+        from app.modules.budget.models import Budget, BudgetItem
+
+        items = plan.items or []
+        if not items:
+            return []
+
+        conditions = [Budget.plan_number_snapshot == plan.plan_number]
+        if plan.budget_id is not None:
+            conditions.append(Budget.id == plan.budget_id)
+
+        priced = set(
+            (
+                await db.execute(
+                    select(BudgetItem.treatment_id)
+                    .join(Budget, Budget.id == BudgetItem.budget_id)
+                    .where(
+                        Budget.clinic_id == clinic_id,
+                        Budget.deleted_at.is_(None),
+                        Budget.status != "cancelled",
+                        BudgetItem.treatment_id.is_not(None),
+                        or_(*conditions),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        return [i for i in items if i.treatment_id and i.treatment_id not in priced]
+
+    @staticmethod
+    async def other_live_budgets(
+        db: AsyncSession,
+        clinic_id: UUID,
+        plan: TreatmentPlan,
+    ) -> list:
+        """The plan's live budgets other than the one it points at.
+
+        Today that means its addenda. Without this they would exist and be
+        unreachable from the plan that produced them — findable only by
+        scrolling the patient's budget list, which is exactly how a second
+        document goes unsent.
+        """
+        from app.modules.budget.models import Budget
+
+        if not plan.plan_number:
+            return []
+        rows = await db.execute(
+            select(Budget)
+            .where(
+                Budget.clinic_id == clinic_id,
+                Budget.deleted_at.is_(None),
+                Budget.status != "cancelled",
+                Budget.plan_number_snapshot == plan.plan_number,
+            )
+            .order_by(Budget.created_at.asc())
+        )
+        return [b for b in rows.scalars().all() if b.id != plan.budget_id]
+
+    @staticmethod
+    async def budget_the_addendum(
+        db: AsyncSession,
+        clinic_id: UUID,
+        plan_id: UUID,
+        user_id: UUID,
+    ):
+        """Put a price on the treatments added since the plan was confirmed.
+
+        Normally this mints an **addendum**: its own draft, its own
+        acceptance, carrying the plan's number so every query that walks a
+        plan's budgets finds it. The document the patient was shown is not
+        touched.
+
+        It only ever has work to do because `budget`'s own
+        ``_on_treatment_added_to_plan`` stops at a budget that is not a
+        draft. While the budget is still a draft that handler mirrors every
+        addition into it as it happens, so nothing is ever left unpriced
+        and this is not called. The draft branch below is therefore a
+        **repair path**, not the usual one: an event handler that raised
+        is recorded and never retried (ADR 0020), and without it the only
+        way to price those lines again would be by hand.
+
+        ``plan.budget_id`` keeps pointing at the original. It means "the
+        budget this plan was agreed on", and an addendum does not replace
+        that — `unbudgeted_items` is what knows about both.
+
+        Returns ``(budget, created, item_count)``. The count comes from
+        here rather than from ``budget.items`` at the caller: that is a
+        lazy relationship, and reading it after the service returns asks
+        for IO where none can happen.
+        """
+        from app.modules.budget.models import Budget
+        from app.modules.budget.service import BudgetItemService, BudgetService
+
+        plan = await TreatmentPlanService.get(db, clinic_id, plan_id)
+        if not plan:
+            raise ValueError("Plan not found")
+        if plan.status not in ("pending", "active"):
+            raise ValueError("Only a plan in progress can have an addendum")
+
+        pending_items = await TreatmentPlanService.unbudgeted_items(db, clinic_id, plan)
+        if not pending_items:
+            raise ValueError("Every treatment in this plan is already budgeted")
+
+        patient = await db.get(Patient, plan.patient_id)
+        snapshot = TreatmentPlanService._build_plan_snapshot(plan, patient)
+        wanted = {str(i.treatment_id) for i in pending_items}
+        lines = [line for line in snapshot["items"] if line.get("treatment_id") in wanted]
+        snapshot["items"] = lines
+        snapshot["plan_status"] = plan.status
+
+        current = await db.get(Budget, plan.budget_id) if plan.budget_id else None
+        if current is not None and current.status == "draft":
+            for line in lines:
+                if not line.get("catalog_item_id") or not line.get("treatment_id"):
+                    continue
+                unit_price = line.get("unit_price")
+                await BudgetItemService.create_item(
+                    db,
+                    clinic_id,
+                    current.id,
+                    {
+                        "catalog_item_id": UUID(line["catalog_item_id"]),
+                        "quantity": 1,
+                        "treatment_id": UUID(line["treatment_id"]),
+                        "tooth_number": line.get("tooth_number"),
+                        "surfaces": line.get("surfaces"),
+                        "unit_price": (Decimal(unit_price) if unit_price is not None else None),
+                    },
+                )
+            await BudgetService._recalculate_totals(db, current)
+            budget, created = current, False
+        else:
+            budget = await BudgetService.create_addendum_for_plan(db, clinic_id, user_id, snapshot)
+            created = True
+
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=clinic_id,
+            plan_id=plan.id,
+            action="budget_addendum" if created else "budget_extended",
+            actor_user_id=user_id,
+            payload={
+                "budget_id": str(budget.id),
+                "budget_number": budget.budget_number,
+                "item_count": len(lines),
+            },
+        )
+        return budget, created, len(lines)
+
+    @staticmethod
+    async def next_action(
+        db: AsyncSession,
+        clinic_id: UUID,
+        plan: TreatmentPlan,
+    ) -> dict | None:
+        """The one thing that has to happen for this plan to move on.
+
+        A plan advances through hands that do not overlap: the dentist
+        plans it, the patient accepts the budget, reception books the
+        chair. The screen shows the stepper, but the stepper only says
+        *where* the plan is — never what makes it move, which is why a
+        confirmed plan sat untouched: nothing told anyone the budget was
+        still unsent.
+
+        One key at a time, deliberately. A list of everything outstanding
+        is a report; this is an instruction, and a screen that gives two
+        gives neither.
+
+        The same reading the pipeline tabs do
+        (``docs/workflows/plan-budget-flow.md`` §5), for one plan: the
+        budget's own status decides the commercial steps and the plan's
+        appointments decide the clinical ones. Returns ``None`` for a plan
+        that is over — there is nothing to ask of a finished plan.
+
+        One step is not a pipeline tab's: treatments added after the plan
+        was confirmed carry no price until an addendum quotes them, and
+        that comes before booking the chair.
+        """
+        status = plan.status
+        if status in ("completed", "closed"):
+            return None
+
+        items = plan.items or []
+        budget_status = plan.budget.status if plan.budget else None
+
+        if status == "draft":
+            return {"key": "add_treatments" if not items else "confirm_plan"}
+
+        # Confirmed. The budget is what the patient is being asked to
+        # agree to, so while it is unsent nothing else is the next step —
+        # including on an `active` plan, where treatment has begun off the
+        # back of an attended visit and the paperwork is now the thing
+        # that is behind.
+        if budget_status is None:
+            return {"key": "generate_budget"}
+
+        # Work the clinic took on after the plan was confirmed, which no
+        # budget prices yet. Checked *before* the budget's own steps, and
+        # both orders would be wrong the other way round: telling anyone to
+        # send a draft that leaves out half the treatments is how a patient
+        # signs one figure and is later asked for another.
+        unbudgeted = await TreatmentPlanService.unbudgeted_items(db, clinic_id, plan)
+        if unbudgeted:
+            return {
+                "key": "budget_addendum",
+                "budget_status": budget_status,
+                "unbudgeted_count": len(unbudgeted),
+            }
+
+        if budget_status == "draft":
+            return {"key": "send_budget", "budget_status": budget_status}
+        if status == "pending":
+            if budget_status == "sent":
+                return {"key": "awaiting_patient", "budget_status": budget_status}
+            if budget_status in ("expired", "rejected", "cancelled"):
+                return {"key": f"budget_{budget_status}", "budget_status": budget_status}
+            # `accepted` here means the plan never heard the event that
+            # moves it on. Say what the clinic would do next anyway.
+
+        if any(i.status != "completed" for i in items):
+            booked = await db.execute(
+                sa_text("""
+                    SELECT
+                        COUNT(*) FILTER (
+                            WHERE a.start_time >= NOW()
+                              AND a.status NOT IN ('cancelled', 'no_show')
+                        ) AS future_count,
+                        COUNT(*) FILTER (
+                            WHERE a.start_time < NOW()
+                              AND a.status NOT IN ('cancelled', 'no_show')
+                        ) AS past_count,
+                        MIN(a.start_time) FILTER (
+                            WHERE a.start_time >= NOW()
+                              AND a.status NOT IN ('cancelled', 'no_show')
+                        ) AS next_at
+                    FROM planned_treatment_items pti
+                    JOIN appointment_treatments at
+                      ON at.planned_treatment_item_id = pti.id
+                    JOIN appointments a ON a.id = at.appointment_id
+                    WHERE pti.clinic_id = :clinic_id
+                      AND pti.treatment_plan_id = :plan_id
+                """),
+                {"clinic_id": clinic_id, "plan_id": plan.id},
+            )
+            appointments = booked.mappings().one()
+
+            if appointments["future_count"]:
+                return {
+                    "key": "next_appointment",
+                    "budget_status": budget_status,
+                    "next_appointment_at": appointments["next_at"],
+                }
+            return {
+                "key": "schedule_next" if appointments["past_count"] else "schedule_first",
+                "budget_status": budget_status,
+            }
+
+        # Every treatment done and the plan still open. Completion normally
+        # moves the plan to `completed` on its own, so this is the tail the
+        # rule cannot reach by the front door — a plan whose items were all
+        # reopened and finished again. Nothing to ask for; say it is done.
+        return {"key": "all_done", "budget_status": budget_status}
 
     @staticmethod
     async def create(
@@ -732,11 +1026,20 @@ class TreatmentPlanService:
         if not plan:
             raise ValueError("Treatment plan not found")
 
-        if plan.status not in ("draft", "active"):
+        if plan.status not in ("draft", "pending", "active"):
             raise ValueError("Cannot add items to a completed/cancelled plan")
 
-        if _is_plan_locked(plan):
-            raise PlanLockedError("Plan is locked by an active budget")
+        # Deliberately **not** guarded by `_is_plan_locked`. The lock exists
+        # to protect what the patient signed, and adding changes none of it:
+        # the existing lines keep their prices and the budget keeps saying
+        # what it always said. Finding a second caries halfway through a
+        # plan is ordinary, and the old answer — cancel the signed budget,
+        # rebuild the plan, make the patient accept everything again — cost
+        # far more than the finding. What the new treatment costs is priced
+        # by an addendum (`unbudgeted_items` + `POST /budget-addendum`).
+        #
+        # Changing or removing an existing line is the opposite, and both
+        # still refuse: that is the contract moving under the patient.
 
         treatment_id = data.get("treatment_id")
         if treatment_id is None:

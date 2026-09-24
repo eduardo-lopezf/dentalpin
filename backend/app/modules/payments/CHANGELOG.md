@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- fix(payments): el dinero ganado y sin cobrar se llama **Por cobrar** en todas partes (`plan.pendingLabel`, `plan.nothingPending`, `pendingCharges.title`, `new.suggestedHint`), no «Pendiente de cobrar». En la pantalla del plan coincidían tres «pendiente» con significados distintos —tratamiento sin hacer, dinero sin cobrar y plazo sin vencer—. Los informes conservan «Pendiente de cobro» porque ahí es el saldo a cobrar de la clínica, vocabulario contable y otro lector.
+- feat(payments): **`PlanCollectionsCard` pasa a hablar de este plan.** Cuatro cifras del plan —presupuestado, realizado, cobrado y, en grande, por cobrar— tomadas de `ctx.planMoney`, que el plan calcula con el resumen que este módulo ya servía en `POST /summary/by-treatments`. Lo que el paciente debe en total baja a una línea secundaria y solo aparece cuando difiere: la tarjeta enseñaba esa cifra como si fuera la del plan, y en un plan sin nada ejecutado llegaba a mostrar la deuda de otros planes sobre un plan que no puede deber nada. Mientras no hay nada realizado, dice la regla: se cobra a medida que se completan tratamientos. Sin `planMoney` (sin permiso de ledger) la tarjeta muestra lo de antes.
+
 - feat(payments): `PlanCollectionsCard` no ofrece *Cobrar* cuando el plan es un borrador (lee `ctx.planStatus`): dice que hay que confirmarlo. Cobrar va contra trabajo que la clínica ha asumido, y un borrador todavía no lo es.
 - feat(payments): `LedgerService.plan_has_collections(budget_ids, treatment_ids)` — si hay dinero en un plan: asignado a sus presupuestos (neto de devoluciones) o cubriendo sus tratamientos por FIFO. Lo usa `treatment_plan` para impedir borrar o cancelar un plan con cobros.
 - feat(payments): se retira «Cobros del presupuesto» (`BudgetPaymentsCard`) del lateral del detalle de presupuesto: el registro en `budget.detail.sidebar` desaparece y el componente queda en el árbol sin usar. Los cobros se siguen en el plan (*Cobros del paciente*).

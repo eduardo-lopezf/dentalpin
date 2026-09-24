@@ -25,6 +25,7 @@
 // component tree and misses everything a module owns. Same path style as
 // `PlanDraftLines.vue`, which imports these helpers from next door.
 import { incompleteLines, toggleTooth } from '../../../components/treatment-plans/planDraftLineUtils'
+import { PERMISSIONS } from '~~/app/config/permissions'
 import type {
   ApiResponse,
   Patient,
@@ -40,6 +41,7 @@ import type {
 const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()
+const { can } = usePermissions()
 const api = useApi()
 const auth = useAuth()
 const { createPlan, loading: creating } = useTreatmentPlans()
@@ -66,6 +68,22 @@ const searchSurface = ref<Surface | null>(null)
 const total = computed(() =>
   lines.value.reduce((sum, line) => sum + (line.price ?? 0) * Math.max(line.toothNumbers.length, 1), 0)
 )
+
+/**
+ * Treatments the catalog gives no price for.
+ *
+ * The total above counts them as zero, which is the only arithmetic
+ * available and a bad thing to leave unsaid: a plan of four treatments
+ * where two carry no price adds up to a figure that looks complete, and
+ * that figure is what *Confirmar* turns into the budget the patient signs.
+ * The line itself already shows "-", but nobody reads a dash when there is
+ * a total underneath it.
+ *
+ * Counted, never blocked. A clinic legitimately quotes some work case by
+ * case, and this screen's rule for the chart applies to money too — it
+ * warns, it does not refuse.
+ */
+const unpricedLines = computed(() => lines.value.filter(line => line.price === null))
 
 let lineSeq = 0
 function nextId(): string {
@@ -690,6 +708,29 @@ function goBack() {
           <span class="lines-total">{{ formatPrice(total) }}</span>
         </div>
 
+        <!-- Said where the total is, because the total is what it changes. -->
+        <div
+          v-if="unpricedLines.length > 0"
+          class="unpriced-note"
+        >
+          <UIcon
+            name="i-lucide-circle-alert"
+            class="w-4 h-4 shrink-0 mt-0.5"
+          />
+          <div class="min-w-0">
+            <p>
+              {{ t('clinical.plans.draft.unpriced', { count: unpricedLines.length }, unpricedLines.length) }}
+            </p>
+            <NuxtLink
+              v-if="can(PERMISSIONS.catalog.write)"
+              to="/treatments/catalog"
+              class="unpriced-link"
+            >
+              {{ t('clinical.plans.draft.unpricedFix') }}
+            </NuxtLink>
+          </div>
+        </div>
+
         <PlanDraftLines
           :lines="lines"
           :picking-line-id="pickingLineId"
@@ -730,6 +771,14 @@ function goBack() {
         <div class="who-summary">
           <span>{{ t('clinical.plans.draft.lines', { count: lines.length }) }}</span>
           <span class="lines-total">{{ formatPrice(total) }}</span>
+          <!-- Repeated on the step that has the Crear button: the warning is
+               only useful while there is still a decision to make. -->
+          <span
+            v-if="unpricedLines.length > 0"
+            class="who-unpriced"
+          >
+            {{ t('clinical.plans.draft.unpriced', { count: unpricedLines.length }, unpricedLines.length) }}
+          </span>
           <UButton
             color="neutral"
             variant="ghost"
@@ -1024,6 +1073,31 @@ function goBack() {
 .lines-total {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+}
+
+.unpriced-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid color-mix(in oklab, var(--ui-warning) 40%, transparent);
+  background: color-mix(in oklab, var(--ui-warning) 9%, transparent);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.unpriced-link {
+  display: inline-block;
+  margin-top: 2px;
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.who-unpriced {
+  color: var(--ui-warning);
+  font-size: 12px;
 }
 
 .builder-actions {
