@@ -23,6 +23,7 @@ from app.core.plugins import BaseModule
 
 from .events import on_session_completed, on_session_reopened, on_treatment_performed
 from .models import (
+    CollectionContact,
     PatientEarnedEntry,
     Payment,
     PaymentAllocation,
@@ -89,6 +90,7 @@ class PaymentsModule(BaseModule):
             PaymentHistory,
             PaymentSchedule,
             PaymentScheduleInstalment,
+            CollectionContact,
         ]
 
     def get_router(self) -> APIRouter:

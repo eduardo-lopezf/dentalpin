@@ -349,3 +349,45 @@ class PaymentScheduleInstalment(Base, TimestampMixin):
         UniqueConstraint("schedule_id", "sequence", name="uq_schedule_instalment_sequence"),
         Index("idx_schedule_instalments_schedule", "schedule_id"),
     )
+
+
+#: How the clinic reached the patient. Same vocabulary as the treatment
+#: plan's contact log — reception does not have two ways of saying "I
+#: called them", and neither should the two screens they use.
+CONTACT_CHANNELS = ["call", "whatsapp", "email", "in_person", "other"]
+
+
+class CollectionContact(Base, TimestampMixin):
+    """Somebody chased this patient about money, on this day, this way.
+
+    The receivables queue works without it — who owes what, oldest first —
+    right up to the moment two people work it on the same morning and the
+    patient is called twice before lunch. A queue with no memory of being
+    worked is a queue that gets worked badly.
+
+    Deliberately **not** attached to a treatment plan, unlike the pipeline's
+    own contact log. What is owed is the patient's, not a plan's: it can
+    span several plans, and it can come from work that never belonged to
+    one. The conversation is with the person.
+
+    Nothing here changes the money. A contact is a note about an attempt,
+    and if the attempt worked there is a `Payment` to show for it.
+    """
+
+    __tablename__ = "collection_contacts"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+    patient_id: Mapped[UUID] = mapped_column(ForeignKey("patients.id"), index=True)
+
+    channel: Mapped[str] = mapped_column(String(20))
+    # Free text, optional. "No coge el teléfono" is worth more in March than
+    # the channel is, but forcing it would make the quick log a form.
+    note: Mapped[str | None] = mapped_column(Text, default=None)
+
+    contacted_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+
+    __table_args__ = (
+        # The queue's question: when was each of these patients last chased.
+        Index("idx_collection_contacts_clinic_patient", "clinic_id", "patient_id", "created_at"),
+    )

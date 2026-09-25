@@ -14,7 +14,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/patients/router.py
   - backend/app/modules/patients/frontend/pages/patients/[id].vue
-last_verified_commit: bddda82
+last_verified_commit: 75cd119
 ---
 
 # Patient detail
@@ -127,6 +127,30 @@ clinically relevant.
    in-app un-archive flow yet.
 
 ## Payments tab — "To collect"
+
+### The three figures, and why they disagree
+
+A patient's money is counted by **three different yardsticks**, and mixing
+them up is the costliest misunderstanding in the system:
+
+| | Answers | Where it shows |
+|---|---|---|
+| **Performed** | what work has been done, and at what price | this tab |
+| **Collected** | how much has actually come in | this tab |
+| **Agreed** | what was agreed to pay, and when | the treatment plan |
+
+The **account statement** shows the first two in that order with the
+subtraction under them, so the debt stops being a number that appears on
+its own: *what is owed is what has been performed and not collected*. A
+budget **owes nothing** until the work exists — that is the usual mistake,
+treating the gap between quoted and paid as a debt.
+
+The **agreed** figure lives on the plan, in the *Calendario de pagos* card,
+and **never adds** to the others: a large case collects almost everything up
+front, so it is normal for *to collect* to read 0 while the schedule shows
+the whole sum outstanding. Both are true. The card says so on its own help
+icon.
+
 
 The **Administration → Payments** tab shows the patient ledger
 (total paid, debt, on-account balance) and, when there is real debt,

@@ -28,7 +28,7 @@ related_permissions:
   - payments.reports.read
 related_paths:
   - backend/app/modules/payments/frontend/pages/reports/payments/index.vue
-last_verified_commit: b1b82f5
+last_verified_commit: 75cd119
 ---
 
 # /reports/payments
@@ -37,6 +37,12 @@ Cuadro de mando analítico de cobros. La pantalla envuelve los seis
 endpoints `/api/v1/payments/reports/*` en una vista calm-design y
 permite saltar al detalle del listado `/payments` (o `/patients` para
 la antigüedad) desde casi cualquier interacción.
+
+> **Qué no encontrarás aquí, y es a propósito.** Este informe sigue el
+> **cobro**, nunca la facturación: no compara lo facturado con lo cobrado.
+> Una clínica deja tratamientos fuera de factura con toda legitimidad, y
+> enseñar esa diferencia documentaría el operativo. La pantalla lo dice bajo
+> el título para que nadie lo busque pensando que falta.
 
 ## Permisos
 

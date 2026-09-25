@@ -27,13 +27,31 @@ const entries = computed(() => resolve('finance.tabs', {}))
  * unique but reads as plumbing in an address bar, and the module name is
  * both stable and what a person would guess.
  */
-const items = computed(() =>
-  entries.value.map(entry => ({
+/**
+ * Resumen leads, and the registers follow.
+ *
+ * It is the page's own tab rather than a module's because the figures on it
+ * come from several — collections from `payments`, the till from `cashbox`
+ * — and neither should own the other's number. The page owns the tab; each
+ * module fills `finance.summary` with what it knows (see
+ * `FinanceSummary.vue`).
+ *
+ * First and default on purpose: somebody who opens Finanzas is asking how
+ * the clinic is doing, and the answer used to live one sidebar entry away
+ * in Informes while this page offered five lists.
+ */
+const items = computed(() => [
+  {
+    value: 'resumen',
+    label: t('finance.summary.tab'),
+    component: resolveComponent('FinanceSummary')
+  },
+  ...entries.value.map(entry => ({
     value: entry.id.split('.')[0] ?? entry.id,
     label: entry.labelKey ? t(entry.labelKey) : entry.id,
     component: entry.component
   }))
-)
+])
 
 /**
  * The active tab lives in the URL so a deep link, a browser back and the
@@ -65,7 +83,6 @@ const active = computed<string>({
          warning in the console. -->
     <ClientOnly>
       <UTabs
-        v-if="items.length"
         v-model="active"
         :items="items"
         :ui="{ content: 'overflow-visible' }"
@@ -76,12 +93,6 @@ const active = computed<string>({
           </div>
         </template>
       </UTabs>
-
-      <EmptyState
-        v-else
-        icon="i-lucide-receipt"
-        :title="t('finance.empty')"
-      />
 
       <template #fallback>
         <USkeleton class="h-10 w-full rounded-md" />

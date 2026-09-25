@@ -11,7 +11,8 @@ import type {
   CashMovement,
   CashMovementInput,
   MovementCategory,
-  MovementDirection
+  MovementDirection,
+  MovementMethod
 } from '../composables/useCashbox'
 
 const props = defineProps<{
@@ -45,6 +46,21 @@ const categoryOptions = computed(() =>
   CATEGORIES.map(value => ({ value, label: t(`cashbox.categories.${value}`) }))
 )
 
+/**
+ * Cash first and selected by default: most of what leaves a clinic's day
+ * still leaves the drawer. The rest exist so the lab paid by transfer and
+ * the rent on direct debit have somewhere to go — until now they had
+ * nowhere, and every outflow figure in the product was the drawer's alone.
+ *
+ * Only `cash` is counted by the arqueo. The form says so rather than
+ * leaving it to be discovered by a count that will not square.
+ */
+const METHODS: MovementMethod[] = ['cash', 'card', 'bank_transfer', 'direct_debit', 'other']
+
+const methodOptions = computed(() =>
+  METHODS.map(value => ({ value, label: t(`cashbox.methods.${value}`) }))
+)
+
 const directionOptions = computed(() => [
   { value: 'out' as MovementDirection, label: t('cashbox.directions.out') },
   { value: 'in' as MovementDirection, label: t('cashbox.directions.in') }
@@ -57,6 +73,7 @@ function blank(): CashMovementInput {
     // arrives, and the entries that do arrive are usually float top-ups.
     direction: 'out',
     amount: '',
+    method: 'cash',
     category: 'lab',
     concept: '',
     reference: null,
@@ -75,6 +92,7 @@ watch(
       ? {
           business_date: movement.business_date,
           direction: movement.direction,
+          method: movement.method,
           amount: movement.amount,
           category: movement.category,
           concept: movement.concept,
@@ -142,6 +160,19 @@ async function save() {
             v-model="form.business_date"
             class="w-full"
             type="date"
+          />
+        </UFormField>
+
+        <UFormField
+          :label="t('cashbox.form.method')"
+          :hint="form.method === 'cash' ? undefined : t('cashbox.form.methodNotCounted')"
+        >
+          <USelect
+            v-model="form.method"
+            class="w-full"
+            :items="methodOptions"
+            value-key="value"
+            :aria-label="t('cashbox.form.method')"
           />
         </UFormField>
 

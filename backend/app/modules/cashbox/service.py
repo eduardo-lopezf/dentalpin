@@ -176,16 +176,24 @@ class MovementService:
         currency: str,
         business_date: date,
     ) -> CashMovementDayTotals:
-        """What moved on one day, split by direction.
+        """What moved on one day, split by direction **and** by till.
 
-        Split rather than netted because the till's arithmetic uses the two
-        halves separately, and because a day of 5.000 in and 5.000 out is
-        not the same story as a quiet day — a single net figure tells both
-        as zero.
+        Split by direction rather than netted because the till's arithmetic
+        uses the two halves separately, and because a day of 5.000 in and
+        5.000 out is not the same story as a quiet day — a single net figure
+        tells both as zero.
+
+        Split by till because a movement no longer means a movement of cash.
+        The lab paid by transfer belongs to the day's money and not to the
+        drawer, so the two live side by side: `total_*` is what moved,
+        `cash_*` is the drawer's share and the only part the arqueo may
+        read. Conflating them would make the expected cash include money
+        that was never in it, and every count would report a shortfall.
         """
         result = await db.execute(
             select(
                 CashMovement.direction,
+                CashMovement.method,
                 func.coalesce(func.sum(CashMovement.amount), Decimal("0")),
                 func.count(CashMovement.id),
             )
@@ -193,18 +201,23 @@ class MovementService:
                 CashMovement.clinic_id == clinic_id,
                 CashMovement.business_date == business_date,
             )
-            .group_by(CashMovement.direction)
+            .group_by(CashMovement.direction, CashMovement.method)
         )
         totals = {"in": Decimal("0"), "out": Decimal("0")}
+        cash = {"in": Decimal("0"), "out": Decimal("0")}
         count = 0
-        for direction, amount, rows in result.all():
-            totals[direction] = amount
+        for direction, method, amount, rows in result.all():
+            totals[direction] += amount
+            if method == "cash":
+                cash[direction] += amount
             count += rows
         return CashMovementDayTotals(
             business_date=business_date,
             currency=currency,
             total_in=totals["in"],
             total_out=totals["out"],
+            cash_in=cash["in"],
+            cash_out=cash["out"],
             net=totals["in"] - totals["out"],
             count=count,
         )
@@ -280,12 +293,11 @@ class ClosingService:
             else await ClosingService.suggested_opening_float(db, clinic_id, business_date)
         )
 
+        # `cash_*`, never `total_*`: a transfer belongs to the day's money
+        # and not to the drawer, and counting it here would make every
+        # arqueo report a shortfall the size of the clinic's bank payments.
         expected = (
-            opening_float
-            + cash_collected
-            - cash_refunded
-            + movements.total_in
-            - movements.total_out
+            opening_float + cash_collected - cash_refunded + movements.cash_in - movements.cash_out
         )
 
         return CashPosition(
@@ -294,8 +306,8 @@ class ClosingService:
             opening_float=opening_float,
             cash_collected=cash_collected,
             cash_refunded=cash_refunded,
-            movements_in=movements.total_in,
-            movements_out=movements.total_out,
+            movements_in=movements.cash_in,
+            movements_out=movements.cash_out,
             expected_cash=expected,
             collected_by_method=by_method,
             closing=CashClosingResponse.model_validate(closing) if closing else None,
@@ -446,11 +458,18 @@ class ClosingService:
 
         # Stamping is what freezes the rows the count was made from. Done
         # after the flush so `closing.id` exists.
+        #
+        # Cash rows only, and that is the whole meaning of the stamp: a
+        # closing is a statement about the drawer, so it freezes what was
+        # in the drawer. Freezing the rent paid by transfer because someone
+        # counted Tuesday's notes would make a typo in it uncorrectable for
+        # a reason that has nothing to do with it.
         await db.execute(
             CashMovement.__table__.update()
             .where(
                 CashMovement.clinic_id == clinic_id,
                 CashMovement.business_date == business_date,
+                CashMovement.method == "cash",
                 CashMovement.closing_id.is_(None),
             )
             .values(closing_id=closing.id)
@@ -775,11 +794,16 @@ class LateEntryService:
                 )
             )
 
+        # Cash rows only. A non-cash movement never carries a stamp — the
+        # closing does not freeze what it did not count — so without this
+        # filter every transfer in a closed day would be reported late, for
+        # ever, and the list this screen exists to empty could never empty.
         movements = await db.execute(
             select(CashMovement).where(
                 CashMovement.clinic_id == clinic_id,
                 CashMovement.business_date >= date_from,
                 CashMovement.business_date <= date_to,
+                CashMovement.method == "cash",
                 CashMovement.closing_id.is_(None),
             )
         )

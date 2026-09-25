@@ -3392,6 +3392,7 @@
       "patientOwes": "El paciente debe {amount} en total, contando otros planes."
     },
     "schedule": {
+      "vsEarned": "Otra pregunta que «por cobrar»: esto es lo que se pactó y cuándo; aquello, lo que se debe por trabajo hecho. Nunca se suman.",
       "title": "Calendario de pagos",
       "empty": "No hay calendario pactado. El cobro sigue el trabajo ejecutado.",
       "setUp": "Pactar calendario",
@@ -3441,6 +3442,11 @@
     }
   },
   "finance": {
+    "summary": {
+      "tab": "Resumen",
+      "empty": "Sin cifras que mostrar",
+      "emptyHint": "Tu perfil puede trabajar las listas pero no leer los informes de dinero."
+    },
     "empty": "Ningún módulo financiero está instalado."
   }
 }

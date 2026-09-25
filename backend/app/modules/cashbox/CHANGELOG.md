@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- feat(cashbox): ficha de **Caja** para el Resumen de Finanzas: los días sin arquear de la quincena, que hasta ahora solo veía quien abría esta pestaña y leía la tarjeta del periodo — un arqueo abandonado tres semanas se descubría persiguiendo un descuadre. Distingue tres estados y no dos: *sin arquear*, *al día* y *sin movimiento*, porque leer cero días contados como «al día» le diría a una clínica que nunca ha arqueado que va perfectamente.
+- feat(cashbox): **un gasto que no sale del cajón ya tiene dónde apuntarse.** `CashMovement` gana `method` (efectivo, tarjeta, transferencia, domiciliado, otro) con valor por defecto `cash`, así que toda fila anterior sigue siendo correcta sin backfill: la tabla era el cajón y nada más. Con eso entran al sistema el laboratorio por transferencia, el alquiler domiciliado y el proveedor a treinta días, que hasta ahora no podían registrarse en ninguna parte — y por eso ninguna cifra del producto era una salida. Tres reglas lo sostienen: `expected_cash` lee `cash_*` y nunca `total_*`; el cierre congela solo las filas de efectivo, porque un arqueo es una afirmación sobre el cajón; y las entradas tardías también miran solo el efectivo, o cada transferencia de un día cerrado saldría como tardía para siempre. `day_totals` devuelve los dos pares y la pantalla canta la diferencia cuando la hay. Migración `cash_0004`. Pineado en `tests/modules/cashbox/test_cash_movement_methods.py`.
+
 - test(cashbox): una prueba de navegador que **recorre la caja entera** y
   comprueba las cifras. El backend cubre cada regla por separado, pero
   nadie comprobaba la juntura: que lo que se teclea en la pestaña llega

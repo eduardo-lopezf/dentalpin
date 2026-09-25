@@ -12,6 +12,13 @@ import type { ApiResponse } from '~~/app/types'
 
 export type MovementDirection = 'in' | 'out'
 
+/**
+ * How the money moved. Only `cash` reaches the drawer, and only `cash` is
+ * counted by the arqueo — the rest is money the clinic moved without
+ * opening the till.
+ */
+export type MovementMethod = 'cash' | 'card' | 'bank_transfer' | 'direct_debit' | 'other'
+
 export type MovementCategory
   = | 'lab'
     | 'supplies'
@@ -27,6 +34,7 @@ export interface CashMovement {
   direction: MovementDirection
   amount: string
   currency: string
+  method: MovementMethod
   category: MovementCategory
   concept: string
   reference: string | null
@@ -42,6 +50,7 @@ export interface CashMovementInput {
   business_date: string
   direction: MovementDirection
   amount: string
+  method: MovementMethod
   category: MovementCategory
   concept: string
   reference?: string | null
@@ -51,8 +60,12 @@ export interface CashMovementInput {
 export interface CashDayTotals {
   business_date: string
   currency: string
+  /** Everything that moved, whatever the method. */
   total_in: string
   total_out: string
+  /** The drawer's share of the above — the only part the arqueo counts. */
+  cash_in: string
+  cash_out: string
   net: string
   count: number
 }

@@ -26,6 +26,8 @@ from .schemas import (
     AllocationResponse,
     BudgetIdsRequest,
     BudgetSummariesByIds,
+    CollectionContactCreate,
+    CollectionContactResponse,
     FilterIdsResponse,
     MethodBreakdown,
     PatientIdsRequest,
@@ -40,6 +42,8 @@ from .schemas import (
     PaymentsSummary,
     PaymentsTrends,
     ProfessionalBreakdown,
+    ReceivablePatient,
+    ReceivableRow,
     RefundCreate,
     RefundResponse,
     RefundsReport,
@@ -264,6 +268,138 @@ async def reports_by_professional(
         db, ctx.clinic_id, date_from, date_to, ctx.clinic.timezone
     )
     return ApiResponse(data=data)
+
+
+@router.get(
+    "/receivables",
+    response_model=PaginatedApiResponse[ReceivableRow],
+)
+async def list_receivables(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.record.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    bucket: str | None = Query(default=None, pattern="^(0-30|31-60|61-90|90\\+)$"),
+    q: str | None = Query(default=None, max_length=120),
+) -> PaginatedApiResponse[ReceivableRow]:
+    """Who owes money, oldest debt first — the list a clinic works through.
+
+    The aging report answers "how much is 90 days overdue"; this answers
+    "who", which is the only version of the question somebody can act on.
+
+    Declared before ``/{payment_id}``: FastAPI resolves in registration
+    order and "receivables" would otherwise be parsed as a payment id.
+    """
+    from sqlalchemy import select
+
+    from app.modules.patients.models import Patient
+
+    rows = await LedgerService.receivables(db, ctx.clinic_id)
+    if bucket:
+        rows = [r for r in rows if r["bucket"] == bucket]
+    if not rows:
+        return PaginatedApiResponse(data=[], total=0, page=page, page_size=page_size)
+
+    patients = {
+        p.id: p
+        for p in (
+            await db.execute(
+                select(Patient).where(
+                    Patient.clinic_id == ctx.clinic_id,
+                    Patient.id.in_([r["patient_id"] for r in rows]),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    }
+    # A patient the clinic cannot name is a row it cannot work: drop it
+    # rather than answer with a bare id (ADR 0029, invariant 2).
+    rows = [r for r in rows if r["patient_id"] in patients]
+
+    if q:
+        needle = q.strip().lower()
+        rows = [
+            r
+            for r in rows
+            if needle
+            in f"{patients[r['patient_id']].first_name} "
+            f"{patients[r['patient_id']].last_name}".lower()
+        ]
+
+    total = len(rows)
+    window = rows[(page - 1) * page_size : page * page_size]
+
+    window_ids = [r["patient_id"] for r in window]
+    last_paid = await LedgerService.last_payment_dates(db, ctx.clinic_id, window_ids)
+    last_chased = await LedgerService.last_contacts(db, ctx.clinic_id, window_ids)
+
+    return PaginatedApiResponse(
+        data=[
+            ReceivableRow(
+                patient=ReceivablePatient.model_validate(patients[r["patient_id"]]),
+                receivable=r["receivable"],
+                oldest_unpaid_at=r["oldest_unpaid_at"],
+                age_days=r["age_days"],
+                bucket=r["bucket"],
+                last_payment_at=last_paid.get(r["patient_id"]),
+                last_contact_at=(
+                    last_chased[r["patient_id"]].created_at
+                    if r["patient_id"] in last_chased
+                    else None
+                ),
+                last_contact_channel=(
+                    last_chased[r["patient_id"]].channel if r["patient_id"] in last_chased else None
+                ),
+            )
+            for r in window
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.post(
+    "/receivables/{patient_id}/contacts",
+    response_model=ApiResponse[CollectionContactResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def record_collection_contact(
+    patient_id: UUID,
+    data: CollectionContactCreate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.record.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[CollectionContactResponse]:
+    """Note that somebody chased this patient about what they owe.
+
+    `record.write` rather than a permission of its own: whoever may take
+    the money is whoever rings to ask for it, and a second grant to
+    administer would only ever be set to the same people.
+    """
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    contact = await LedgerService.record_contact(
+        db, ctx.clinic_id, patient_id, ctx.user_id, data.model_dump()
+    )
+    return ApiResponse(data=CollectionContactResponse.model_validate(contact))
+
+
+@router.get(
+    "/receivables/{patient_id}/contacts",
+    response_model=ApiResponse[list[CollectionContactResponse]],
+)
+async def list_collection_contacts(
+    patient_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("payments.record.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[CollectionContactResponse]]:
+    """Everything tried with this patient, most recent first."""
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    contacts = await LedgerService.contacts_for(db, ctx.clinic_id, patient_id)
+    return ApiResponse(data=[CollectionContactResponse.model_validate(c) for c in contacts])
 
 
 @router.get("/reports/aging-receivables", response_model=ApiResponse[AgingBuckets])

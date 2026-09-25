@@ -24,6 +24,9 @@ Routes mounted at `/api/v1/payments/`.
 | `/patients/{patient_id}/pending-charges` | GET | `payments.record.read` |
 | `/budgets/{budget_id}/allocations` | GET | `payments.record.read` |
 | `/summary/by-treatments` | POST | `payments.record.read` |
+| `/receivables` | GET | `payments.record.read` |
+| `/receivables/{patient_id}/contacts` | GET | `payments.record.read` |
+| `/receivables/{patient_id}/contacts` | POST | `payments.record.write` |
 | `/schedules` | GET | `payments.record.read` |
 | `/schedules` | POST | `payments.record.write` |
 | `/schedules/{id}` | GET | `payments.record.read` |
@@ -96,6 +99,8 @@ gotchas below.
 | `treatment_plan.detail.sidebar` | `PlanCollectionsCard` (las cuatro cifras del plan + "Cobrar"; el total del paciente, en segunda línea) | `payments.record.read` |
 | `treatment_plan.detail.sidebar` | `PaymentScheduleCard` (calendario pactado + plazos) | `payments.record.read` |
 | `reports.categories` | `PaymentsReportEntry` (card on `/reports` linking to `/reports/payments`) | `payments.reports.read` |
+| `finance.summary` | `SummaryCollected` (hoy + mes) y `SummaryReceivable` (por cobrar, con entrada a la bandeja) | `payments.reports.read` |
+| `finance.tabs` | `ReceivablesTab` (*Por cobrar*: quién debe, deuda más vieja primero, con teléfono, WhatsApp, registro de contacto y cobro) | `payments.record.read` |
 | `patient.detail.administracion.payments` | `PatientPaymentsPanel` (patient ledger inside the Administración tab — KPIs + timeline + refund row menu + "Pendiente de cobrar" card) | `payments.record.read` |
 
 `budget.detail.sidebar` is **not** filled any more: the budget page links
@@ -121,7 +126,10 @@ the public endpoints.
   calendario, «qué se pactó cobrar y cuándo». Un caso de 19.020 MXN cobra casi
   todo antes de que exista casi nada del trabajo: la primera vista marca 0
   mientras la clínica va perfectamente al día. Los dos se saldan contra los
-  mismos pagos, así que sumarlos duplica la factura del paciente.
+  mismos pagos, así que sumarlos duplica la factura del paciente. **Las dos
+  pantallas lo dicen ahora**, que es donde importa: el estado de cuenta del
+  paciente enseña `total_earned` y `total_paid` en ese orden con la resta
+  debajo, y `PaymentScheduleCard` lleva la advertencia en su icono de ayuda.
 - **Un calendario se puede renegociar aunque ya se haya cobrado.** Es la razón
   normal para tocarlo: «la paciente no puede con diciembre, párteselo». No
   corrompe nada porque el reparto se calcula, nunca se guarda — los plazos
@@ -179,6 +187,28 @@ the public endpoints.
   su `depends`). Cuenta lo asignado a cualquiera de los presupuestos del plan,
   neto de devoluciones —un anticipo existe antes que el trabajo— y lo que el
   recorrido FIFO cubre de sus tratamientos con dinero a cuenta.
+- **La antigüedad de una deuda se mide desde el devengo que el dinero no
+  alcanzó, no desde el más antiguo del paciente.** `aging_receivables`
+  agrupaba por `min(performed_at)` de *todos* los devengos, así que un
+  paciente de tres años al día salvo el empaste de la semana pasada caía en
+  el tramo 90+ junto a la morosidad real: el tramo que debería significar
+  «este dinero está en riesgo» se llenaba de los pacientes más fieles de la
+  clínica. `LedgerService.receivables` recorre el FIFO con
+  `coverage_by_earned_entry` —el recorrido tiene una sola casa— y toma el
+  primer devengo que quedó sin cubrir. El informe lee esas mismas filas, así
+  que la bandeja y el panel no pueden discrepar sobre quién debe qué.
+- **Un contacto de cobro no mueve dinero, y esa es toda su gracia.**
+  `CollectionContact` anota el intento —canal, nota, quién y cuándo—; si el
+  intento funcionó hay un `Payment` que lo demuestra. Separarlos es lo que
+  permite que la fila diga «contactado ayer, sigue debiendo 300», una frase
+  que ninguna de las dos tablas puede hacer sola. Va colgado del
+  **paciente** y no de un plan, al revés que el registro de contactos del
+  pipeline: lo que se debe puede venir de varios planes y de trabajo que no
+  perteneció a ninguno, y la conversación es con la persona. Permiso
+  `record.write`: quien puede cobrar es quien llama a pedirlo, y un permiso
+  aparte acabaría concedido siempre a la misma gente.
+- **`/receivables` va declarada antes que `/{payment_id}`,** como todas las
+  rutas literales de este módulo.
 - **No `is_voided` flag.** Total reverso is `Refund(amount=Payment.amount)`.
   Don't reintroduce the legacy flag — the report stack relies on
   Refund rows being the only adjustment vector.

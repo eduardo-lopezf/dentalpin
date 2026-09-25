@@ -1,6 +1,7 @@
 # Changelog — frontend
 
 ## Unreleased
+- feat(finance): **Finanzas abre con un Resumen, no con una lista.** Nueva primera pestaña, la de por defecto, con lo que entró hoy y este mes, lo que está por cobrar y los días de caja sin arquear. La pregunta con la que se entra a esa sección —*¿cómo voy?*— solo se respondía en **Informes**, que es otra entrada del menú, mientras Finanzas ofrecía seis registros. La página es del anfitrión y las cifras de los módulos: cada uno rellena el hueco `finance.summary` con lo suyo, así que una clínica sin `cashbox` no ve la ficha de caja y nadie importa nada de nadie (ADR 0001 / 0018). El estado vacío dice por qué está vacío: hay perfiles que pueden trabajar las listas y no leer los informes de dinero.
 
 - feat(treatment_plan): claves `clinical.plans.draft.unpriced*` y `treatmentPlans.modals.confirm.unpriced` para los avisos de tratamientos sin precio.
 - feat(treatment_plan): nuevo `PlansFirstRun` y claves `plansFirstRun.*` para la bandeja de una clínica sin planes.

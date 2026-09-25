@@ -28,7 +28,7 @@ related_permissions:
   - payments.reports.read
 related_paths:
   - backend/app/modules/payments/frontend/pages/reports/payments/index.vue
-last_verified_commit: b1b82f5
+last_verified_commit: 75cd119
 ---
 
 # /reports/payments
@@ -36,6 +36,12 @@ last_verified_commit: b1b82f5
 Payment analytics dashboard. The page wraps the six `/api/v1/payments/reports/*`
 endpoints into a single calm-design view and lets you drill straight
 into the underlying `/payments` (or `/patients`) list at every step.
+
+> **What is deliberately not here.** This report follows **collection**,
+> never invoicing: it does not compare what was invoiced with what was
+> collected. A clinic legitimately leaves treatments off the invoice, and
+> showing that difference would document the operative. The screen says so
+> under the title, so nobody hunts for it thinking it is missing.
 
 ## Permissions
 

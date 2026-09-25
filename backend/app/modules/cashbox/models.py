@@ -51,8 +51,13 @@ MOVEMENT_CATEGORIES = [
 ]
 
 
+#: How a movement was paid. `insurance` is deliberately absent: it is a way
+#: money reaches a clinic, never a way the clinic spends it.
+MOVEMENT_METHODS = ["cash", "card", "bank_transfer", "direct_debit", "other"]
+
+
 class CashMovement(Base, TimestampMixin):
-    """Money entering or leaving the till that is not a patient payment.
+    """Money entering or leaving the clinic that is not a patient payment.
 
     This is what makes a cash count possible at all. A till is emptied all
     day by things `payments` will never know about — the lab courier is
@@ -91,6 +96,17 @@ class CashMovement(Base, TimestampMixin):
     business_date: Mapped[date] = mapped_column(Date)
 
     direction: Mapped[str] = mapped_column(String(3))
+    # How the money moved. `cash` is the only one the arqueo counts — the
+    # rest never touch the drawer.
+    #
+    # The table was cash-only for its first three revisions, which is why
+    # the column defaults to `cash` and why every historical row is
+    # correct without a backfill. It exists because a clinic's money does
+    # not all pass through a drawer: the lab paid by transfer, the rent,
+    # the supplier on thirty days. Without somewhere to put them the
+    # system could only ever answer half of "how did the month go" — every
+    # figure it had was an inflow.
+    method: Mapped[str] = mapped_column(String(20), default="cash", server_default="cash")
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     # Snapshot of `Clinic.currency`, same rule as `Payment`: a clinic that
     # ever switches currency keeps its history in the old one.
@@ -118,7 +134,10 @@ class CashMovement(Base, TimestampMixin):
     recorder: Mapped["User"] = relationship(foreign_keys=[recorded_by])
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
-        return f"<CashMovement {self.business_date} {self.direction} {self.amount} {self.category}>"
+        return (
+            f"<CashMovement {self.business_date} {self.direction} "
+            f"{self.amount} {self.method} {self.category}>"
+        )
 
 
 # A closing is either the day's standing count or a superseded one. There is

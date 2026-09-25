@@ -3392,6 +3392,7 @@
       "patientOwes": "This patient owes {amount} in total, across every plan."
     },
     "schedule": {
+      "vsEarned": "A different question from \"to collect\": this is what was agreed and when; that is what is owed for work done. They never add up.",
       "title": "Payment schedule",
       "empty": "No schedule agreed. Charging follows the work performed.",
       "setUp": "Agree a schedule",
@@ -3441,6 +3442,11 @@
     }
   },
   "finance": {
+    "summary": {
+      "tab": "Summary",
+      "empty": "No figures to show",
+      "emptyHint": "Your role can work the lists but cannot read the money reports."
+    },
     "empty": "No finance module is installed."
   }
 }

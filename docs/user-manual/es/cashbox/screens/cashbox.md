@@ -30,7 +30,7 @@ related_paths:
   - backend/app/modules/cashbox/frontend/components/CashPeriodCard.vue
   - backend/app/modules/cashbox/frontend/components/CashLateEntriesCard.vue
   - backend/app/modules/cashbox/router.py
-last_verified_commit: f2ce026
+last_verified_commit: 75cd119
 ---
 
 # Caja
@@ -76,6 +76,31 @@ fondo.
    «Material» por sí solo no dice.
 7. **Referencia**, opcional: número de ticket o de factura.
 
+### Forma de pago: no todo sale del cajón
+
+El campo **Forma de pago** viene en *Efectivo*, que es como sale la mayor
+parte del dinero de un día. Pero una clínica paga el laboratorio por
+transferencia, el alquiler domiciliado y al proveedor a treinta días, y
+nada de eso pasa por el cajón. **Antes no tenía dónde apuntarse**, así que
+ninguna cifra del sistema era una salida: todas eran entradas.
+
+Ahora se apunta aquí, eligiendo la forma real. Lo que cambia según la
+elijas:
+
+| | Efectivo | Transferencia, tarjeta, domiciliado, otro |
+|---|---|---|
+| Cuenta en el total del día | sí | sí |
+| **Cuenta en el arqueo** | **sí** | **no** |
+| Se congela al cerrar el día | sí | no, sigue corregible |
+
+El formulario lo avisa al elegir una que no sea efectivo, y en la lista la
+fila lleva el nombre de la forma — el efectivo no lo lleva, porque
+escribirlo en todas las filas de una caja sería ruido.
+
+Bajo los totales del día aparece, **solo cuando hay diferencia**, una línea
+del tipo *«4.200,00 MXN no pasó por el cajón: el arqueo no lo cuenta»*. Es
+la frase que evita buscar durante media hora un descuadre que no existe.
+
 ## Corregir o quitar
 
 El lápiz corrige la fila y la papelera la quita, **mientras el día siga
@@ -83,10 +108,15 @@ abierto**. Se puede cambiar cualquier cosa, incluida la fecha: apuntar un
 movimiento en el día equivocado es la corrección más frecuente que hay, y
 no debería obligar a borrar y reescribir.
 
-Cuando el arqueo llegue y alguien cierre el día, esas filas pasan a formar
-parte de un recuento que una persona contó y firmó: la fila se marca como
-**Día cerrado** y pierde los botones. Para tocarla habrá que reabrir el
-día, que será cosa de administración.
+Cuando el arqueo llegue y alguien cierre el día, **las filas de efectivo**
+pasan a formar parte de un recuento que una persona contó y firmó: la fila
+se marca como **Día cerrado** y pierde los botones. Para tocarla habrá que
+reabrir el día, que será cosa de administración.
+
+Las que no son de efectivo **siguen corrigiéndose**. El cierre dice lo que
+había en el cajón, y congelar el alquiler porque alguien contó los billetes
+del martes sería impedir corregir una errata por un motivo que no tiene
+nada que ver con ella.
 
 ## El arqueo
 

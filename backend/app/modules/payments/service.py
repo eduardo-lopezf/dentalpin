@@ -32,6 +32,7 @@ from app.core.utils.clinic_time import (
 from app.modules.budget.models import Budget
 
 from .models import (
+    CollectionContact,
     PatientEarnedEntry,
     Payment,
     PaymentAllocation,
@@ -904,8 +905,195 @@ class LedgerService:
             covered[entry.id] = take
         return covered
 
+    @staticmethod
+    async def last_payment_dates(
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_ids: list[UUID],
+    ) -> dict[UUID, date]:
+        """When each of these patients last paid anything.
+
+        Not part of what is owed, and that is why it is worth showing: a
+        patient who paid something last week is a different conversation
+        from one who has been silent since March, and the amount alone
+        cannot tell them apart.
+        """
+        if not patient_ids:
+            return {}
+        rows = await db.execute(
+            select(Payment.patient_id, func.max(Payment.payment_date))
+            .where(
+                Payment.clinic_id == clinic_id,
+                Payment.patient_id.in_(patient_ids),
+            )
+            .group_by(Payment.patient_id)
+        )
+        return {patient_id: last for patient_id, last in rows.all() if last is not None}
+
+    @staticmethod
+    async def record_contact(
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_id: UUID,
+        user_id: UUID,
+        data: dict,
+    ) -> CollectionContact:
+        """Note that somebody chased this patient, and how.
+
+        A write that touches no money on purpose: an attempt to collect is
+        not a collection, and if it worked there is a `Payment` to show for
+        it. Keeping the two apart is what lets the queue say "called
+        yesterday, still owes 300" — a sentence neither table could make
+        alone.
+        """
+        contact = CollectionContact(
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            channel=data["channel"],
+            note=data.get("note"),
+            contacted_by=user_id,
+        )
+        db.add(contact)
+        await db.flush()
+        return contact
+
+    @staticmethod
+    async def contacts_for(
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_id: UUID,
+    ) -> list[CollectionContact]:
+        """Everything tried with this patient, most recent first."""
+        rows = await db.execute(
+            select(CollectionContact)
+            .where(
+                CollectionContact.clinic_id == clinic_id,
+                CollectionContact.patient_id == patient_id,
+            )
+            .order_by(CollectionContact.created_at.desc())
+        )
+        return list(rows.scalars().all())
+
+    @staticmethod
+    async def last_contacts(
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_ids: list[UUID],
+    ) -> dict[UUID, CollectionContact]:
+        """The most recent chase per patient, for the queue's rows.
+
+        One query for the page rather than one per row: the list exists to
+        be scanned, and a screen that asks the server twenty questions to
+        draw twenty lines is a screen that stops being opened.
+        """
+        if not patient_ids:
+            return {}
+        rows = await db.execute(
+            select(CollectionContact)
+            .where(
+                CollectionContact.clinic_id == clinic_id,
+                CollectionContact.patient_id.in_(patient_ids),
+            )
+            .order_by(CollectionContact.patient_id, CollectionContact.created_at.desc())
+        )
+        latest: dict[UUID, CollectionContact] = {}
+        for contact in rows.scalars().all():
+            latest.setdefault(contact.patient_id, contact)
+        return latest
+
+    @staticmethod
+    async def receivables(
+        db: AsyncSession,
+        clinic_id: UUID,
+    ) -> list[dict]:
+        """Who owes money, how much, and since when — one row per patient.
+
+        The list a clinic works through, as opposed to the aging report,
+        which only ever said "seven patients owe 12.400 in the 90+ bucket"
+        and gave no way to learn which seven.
+
+        **Age is measured from the oldest entry the money has not reached**,
+        not from the patient's oldest entry. The difference is the whole
+        usefulness of the list: a patient of three years who is up to date
+        except for last week's filling has an oldest entry from 2023, and
+        bucketing on it files them under 90+ alongside genuine bad debt.
+        A queue like that is wrong about almost everyone and gets ignored.
+
+        Built on `coverage_by_earned_entry` rather than on a walk of its
+        own, for the reason that method's own notes give: the FIFO walk has
+        one home. Here it answers which entries the money did not reach.
+
+        Returns rows sorted oldest-debt first — the money most at risk, and
+        the order a person would work in.
+        """
+        patient_ids = (
+            (
+                await db.execute(
+                    select(PatientEarnedEntry.patient_id)
+                    .where(PatientEarnedEntry.clinic_id == clinic_id)
+                    .distinct()
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if not patient_ids:
+            return []
+
+        covered = await LedgerService.coverage_by_earned_entry(db, clinic_id, list(patient_ids))
+
+        entries = await db.execute(
+            select(PatientEarnedEntry)
+            .where(
+                PatientEarnedEntry.clinic_id == clinic_id,
+                PatientEarnedEntry.patient_id.in_(patient_ids),
+            )
+            .order_by(PatientEarnedEntry.patient_id, PatientEarnedEntry.performed_at)
+        )
+
+        rows: dict[UUID, dict] = {}
+        for entry in entries.scalars().all():
+            outstanding = entry.amount - covered.get(entry.id, Decimal("0"))
+            if outstanding <= 0:
+                continue
+            row = rows.setdefault(
+                entry.patient_id,
+                {
+                    "patient_id": entry.patient_id,
+                    "receivable": Decimal("0"),
+                    "oldest_unpaid_at": entry.performed_at,
+                },
+            )
+            row["receivable"] += outstanding
+            # Entries arrive oldest-first per patient, so the first one to
+            # reach here is already the oldest the money did not cover.
+
+        today = datetime.now(UTC).date()
+        for row in rows.values():
+            oldest = row["oldest_unpaid_at"]
+            row["age_days"] = (today - oldest.date()).days if oldest else 0
+            row["bucket"] = _aging_bucket(row["age_days"])
+
+        return sorted(rows.values(), key=lambda r: r["age_days"], reverse=True)
+
 
 # --- Reports ----------------------------------------------------------
+
+
+def _aging_bucket(age_days: int) -> str:
+    """The four ages a debt can have.
+
+    One function because the report and the worklist must never disagree
+    about who is 90 days overdue — a dashboard saying seven patients and a
+    list showing four is how both stop being believed.
+    """
+    if age_days <= 30:
+        return "0-30"
+    if age_days <= 60:
+        return "31-60"
+    if age_days <= 90:
+        return "61-90"
+    return "90+"
 
 
 class PaymentReportsService:
@@ -1098,73 +1286,31 @@ class PaymentReportsService:
         clinic_id: UUID,
         currency: str,
     ) -> AgingBuckets:
-        """Bucket clinic_receivable per patient by oldest unpaid earned entry.
+        """The clinic's receivable, bucketed by how old each debt is.
 
-        For each patient with ``earned > paid``, find the oldest
-        ``PatientEarnedEntry`` and bucket by age. Receivable amount is
-        ``earned − paid`` for that patient (positive only).
+        Reads the same rows as the worklist (`LedgerService.receivables`)
+        so the two can never disagree: a dashboard claiming seven patients
+        at 90+ while the list shows four is how both stop being believed.
+
+        It used to bucket each patient by their **oldest earned entry**,
+        which is not the same question. A patient of three years who is up
+        to date except for last week's filling was filed under 90+ because
+        their first entry was from 2023, and the bucket that is supposed to
+        mean "this money is in trouble" filled up with the clinic's most
+        loyal patients.
         """
-        # Per-patient net paid (paid − refunded)
-        paid_rows = await db.execute(
-            select(
-                Payment.patient_id,
-                func.coalesce(func.sum(Payment.amount), Decimal("0")),
-            )
-            .where(Payment.clinic_id == clinic_id)
-            .group_by(Payment.patient_id)
-        )
-        paid_per_patient = dict(paid_rows.all())
+        rows = await LedgerService.receivables(db, clinic_id)
 
-        refund_rows = await db.execute(
-            select(
-                Payment.patient_id,
-                func.coalesce(func.sum(Refund.amount), Decimal("0")),
-            )
-            .join(Refund, Refund.payment_id == Payment.id)
-            .where(Payment.clinic_id == clinic_id)
-            .group_by(Payment.patient_id)
-        )
-        refunded_per_patient = dict(refund_rows.all())
-
-        # Earned with oldest performed_at per patient
-        earned_rows = await db.execute(
-            select(
-                PatientEarnedEntry.patient_id,
-                func.coalesce(func.sum(PatientEarnedEntry.amount), Decimal("0")),
-                func.min(PatientEarnedEntry.performed_at),
-            )
-            .where(PatientEarnedEntry.clinic_id == clinic_id)
-            .group_by(PatientEarnedEntry.patient_id)
-        )
-
-        today = datetime.now(UTC).date()
         buckets_data: dict[str, dict[str, object]] = {
-            "0-30": {"total": Decimal("0"), "patients": set()},
-            "31-60": {"total": Decimal("0"), "patients": set()},
-            "61-90": {"total": Decimal("0"), "patients": set()},
-            "90+": {"total": Decimal("0"), "patients": set()},
+            "0-30": {"total": Decimal("0"), "patients": 0},
+            "31-60": {"total": Decimal("0"), "patients": 0},
+            "61-90": {"total": Decimal("0"), "patients": 0},
+            "90+": {"total": Decimal("0"), "patients": 0},
         }
-
-        for pid, earned_total, oldest_at in earned_rows.all():
-            net_paid = paid_per_patient.get(pid, Decimal("0")) - refunded_per_patient.get(
-                pid, Decimal("0")
-            )
-            receivable = earned_total - net_paid
-            if receivable <= 0:
-                continue
-
-            age_days = (today - oldest_at.date()).days if oldest_at else 0
-            if age_days <= 30:
-                key = "0-30"
-            elif age_days <= 60:
-                key = "31-60"
-            elif age_days <= 90:
-                key = "61-90"
-            else:
-                key = "90+"
-
-            buckets_data[key]["total"] = buckets_data[key]["total"] + receivable
-            buckets_data[key]["patients"].add(pid)  # type: ignore[union-attr]
+        for row in rows:
+            bucket = buckets_data[row["bucket"]]
+            bucket["total"] = bucket["total"] + row["receivable"]  # type: ignore[operator]
+            bucket["patients"] = bucket["patients"] + 1  # type: ignore[operator]
 
         return AgingBuckets(
             currency=currency,
@@ -1172,7 +1318,7 @@ class PaymentReportsService:
                 AgingBucket(
                     label=label,
                     total=data["total"],  # type: ignore[arg-type]
-                    patient_count=len(data["patients"]),  # type: ignore[arg-type]
+                    patient_count=data["patients"],  # type: ignore[arg-type]
                 )
                 for label, data in buckets_data.items()
             ],

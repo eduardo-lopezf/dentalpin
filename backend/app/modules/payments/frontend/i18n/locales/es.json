@@ -2,7 +2,8 @@
   "payments": {
     "nav": {
       "payments": "Cobros",
-      "reports": "Informe de pagos"
+      "reports": "Informe de pagos",
+      "receivables": "Por cobrar"
     },
     "balance": {
       "debt": "Debe",
@@ -178,7 +179,9 @@
       "kpis": {
         "totalPaid": "Total pagado",
         "debt": "Adeudado a clínica",
-        "onAccount": "A cuenta"
+        "onAccount": "A cuenta",
+        "earned": "Tratamiento realizado",
+        "rule": "Se debe lo realizado y no cobrado. Un presupuesto no debe nada hasta que el trabajo existe."
       },
       "sidebar": {
         "title": "Resumen",
@@ -280,7 +283,48 @@
       "drilldown": {
         "viewPayments": "Ver cobros del periodo",
         "viewPatients": "Ver pacientes con deuda"
-      }
+      },
+      "collectionAxis": "Este informe sigue el cobro, no la facturación: no compara lo facturado con lo cobrado."
+    },
+    "receivables": {
+      "search": "Buscar paciente",
+      "bucket": "{range} días",
+      "days": "{n} días",
+      "lastPaid": "último pago {date}",
+      "neverPaid": "nunca ha pagado",
+      "call": "Llamar",
+      "whatsapp": "WhatsApp",
+      "collect": "Cobrar",
+      "allSettled": "No hay nada por cobrar. Todo el trabajo hecho está pagado.",
+      "noMatches": "Nadie debe nada con ese filtro.",
+      "failed": "No se ha podido cargar lo que está por cobrar.",
+      "logContact": "Anotar contacto",
+      "chasedToday": "contactado hoy ({channel})",
+      "lastChased": "contactado el {date}"
+    },
+    "summaryTile": {
+      "collected": "Cobrado",
+      "today": "hoy · {n} cobro | hoy · {n} cobros",
+      "month": "Este mes",
+      "receivable": "Por cobrar",
+      "patients": "{n} paciente | {n} pacientes",
+      "overNinety": "{amount} lleva más de 90 días",
+      "work": "Trabajar la lista"
+    },
+    "contact": {
+      "title": "Contacto con {name}",
+      "channel": "Por dónde",
+      "channels": {
+        "call": "Llamada",
+        "whatsapp": "WhatsApp",
+        "email": "Correo",
+        "in_person": "En persona",
+        "other": "Otro"
+      },
+      "note": "Nota",
+      "notePlaceholder": "Qué dijo, o qué no. «No coge el teléfono» también sirve.",
+      "save": "Guardar contacto",
+      "failed": "No se ha podido guardar el contacto"
     }
   }
 }

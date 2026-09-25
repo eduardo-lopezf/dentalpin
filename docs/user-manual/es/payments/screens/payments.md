@@ -8,6 +8,10 @@ related_endpoints:
   - GET /api/v1/payments/filters/budgets-by-status
   - GET /api/v1/payments/filters/patients-with-debt
   - GET /api/v1/payments/patients/{patient_id}/ledger
+  - GET /api/v1/payments/receivables
+  - GET /api/v1/payments/receivables/{patient_id}/contacts
+  - POST /api/v1/payments/receivables/{patient_id}/contacts
+  - GET /api/v1/cashbox/periods
   - GET /api/v1/payments/reports/aging-receivables
   - GET /api/v1/payments/reports/by-method
   - GET /api/v1/payments/reports/by-professional
@@ -29,7 +33,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/payments/frontend/pages/payments/index.vue
   - backend/app/modules/payments/router.py
-last_verified_commit: 3568519
+last_verified_commit: 75cd119
 ---
 
 # Listado de cobros
@@ -70,6 +74,86 @@ registra un cobro nuevo, se reasigna o se emite un reembolso.
 - **Estado de reembolso:** si el cobro tiene reembolsos, ves en rojo
   la cantidad reembolsada bajo el importe. El botón ↺ solo aparece
   cuando queda saldo neto y tu rol puede reembolsar.
+
+## El Resumen de Finanzas
+
+> Finanzas → **Resumen**, la primera pestaña y la que se abre por defecto.
+
+Finanzas eran seis registros —Cobros, Por cobrar, Caja, Presupuestos,
+Facturas, Liquidaciones—. Todos son buenas listas y **ninguno responde la
+pregunta con la que se entra**: *¿cómo voy?* La respuesta existía, en
+**Informes**, que es otra entrada del menú; quien quiere ver «el dinero»
+abre Finanzas y encuentra listas.
+
+Ahora lo primero es la respuesta, y los registros quedan a un clic:
+
+| Ficha | Dice | De dónde sale |
+|---|---|---|
+| **Cobrado** | lo que entró hoy, neto de devoluciones, y el acumulado del mes | `payments` |
+| **Por cobrar** | trabajo hecho y sin cobrar, con cuántos pacientes y cuánto lleva más de 90 días, y un botón a la bandeja | `payments` |
+| **Caja** | días sin arquear de la quincena, con acceso al arqueo | `cashbox` |
+
+Cada ficha la pone **su propio módulo**. Una clínica sin `cashbox` no ve la
+ficha de caja y la fila se cierra sola; un perfil que puede trabajar las
+listas pero no leer los informes de dinero ve el resumen vacío y se le dice
+por qué, en vez de un rectángulo en blanco.
+
+La ficha de caja distingue tres cosas que no son la misma: **días sin
+arquear** (lo que hay que hacer), **al día** (se contó y cuadra) y **sin
+movimiento** (la quincena no ha visto dinero). La tercera importa: contar
+cero días arqueados como «al día» le diría a una clínica que nunca ha hecho
+un arqueo que va perfectamente.
+
+## La bandeja «Por cobrar»
+
+> Finanzas → **Por cobrar**. Requiere `payments.record.read`.
+
+*Cobros* cuenta lo que entró. Esta pestaña cuenta **lo que no**, y es una
+lista de personas, no una cifra.
+
+Antes existía el dato pero no la lista: el informe decía «siete pacientes
+deben 12.400 en el tramo de 90 días» y, al pulsar cualquiera de los cuatro
+tramos, llevaba a *Pacientes con deuda* — el mismo sitio para los cuatro y
+sin la antigüedad. Así que el número se miraba y de él no salía nada. Los
+presupuestos tienen quien los persiga; el dinero ya ganado no tenía a nadie.
+
+- **Ordenada por deuda más vieja primero**, que es el dinero en más riesgo
+  y el orden en que una persona trabajaría.
+- Cada fila trae lo que hace falta para llamar sin abrir la ficha: el
+  **nombre**, **cuánto** debe, **cuántos días** lleva, y **cuándo pagó algo
+  por última vez** — un paciente que pagó la semana pasada es otra
+  conversación que uno callado desde marzo.
+- Botones de **llamar**, **WhatsApp** y **Cobrar**. El cobro se abre ya con
+  el paciente puesto y el importe sugerido.
+- Los **cuatro tramos** (0-30, 31-60, 61-90, 90+) filtran, y el filtro va en
+  la dirección: desde el informe de cobros, pulsar un tramo aterriza aquí
+  ya filtrado por él.
+
+**La antigüedad se mide desde el tratamiento que el dinero no alcanzó**, no
+desde el más antiguo del paciente. La diferencia es lo que hace útil la
+lista: alguien que lleva tres años viniendo y está al día salvo el empaste
+de la semana pasada tiene su primer tratamiento en 2023, y contarlo desde
+ahí lo metería en el tramo de 90+ junto a la morosidad de verdad. Una cola
+equivocada con los mejores pacientes de la clínica no se abre dos veces.
+
+### Anotar un contacto
+
+El botón de la libreta guarda **que se intentó**: por dónde —llamada,
+WhatsApp, correo, en persona u otro— y, si hace falta, una línea. Nada más:
+en cuanto sea un formulario con campos obligatorios, recepción dejará de
+rellenarlo después de una llamada que no dio nada, que es justo la llamada
+que merece constar.
+
+La fila lo enseña. Contactado hoy sale como distintivo, con el canal
+(*contactado hoy (WhatsApp)*); un contacto más viejo solo lleva su fecha.
+Es lo que evita que dos personas llamen al mismo paciente antes de comer.
+
+**Un contacto no mueve dinero.** Es una nota sobre un intento; si el intento
+funcionó, hay un cobro que lo demuestra. Separarlos es lo que permite que la
+fila diga «contactado ayer, sigue debiendo 300».
+
+El paciente **no desaparece** de la lista al contactarlo: sigue debiendo, y
+esconderlo haría que la lista no cuadrase con el total de arriba.
 
 ## Registrar un cobro
 

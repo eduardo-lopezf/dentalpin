@@ -48,6 +48,23 @@ const editing = ref<CashMovement | null>(null)
 
 const canWrite = computed(() => can(PERMISSIONS.cashbox.movementWrite))
 
+/**
+ * What moved today without passing through the drawer.
+ *
+ * The arqueo counts cash and nothing else, so a day holding a transfer has
+ * two different true totals. Saying which part the count will not see is
+ * cheaper than letting somebody discover it from an arqueo that does not
+ * square.
+ */
+const offTill = computed(() => {
+  const t = totals.value
+  if (!t) return 0
+  const moved = Number(t.total_in) + Number(t.total_out)
+  const drawer = Number(t.cash_in) + Number(t.cash_out)
+  const gap = moved - drawer
+  return Number.isFinite(gap) && gap > 0 ? gap : 0
+})
+
 // `useCurrency` is the single source of truth for money in the frontend —
 // it takes the currency from the clinic and the separators from the user's
 // language. An inline `Intl.NumberFormat` here rendered "$0.00" while every
@@ -174,6 +191,21 @@ async function onDelete(movement: CashMovement) {
       </div>
     </div>
 
+    <!-- Only when the two differ. On a day where everything was cash this
+         line would say the same thing twice, and the distinction between
+         the day's money and the drawer's only has to be taught on the days
+         it is real. -->
+    <p
+      v-if="totals && offTill"
+      class="cashbox-off-till"
+    >
+      <UIcon
+        name="i-lucide-landmark"
+        class="w-4 h-4 shrink-0"
+      />
+      {{ t('cashbox.totals.offTill', { amount: money(offTill) }) }}
+    </p>
+
     <div
       v-if="loading"
       class="cashbox-loading"
@@ -213,6 +245,12 @@ async function onDelete(movement: CashMovement) {
           </p>
           <p class="movement-meta">
             <span>{{ t(`cashbox.categories.${movement.category}`) }}</span>
+            <!-- Named only when it is not cash. Writing "efectivo" on every
+                 row of a till would be noise; naming the transfer is the
+                 whole point, because that is the row the count skips. -->
+            <span v-if="movement.method !== 'cash'">
+              · {{ t(`cashbox.methods.${movement.method}`) }}
+            </span>
             <span v-if="movement.reference">· {{ movement.reference }}</span>
             <span v-if="movement.recorder">
               · {{ movement.recorder.first_name }} {{ movement.recorder.last_name }}
@@ -309,6 +347,15 @@ async function onDelete(movement: CashMovement) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
+}
+
+.cashbox-off-till {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--ui-text-muted);
 }
 
 .total-card {

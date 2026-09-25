@@ -262,6 +262,66 @@ class AgingBuckets(BaseModel):
     buckets: list[AgingBucket]
 
 
+class ReceivablePatient(BaseModel):
+    """Enough of a patient to call them without opening their record."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    first_name: str
+    last_name: str
+    phone: str | None = None
+
+
+class CollectionContactCreate(BaseModel):
+    """Log an attempt to collect. Nothing here moves money."""
+
+    channel: Literal["call", "whatsapp", "email", "in_person", "other"]
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class ContactActor(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    first_name: str
+    last_name: str
+
+
+class CollectionContactResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    patient_id: UUID
+    channel: str
+    note: str | None = None
+    contacted_by: UUID
+    created_at: datetime
+
+
+class ReceivableRow(BaseModel):
+    """One patient who owes money, and how old that money is.
+
+    `age_days` counts from the oldest earned entry the patient's payments
+    have not reached — not from their oldest entry, which would age every
+    long-standing patient into the worst bucket.
+    """
+
+    patient: ReceivablePatient
+    receivable: Decimal
+    oldest_unpaid_at: datetime | None = None
+    age_days: int
+    bucket: str
+    #: When they last paid anything. A patient who paid last week is a
+    #: different conversation from one who has been silent since March.
+    last_payment_at: date | None = None
+    #: When somebody last chased them, and how. Without it two people work
+    #: the same list on the same morning and the patient is called twice
+    #: before lunch.
+    last_contact_at: datetime | None = None
+    last_contact_channel: str | None = None
+
+
 class RefundsReport(BaseModel):
     period_start: date
     period_end: date

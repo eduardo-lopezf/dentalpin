@@ -2,7 +2,8 @@
   "payments": {
     "nav": {
       "payments": "Payments",
-      "reports": "Payment reports"
+      "reports": "Payment reports",
+      "receivables": "To collect"
     },
     "balance": {
       "debt": "Owes",
@@ -178,7 +179,9 @@
       "kpis": {
         "totalPaid": "Total paid",
         "debt": "Clinic receivable",
-        "onAccount": "On account"
+        "onAccount": "On account",
+        "earned": "Treatment performed",
+        "rule": "What is owed is what has been performed and not collected. A budget owes nothing until the work exists."
       },
       "sidebar": {
         "title": "Summary",
@@ -280,7 +283,48 @@
       "drilldown": {
         "viewPayments": "View payments in the period",
         "viewPatients": "View patients with debt"
-      }
+      },
+      "collectionAxis": "This report follows collection, not invoicing: it never compares what was invoiced with what was collected."
+    },
+    "receivables": {
+      "search": "Search patient",
+      "bucket": "{range} days",
+      "days": "{n} days",
+      "lastPaid": "last paid {date}",
+      "neverPaid": "never paid",
+      "call": "Call",
+      "whatsapp": "WhatsApp",
+      "collect": "Charge",
+      "allSettled": "Nothing to collect. Every treatment performed is paid for.",
+      "noMatches": "Nobody owes anything under that filter.",
+      "failed": "Could not load what is outstanding.",
+      "logContact": "Log a contact",
+      "chasedToday": "contacted today ({channel})",
+      "lastChased": "contacted on {date}"
+    },
+    "summaryTile": {
+      "collected": "Collected",
+      "today": "today · {n} payment | today · {n} payments",
+      "month": "This month",
+      "receivable": "To collect",
+      "patients": "{n} patient | {n} patients",
+      "overNinety": "{amount} is more than 90 days old",
+      "work": "Work the list"
+    },
+    "contact": {
+      "title": "Contact with {name}",
+      "channel": "How",
+      "channels": {
+        "call": "Call",
+        "whatsapp": "WhatsApp",
+        "email": "Email",
+        "in_person": "In person",
+        "other": "Other"
+      },
+      "note": "Note",
+      "notePlaceholder": "What they said, or did not. \"Not picking up\" counts.",
+      "save": "Save contact",
+      "failed": "Could not save the contact"
     }
   }
 }

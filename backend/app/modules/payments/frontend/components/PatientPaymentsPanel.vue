@@ -78,13 +78,33 @@ const lastPaymentDate = computed(() => {
   return lastPayment?.occurred_at ?? null
 })
 
+/**
+ * The three figures, in the order that makes them a sentence:
+ * **what has been done → what has been collected → what is left**.
+ *
+ * `total_earned` was fetched and thrown away, which left the panel unable
+ * to explain its own arithmetic: it showed a debt with neither of the two
+ * numbers it comes from. A dentist reading "Adeudado 560" has no way to
+ * tell whether that is 560 of treatment unpaid or 560 short of a budget —
+ * and it is never the second. What is owed is what has been **performed**
+ * and not covered; a budget is a quote and owes nothing until the work
+ * exists. Showing the subtraction is what teaches that, and it is the one
+ * rule the whole money model turns on.
+ */
 const totalLines = computed<TotalLine[]>(() => [
+  {
+    key: 'earned',
+    label: t('payments.patientPanel.kpis.earned'),
+    value: totalEarned.value,
+    role: 'neutral'
+  },
   {
     key: 'totalPaid',
     label: t('payments.patientPanel.kpis.totalPaid'),
     value: totalPaid.value,
     emphasis: 'strong',
-    role: totalPaid.value > 0 ? 'success' : 'neutral'
+    role: totalPaid.value > 0 ? 'success' : 'neutral',
+    divider: 'below'
   },
   {
     key: 'debt',
@@ -290,11 +310,21 @@ function handleRefunded() {
     <!-- KPIs + sidebar -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div class="lg:col-span-2">
-        <EntityTotalsCard
-          v-if="!loadError"
-          :title="t('payments.patientPanel.title')"
-          :lines="totalLines"
-        />
+        <div v-if="!loadError">
+          <EntityTotalsCard
+            :title="t('payments.patientPanel.title')"
+            :lines="totalLines"
+          />
+          <!-- The subtraction said out loud, under the numbers it joins.
+               Without it the panel shows a result and hides its operands. -->
+          <p class="totals-rule">
+            <UIcon
+              name="i-lucide-info"
+              class="w-4 h-4 shrink-0"
+            />
+            {{ t('payments.patientPanel.kpis.rule') }}
+          </p>
+        </div>
         <UCard v-else>
           <div class="text-center py-6">
             <UIcon
@@ -513,3 +543,16 @@ function handleRefunded() {
     />
   </div>
 </template>
+
+<style scoped>
+.totals-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ui-text-muted);
+}
+</style>

@@ -237,6 +237,19 @@ function statusColor(status: string) {
             class="w-5 h-5 text-primary-accent"
           />
           <span class="text-ui text-default">{{ t('payments.schedule.title') }}</span>
+          <!-- The two cards in this sidebar answer different questions with
+               the same currency, and the plan's biggest cases make them look
+               contradictory: a 19.020 case collects almost everything up
+               front, so "por cobrar" reads 0 while the schedule shows the
+               whole sum outstanding. Both are right and they never add up.
+               Said here, on the card that surprises people, rather than in a
+               gotcha only a developer reads. -->
+          <UTooltip :text="t('payments.schedule.vsEarned')">
+            <UIcon
+              name="i-lucide-info"
+              class="w-4 h-4 text-muted"
+            />
+          </UTooltip>
         </div>
         <div
           v-if="schedule && canWrite"

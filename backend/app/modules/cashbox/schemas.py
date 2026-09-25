@@ -8,6 +8,10 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 MovementDirection = Literal["in", "out"]
+#: How the money moved. Only `cash` reaches the drawer, and only `cash` is
+#: counted by the arqueo. `insurance` is absent on purpose: it is a way money
+#: arrives, never a way a clinic spends it.
+MovementMethod = Literal["cash", "card", "bank_transfer", "direct_debit", "other"]
 MovementCategory = Literal[
     "lab",
     "supplies",
@@ -33,6 +37,10 @@ class CashMovementCreate(BaseModel):
     # Always positive. Direction carries the sign, so a negative amount
     # here is a mistake rather than a shorthand — see the model.
     amount: Decimal = Field(gt=0)
+    # Defaulted rather than required: the commonest row is still money out
+    # of the drawer, and a field that is right nine times out of ten should
+    # not be asked ten times.
+    method: MovementMethod = "cash"
     category: MovementCategory
     concept: str = Field(min_length=1, max_length=160)
     reference: str | None = Field(default=None, max_length=100)
@@ -59,6 +67,7 @@ class CashMovementUpdate(BaseModel):
     business_date: date | None = None
     direction: MovementDirection | None = None
     amount: Decimal | None = Field(default=None, gt=0)
+    method: MovementMethod | None = None
     category: MovementCategory | None = None
     concept: str | None = Field(default=None, min_length=1, max_length=160)
     reference: str | None = Field(default=None, max_length=100)
@@ -81,6 +90,7 @@ class CashMovementResponse(BaseModel):
     direction: str
     amount: Decimal
     currency: str
+    method: str
     category: str
     concept: str
     reference: str | None = None
@@ -106,8 +116,15 @@ class CashMovementDayTotals(BaseModel):
 
     business_date: date
     currency: str
+    #: Everything that moved, whatever the method — what the day cost and
+    #: brought in.
     total_in: Decimal
     total_out: Decimal
+    #: The drawer's share of the above, and the only part the arqueo counts.
+    #: Equal to the totals for any clinic that pays everything in notes; the
+    #: gap between the two pairs is the money that never touched the till.
+    cash_in: Decimal = Decimal("0")
+    cash_out: Decimal = Decimal("0")
     net: Decimal
     count: int
 

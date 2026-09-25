@@ -9,7 +9,8 @@
       "in": "In",
       "out": "Out",
       "net": "Net",
-      "count": "{n} movement(s)"
+      "count": "{n} movement(s)",
+      "offTill": "{amount} never passed through the drawer, so the count does not see it."
     },
     "directions": {
       "in": "Money in",
@@ -46,7 +47,9 @@
       "conceptHint": "Required: it is what makes the row readable three months from now.",
       "conceptPlaceholder": "e.g. lab courier, Pérez crowns",
       "reference": "Reference",
-      "referencePlaceholder": "Ticket or invoice no."
+      "referencePlaceholder": "Ticket or invoice no.",
+      "method": "Method",
+      "methodNotCounted": "Not counted in the cash count"
     },
     "closing": {
       "title": "Till count",
@@ -112,6 +115,23 @@
         "refund": "Cash refund",
         "movement": "Till movement"
       }
+    },
+    "methods": {
+      "cash": "Cash",
+      "card": "Card",
+      "bank_transfer": "Bank transfer",
+      "direct_debit": "Direct debit",
+      "other": "Other"
+    },
+    "summaryTile": {
+      "title": "Till",
+      "pending": "{n} day not counted | {n} days not counted",
+      "count": "Count the till",
+      "upToDate": "Up to date",
+      "counted": "{n} day counted | {n} days counted",
+      "daysOff": "{n} off | {n} off",
+      "quiet": "No movement",
+      "quietHint": "No money has passed through the drawer this fortnight."
     }
   }
 }

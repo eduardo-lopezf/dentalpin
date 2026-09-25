@@ -8,6 +8,39 @@ Out of scope on purpose: associate-dentist liquidation and terminal
 commission. Both are worth having and both drag decisions of their own — see
 `docs/technical/cashbox/overview.md`.
 
+## The till is not all the money
+
+`CashMovement` carries a `method`, and only `cash` is counted by the arqueo.
+That one column is the difference between recording the drawer and recording
+the clinic: a lab paid by transfer, rent on direct debit, a supplier on
+thirty days — none of it passes through a drawer, so before this none of it
+could be written down anywhere in the product, and **every outflow figure in
+the system was the drawer's alone**. The dashboard's ten tiles were ten
+inflows.
+
+Three rules follow, and all three are load-bearing:
+
+- **`expected_cash` reads `cash_*`, never `total_*`.** Counting a transfer
+  would make every arqueo report a shortfall the size of the clinic's bank
+  payments, and the module would be abandoned inside a fortnight for
+  exactly the reason `CashMovement`'s own docstring predicts.
+- **A closing stamps cash rows only.** A closing is a statement about the
+  drawer, so it freezes what was in the drawer. Freezing the rent because
+  somebody counted Tuesday's notes would make a typo in it uncorrectable
+  for a reason that has nothing to do with it.
+- **Late entries are cash rows only.** A non-cash row never carries a stamp,
+  so without the filter every transfer inside a closed day would be
+  reported late for ever, and the list that screen exists to empty could
+  never empty.
+
+`day_totals` returns both pairs — `total_*` is what the day moved, `cash_*`
+is the drawer's share — because both are true and conflating them is the
+whole danger. The screen shows the gap when there is one.
+
+Every row written before `cash_0004` was cash by definition, which is why
+the column arrives with a server default of `cash` and needs no backfill:
+history is already correct under the new meaning.
+
 ## What a corte de caja is, and is not
 
 **Not a report.** `payments` already answers "how much came in this week,
@@ -74,6 +107,7 @@ a plan. `hygienist` gets nothing: no business at the till.
 
 | Slot | Component | Permission |
 |---|---|---|
+| `finance.summary` | `SummaryTill` (días sin arquear de la quincena) | `cashbox.closing.read` |
 | `finance.tabs` | `CashboxTab` (Caja: day picker, in/out totals, movement list, arqueo card) | `cashbox.movement.read` |
 
 Order 15, after Cobros: the till is read in the context of what was

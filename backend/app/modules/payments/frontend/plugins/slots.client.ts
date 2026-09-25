@@ -19,6 +19,37 @@ export default defineNuxtPlugin(() => {
     order: 10
   })
 
+  // Sibling tab: what has been collected, and what has not. The id is
+  // `payments_receivables` rather than `payments` because the Finanzas page
+  // derives the URL's tab key from the id's first segment, and two tabs
+  // from one module would otherwise claim the same key.
+  registerSlot('finance.tabs', {
+    id: 'payments_receivables.finance.tabs',
+    component: defineAsyncComponent(() => import('../components/finance/ReceivablesTab.vue')),
+    permission: 'payments.record.read',
+    labelKey: 'payments.nav.receivables',
+    // Right after Cobros: what came in and what has not are one question
+    // asked twice, and reading them as a pair is the point. `cashbox`
+    // already claims 15.
+    order: 12
+  })
+
+  // Resumen tiles. The Finanzas page owns the tab and knows nothing about
+  // this module; it renders whatever `finance.summary` holds, in order.
+  registerSlot('finance.summary', {
+    id: 'payments.finance.summary.collected',
+    component: defineAsyncComponent(() => import('../components/finance/SummaryCollected.vue')),
+    permission: 'payments.reports.read',
+    order: 10
+  })
+
+  registerSlot('finance.summary', {
+    id: 'payments.finance.summary.receivable',
+    component: defineAsyncComponent(() => import('../components/finance/SummaryReceivable.vue')),
+    permission: 'payments.reports.read',
+    order: 20
+  })
+
   // No card in `budget.detail.sidebar` any more. The budget's money is
   // followed from its treatment plan, which the budget page now links to
   // in that spot; two places showing the same collections disagreed as

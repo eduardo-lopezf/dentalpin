@@ -30,7 +30,7 @@ related_paths:
   - backend/app/modules/cashbox/frontend/components/CashPeriodCard.vue
   - backend/app/modules/cashbox/frontend/components/CashLateEntriesCard.vue
   - backend/app/modules/cashbox/router.py
-last_verified_commit: f2ce026
+last_verified_commit: 75cd119
 ---
 
 # Till
@@ -73,6 +73,31 @@ to the bank, change added to or removed from the float.
    "Supplies" alone does not.
 7. **Reference**, optional: ticket or invoice number.
 
+### Method: not everything leaves the drawer
+
+**Method** comes set to *Cash*, which is how most of a day's money leaves.
+But a clinic pays its lab by transfer, its rent by direct debit and its
+supplier on thirty days, and none of that passes through a drawer. **There
+was nowhere to write it down**, so no figure in the system was ever an
+outflow — every one of them was an inflow.
+
+Now it goes here, under the method it really used. What the choice changes:
+
+| | Cash | Transfer, card, direct debit, other |
+|---|---|---|
+| Counts in the day's total | yes | yes |
+| **Counts in the arqueo** | **yes** | **no** |
+| Frozen when the day closes | yes | no, still correctable |
+
+The form says so as soon as you pick a non-cash method, and in the list the
+row carries the method's name — cash rows do not, because writing "cash" on
+every row of a till would be noise.
+
+Under the day's totals, and **only when they differ**, a line reads
+*"4,200.00 MXN never passed through the drawer, so the count does not see
+it"*. That sentence is what saves half an hour hunting a discrepancy that
+is not there.
+
 ## Correcting or removing
 
 The pencil corrects the row and the bin removes it, **while the day is
@@ -80,10 +105,15 @@ still open**. Anything can be changed, the date included: filing a movement
 on the wrong day is the commonest correction there is, and it should not
 force a delete and a retype.
 
-Once the arqueo lands and someone closes the day, those rows become part of
-a count a person made and signed off: the row is marked **Day closed** and
-loses its controls. Changing it will mean reopening the day, which will be
-administration's call.
+Once the arqueo lands and someone closes the day, **the cash rows** become
+part of a count a person made and signed off: the row is marked **Day
+closed** and loses its controls. Changing it will mean reopening the day,
+which will be administration's call.
+
+Non-cash rows **stay correctable**. The closing states what was in the
+drawer, and freezing the rent because somebody counted Tuesday's notes
+would block a typo's correction for a reason that has nothing to do with
+it.
 
 ## The count
 

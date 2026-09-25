@@ -8,6 +8,10 @@ related_endpoints:
   - GET /api/v1/payments/filters/budgets-by-status
   - GET /api/v1/payments/filters/patients-with-debt
   - GET /api/v1/payments/patients/{patient_id}/ledger
+  - GET /api/v1/payments/receivables
+  - GET /api/v1/payments/receivables/{patient_id}/contacts
+  - POST /api/v1/payments/receivables/{patient_id}/contacts
+  - GET /api/v1/cashbox/periods
   - GET /api/v1/payments/reports/aging-receivables
   - GET /api/v1/payments/reports/by-method
   - GET /api/v1/payments/reports/by-professional
@@ -29,7 +33,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/payments/frontend/pages/payments/index.vue
   - backend/app/modules/payments/router.py
-last_verified_commit: 3568519
+last_verified_commit: 75cd119
 ---
 
 # Payment list
@@ -69,6 +73,85 @@ reallocate it, or issue a refund from the same screen.
 - **Refund state:** if a payment has refunds, the refunded amount
   shows in red under the gross amount. The ↺ button only appears
   when net balance remains and your role can refund.
+
+## The Finanzas summary
+
+> Finanzas → **Resumen**, the first tab and the one that opens by default.
+
+Finanzas was six registers — Cobros, Por cobrar, Caja, Presupuestos,
+Facturas, Liquidaciones. Every one is a good list and **none of them
+answers the question people arrive with**: *how am I doing?* That answer
+existed, in **Informes**, which is a different sidebar entry; somebody who
+wants to see "the money" opens Finanzas and finds lists.
+
+Now the answer comes first and the registers are one click behind:
+
+| Tile | Says | Owned by |
+|---|---|---|
+| **Cobrado** | what came in today, net of refunds, and the month to date | `payments` |
+| **Por cobrar** | work done and unpaid, how many patients, how much is over 90 days, and a way into the queue | `payments` |
+| **Caja** | days of the fortnight not counted, with a way to the arqueo | `cashbox` |
+
+Each tile is contributed by **its own module**. A clinic without `cashbox`
+has no till tile and the row closes up; a role that can work the lists but
+not read the money reports gets an empty summary that says why, rather than
+a blank rectangle.
+
+The till tile tells apart three things that are not the same: **days not
+counted** (something to do), **up to date** (counted and square) and **no
+movement** (the fortnight has seen no money). The third matters: reading
+zero counted days as "up to date" would tell a clinic that has never done
+an arqueo that it is doing fine.
+
+## The "To collect" queue
+
+> Finanzas → **Por cobrar**. Requires `payments.record.read`.
+
+*Cobros* counts what came in. This tab counts **what did not**, and it is
+a list of people rather than a figure.
+
+The data existed but the list did not: the report said "seven patients owe
+12,400 in the 90-day bucket" and clicking any of the four buckets went to
+*patients with debt* — the same place for all four, with the age thrown
+away. So the number was looked at and nothing followed. Budgets have
+something that chases them; money already earned had nothing.
+
+- **Oldest debt first**, which is the money most at risk and the order a
+  person would work in.
+- Each row carries what a call needs without opening the record: the
+  **name**, **how much**, **how many days**, and **when they last paid
+  anything** — somebody who paid last week is a different conversation from
+  somebody silent since March.
+- **Call**, **WhatsApp** and **Charge** buttons. The charge opens with the
+  patient set and the amount suggested.
+- The **four buckets** (0-30, 31-60, 61-90, 90+) filter, and the filter
+  travels in the URL: clicking a bucket in the collections report lands
+  here already filtered by it.
+
+**Age is measured from the treatment the money did not reach**, not from
+the patient's oldest one. That difference is what makes the list usable:
+somebody three years in and up to date except for last week's filling has
+a first treatment from 2023, and counting from there would file them under
+90+ next to genuine bad debt. A queue that is wrong about the clinic's best
+patients does not get opened twice.
+
+### Logging a contact
+
+The notebook button records **that somebody tried**: how — call, WhatsApp,
+email, in person or other — and a line if it helps. Nothing more: the moment
+it becomes a form with required fields, reception stops filling it in after
+a call that went nowhere, which is exactly the call worth recording.
+
+The row shows it. Chased today appears as a badge with the channel
+(*contactado hoy (WhatsApp)*); an older contact just carries its date. That
+is what stops two people ringing the same patient before lunch.
+
+**A contact does not move money.** It is a note about an attempt; if the
+attempt worked there is a payment to show for it. Keeping them apart is what
+lets the row say "contacted yesterday, still owes 300".
+
+The patient **does not drop off** the list once contacted: they still owe,
+and hiding them would make the list disagree with the total above it.
 
 ## Record a payment
 

@@ -236,10 +236,19 @@ function goToPaymentsList(extra: Record<string, string> = {}) {
   navigateTo({ path: '/payments', query: { ...dateRangeQuery.value, ...extra } })
 }
 
-function goToPatientsWithDebt() {
-  // /patients list owns the threshold (currently hardcoded to 0.01
-  // when `with_debt` is on). Aging buckets all map to the same query.
-  navigateTo({ path: '/patients', query: { with_debt: 'true' } })
+/**
+ * A bucket is a question about *who*, so it now opens the queue that can
+ * answer it, carrying the age with it.
+ *
+ * Every bucket used to land on `/patients?with_debt=true` — the same place
+ * for all four, with the age thrown away — so clicking "90+" and clicking
+ * "0-30" showed the identical screen and nothing followed from either.
+ */
+function goToReceivables(bucket?: string) {
+  navigateTo({
+    path: '/finanzas',
+    query: { tab: 'payments_receivables', ...(bucket ? { bucket } : {}) }
+  })
 }
 
 function onMethodClick(method: string) {
@@ -296,6 +305,22 @@ const allReportsEmpty = computed(() => {
         />
       </template>
     </PageHeader>
+
+    <!-- The rule, where somebody would look for the figure it rules out.
+         This report follows collection and never compares it with what was
+         invoiced: a clinic legitimately leaves some treatments off the
+         invoice, and surfacing that difference documents the operative
+         (ADR 0010). Saying so turns an apparent hole into a decision —
+         without it, whoever goes looking for "facturado vs cobrado" finds
+         neither the number nor the reason and concludes something is
+         missing. -->
+    <p class="collection-axis">
+      <UIcon
+        name="i-lucide-info"
+        class="w-4 h-4 shrink-0"
+      />
+      {{ t('payments.reports.collectionAxis') }}
+    </p>
 
     <!-- HERO ROW -->
     <div class="grid gap-4 md:grid-cols-2">
@@ -394,7 +419,7 @@ const allReportsEmpty = computed(() => {
               type="button"
               class="rounded-token-sm border border-default p-2 text-center hover:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] transition-colors"
               :aria-label="t('payments.reports.drilldown.viewPatients')"
-              @click="goToPatientsWithDebt()"
+              @click="goToReceivables(b.label)"
             >
               <div class="text-caption text-muted">
                 {{ b.label }}d
@@ -660,7 +685,7 @@ const allReportsEmpty = computed(() => {
               :tone="agingToneFor(b.label)"
               clickable
               :action-label="t('payments.reports.drilldown.viewPatients')"
-              @click="goToPatientsWithDebt()"
+              @click="goToReceivables(b.label)"
             />
           </li>
         </ul>
@@ -698,3 +723,13 @@ const allReportsEmpty = computed(() => {
     </template>
   </div>
 </template>
+
+<style scoped>
+.collection-axis {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ui-text-muted);
+}
+</style>

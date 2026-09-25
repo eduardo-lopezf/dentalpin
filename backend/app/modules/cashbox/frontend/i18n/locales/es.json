@@ -9,7 +9,8 @@
       "in": "Entradas",
       "out": "Salidas",
       "net": "Neto",
-      "count": "{n} movimiento(s)"
+      "count": "{n} movimiento(s)",
+      "offTill": "{amount} no pasó por el cajón: el arqueo no lo cuenta."
     },
     "directions": {
       "in": "Entra dinero",
@@ -46,7 +47,9 @@
       "conceptHint": "Obligatorio: es lo que hará entendible la fila dentro de tres meses.",
       "conceptPlaceholder": "Ej. mensajero del laboratorio, coronas de Pérez",
       "reference": "Referencia",
-      "referencePlaceholder": "Nº de ticket o factura"
+      "referencePlaceholder": "Nº de ticket o factura",
+      "method": "Forma de pago",
+      "methodNotCounted": "No cuenta en el arqueo"
     },
     "closing": {
       "title": "Arqueo de caja",
@@ -112,6 +115,23 @@
         "refund": "Devolución en efectivo",
         "movement": "Movimiento de caja"
       }
+    },
+    "methods": {
+      "cash": "Efectivo",
+      "card": "Tarjeta",
+      "bank_transfer": "Transferencia",
+      "direct_debit": "Domiciliado",
+      "other": "Otro"
+    },
+    "summaryTile": {
+      "title": "Caja",
+      "pending": "{n} día sin arquear | {n} días sin arquear",
+      "count": "Hacer el arqueo",
+      "upToDate": "Al día",
+      "counted": "{n} día contado | {n} días contados",
+      "daysOff": "{n} con descuadre | {n} con descuadre",
+      "quiet": "Sin movimiento",
+      "quietHint": "Esta quincena no ha pasado dinero por el cajón."
     }
   }
 }

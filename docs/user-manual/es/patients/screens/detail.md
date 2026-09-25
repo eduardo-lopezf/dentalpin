@@ -14,7 +14,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/patients/router.py
   - backend/app/modules/patients/frontend/pages/patients/[id].vue
-last_verified_commit: bddda82
+last_verified_commit: 75cd119
 ---
 
 # Ficha del paciente
@@ -127,6 +127,30 @@ también es un dato clínico.
    no hay flujo en la app para des-archivar todavía.
 
 ## Pestaña Pagos — "Por cobrar"
+
+### Las tres cifras, y por qué no cuadran entre sí
+
+El dinero de un paciente se cuenta por **tres varas distintas**, y confundirlas
+es el malentendido más caro del sistema:
+
+| | Responde a | Dónde se ve |
+|---|---|---|
+| **Realizado** | qué trabajo se ha hecho, y a qué precio | esta pestaña |
+| **Cobrado** | cuánto ha entrado de verdad | esta pestaña |
+| **Pactado** | qué se acordó pagar y cuándo | el plan de tratamiento |
+
+El **Estado de cuenta** enseña las dos primeras en ese orden y la resta
+debajo, para que la deuda deje de ser un número que aparece solo: *se debe
+lo realizado y no cobrado*. Un presupuesto **no debe nada** hasta que el
+trabajo existe — ese es el error más habitual, dar por deuda la diferencia
+entre lo presupuestado y lo pagado.
+
+El **pactado** vive en el plan, en la tarjeta *Calendario de pagos*, y
+**nunca se suma** a lo anterior: en un caso grande se cobra casi todo por
+adelantado, así que es normal que *por cobrar* marque 0 mientras el
+calendario muestra el importe entero pendiente. Las dos cosas son ciertas.
+La tarjeta lo dice en su propio icono de ayuda.
+
 
 La pestaña **Administración → Pagos** muestra el ledger del paciente
 (total pagado, deuda, saldo a cuenta) y, cuando hay deuda real, una
