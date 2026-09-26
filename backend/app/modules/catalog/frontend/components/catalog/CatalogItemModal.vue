@@ -72,7 +72,18 @@ const placement = ref<PlacementId>('whole_tooth')
 /** Chart type. Follows type + placement unless overridden in advanced.
  *  Declared here because the populate watcher below runs immediately. */
 const odontogramType = ref<string | undefined>(undefined)
-const specialtyId = ref<string | undefined>(undefined)
+/**
+ * Disciplines the treatment belongs to. A list, because the relation is one:
+ * a crown over an implant is Implantology *and* Oral Rehabilitation, and 48
+ * of the 136 seeded treatments carry more than one.
+ *
+ * This was a single id. Opening a treatment took `specialties[0]` and saving
+ * sent that one back, and the API replaces the whole set — so opening a crown
+ * to change its price and pressing Save dropped two of its three disciplines.
+ * The survivor was always the most generic one, because the list arrives
+ * oldest first: editing prices emptied Implantology into General Dentistry.
+ */
+const specialtyIds = ref<string[]>([])
 const advancedOpen = ref(false)
 /** Once the dentist edits the code by hand we stop regenerating it. */
 const codeTouched = ref(false)
@@ -178,7 +189,7 @@ function populate() {
       is_active: newItem.is_active
     }
     placement.value = placementFromItem(newItem.treatment_scope, newItem.requires_surfaces)
-    specialtyId.value = newItem.specialties?.[0]?.id
+    specialtyIds.value = (newItem.specialties ?? []).map(s => s.id)
     odontogramType.value = newItem.odontogram_mapping?.odontogram_treatment_type
     if (newItem.sessions && newItem.sessions.length > 0) {
       sessionsEnabled.value = true
@@ -216,7 +227,7 @@ function populate() {
     placement.value = DEFAULTS_BY_TYPE[
       props.categories.find(c => c.id === props.categories[0]?.id)?.key ?? ''
     ]?.defaultPlacement ?? 'whole_tooth'
-    specialtyId.value = undefined
+    specialtyIds.value = []
     odontogramType.value = undefined
     sessionsEnabled.value = false
     sessions.value = []
@@ -321,14 +332,19 @@ watchEffect(() => {
   }
 })
 
-// A type change re-proposes the specialty and the plan phase. Only in create
-// mode: on an existing item those are decisions the clinic already made.
+// A type change re-proposes the specialty and the plan phase — in create mode
+// only, which is what the comment always claimed and the code did not do: it
+// re-proposed on an existing item too, overwriting decisions the clinic had
+// made. On a saved treatment the two fields are right there to be changed by
+// hand; nothing needs to change them from behind.
 watch(categoryKey, (key) => {
   const d = DEFAULTS_BY_TYPE[key]
   if (!d || populating.value) return
-  formData.value.default_phase = d.phase
-  const match = activeSpecialties.value.find(s => s.key === d.specialtyKey)
-  if (match) specialtyId.value = match.id
+  if (isCreateMode.value) {
+    formData.value.default_phase = d.phase
+    const match = activeSpecialties.value.find(s => s.key === d.specialtyKey)
+    if (match) specialtyIds.value = [match.id]
+  }
   // On a new treatment the type carries the placement with it: choosing
   // Diagnóstico should land on "toda la boca", not leave "un diente completo"
   // over from the previous type. On an existing item we only intervene when
@@ -345,10 +361,12 @@ watch(typeAllowsSessions, (allows) => {
 })
 
 // Seed the specialty once the list arrives, for a form opened before the fetch.
+// Only when none is set: a treatment saved without any discipline must not
+// acquire one just because its form was opened.
 watch([activeSpecialties, typeDefaults], () => {
-  if (specialtyId.value || !typeDefaults.value) return
+  if (specialtyIds.value.length || !typeDefaults.value || !isCreateMode.value) return
   const match = activeSpecialties.value.find(s => s.key === typeDefaults.value!.specialtyKey)
-  if (match) specialtyId.value = match.id
+  if (match) specialtyIds.value = [match.id]
 })
 
 // The code follows type + name until the dentist takes it over.
@@ -501,7 +519,9 @@ function handleSubmit() {
   }
 
   cleanData.sessions = sessionsEnabled.value ? sessionsToPayload() : []
-  cleanData.specialty_ids = specialtyId.value ? [specialtyId.value] : []
+  // Always sent, and always the complete set: the API replaces rather than
+  // merges, so a short list is a deletion.
+  cleanData.specialty_ids = [...specialtyIds.value]
 
   if (isCreateMode.value) emit('create', cleanData as TreatmentCatalogItemCreate)
   else emit('save', cleanData as TreatmentCatalogItemUpdate)
@@ -584,10 +604,12 @@ function handleClose() {
                 :label="t('catalog.performedBy')"
                 :help="t('catalog.performedByHelp')"
               >
-                <USelect
-                  v-model="specialtyId"
+                <USelectMenu
+                  v-model="specialtyIds"
                   :items="specialtyOptions"
                   value-key="value"
+                  label-key="label"
+                  multiple
                   :placeholder="t('catalog.selectSpecialty')"
                   class="w-full"
                 />

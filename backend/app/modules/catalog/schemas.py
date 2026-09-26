@@ -78,6 +78,18 @@ class SpecialtyCreate(BaseModel):
     """Schema for creating a specialty."""
 
     names: dict[str, str] = Field(default_factory=dict)  # {"es": "Nombre", "en": "Name"}
+    # Stable identifier, only when the specialty was picked from the
+    # recognised list (`GET /specialties/suggestions`). A client must not mint
+    # one: the key is what a later seed run matches on, so an invented value
+    # could silently claim a name the product later ships.
+    key: str | None = Field(default=None, max_length=50)
+
+
+class SpecialtySuggestion(BaseModel):
+    """A recognised discipline a clinic can add in one click."""
+
+    key: str
+    names: dict[str, str]
 
 
 class SpecialtyUpdate(BaseModel):

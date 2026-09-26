@@ -84,6 +84,40 @@ SPECIALTIES: list[dict[str, Any]] = [
     },
 ]
 
+# Disciplines a clinic can add in one click, offered by the UI but not seeded.
+#
+# They are real enough to deserve a stable key and a name in both languages,
+# and rare enough that seeding them into every clinic would clutter every
+# picker — the same mistake as shipping 130 treatments nobody can remove.
+#
+# The keys matter: a clinic-created specialty normally carries `key = NULL`, so
+# two people typing "Radiología" produce two rows that split the treatments
+# between them. Picking from this list carries the key instead, which the
+# unique index enforces, and which a later seed run would match rather than
+# duplicate.
+SUGGESTED_SPECIALTIES: list[dict[str, Any]] = [
+    {
+        "key": "radiologia",
+        "names": {"es": "Radiología y Diagnóstico por Imagen", "en": "Radiology and Imaging"},
+    },
+    {"key": "patologia_oral", "names": {"es": "Patología Oral", "en": "Oral Pathology"}},
+    {"key": "medicina_oral", "names": {"es": "Medicina Oral", "en": "Oral Medicine"}},
+    {
+        "key": "dolor_orofacial",
+        "names": {"es": "Dolor Orofacial y ATM", "en": "Orofacial Pain and TMD"},
+    },
+    {
+        "key": "odontologia_sueno",
+        "names": {"es": "Odontología del Sueño", "en": "Sleep Dentistry"},
+    },
+    {
+        "key": "protesis_laboratorio",
+        "names": {"es": "Prótesis Dental (laboratorio)", "en": "Dental Prosthetics (laboratory)"},
+    },
+    {"key": "odontogeriatria", "names": {"es": "Odontogeriatría", "en": "Geriatric Dentistry"}},
+]
+
+
 # Baseline discipline for everything in a category.
 CATEGORY_SPECIALTIES: dict[str, list[str]] = {
     "diagnostico": ["general"],

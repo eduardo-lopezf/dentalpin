@@ -675,6 +675,14 @@ export interface Specialty {
 
 export interface SpecialtyCreate {
   names: Record<string, string>
+  /** Stable key, only when picked from `GET /specialties/suggestions`. */
+  key?: string
+}
+
+/** A recognised discipline the clinic has not added yet. */
+export interface SpecialtySuggestion {
+  key: string
+  names: Record<string, string>
 }
 
 export interface SpecialtyUpdate {

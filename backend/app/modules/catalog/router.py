@@ -22,14 +22,18 @@ from .schemas import (
     SpecialtyCreate,
     SpecialtyItemsUpdate,
     SpecialtyResponse,
+    SpecialtySuggestion,
     SpecialtyUpdate,
     VatTypeCreate,
     VatTypeResponse,
     VatTypeUpdate,
 )
+from .seed import SUGGESTED_SPECIALTIES
 from .service import (
+    MAX_PAGE_SIZE,
     CatalogService,
     CategoryService,
+    DuplicateSpecialtyError,
     OdontogramCatalogService,
     SessionTemplateError,
     SpecialtyService,
@@ -275,6 +279,30 @@ async def delete_vat_type(
 # ============================================================================
 
 
+def _specialty_conflict(exc: DuplicateSpecialtyError) -> HTTPException:
+    """409 naming the specialty that is in the way.
+
+    A plain message, like every other conflict here: the app flattens an
+    ``HTTPException`` to ``str(detail)``, so a structured body would reach the
+    client as the printed form of a dict. The interesting distinction — the
+    existing row is merely deactivated, so the answer is "switch it back on"
+    rather than "you already have it" — is made in the form, which already
+    holds the clinic's specialties, inactive ones included, and says so before
+    anything is sent.
+    """
+    existing = exc.existing
+    name = (
+        existing.names.get("es")
+        or existing.names.get("en")
+        or next(iter(existing.names.values()), "")
+    )
+    state = "active" if existing.is_active else "inactive"
+    return HTTPException(
+        status_code=409,
+        detail=f"Specialty already exists: {name} ({state})",
+    )
+
+
 @router.get("/specialties", response_model=ApiResponse[list[SpecialtyResponse]])
 async def list_specialties(
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
@@ -287,6 +315,24 @@ async def list_specialties(
         db, ctx.clinic_id, include_inactive=include_inactive
     )
     return ApiResponse(data=[SpecialtyResponse.model_validate(s) for s in specialties])
+
+
+@router.get(
+    "/specialties/suggestions",
+    response_model=ApiResponse[list[SpecialtySuggestion]],
+)
+async def list_specialty_suggestions(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[SpecialtySuggestion]]:
+    """Recognised disciplines this clinic has not added yet.
+
+    Declared before ``/specialties/{specialty_id}`` on purpose: the other
+    route would match "suggestions" first and fail to read it as a UUID.
+    """
+    found = await SpecialtyService.suggestions(db, ctx.clinic_id)
+    return ApiResponse(data=[SpecialtySuggestion(**item) for item in found])
 
 
 @router.get("/specialties/{specialty_id}", response_model=ApiResponse[SpecialtyResponse])
@@ -314,8 +360,15 @@ async def create_specialty(
     _: Annotated[None, Depends(require_permission("catalog.admin"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[SpecialtyResponse]:
-    """Create a new specialty."""
-    specialty = await SpecialtyService.create_specialty(db, ctx.clinic_id, data.model_dump())
+    """Create a new specialty, unless the clinic already has it."""
+    payload = data.model_dump()
+    if payload.get("key") and payload["key"] not in {s["key"] for s in SUGGESTED_SPECIALTIES}:
+        raise HTTPException(status_code=400, detail="Unknown specialty key")
+
+    try:
+        specialty = await SpecialtyService.create_specialty(db, ctx.clinic_id, payload)
+    except DuplicateSpecialtyError as exc:
+        raise _specialty_conflict(exc) from exc
     return ApiResponse(data=SpecialtyResponse.model_validate(specialty))
 
 
@@ -332,9 +385,12 @@ async def update_specialty(
     if not specialty:
         raise HTTPException(status_code=404, detail="Specialty not found")
 
-    updated = await SpecialtyService.update_specialty(
-        db, specialty, data.model_dump(exclude_unset=True)
-    )
+    try:
+        updated = await SpecialtyService.update_specialty(
+            db, specialty, data.model_dump(exclude_unset=True)
+        )
+    except DuplicateSpecialtyError as exc:
+        raise _specialty_conflict(exc) from exc
     return ApiResponse(data=SpecialtyResponse.model_validate(updated))
 
 
@@ -411,7 +467,7 @@ async def list_items(
     _: Annotated[None, Depends(require_permission("catalog.read"))],
     db: Annotated[AsyncSession, Depends(get_db)],
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=500),
+    page_size: int = Query(default=20, ge=1, le=MAX_PAGE_SIZE),
     category_id: UUID | None = Query(default=None),
     is_active: bool | None = Query(default=True),
     treatment_scope: str | None = Query(default=None),

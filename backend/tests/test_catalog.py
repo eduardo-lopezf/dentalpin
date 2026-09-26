@@ -1,5 +1,6 @@
 """Tests for the catalog module."""
 
+import inspect
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -14,6 +15,8 @@ from app.modules.catalog.models import (
     TreatmentCategory,
     VatType,
 )
+from app.modules.catalog.router import list_items
+from app.modules.catalog.service import MAX_PAGE_SIZE
 
 
 @pytest.fixture
@@ -832,6 +835,305 @@ async def test_catalog_item_pagination(
 
 
 @pytest.mark.asyncio
+async def test_clinic_cannot_hold_the_same_specialty_twice(
+    client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
+):
+    """A second row under the same name splits a discipline in two.
+
+    The field was free text with no check, and the form suggested a name that
+    already existed. The cost is not an untidy list: professionals get tagged
+    with one row and treatments with the other, so "only what my team does"
+    silently matches nothing.
+
+    Accents and case do not make a different discipline either.
+    """
+    first = await client.post(
+        "/api/v1/catalog/specialties",
+        json={"names": {"es": "Ortodoncia"}},
+        headers=auth_headers,
+    )
+    assert first.status_code == 201
+
+    for attempt in ({"es": "Ortodoncia"}, {"es": "ortodoncia"}, {"es": "ORTODONCIA"}):
+        clash = await client.post(
+            "/api/v1/catalog/specialties", json={"names": attempt}, headers=auth_headers
+        )
+        assert clash.status_code == 409, attempt
+
+    # Another language of the same row is still that row.
+    across = await client.post(
+        "/api/v1/catalog/specialties",
+        json={"names": {"en": "Ortodoncia"}},
+        headers=auth_headers,
+    )
+    assert across.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_a_deactivated_specialty_still_blocks_the_name(
+    client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
+):
+    """Deactivating hides the row, not its treatment assignments.
+
+    So a clinic that switches one off and types the name again would end up
+    with the live half empty and the assignments stranded on the invisible
+    one. The refusal says the existing row is inactive, which is a different
+    instruction: switch it back on.
+    """
+    created = await client.post(
+        "/api/v1/catalog/specialties",
+        json={"names": {"es": "Odontología del Sueño"}},
+        headers=auth_headers,
+    )
+    specialty_id = created.json()["data"]["id"]
+    await client.delete(f"/api/v1/catalog/specialties/{specialty_id}", headers=auth_headers)
+
+    clash = await client.post(
+        "/api/v1/catalog/specialties",
+        json={"names": {"es": "Odontologia del Sueno"}},
+        headers=auth_headers,
+    )
+    assert clash.status_code == 409
+
+    # And no second row was created behind the refusal.
+    listed = await client.get(
+        "/api/v1/catalog/specialties?include_inactive=true", headers=auth_headers
+    )
+    matching = [
+        s
+        for s in listed.json()["data"]
+        if "sue" in (s["names"].get("es", "").lower().replace("ñ", "n"))
+    ]
+    assert [s["id"] for s in matching] == [specialty_id]
+
+
+@pytest.mark.asyncio
+async def test_renaming_a_specialty_onto_another_is_refused(
+    client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
+):
+    """Otherwise the rule only guards the front door."""
+    await client.post(
+        "/api/v1/catalog/specialties",
+        json={"names": {"es": "Periodoncia"}},
+        headers=auth_headers,
+    )
+    other = await client.post(
+        "/api/v1/catalog/specialties",
+        json={"names": {"es": "Periodoncia avanzada"}},
+        headers=auth_headers,
+    )
+    other_id = other.json()["data"]["id"]
+
+    clash = await client.put(
+        f"/api/v1/catalog/specialties/{other_id}",
+        json={"names": {"es": "Periodoncia"}},
+        headers=auth_headers,
+    )
+    assert clash.status_code == 409
+
+    # Renaming onto itself is not a clash.
+    same = await client.put(
+        f"/api/v1/catalog/specialties/{other_id}",
+        json={"names": {"es": "Periodoncia avanzada"}},
+        headers=auth_headers,
+    )
+    assert same.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_specialty_suggestions_drop_what_the_clinic_already_has(
+    client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
+):
+    """The recognised list is what the clinic is missing, not the whole vocabulary.
+
+    Picking one carries its stable key, which is what stops two people typing
+    "Radiología" from producing two rows — and what a later seed run would
+    match rather than duplicate.
+    """
+    offered = await client.get("/api/v1/catalog/specialties/suggestions", headers=auth_headers)
+    assert offered.status_code == 200
+    keys = [s["key"] for s in offered.json()["data"]]
+    assert "radiologia" in keys
+    assert all(s["names"].get("es") and s["names"].get("en") for s in offered.json()["data"])
+
+    picked = next(s for s in offered.json()["data"] if s["key"] == "radiologia")
+    created = await client.post(
+        "/api/v1/catalog/specialties",
+        json={"names": picked["names"], "key": "radiologia"},
+        headers=auth_headers,
+    )
+    assert created.status_code == 201
+    assert created.json()["data"]["key"] == "radiologia"
+
+    again = await client.get("/api/v1/catalog/specialties/suggestions", headers=auth_headers)
+    assert "radiologia" not in [s["key"] for s in again.json()["data"]]
+
+
+@pytest.mark.asyncio
+async def test_a_client_cannot_mint_a_specialty_key(
+    client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
+):
+    """The key is the seeder's matching handle, not a free field.
+
+    An invented one could silently claim a name the product ships later, and
+    the clinic would find its own row updated by a seed run it never asked for.
+    """
+    refused = await client.post(
+        "/api/v1/catalog/specialties",
+        json={"names": {"es": "Inventada"}, "key": "inventada"},
+        headers=auth_headers,
+    )
+    assert refused.status_code == 400
+
+    # Free text is still allowed; it simply carries no key.
+    free = await client.post(
+        "/api/v1/catalog/specialties",
+        json={"names": {"es": "Inventada"}},
+        headers=auth_headers,
+    )
+    assert free.status_code == 201
+    assert free.json()["data"]["key"] is None
+
+
+@pytest.mark.asyncio
+async def test_item_keeps_every_specialty_a_write_does_not_mention(
+    client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
+):
+    """``specialty_ids`` replaces the set; omitting it leaves the set alone.
+
+    Both halves matter to the same screen. The catalog form offered one
+    discipline where the relation holds many, so it read back the first and
+    sent that one — and a crown over an implant, filed under three, came out
+    of a price change with one. Whoever sends the key owns the whole set;
+    whoever does not send it changes nothing.
+    """
+    cat_response = await client.post(
+        "/api/v1/catalog/categories",
+        json={"key": "disciplines", "names": {"es": "Disciplinas", "en": "Disciplines"}},
+        headers=auth_headers,
+    )
+    category_id = cat_response.json()["data"]["id"]
+
+    specialty_ids = []
+    for name in ("Implantología", "Rehabilitación Oral", "Odontología General"):
+        created = await client.post(
+            "/api/v1/catalog/specialties",
+            json={"names": {"es": name, "en": name}},
+            headers=auth_headers,
+        )
+        specialty_ids.append(created.json()["data"]["id"])
+
+    item = await client.post(
+        "/api/v1/catalog/items",
+        json={
+            "category_id": category_id,
+            "internal_code": "DISC-CROWN-IMPL",
+            "names": {"es": "Corona sobre implante", "en": "Crown over implant"},
+            "default_price": 750,
+            "treatment_scope": "tooth",
+            "specialty_ids": specialty_ids,
+        },
+        headers=auth_headers,
+    )
+    assert item.status_code == 201
+    item_id = item.json()["data"]["id"]
+    assert len(item.json()["data"]["specialties"]) == 3
+
+    # A price change that says nothing about disciplines must not touch them.
+    priced = await client.put(
+        f"/api/v1/catalog/items/{item_id}",
+        json={"default_price": 800},
+        headers=auth_headers,
+    )
+    assert priced.status_code == 200
+    assert len(priced.json()["data"]["specialties"]) == 3
+
+    # Sending the key is a replacement, not a merge.
+    narrowed = await client.put(
+        f"/api/v1/catalog/items/{item_id}",
+        json={"specialty_ids": specialty_ids[:1]},
+        headers=auth_headers,
+    )
+    assert narrowed.status_code == 200
+    assert [s["id"] for s in narrowed.json()["data"]["specialties"]] == specialty_ids[:1]
+
+
+@pytest.mark.asyncio
+async def test_items_page_size_cannot_exceed_what_the_service_serves(
+    client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
+):
+    """The advertised maximum page and the served one must be the same number.
+
+    They were not: the route accepted ``page_size`` up to 500 while the service
+    clamped to 100 and the envelope echoed the 500 back. A caller asking for
+    everything was handed a fifth of it and told the page held 500 — the
+    management screen drew 100 of a 136-treatment catalog under the heading
+    "136", with three categories missing outright.
+    """
+    declared = inspect.signature(list_items).parameters["page_size"].default
+    upper_bound = next(m.le for m in declared.metadata if hasattr(m, "le"))
+    assert upper_bound == MAX_PAGE_SIZE
+
+    accepted = await client.get(
+        f"/api/v1/catalog/items?page_size={MAX_PAGE_SIZE}", headers=auth_headers
+    )
+    assert accepted.status_code == 200
+    assert accepted.json()["page_size"] == MAX_PAGE_SIZE
+
+    refused = await client.get(
+        f"/api/v1/catalog/items?page_size={MAX_PAGE_SIZE + 1}", headers=auth_headers
+    )
+    assert refused.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_items_envelope_never_promises_more_than_it_returns(
+    client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
+):
+    """Whatever page size is granted, the rows delivered fill it or exhaust the set.
+
+    This is the invariant a client pages on: a short page means the end. When
+    the service silently shrank the page, a client that trusted ``page_size``
+    stopped early and never learned there was more.
+    """
+    cat_response = await client.post(
+        "/api/v1/catalog/categories",
+        json={"key": "envelope", "names": {"es": "Sobre", "en": "Envelope"}},
+        headers=auth_headers,
+    )
+    category_id = cat_response.json()["data"]["id"]
+
+    for i in range(7):
+        await client.post(
+            "/api/v1/catalog/items",
+            json={
+                "category_id": category_id,
+                "internal_code": f"ENVELOPE-{i:03d}",
+                "names": {"es": f"Envelope {i}", "en": f"Envelope {i}"},
+                "treatment_scope": "tooth",
+            },
+            headers=auth_headers,
+        )
+
+    seen: set[str] = set()
+    page = 1
+    while True:
+        response = await client.get(
+            f"/api/v1/catalog/items?page={page}&page_size=3", headers=auth_headers
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["page_size"] == 3
+        assert len(body["data"]) <= body["page_size"]
+        seen.update(item["id"] for item in body["data"])
+        if len(body["data"]) < body["page_size"]:
+            break
+        page += 1
+
+    assert len(seen) == body["total"]
+
+
+@pytest.mark.asyncio
 async def test_catalog_item_vat_types(
     client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
 ):
@@ -1209,6 +1511,81 @@ async def test_create_item_session_sum_mismatch_rejected(
         headers=auth_headers,
     )
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_a_price_on_its_own_cannot_orphan_a_session_template(
+    client: AsyncClient, auth_headers: dict, catalog_clinic_setup: dict
+):
+    """Changing only the price of a staged treatment is refused, not absorbed.
+
+    The rule is that the stages add up to the total, and it was checked only
+    when a template came with the write. So a plain ``{"default_price": 800}``
+    moved a crown off its own stages — "Toma de medidas 250 + Colocación 500"
+    still summing to 750 — and the form that drew them could not represent the
+    result. The catalog list types prices without knowing an item has stages,
+    which is exactly the caller that would have hit it.
+    """
+    category_id = await _create_catalog_category(client, auth_headers, "sessions_orphan")
+    created = await client.post(
+        "/api/v1/catalog/items",
+        json={
+            "category_id": category_id,
+            "internal_code": "CROWN-STAGED",
+            "names": {"es": "Corona por sesiones"},
+            "default_price": 750.00,
+            "sessions": [
+                {"labels": {"es": "Toma de medidas"}, "default_price": 250.00},
+                {"labels": {"es": "Colocación"}, "default_price": 500.00},
+            ],
+        },
+        headers=auth_headers,
+    )
+    assert created.status_code == 201
+    item_id = created.json()["data"]["id"]
+
+    refused = await client.put(
+        f"/api/v1/catalog/items/{item_id}",
+        json={"default_price": 800.00},
+        headers=auth_headers,
+    )
+    assert refused.status_code == 422
+
+    unchanged = await client.get(f"/api/v1/catalog/items/{item_id}", headers=auth_headers)
+    assert Decimal(unchanged.json()["data"]["default_price"]) == Decimal("750.00")
+
+    # With the stages restated, the same move is fine.
+    accepted = await client.put(
+        f"/api/v1/catalog/items/{item_id}",
+        json={
+            "default_price": 800.00,
+            "sessions": [
+                {"labels": {"es": "Toma de medidas"}, "default_price": 300.00},
+                {"labels": {"es": "Colocación"}, "default_price": 500.00},
+            ],
+        },
+        headers=auth_headers,
+    )
+    assert accepted.status_code == 200
+
+    # And a treatment without stages is unaffected by any of this.
+    plain = await client.post(
+        "/api/v1/catalog/items",
+        json={
+            "category_id": category_id,
+            "internal_code": "CROWN-FLAT",
+            "names": {"es": "Corona plana"},
+            "default_price": 400.00,
+        },
+        headers=auth_headers,
+    )
+    repriced = await client.put(
+        f"/api/v1/catalog/items/{plain.json()['data']['id']}",
+        json={"default_price": 455.00},
+        headers=auth_headers,
+    )
+    assert repriced.status_code == 200
+    assert Decimal(repriced.json()["data"]["default_price"]) == Decimal("455.00")
 
 
 @pytest.mark.asyncio

@@ -7,6 +7,8 @@ from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
+from app.core.utils.search import fold
+
 from .models import (
     CatalogItemSession,
     Specialty,
@@ -20,6 +22,15 @@ from .models import (
 # Rounding tolerance when comparing session sum vs. item total.
 SESSION_SUM_TOLERANCE = Decimal("0.01")
 
+# Largest page `/items` will serve. The router validates against it and the
+# service clamps to it, so the two can no longer drift: `/items` advertised
+# `le=500` while the service clamped to 100 and the envelope echoed back the
+# 500 that was asked for, so a caller that asked for everything got a fifth of
+# what it asked for and no way to tell. The admin catalog screen asked for
+# 500, drew 100 of the clinic's 136 treatments, and headed them with the
+# number 136.
+MAX_PAGE_SIZE = 100
+
 
 class SessionTemplateError(ValueError):
     """Raised when a session template fails validation (sum mismatch, etc.)."""
@@ -27,6 +38,19 @@ class SessionTemplateError(ValueError):
 
 class UnknownCatalogItemError(ValueError):
     """Raised when a referenced catalog item is missing from this clinic."""
+
+
+class DuplicateSpecialtyError(ValueError):
+    """Raised when a clinic already has a specialty under that name or key.
+
+    Carries the offending row so the caller can say *which* one, and whether
+    it is merely deactivated — that is the difference between "you already
+    have this" and "you already have this, switch it back on".
+    """
+
+    def __init__(self, existing: "Specialty") -> None:
+        self.existing = existing
+        super().__init__("Specialty already exists")
 
 
 def validate_session_template(
@@ -243,12 +267,67 @@ class SpecialtyService:
         return result.scalar_one_or_none()
 
     @staticmethod
+    def _name_variants(names: dict[str, str] | None) -> set[str]:
+        """Comparable forms of a specialty's names: folded, cased down, trimmed.
+
+        Compared across every language the row carries, because the names of
+        one specialty in two languages are still that one specialty: a clinic
+        working in English must not end up with "Endodontics" beside the
+        seeded row that already answers to it.
+        """
+        return {
+            fold(value).casefold().strip()
+            for value in (names or {}).values()
+            if value and value.strip()
+        }
+
+    @staticmethod
+    async def find_equivalent(
+        db: AsyncSession,
+        clinic_id: UUID,
+        names: dict[str, str] | None,
+        key: str | None = None,
+        exclude_id: UUID | None = None,
+    ) -> Specialty | None:
+        """The clinic's specialty that already means this, active or not.
+
+        Deactivated ones count. They keep their treatment assignments, so
+        creating a second row under the same name splits a discipline in two
+        and the older half becomes invisible — `is_active` hides the row, not
+        its links.
+        """
+        wanted = SpecialtyService._name_variants(names)
+        result = await db.execute(select(Specialty).where(Specialty.clinic_id == clinic_id))
+        for candidate in result.scalars().all():
+            if exclude_id and candidate.id == exclude_id:
+                continue
+            if key and candidate.key == key:
+                return candidate
+            if wanted & SpecialtyService._name_variants(candidate.names):
+                return candidate
+        return None
+
+    @staticmethod
     async def create_specialty(
         db: AsyncSession,
         clinic_id: UUID,
         data: dict,
     ) -> Specialty:
-        """Create a new specialty."""
+        """Create a new specialty, refusing one the clinic already has.
+
+        The field was free text with no check of any kind, and the form's own
+        placeholder read "Ej: Cirugía Oral y Maxilofacial" — the exact name of
+        a seeded specialty sitting in the list above it. A second row costs
+        more than a tidy list: professionals are tagged with one and treatments
+        with the other, and the "only what my team does" filter then matches
+        nothing, with nothing on screen to explain why.
+        """
+        existing = await SpecialtyService.find_equivalent(
+            db, clinic_id, data.get("names"), data.get("key")
+        )
+        if existing:
+            raise DuplicateSpecialtyError(existing)
+
         specialty = Specialty(clinic_id=clinic_id, **data)
         db.add(specialty)
         await db.flush()
@@ -260,13 +339,51 @@ class SpecialtyService:
         specialty: Specialty,
         data: dict,
     ) -> Specialty:
-        """Update a specialty."""
+        """Update a specialty. Renaming onto another one is refused too.
+
+        Otherwise the rule only guards the front door: create "Ortodoncia B",
+        rename it to "Ortodoncia", and the clinic has the split it was spared
+        a moment earlier.
+        """
+        if data.get("names") is not None:
+            existing = await SpecialtyService.find_equivalent(
+                db,
+                specialty.clinic_id,
+                data["names"],
+                exclude_id=specialty.id,
+            )
+            if existing:
+                raise DuplicateSpecialtyError(existing)
+
         for key, value in data.items():
             if value is not None:
                 setattr(specialty, key, value)
 
         await db.flush()
         return specialty
+
+    @staticmethod
+    async def suggestions(db: AsyncSession, clinic_id: UUID) -> list[dict]:
+        """Recognised disciplines the clinic does not have yet.
+
+        Seeded specialties are not offered again, and neither is one the
+        clinic already created by hand under the same name.
+        """
+        from .seed import SUGGESTED_SPECIALTIES
+
+        result = await db.execute(select(Specialty).where(Specialty.clinic_id == clinic_id))
+        owned = list(result.scalars().all())
+        owned_keys = {s.key for s in owned if s.key}
+        owned_names: set[str] = set()
+        for s in owned:
+            owned_names |= SpecialtyService._name_variants(s.names)
+
+        return [
+            suggestion
+            for suggestion in SUGGESTED_SPECIALTIES
+            if suggestion["key"] not in owned_keys
+            and not (SpecialtyService._name_variants(suggestion["names"]) & owned_names)
+        ]
 
     @staticmethod
     async def delete_specialty(
@@ -470,7 +587,7 @@ class CatalogService:
         (history references it), but nothing lists it, so without this an
         admin who removed a treatment by mistake could not find it to restore.
         """
-        page_size = min(max(page_size, 1), 100)
+        page_size = min(max(page_size, 1), MAX_PAGE_SIZE)
         offset = (page - 1) * page_size
 
         conditions = [TreatmentCatalogItem.clinic_id == clinic_id]
@@ -689,6 +806,18 @@ class CatalogService:
         effective_total = new_total if new_total is not None else item.default_price
         if sessions_data != "__not_provided__":
             validate_session_template(effective_total, sessions_data)
+        elif new_total is not None and item.sessions:
+            # A price on its own, on an item billed in stages. The rule is that
+            # the stages add up to the total, and it was only ever checked when
+            # a template came with the write — so moving a crown from 750 to
+            # 800 left "Toma de medidas 250 + Colocación 500" behind it, an
+            # invalid state the form cannot even draw. Checked here because the
+            # caller need not know an item has a template: the price cell in
+            # the catalog list does not.
+            validate_session_template(
+                effective_total,
+                [{"default_price": session.default_price} for session in item.sessions],
+            )
 
         for key, value in data.items():
             if value is not None:

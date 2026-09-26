@@ -2,6 +2,131 @@
 
 ## Unreleased
 
+- feat(catálogo): **los precios se ponen desde la tabla.** Pulsa la cifra,
+  escribe la tuya, Enter. Era el primer trabajo real de una clínica —llega a
+  136 tratamientos con precios de demostración— y había que abrir un modal por
+  cada uno: abrir, buscar el campo, guardar, esperar al listado, buscar la
+  siguiente fila. La fila se actualiza sola, sin recargar el catálogo, para que
+  se pueda bajar por la columna; y el aviso de «guardado» se calla en este
+  camino, porque apilar 136 confirmaciones sobre la lista que se está editando
+  no confirma nada (`updateItem(..., { silent: true })`).
+
+  Los tratamientos **cobrados por sesiones** no se editan ahí: su total es la
+  suma de sus sesiones y una celda no puede preguntar por ellas. La celda lo
+  dice, con un icono y su explicación, en vez de fallar al guardar. Son 7 de
+  los 136 de la semilla.
+
+- fix(catálogo): un `PUT` con solo `default_price` **dejaba huérfana la
+  plantilla de sesiones**. La regla —las sesiones suman el total— solo se
+  comprobaba cuando la escritura traía plantilla, así que mover una corona de
+  750 a 800 la dejaba con «Toma de medidas 250 + Colocación 500» detrás: un
+  estado que el propio formulario no sabe dibujar. Ahora se valida también la
+  plantilla existente cuando cambia el precio y no se manda otra, y la
+  respuesta es 422 con el motivo. Justo el caso que la edición en línea habría
+  provocado a diario, porque la celda no sabe si el tratamiento tiene sesiones.
+
+- feat(catálogo): el alta de especialidad ofrece las **reconocidas que faltan**
+  —Radiología, Patología Oral, Medicina Oral, Dolor Orofacial y ATM,
+  Odontología del Sueño, Prótesis Dental de laboratorio y Odontogeriatría— en
+  `GET /specialties/suggestions`, y una elegida se crea con su **clave
+  estable**. No se siembran: una clínica no las usa todas, y meterlas en todos
+  los selectores es el mismo error que dejar 130 tratamientos que nadie puede
+  quitar. El texto libre sigue, para lo que una lista no puede anticipar.
+
+  La clave solo se acepta si sale de esa lista. Es la que casa el sembrador,
+  así que una inventada podría reclamar en silencio un nombre que el producto
+  publique más adelante.
+
+- fix(catálogo): **la clínica ya no puede tener dos veces la misma
+  especialidad.** El campo era texto libre sin comprobación alguna y el propio
+  marcador de posición proponía «Ej: Cirugía Oral y Maxilofacial», el nombre
+  exacto de una que estaba en la lista de arriba. El coste no es una lista
+  desordenada: al profesional se le etiqueta con una fila y a los tratamientos
+  con la otra, y entonces «Solo lo que mi equipo realiza» no encuentra nada sin
+  que nada en pantalla lo explique.
+
+  La comparación ignora acentos y mayúsculas, y mira **todos los idiomas** de
+  la ficha: «Endodontics» no es una disciplina distinta de «Endodoncia».
+  Renombrar una encima de otra también se rechaza — si no, la regla solo
+  guardaba la puerta de entrada.
+
+  Una **desactivada también ocupa el nombre**: `is_active` esconde la fila, no
+  sus tratamientos asignados, así que la segunda dejaría la mitad viva vacía y
+  las asignaciones varadas en la invisible. El formulario lo dice antes de
+  enviar nada y ofrece reactivarla, porque ese caso no se ve en la pestaña.
+
+- fix(catálogo): la **papelera vuelve a existir**. La API aceptaba borrar
+  tratamientos sembrados desde hace tiempo —era el objetivo declarado del
+  cambio: no dejar ~130 tratamientos que la clínica no ofrece en todos los
+  selectores para siempre— y la pantalla seguía escondiendo el botón con
+  `v-if="!item.is_system"`. En una clínica recién creada *todo* el catálogo es
+  de sistema, así que la papelera no aparecía ni una sola vez.
+
+- feat(catálogo): interruptor **«Mostrar inactivos y eliminados»** en la
+  pantalla de administración, con distintivo *Eliminado* y botón **Restaurar**.
+  Sin él, las dos cosas eran inalcanzables desde la única pantalla que puede
+  editarlas: desactivar un tratamiento lo sacaba del listado —que es también el
+  único sitio donde reactivarlo— y un tratamiento eliminado **conserva su
+  `internal_code` ocupado**, de modo que ni se encontraba ni se podía recrear
+  con el mismo código. `include_deleted=true` deja caer el filtro de activos
+  junto con el de borrados, así que una sola pasada trae las tres situaciones.
+
+- fix(catálogo): el diálogo de borrado decía «Esta acción no se puede
+  deshacer». Decía justo lo contrario de lo que hace: la baja es lógica y
+  reversible por diseño, y es lo que hace seguro limpiar el catálogo de partida.
+  Ahora explica qué desaparece, qué se conserva y por dónde se recupera. De
+  paso, el mensaje de error 403 al borrar decía «No se puede eliminar un
+  tratamiento del sistema», que ya no es una causa posible: el único 403 que
+  queda es de permisos, y eso es lo que dice.
+
+- fix(catálogo): editar un tratamiento le **borraba especialidades**. El
+  formulario ofrecía una sola —«La realiza», un desplegable simple— donde la
+  relación admite varias: al abrir leía `specialties[0]` y al guardar mandaba
+  esa, y `specialty_ids` reemplaza el conjunto entero. Así que abrir una corona
+  sobre implante para cambiarle el precio y pulsar *Guardar* la dejaba con una
+  de sus tres disciplinas. Y siempre con la más genérica, porque la lista llega
+  por antigüedad: subir precios vaciaba Implantología dentro de Odontología
+  General. **48 de los 136 tratamientos sembrados** tienen más de una.
+
+  El campo es ahora de selección múltiple y envía el conjunto completo. La
+  ayuda lo dice: «marca todas las que correspondan».
+
+- fix(catálogo): cambiar el tipo de un tratamiento **ya guardado** dejó de
+  reescribirle la especialidad y la fase. El comentario del código decía «solo
+  en el alta: en un tratamiento existente eso ya lo decidió la clínica» y el
+  código lo hacía en los dos casos — solo el «dónde se aplica» respetaba la
+  regla. En el alta la propuesta sigue igual: el tipo trae especialidad, fase y
+  ámbito.
+
+- fix(catálogo): la pantalla de administración enseñaba **100 de 136
+  tratamientos**. Pedía una página de 500 y `/items` sirve como mucho 100: el
+  router anunciaba `le=500`, el servicio recortaba a 100 en silencio y el sobre
+  devolvía el 500 que le habían pedido, así que quien preguntaba por todo se
+  llevaba una parte y el número que lo acompañaba decía que estaba completo.
+
+  En la clínica de demostración faltaban **Diagnóstico, Periodoncia y Estética
+  enteras**, y Endodoncia salía con 6 de sus 10. Cuáles desaparecían dependía
+  del orden de los UUID de categoría, de modo que no había patrón que
+  reconocer; y la vista agrupada no tiene paginador con el que alcanzarlas. Los
+  36 tratamientos restantes no se podían editar, tarifar ni ocultar desde la
+  única pantalla que sirve para eso.
+
+  Ahora la cota es **una sola**: `MAX_PAGE_SIZE` en `service.py`, que el router
+  usa como `le` y el servicio como recorte. Pedir más devuelve 422 en vez de
+  una respuesta a medias. La pantalla recorre el catálogo hasta agotarlo
+  (`loadAllItems`) y filtra en el navegador —el mismo trato que ya hacía el
+  catálogo clínico—, así que no pagina y el contador cuenta las filas
+  dibujadas: con filtro dice «12 de 136».
+
+- fix(catálogo): escribir un tratamiento ya no recarga el listado desde dentro
+  del composable. `createItem`, `updateItem` y `deleteItem` terminaban en un
+  `fetchItems()` sin argumentos, que releía la página uno con el último tamaño
+  usado y **descartaba la búsqueda y la categoría activas**: marcar la casilla
+  «Visible» con una búsqueda puesta la tiraba, y en la pantalla de
+  administración sustituía el catálogo entero por sus primeras cien filas. El
+  refresco lo decide ahora quien escribe, que es el único que sabe qué está
+  mostrando.
+
 - feat(catalog): la vía ortognática entra en la semilla — `MXF-CONS-01`,
   `MXF-EST-01`, `MXF-PREAN-01`, `MXF-VSP-01`, `MXF-CIR-01`, `MXF-GENIO-01` y
   `MXF-OSTEO-01`. Se habían construido a mano en una clínica y vivían solo en

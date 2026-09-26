@@ -167,6 +167,14 @@ export function useCatalog() {
 
   // ============================================================================
   // Item Operations
+  //
+  // Writing an item does not reload the list: the caller decides how, because
+  // only the caller knows what it is holding. `createItem`, `updateItem` and
+  // `deleteItem` used to end in a bare `fetchItems()`, which re-read page one
+  // at whatever page size was last used and dropped the active search and
+  // category — so ticking a checkbox with a search on threw the search away,
+  // and on the management screen it replaced the full catalog with the first
+  // hundred rows of it.
   // ============================================================================
 
   interface FetchItemsOptions {
@@ -218,21 +226,35 @@ export function useCatalog() {
    * search and category). For views that must reason over every treatment at
    * once, e.g. grouping by specialty.
    *
-   * `page_size` is capped at 100 server-side, so page until each pass is
-   * exhausted. `/items` filters by `is_active` (default true) and has no
-   * "either" value, hence the second pass when inactive items are wanted.
+   * `page_size` is capped at 100 server-side (`MAX_PAGE_SIZE`), so page until
+   * each pass is exhausted. `/items` filters by `is_active` (default true) and
+   * has no "either" value, hence the second pass when inactive items are
+   * wanted.
+   *
+   * `includeDeleted` is a single pass instead: `include_deleted=true` drops
+   * the active filter along with the deleted one, so that one pass returns
+   * live, inactive and removed treatments together. It is how a deletion is
+   * undone — nothing else lists a removed treatment, and its internal code
+   * stays taken, so without this an admin who removed one by mistake could
+   * neither find it nor recreate it.
    */
-  async function fetchAllItems(includeInactive = false): Promise<TreatmentCatalogItem[]> {
+  async function fetchAllItems(
+    includeInactive = false,
+    includeDeleted = false
+  ): Promise<TreatmentCatalogItem[]> {
     const collected: TreatmentCatalogItem[] = []
+    const scopes = includeDeleted
+      ? ['include_deleted=true']
+      : (includeInactive ? ['is_active=true', 'is_active=false'] : ['is_active=true'])
 
     try {
-      for (const isActive of includeInactive ? [true, false] : [true]) {
+      for (const scope of scopes) {
         let page = 1
         let fetched = 0
 
         for (;;) {
           const response = await api.get<PaginatedResponse<TreatmentCatalogItem>>(
-            `/api/v1/catalog/items?page=${page}&page_size=100&is_active=${isActive}`
+            `/api/v1/catalog/items?page=${page}&page_size=100&${scope}`
           )
           collected.push(...response.data)
           fetched += response.data.length
@@ -245,6 +267,34 @@ export function useCatalog() {
     }
 
     return collected.sort((a, b) => a.internal_code.localeCompare(b.internal_code))
+  }
+
+  /**
+   * Load the whole catalog into the shared `items` state, for a view that
+   * shows the catalog as a whole and filters it in the browser.
+   *
+   * The management screen used to ask `fetchItems` for a single page of 500
+   * and call it "all items". It was not: the endpoint caps a page at 100, so
+   * the screen drew 100 of the clinic's 136 treatments — three categories
+   * missing outright, a fourth showing 6 of its 10 — under a heading that
+   * said 136. Which ones vanished depended on the order of the category
+   * UUIDs, so it looked like nothing in particular.
+   *
+   * `totalItems` is set from what actually arrived rather than from the
+   * server's count, so the number on screen always counts the rows on screen.
+   */
+  async function loadAllItems(
+    includeInactive = false,
+    includeDeleted = false
+  ): Promise<void> {
+    loading.value = true
+    error.value = null
+    try {
+      items.value = await fetchAllItems(includeInactive, includeDeleted)
+      totalItems.value = items.value.length
+    } finally {
+      loading.value = false
+    }
   }
 
   async function getItem(itemId: string): Promise<TreatmentCatalogItem | null> {
@@ -272,9 +322,6 @@ export function useCatalog() {
         color: 'success'
       })
 
-      // Refresh items list
-      await fetchItems()
-
       return response.data
     } catch (e: unknown) {
       const fetchError = e as { statusCode?: number }
@@ -301,9 +348,15 @@ export function useCatalog() {
     }
   }
 
+  /**
+   * `silent` suppresses the success toast, for a write the screen already
+   * shows: typing a column of prices would otherwise stack one confirmation
+   * per row over the list being edited. Failures always speak.
+   */
   async function updateItem(
     itemId: string,
-    data: TreatmentCatalogItemUpdate
+    data: TreatmentCatalogItemUpdate,
+    options: { silent?: boolean } = {}
   ): Promise<TreatmentCatalogItem | null> {
     try {
       const response = await api.put<ApiResponse<TreatmentCatalogItem>>(
@@ -311,14 +364,13 @@ export function useCatalog() {
         data as Record<string, unknown>
       )
 
-      toast.add({
-        title: t('common.success'),
-        description: t('catalog.itemUpdated'),
-        color: 'success'
-      })
-
-      // Refresh items list
-      await fetchItems()
+      if (!options.silent) {
+        toast.add({
+          title: t('common.success'),
+          description: t('catalog.itemUpdated'),
+          color: 'success'
+        })
+      }
 
       return response.data
     } catch (e: unknown) {
@@ -349,9 +401,6 @@ export function useCatalog() {
         description: t('catalog.itemDeleted'),
         color: 'success'
       })
-
-      // Refresh items list
-      await fetchItems()
 
       return true
     } catch (e: unknown) {
@@ -454,6 +503,7 @@ export function useCatalog() {
     // Item operations
     fetchItems,
     fetchAllItems,
+    loadAllItems,
     getItem,
     createItem,
     updateItem,

@@ -7,7 +7,7 @@
  * a category groups treatments for browsing, a specialty records the
  * professional discipline that performs them.
  */
-import type { Specialty, SpecialtyCreate, SpecialtyUpdate, CatalogItemBrief, ApiResponse } from '~~/app/types'
+import type { Specialty, SpecialtyCreate, SpecialtySuggestion, SpecialtyUpdate, CatalogItemBrief, ApiResponse } from '~~/app/types'
 
 export function useSpecialties() {
   const api = useApi()
@@ -53,6 +53,25 @@ export function useSpecialties() {
     }
   }
 
+  /**
+   * Recognised disciplines the clinic does not have yet, each with the stable
+   * key that keeps a second "Radiología" from being a second row.
+   *
+   * The backend owns the list: the key is what a later seed run matches on,
+   * so it cannot be invented here.
+   */
+  async function fetchSuggestions(): Promise<SpecialtySuggestion[]> {
+    try {
+      const response = await api.get<ApiResponse<SpecialtySuggestion[]>>(
+        '/api/v1/catalog/specialties/suggestions'
+      )
+      return response.data
+    } catch {
+      // A list of shortcuts that cannot be read must not block typing one in.
+      return []
+    }
+  }
+
   // Create a new specialty
   async function createSpecialty(data: SpecialtyCreate): Promise<Specialty | null> {
     try {
@@ -64,10 +83,13 @@ export function useSpecialties() {
         color: 'success'
       })
       return response.data
-    } catch {
+    } catch (e: unknown) {
+      // 409 is the clinic already having it — a different thing from a
+      // failure, and the only one the form can do something about.
+      const conflict = (e as { statusCode?: number }).statusCode === 409
       toast.add({
         title: t('common.error'),
-        description: t('specialties.createError'),
+        description: conflict ? t('specialties.duplicate') : t('specialties.createError'),
         color: 'error'
       })
       return null
@@ -88,10 +110,11 @@ export function useSpecialties() {
         color: 'success'
       })
       return response.data
-    } catch {
+    } catch (e: unknown) {
+      const conflict = (e as { statusCode?: number }).statusCode === 409
       toast.add({
         title: t('common.error'),
-        description: t('specialties.updateError'),
+        description: conflict ? t('specialties.duplicate') : t('specialties.updateError'),
         color: 'error'
       })
       return null
@@ -157,6 +180,7 @@ export function useSpecialties() {
 
     // Methods
     fetchSpecialties,
+    fetchSuggestions,
     createSpecialty,
     updateSpecialty,
     deleteSpecialty,

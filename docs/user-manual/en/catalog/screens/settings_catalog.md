@@ -17,6 +17,7 @@ related_endpoints:
   - GET /api/v1/catalog/odontogram-treatments/by-category
   - GET /api/v1/catalog/specialties
   - GET /api/v1/catalog/specialties/{specialty_id}
+  - GET /api/v1/catalog/specialties/suggestions
   - GET /api/v1/catalog/specialties/{specialty_id}/items
   - GET /api/v1/catalog/vat-types
   - GET /api/v1/catalog/vat-types/default
@@ -36,7 +37,7 @@ related_permissions:
   - catalog.admin
 related_paths:
   - backend/app/modules/catalog/frontend/pages/settings/catalog/index.vue
-last_verified_commit: a50d482
+last_verified_commit: 1facfd7
 ---
 
 # /settings/catalog
@@ -86,6 +87,31 @@ Inactive treatments show up in the assignment list only when already
 assigned, so an assignment can be removed without reactivating the
 treatment.
 
+## Adding a specialty
+
+The **New Specialty** button offers the **recognised ones the clinic does not
+have yet** first — Radiology and Imaging, Oral Pathology, Oral Medicine,
+Orofacial Pain and TMD, Sleep Dentistry, laboratory Dental Prosthetics,
+Geriatric Dentistry. One tap adds them, with their name in both languages.
+The free-text box is still underneath, for whatever a list cannot anticipate.
+
+They are deliberately not seeded: no clinic uses them all, and putting them in
+every picker would be the same clutter as a catalog full of treatments nobody
+offers.
+
+**The same specialty cannot be held twice.** Type a name that already exists
+and the form says so before anything is sent, and will not save. This is not
+tidiness: a professional gets tagged with one row and the treatments with the
+other, and the *Only what my team does* filter then stops finding them with
+nothing on screen to explain why. Accents and case do not make a different
+specialty, and neither does the language: "Endodontics" is the same one as
+"Endodoncia".
+
+When the clash is with a **deactivated** specialty, the notice says so and
+offers to **reactivate** it. That case matters: deactivating hides the row, not
+its assigned treatments, so creating another under the same name would leave
+the live half empty and the assignments stranded on a row no list shows.
+
 ## Seeded specialties
 
 A clinic starts with ten baseline specialties: General Dentistry, Dental
@@ -104,11 +130,48 @@ Hygiene.
 
 Re-seeding only fills gaps; it never removes assignments you made by hand.
 
-## Pagination
+## The list is complete
 
-The list paginates. Until now the pager ignored clicks — it used the
-component's old API — and only the first page was reachable; the
-treatments beyond it existed with no way to get to them.
+The **Treatment Type** tab loads the whole catalog and groups it by category.
+It no longer paginates: a grouping can only be read off the complete list, and
+the search box and category filter narrow what is loaded, in the browser,
+without asking the server again.
+
+The number beside the heading counts **the rows below it**. With a filter on it
+reads *"12 of 136"*.
+
+This has been a bug twice. The first time the pager ignored clicks and only the
+first page was reachable. The second was worse because nothing showed it: the
+screen asked for "500 treatments" from a listing that serves at most 100, so it
+drew 100 of the clinic's 136 — Diagnostic, Periodontics and Cosmetic missing
+outright, Endodontics showing 6 of its 10 — and headed them with the number
+136. Which categories vanished depended on the internal order of their ids, so
+it followed no pattern anyone would spot, and the grouped view has no pager to
+reach what was missing.
+
+So the list no longer asks for "everything" in one page: it walks the catalog
+until it is exhausted, and the counter counts what arrived, never what should
+have.
+
+## "Performed by": one or several
+
+A treatment belongs to **every discipline that performs it**, not to one. A
+crown over an implant is Implantology and Oral Rehabilitation; a veneer is
+Restorative by where it is filed and Cosmetic by what it is for. 48 of the 136
+seeded treatments carry more than one specialty.
+
+The form field is a multi-select and **saves the complete set**. It used to be
+a plain dropdown, and that destroyed data silently: opening the record kept
+only the first specialty and saving sent back that one, so opening a crown to
+change its price left it with one of its three. The survivor was always the
+most generic one — the list arrives oldest first — so editing prices slowly
+emptied Implantology into General Dentistry, and with it the *By Specialty* tab
+and the *Only what my team does* filter.
+
+When **creating**, the treatment type proposes the specialty, the phase and the
+placement, and you change them if another discipline does it here. On a
+**saved** treatment, changing the type touches none of the three: you already
+decided that.
 
 ## Editing treatments
 
@@ -116,17 +179,27 @@ Treatments shipped with the system are **editable**: price, name, duration, VAT,
 category, specialties and phase. They can also be **deleted**, not merely
 deactivated: a clinic does not offer everything the starter catalog ships.
 
+The bin sits on the row, on treatments marked **System** too. For a while it
+did not: the API already accepted removing them while the button stayed hidden
+on exactly those, and since a freshly created clinic's catalog is *entirely*
+system-seeded, it never appeared at all.
+
 The deletion is a soft one. The record is not destroyed — treatments already
 performed, budget lines and plan templates reference it — it simply disappears
 from every picker: the catalog search, the odontogram bar, budgets.
 
-**And it can be undone.** If you remove one by mistake, find it with the
-deleted filter (`include_deleted`) and mark it active again. Re-seeding the
-catalog does not resurrect it either: seeding sees the record is still there
-and leaves it alone.
+**And it can be undone.** The **"Show inactive and removed"** switch beside the
+search box brings back what is no longer offered: removed treatments appear
+badged *Removed* with a **Restore** button, deactivated ones badged *Inactive*.
+Without it both were unreachable from the only screen that can edit them — and
+a removed treatment **keeps its internal code reserved**, so it could not be
+recreated under the same code either.
 
-*Deactivating* remains the middle option: the treatment stops being offered
-but stays visible in the catalog.
+Re-seeding the catalog does not resurrect it either: seeding sees the record is
+still there and leaves it alone.
+
+*Deactivating* remains the middle option: the treatment stops being offered but
+keeps its price and configuration for when it comes back.
 
 Creating, editing and deleting treatments requires the `catalog.write`
 permission; managing categories, VAT types and specialties requires
@@ -137,6 +210,24 @@ sees the catalog read-only.
 The one locked field on a system treatment is the **internal code**: it is the
 key seeding matches on, and changing it would make the next seed run recreate
 the original as a duplicate.
+
+## Setting your prices
+
+A price is changed **in the table itself**: click the figure, type yours, press
+Enter. The row updates on its own, so a whole column can be walked without the
+list moving under the cursor.
+
+This is the first job of a clinic starting out — the starter catalog ships 136
+treatments at example prices — and until now it was one form per treatment:
+open, find the field, save, wait for the list, find the next row.
+
+`Esc` cancels, and leaving the box empty does not price the treatment at zero:
+a treatment with no price is not the same as a free one, and the treatment plan
+tells them apart.
+
+Treatments **billed in stages** carry a layers icon and are not edited here:
+their total is the sum of their sessions, which is changed from the form. In
+the starter catalog there are seven of them.
 
 ## The "Visible" column
 
