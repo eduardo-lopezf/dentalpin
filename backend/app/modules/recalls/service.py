@@ -16,10 +16,10 @@ from uuid import UUID
 from sqlalchemy import and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.contracts import ProfessionalDirectory, provider
 from app.core.events import event_bus
 from app.core.events.types import EventType
 from app.modules.patients.models import Patient
-from app.modules.professionals.models import Professional
 
 from .models import (
     DEFAULT_CATEGORY_TO_REASON,
@@ -31,6 +31,8 @@ from .models import (
 
 logger = logging.getLogger(__name__)
 
+PROFESSIONALS_UNAVAILABLE = "Professionals are not available — a recall cannot be assigned to one"
+
 
 async def _validate_professional_in_clinic(
     db: AsyncSession, clinic_id: UUID, professional_id: UUID
@@ -41,15 +43,12 @@ async def _validate_professional_in_clinic(
     leaking professionals across tenants or assigning a non-clinical
     profile. Raises ``ValueError`` so the router maps it to a 400.
     """
-    result = await db.execute(
-        select(Professional.id).where(
-            Professional.id == professional_id,
-            Professional.clinic_id == clinic_id,
-            Professional.professional_type.in_(("dentist", "hygienist")),
-            Professional.is_active.is_(True),
-        )
-    )
-    if result.scalar_one_or_none() is None:
+    # Asked of the directory's contract, not read from its table
+    # (ADR 0039). With the Professionals App off nobody can be assigned.
+    directory = provider(ProfessionalDirectory)
+    if directory is None:
+        raise ValueError(PROFESSIONALS_UNAVAILABLE)
+    if not await directory.is_bookable(db, clinic_id, professional_id):
         raise ValueError("Professional not found in this clinic")
 
 

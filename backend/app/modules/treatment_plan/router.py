@@ -17,14 +17,12 @@ from .schemas import (
     AddCatalogItemsRequest,
     ApplyTemplateRequest,
     ApplyTemplateResult,
-    BudgetAddendumResponse,
     BudgetBrief,
     ClosePlanRequest,
     CompleteItemRequest,
     CompleteSessionRequest,
     ContactLogRequest,
     DismissFindingsRequest,
-    GenerateBudgetResponse,
     LinkBudgetRequest,
     PipelineRow,
     PlanHistoryEntryResponse,
@@ -881,120 +879,9 @@ async def sync_plan_with_budget(
     return ApiResponse(data={"synced": True})
 
 
-@router.post(
-    "/treatment-plans/{plan_id}/budget-addendum",
-    response_model=ApiResponse[BudgetAddendumResponse],
-    status_code=status.HTTP_201_CREATED,
-)
-async def budget_plan_addendum(
-    plan_id: UUID,
-    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
-    _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> ApiResponse[BudgetAddendumResponse]:
-    """Price the treatments added since the plan was confirmed.
-
-    Leaves the budget the patient was shown alone and quotes the new work
-    on its own document — unless that budget is still a draft, in which
-    case the lines simply join it.
-    """
-    try:
-        budget, created, item_count = await TreatmentPlanService.budget_the_addendum(
-            db, ctx.clinic_id, plan_id, ctx.user_id
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    return ApiResponse(
-        data=BudgetAddendumResponse(
-            budget_id=budget.id,
-            budget_number=budget.budget_number,
-            created=created,
-            item_count=item_count,
-        )
-    )
-
-
-@router.post(
-    "/treatment-plans/{plan_id}/generate-budget",
-    response_model=ApiResponse[GenerateBudgetResponse],
-    status_code=status.HTTP_201_CREATED,
-)
-async def generate_budget_from_plan(
-    plan_id: UUID,
-    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
-    _: Annotated[None, Depends(require_permission("treatment_plan.plans.write"))],
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> ApiResponse[GenerateBudgetResponse]:
-    """Generate a new budget from the treatment plan items."""
-    from app.modules.budget.service import BudgetService
-
-    plan = await TreatmentPlanService.get(db, ctx.clinic_id, plan_id)
-    if not plan:
-        raise HTTPException(status_code=404, detail="Treatment plan not found")
-
-    # Check if existing linked budget is cancelled - if so, allow creating new one
-    if plan.budget_id:
-        from app.modules.budget.models import Budget
-
-        existing_budget = await db.get(Budget, plan.budget_id)
-        if existing_budget and existing_budget.status == "cancelled":
-            # Unlink cancelled budget to allow new one
-            plan.budget_id = None
-        else:
-            raise HTTPException(status_code=400, detail="Plan already has a budget linked")
-
-    if not plan.items:
-        raise HTTPException(status_code=400, detail="Plan has no items to create budget from")
-
-    # Collect catalog items from plan items, resolving everything from Treatment.
-    budget_items = []
-    for item in plan.items:
-        treatment = item.treatment
-        if not treatment or not treatment.catalog_item_id:
-            continue
-        primary_tooth = treatment.teeth[0].tooth_number if treatment.teeth else None
-        primary_surfaces = treatment.teeth[0].surfaces if treatment.teeth else None
-        budget_items.append(
-            {
-                "catalog_item_id": str(treatment.catalog_item_id),
-                "quantity": 1,
-                "tooth_number": primary_tooth,
-                "surfaces": primary_surfaces,
-                "treatment_id": str(treatment.id),
-                "unit_price": treatment.price_snapshot,
-            }
-        )
-
-    if not budget_items:
-        raise HTTPException(
-            status_code=400,
-            detail="No catalog items found in plan to create budget",
-        )
-
-    # Create budget via budget service
-    from datetime import date
-
-    budget = await BudgetService.create_budget(
-        db,
-        ctx.clinic_id,
-        ctx.user_id,
-        {
-            "patient_id": plan.patient_id,
-            "valid_from": date.today(),
-            "items": budget_items,
-            "internal_notes": f"Generated from treatment plan {plan.plan_number}",
-        },
-    )
-
-    # Link budget to plan
-    plan.budget_id = budget.id
-
-    return ApiResponse(
-        data=GenerateBudgetResponse(
-            budget_id=budget.id,
-            budget_number=budget.budget_number,
-        )
-    )
+# Generating a plan's budget and pricing its additions are `budget`
+# endpoints now (`POST /api/v1/budget/plans/{plan_id}/budget` and
+# `/addendum`): a budget is that module's to write (ADR 0042).
 
 
 # Media attachment endpoints moved to the ``media`` module since issue #55.

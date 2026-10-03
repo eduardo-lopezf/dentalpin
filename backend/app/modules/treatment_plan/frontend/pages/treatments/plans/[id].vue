@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const router = useRouter()
+const { book } = useAppointmentBooking()
 const { t } = useI18n()
 const toast = useToast()
 
@@ -49,7 +50,7 @@ async function handleGenerateBudget() {
 
 function handleSchedule() {
   if (patientId.value) {
-    router.push(`/appointments?patient_id=${patientId.value}`)
+    book({ patient_id: patientId.value })
   }
 }
 

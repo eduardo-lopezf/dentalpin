@@ -103,7 +103,7 @@ async def test_the_addendum_is_a_second_draft_holding_only_the_new_work(
     plan_id, budget_id = await _signed_plan(client, auth_headers, setup)
     await _add_treatment(client, auth_headers, setup, plan_id, tooth=26)
 
-    made = await client.post(f"{BASE}/{plan_id}/budget-addendum", headers=auth_headers)
+    made = await client.post(f"/api/v1/budget/plans/{plan_id}/addendum", headers=auth_headers)
     assert made.status_code == 201, made.text
     result = made.json()["data"]
     assert result["created"] is True
@@ -129,7 +129,7 @@ async def test_an_addendum_with_nothing_to_price_is_refused(
 ) -> None:
     plan_id, _ = await _signed_plan(client, auth_headers, setup)
 
-    refused = await client.post(f"{BASE}/{plan_id}/budget-addendum", headers=auth_headers)
+    refused = await client.post(f"/api/v1/budget/plans/{plan_id}/addendum", headers=auth_headers)
     assert refused.status_code == 400, refused.text
 
 

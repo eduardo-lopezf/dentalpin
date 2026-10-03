@@ -2,6 +2,66 @@
 
 ## Unreleased
 
+- refactor(clinical_notes): `agenda` pasa de `depends` a `integrates` y
+  deja de importarse (ADR 0039). El paciente de una cita, las citas de un
+  paciente y las notas de visita se piden a `AppointmentBook`. Con la App
+  Agenda apagada no se puede añadir una nota a una cita (404), las notas
+  de cita y de visita no se listan, y el resto de notas del paciente
+  funciona igual. Nada se borra: reaparecen al volver a habilitarla.
+
+- refactor(clinical_notes): `professionals` pasa de `depends` a
+  `integrates` y deja de importarse (ADR 0039). El profesional que
+  responde de una nota se pregunta a `ProfessionalDirectory.for_account`
+  y los autores de las notas de visita a `ProfessionalDirectory.briefs`.
+  Con la App Profesionales apagada la nota se guarda con la cuenta y sin
+  profesional, y las notas de visita se listan sin nombre de autor.
+
+- refactor(clinical_notes): las notas de visita buscan a su autor en el
+  directorio de profesionales en lugar de usar la relación
+  `appointment.professional`, que la agenda ya no tiene (ADR 0039).
+- feat(clínico): una nota **nombra al profesional responsable**
+  (`authored_by_professional_id`, `cn_0006`), y cada versión nombra a quien la
+  corrigió (`superseded_by_professional_id`). `author_id` no cambia: sigue
+  siendo el rastro de quién operó el sistema. Son dos campos por lo mismo que en
+  una historia de papel — un auxiliar puede escribir lo que un dentista firma.
+
+  Se resuelve desde `professionals.user_id`; una cuenta sin ficha de directorio
+  lo deja vacío en vez de adivinar. La clave foránea cruza de rama con
+  `depends_on`.
+
+- feat(clínico): **corregir una nota ya no borra lo que decía.** `update`
+  asignaba `note.body = body`, así que el texto anterior desaparecía: una
+  enmienda y un original eran indistinguibles, y «qué decía la nota el día del
+  procedimiento» —la pregunta de la que depende una reclamación o una revisión
+  de una aseguradora— no tenía respuesta.
+
+  La enmienda es ahora una versión. El texto sustituido pasa a
+  `clinical_note_versions` con su número, el instante en que dejó de estar
+  vigente, la cuenta que lo reemplazó y el motivo si se dio. La nota conserva
+  el texto actual en `body`, porque es lo que lee todo el mundo y leerlo no
+  debe costar un `join`; gana `version` y `amended_at`, que permite distinguir
+  de un vistazo una nota corregida de una que sigue diciendo lo que decía.
+
+  `GET /notes/{id}/versions` devuelve el historial, con el mismo permiso que
+  leer la nota: una corrección es parte de lo que la nota dice, no un secreto
+  aparte. Reconstruir la nota en un instante pasado es recorrerlas en orden.
+
+  **Guardar sin cambiar el texto no es una enmienda** y no escribe versión. Si
+  no, abrir una nota y pulsar guardar fabricaría un historial que no ocurrió, y
+  las correcciones de verdad quedarían enterradas entre versiones idénticas.
+
+  El motivo es opcional a propósito: exigirlo llenaría el expediente de la
+  palabra «corrección», y los motivos que valen se escriben cuando hay algo que
+  decir.
+
+  Autoría: la nota **no cambia de autor** al enmendarse — un administrador que
+  corrige la nota de otro no pasa a ser quien la escribió. La versión guarda
+  quién la sustituyó. La mitad que falta —el profesional colegiado— sigue
+  bloqueada por lo que se explica en `docs/features/expediente-clinico.md`.
+
+  Paso 2 de la fase 0 del expediente clínico
+  ([ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md)).
+
 - feat(clinical_notes): `TreatmentNoteButton` acepta `ctx.labelled` y se
   pinta como botón de texto azul a todo el ancho (**Añadir nota** /
   **Notas (n)**) en lugar del icono. Lo usa el pie de la ventana del tratamiento del plan; la lista de

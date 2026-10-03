@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+- refactor(patients): el buscador y el selector de pacientes
+  (`PatientSearch`, `PatientVisualSelector`, `patientSelectorUtils`) viven
+  ahora en esta capa (`frontend/components/shared/`) y no en la app base
+  (ADR 0044). Los nombres de componente no cambian.
+
+- feat(widgets): «Pacientes recientes» (Inicio) y «Acciones rápidas»
+  (Resumen de la ficha) se listan en Configuración → Widgets, con un
+  ejemplo de datos ficticios (ADR 0040). `RecentPatientsPanel` no llama a
+  la API dentro de un ejemplo (`utils/previewSamples.ts`).
+
+- refactor(patients): el frontend deja de nombrar a otros módulos (ADR
+  0041). La ficha toma sus pestañas del slot `patient.detail.tabs`:
+  Clínico, Administración y Galería las registran `treatment_plan`,
+  `budget` y `media`; Resumen, Info y Actividad son de la propia app.
+  `ClinicalTab`, `DiagnosisModeContainer`, `AdministrationTab` y
+  `AdministrationModeToggle` se mudan a los módulos dueños de su
+  contenido. Un enlace a una pestaña que no existe (su app está apagada)
+  abre el Resumen en lugar de un panel vacío.
+  - El listado ya no conoce los endpoints de `payments`: las insignias de
+    deuda y el filtro «Con deuda» llegan por el `loader` de sus slots.
+  - La app Pacientes queda formada por `patients`, `patients_clinical` y
+    `patient_timeline` (`backend/apps.json`).
+  - `frontend/tests/app-frontend-isolation.test.ts` falla si la app
+    vuelve a usar un componente o una API de un módulo ajeno.
+- feat(patients): el módulo ofrece el contrato del core `PatientDirectory` (validar un paciente y dar su resumen) desde
+  `providers.py` (ADR 0039), para que otros módulos lo consulten sin
+  importarlo.
+- feat(patients): los accesos «Cita» de la ficha del paciente pasan por
+  `useAppointmentBooking()`. Si la app Agenda está deshabilitada en
+  `backend/apps.json` (ADR 0038), muestran «No se pueden crear citas» en
+  lugar de navegar a una pantalla que no puede cargar, y el modo «Citas»
+  de la pestaña clínica muestra el mismo aviso.
 - feat(patients): la ficha ya no ofrece crear un presupuesto: fuera el botón de la cabecera y del estado vacío de *Administración → Presupuestos* (ahora lleva a los planes del paciente) y la acción rápida *Presupuesto*. Los presupuestos se generan al confirmar un plan de tratamiento.
 - fix(i18n): la pestaña **Galería** de la ficha no tenía clave en ningún
   idioma. No se notaba porque el segundo argumento de `t()` la tapaba —la

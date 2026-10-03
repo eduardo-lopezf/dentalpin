@@ -5,6 +5,8 @@
 - **Deciders:** martinezsalmeron
 - **Tags:** modules, media, attachments
 
+> **Update 2026-10-02:** the registry moved to `backend/app/core/attachments.py` so a module registers its owner types without importing `media` ([ADR 0039](0039-modules-reach-each-other-through-core-contracts.md)). `media/attachment_registry.py` re-exports it. The decision below is unchanged.
+
 ## Context
 
 Three modules used to own their own attachment plumbing:

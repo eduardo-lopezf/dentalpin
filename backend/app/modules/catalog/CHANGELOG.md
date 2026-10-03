@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- refactor(catalog): los selectores de tratamientos del catálogo
+  (`TreatmentMultiSelector`, `TreatmentVisualSelector`) y
+  `useTreatmentCatalogSearch` viven ahora en esta capa y no en la app base
+  (ADR 0044).
+
+- feat(apps): `catalog` pasa a formar parte de la App **Tratamientos**
+  en `backend/apps.json`. Sus páginas (`/treatments`,
+  `/settings/catalog`, `/settings/vat-types`) entran en `appRoutes.ts`,
+  así que con la App apagada redirigen con aviso.
+- fix(catalog): `useSpecialties` no pide las especialidades mientras el
+  catálogo no está en ejecución; Profesionales mostraba un error al
+  cargar con la App Tratamientos apagada.
+  `useModules()` se lee al montar el composable, no dentro de la
+  función: llamado desde un clic no había instancia de Nuxt y el diálogo
+  de nueva especialidad se quedaba sin sugerencias.
+
+- feat(catalog): con la app Profesionales apagada (`backend/apps.json`,
+  ADR 0038) el catálogo ya no consulta el directorio —la llamada
+  respondía 404— y oculta el filtro «Solo mi equipo», que no tendría
+  equipo por el que filtrar.
 - feat(catálogo): **los precios se ponen desde la tabla.** Pulsa la cifra,
   escribe la tuya, Enter. Era el primer trabajo real de una clínica —llega a
   136 tratamientos con precios de demostración— y había que abrir un modal por

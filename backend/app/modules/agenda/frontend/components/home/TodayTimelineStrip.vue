@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Appointment } from '~~/app/types'
-import { formatWallClockTime } from '../../utils/date'
+import { formatWallClockTime, wallClockDate } from '../../utils/date'
 
 defineProps<{ ctx?: unknown }>()
 
@@ -23,8 +23,12 @@ onBeforeUnmount(() => {
   if (intervalId) clearInterval(intervalId)
 })
 
+// `start_time` is the clinic's wall clock, not an instant. Through
+// `new Date()` each block was drawn off by the browser↔UTC gap while its
+// label, which already read the wall clock, said the right hour — a
+// 15:00 visit sat under 09:00 on a UTC−6 desk.
 function hourFloat(iso: string): number {
-  const d = new Date(iso)
+  const d = wallClockDate(iso)
   return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600
 }
 
@@ -75,16 +79,25 @@ const nowLabel = computed(() =>
 
 interface Lane { id: string, label: string, color: string, appts: Appointment[] }
 
+// For a lane whose professional the directory did not return.
+const LANE_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6']
+
 const professionalLanes = computed<Lane[]>(() => {
   const map = new Map<string, Lane>()
   for (const a of todayAppointments.value) {
-    const pid = a.professional_id
+    const pid = a.professional_id ?? ''
     if (!map.has(pid)) {
       const prof = professionals.value.find(p => p.id === pid)
+      // The appointment carries its professional's name; use it when the
+      // directory list does not have them (and in a widget example,
+      // where nobody in the lane is real).
+      const own = a.professional
       map.set(pid, {
         id: pid,
-        label: prof ? getProfessionalFullName(prof) : '—',
-        color: getProfessionalColor(pid),
+        label: prof
+          ? getProfessionalFullName(prof)
+          : own ? `${own.first_name} ${own.last_name}` : '—',
+        color: prof ? getProfessionalColor(pid) : LANE_COLORS[map.size % LANE_COLORS.length]!,
         appts: []
       })
     }
@@ -110,12 +123,12 @@ function statusIcon(a: Appointment): string | null {
 }
 
 function apptTitle(a: Appointment): string {
-  const name = [a.patient?.first_name, a.patient?.last_name].filter(Boolean).join(' ') || '—'
+  const name = [a.patient?.first_name, a.patient?.last_name].filter(Boolean).join(' ') || a.title || '—'
   return `${formatApptTime(a.start_time)} · ${name}`
 }
 
 function isoDay(iso: string): string {
-  const d = new Date(iso)
+  const d = wallClockDate(iso)
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')

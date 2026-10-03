@@ -14,14 +14,14 @@ related_endpoints:
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/reopen
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/status
   - POST /api/v1/treatment_plan/treatment-plans
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/budget-addendum
+  - POST /api/v1/budget/plans/{plan_id}/addendum
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/close
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/apply-template
   - GET /api/v1/treatment_plan/treatment-plans/{plan_id}/proposals
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/proposals
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/confirm
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/contact-log
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/generate-budget
+  - POST /api/v1/budget/plans/{plan_id}/budget
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/items
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/link-budget
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/reactivate
@@ -209,9 +209,15 @@ torcido; verde o gris, nada que hacer.
 > Requiere `treatment_plan.plans.confirm`.
 
 1. Sobre un plan en `draft`, pulsa **Confirmar**.
-2. Se publica `treatment_plan.confirmed`. El plan pasa a `pending`.
-3. Si no había presupuesto enlazado, **Generar presupuesto** crea
-   uno nuevo en el módulo `budget`.
+2. El plan pasa a `pending` y la app Presupuestos crea su presupuesto en
+   borrador al instante.
+3. Si el presupuesto no llegó a crearse, el siguiente paso del plan es
+   **Generar presupuesto**, que lo crea.
+
+**Si la app Presupuestos no está habilitada**, el plan confirmado pasa
+directamente a *En tratamiento*: no hay presupuesto que aceptar y no se
+ofrecen las acciones de presupuesto. Cuando la app se habilite, el plan
+ofrecerá **Generar presupuesto**.
 
 ## Qué se puede hacer según el estado del plan
 

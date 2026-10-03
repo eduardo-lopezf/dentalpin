@@ -33,6 +33,13 @@ from app.modules.payments.models import Payment, PaymentAllocation, Refund
 BASE = "/api/v1/cashbox"
 TZ = "America/Mexico_City"
 TODAY = clinic_date(datetime.now(UTC), TZ)
+#: The day the cut tests ask about. They book money one to three days
+#: before it and ask for its *month*, so all of those days have to fall in
+#: that month. Taking today made eight tests fail on the 1st-4th, when
+#: "three days ago" was last month; on those days the last day of the
+#: previous month stands in. Still a recent past day, never a fixed date,
+#: so nothing here depends on how old a closing may be.
+ANCHOR = TODAY if TODAY.day > 4 else TODAY.replace(day=1) - timedelta(days=1)
 
 
 # --- The calendar, with no database in sight --------------------------
@@ -184,13 +191,13 @@ async def _period(client: AsyncClient, headers: dict, kind: str, day: date) -> d
 async def test_the_cut_sums_the_counted_days(
     db_session: AsyncSession, client: AsyncClient, auth_headers: dict, ctx: dict
 ) -> None:
-    a, b = TODAY - timedelta(days=2), TODAY - timedelta(days=1)
+    a, b = ANCHOR - timedelta(days=2), ANCHOR - timedelta(days=1)
     await _pay(db_session, ctx, "300.00", a)
     await _pay(db_session, ctx, "500.00", b)
     assert (await _close(client, auth_headers, a, "300.00")).status_code == 201
     assert (await _close(client, auth_headers, b, "500.00")).status_code == 201
 
-    period = await _period(client, auth_headers, "month", TODAY)
+    period = await _period(client, auth_headers, "month", ANCHOR)
 
     assert period["counted_days"] == 2
     assert Decimal(period["cash_collected"]) == Decimal("800.00")
@@ -208,12 +215,12 @@ async def test_a_day_that_moved_money_and_was_not_counted_is_named(
     look immaculate. Built from the arqueos it reads 300 and says which day
     is missing.
     """
-    counted_day, uncounted = TODAY - timedelta(days=2), TODAY - timedelta(days=1)
+    counted_day, uncounted = ANCHOR - timedelta(days=2), ANCHOR - timedelta(days=1)
     await _pay(db_session, ctx, "300.00", counted_day)
     await _pay(db_session, ctx, "500.00", uncounted)
     await _close(client, auth_headers, counted_day, "300.00")
 
-    period = await _period(client, auth_headers, "month", TODAY)
+    period = await _period(client, auth_headers, "month", ANCHOR)
 
     assert period["counted_days"] == 1
     assert Decimal(period["cash_collected"]) == Decimal("300.00")
@@ -230,11 +237,11 @@ async def test_a_quiet_day_is_not_a_pending_day(
     Warn about every calendar day and the warning is wrong every time, which
     is the same as not having one.
     """
-    quiet = TODAY - timedelta(days=3)
-    busy = TODAY - timedelta(days=2)
+    quiet = ANCHOR - timedelta(days=3)
+    busy = ANCHOR - timedelta(days=2)
     await _pay(db_session, ctx, "100.00", busy)
 
-    period = await _period(client, auth_headers, "month", TODAY)
+    period = await _period(client, auth_headers, "month", ANCHOR)
 
     assert busy.isoformat() in period["pending_days"]
     assert quiet.isoformat() not in period["pending_days"]
@@ -244,10 +251,10 @@ async def test_a_card_only_day_does_not_go_pending(
     db_session: AsyncSession, client: AsyncClient, auth_headers: dict, ctx: dict
 ) -> None:
     """Nothing entered the drawer, so there is nothing to count."""
-    card_day = TODAY - timedelta(days=2)
+    card_day = ANCHOR - timedelta(days=2)
     await _pay(db_session, ctx, "900.00", card_day, method="card")
 
-    period = await _period(client, auth_headers, "month", TODAY)
+    period = await _period(client, auth_headers, "month", ANCHOR)
     assert card_day.isoformat() not in period["pending_days"]
 
 
@@ -255,7 +262,7 @@ async def test_a_movement_alone_makes_a_day_pending(
     client: AsyncClient, auth_headers: dict, ctx: dict
 ) -> None:
     """Money left the drawer even though nobody paid anything in."""
-    day = TODAY - timedelta(days=2)
+    day = ANCHOR - timedelta(days=2)
     await client.post(
         f"{BASE}/movements",
         json={
@@ -268,7 +275,7 @@ async def test_a_movement_alone_makes_a_day_pending(
         headers=auth_headers,
     )
 
-    period = await _period(client, auth_headers, "month", TODAY)
+    period = await _period(client, auth_headers, "month", ANCHOR)
     assert day.isoformat() in period["pending_days"]
 
 
@@ -280,13 +287,13 @@ async def test_differences_net_but_the_days_that_were_off_are_counted(
     Saying so is honest; letting it read as "nothing happened" is not, and
     `days_off` is what stops it.
     """
-    a, b = TODAY - timedelta(days=2), TODAY - timedelta(days=1)
+    a, b = ANCHOR - timedelta(days=2), ANCHOR - timedelta(days=1)
     await _pay(db_session, ctx, "300.00", a)
     await _pay(db_session, ctx, "300.00", b)
     await _close(client, auth_headers, a, "250.00", notes="Faltan 50.")
     await _close(client, auth_headers, b, "350.00", notes="Sobran 50.")
 
-    period = await _period(client, auth_headers, "month", TODAY)
+    period = await _period(client, auth_headers, "month", ANCHOR)
 
     assert Decimal(period["difference_total"]) == Decimal("0")
     assert period["days_off"] == 2
@@ -301,25 +308,25 @@ async def test_the_cut_reads_the_frozen_snapshot_not_the_live_rows(
     period keeps reading the day as it was counted, and the late payment is
     phase 4's business.
     """
-    day = TODAY - timedelta(days=2)
+    day = ANCHOR - timedelta(days=2)
     await _pay(db_session, ctx, "300.00", day)
     await _close(client, auth_headers, day, "300.00")
 
     await _pay(db_session, ctx, "400.00", day)
 
-    period = await _period(client, auth_headers, "month", TODAY)
+    period = await _period(client, auth_headers, "month", ANCHOR)
     assert Decimal(period["cash_collected"]) == Decimal("300.00")
 
 
 async def test_every_channel_shows_but_only_cash_is_counted(
     db_session: AsyncSession, client: AsyncClient, auth_headers: dict, ctx: dict
 ) -> None:
-    day = TODAY - timedelta(days=2)
+    day = ANCHOR - timedelta(days=2)
     await _pay(db_session, ctx, "300.00", day, method="cash")
     await _pay(db_session, ctx, "900.00", day, method="card")
     await _close(client, auth_headers, day, "300.00")
 
-    period = await _period(client, auth_headers, "month", TODAY)
+    period = await _period(client, auth_headers, "month", ANCHOR)
 
     assert Decimal(period["cash_collected"]) == Decimal("300.00")
     methods = {m["method"]: Decimal(m["amount"]) for m in period["collected_by_method"]}
@@ -330,12 +337,12 @@ async def test_a_reopened_count_leaves_its_day_pending_again(
     db_session: AsyncSession, client: AsyncClient, auth_headers: dict, ctx: dict
 ) -> None:
     """Reopening puts the day back among the ones still to do."""
-    day = TODAY - timedelta(days=2)
+    day = ANCHOR - timedelta(days=2)
     await _pay(db_session, ctx, "300.00", day)
     closed = await _close(client, auth_headers, day, "300.00")
     closing_id = closed.json()["data"]["id"]
 
-    before = await _period(client, auth_headers, "month", TODAY)
+    before = await _period(client, auth_headers, "month", ANCHOR)
     assert before["counted_days"] == 1
 
     await client.post(
@@ -344,7 +351,7 @@ async def test_a_reopened_count_leaves_its_day_pending_again(
         headers=auth_headers,
     )
 
-    after = await _period(client, auth_headers, "month", TODAY)
+    after = await _period(client, auth_headers, "month", ANCHOR)
     assert after["counted_days"] == 0
     assert Decimal(after["cash_collected"]) == Decimal("0")
     assert day.isoformat() in after["pending_days"]

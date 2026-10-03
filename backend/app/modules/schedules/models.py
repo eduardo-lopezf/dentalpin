@@ -31,7 +31,6 @@ from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.core.auth.models import Clinic
-    from app.modules.professionals.models import Professional
 
 
 class ClinicWeeklySchedule(Base, TimestampMixin):
@@ -103,7 +102,6 @@ class ProfessionalWeeklySchedule(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     clinic: Mapped[Clinic] = relationship()
-    professional: Mapped[Professional] = relationship()
     shifts: Mapped[list[ScheduleShift]] = relationship(
         back_populates="professional_weekly",
         cascade="all, delete-orphan",
@@ -144,7 +142,6 @@ class ProfessionalOverride(Base, TimestampMixin):
     reason: Mapped[str | None] = mapped_column(String(200))
 
     clinic: Mapped[Clinic] = relationship()
-    professional: Mapped[Professional] = relationship()
     shifts: Mapped[list[ScheduleShift]] = relationship(
         back_populates="professional_override",
         cascade="all, delete-orphan",

@@ -461,17 +461,14 @@ class BudgetService:
     ) -> Budget | None:
         """Create the draft budget that mirrors a confirmed treatment plan.
 
-        Called synchronously from ``TreatmentPlanService.confirm`` to
-        guarantee atomicity. Idempotent: if a non-cancelled budget
-        already exists for the plan (looked up by ``plan_id`` in the
-        snapshot), returns ``None`` so the caller leaves the existing
-        link alone.
+        Called by ``plan_quotes`` — from the ``treatment_plan.confirmed``
+        handler and from the generate endpoint. Idempotent: while the
+        budget the snapshot names in ``budget_id`` is live, that one is
+        returned and nothing is created.
 
         Snapshot shape: see
         ``TreatmentPlanService._build_plan_snapshot``.
         """
-        from sqlalchemy import text
-
         from .workflow import (
             DEFAULT_BUDGET_VALIDITY_DAYS,
             BudgetWorkflowService,
@@ -484,25 +481,19 @@ class BudgetService:
         if not plan_id_raw or not patient_id_raw:
             return None
 
-        # Idempotency: check whether a non-cancelled budget already
-        # exists for this plan. We reverse-lookup via the
-        # treatment_plans table to keep the dependency one-way.
-        existing_row = (
-            await db.execute(
-                text(
-                    "SELECT b.id FROM budgets b "
-                    "JOIN treatment_plans tp ON tp.budget_id = b.id "
-                    "WHERE tp.id = :plan_id "
-                    "  AND tp.clinic_id = :clinic_id "
-                    "  AND b.status != 'cancelled' "
-                    "LIMIT 1"
-                ),
-                {"plan_id": plan_id_raw, "clinic_id": clinic_id},
-            )
-        ).first()
-        if existing_row is not None:
-            existing = await db.get(Budget, existing_row.id)
-            return existing
+        # Idempotency: the plan says which budget it links to. While that
+        # one is live there is nothing to mint. Read from the payload, not
+        # from the plan's table — that table is not this module's (ADR 0042).
+        linked_raw = snapshot.get("budget_id")
+        if linked_raw:
+            existing = await db.get(Budget, UUID(str(linked_raw)))
+            if (
+                existing is not None
+                and existing.clinic_id == clinic_id
+                and existing.status != "cancelled"
+                and existing.deleted_at is None
+            ):
+                return existing
 
         clinic_settings = await _resolve_clinic_settings(db, clinic_id)
         validity_days = int(clinic_settings.get("budget_expiry_days", DEFAULT_BUDGET_VALIDITY_DAYS))
@@ -526,7 +517,7 @@ class BudgetService:
             valid_until=today + timedelta(days=validity_days),
             created_by=user_id,
             plan_number_snapshot=plan_number,
-            plan_status_snapshot="pending",
+            plan_status_snapshot=snapshot.get("plan_status") or "pending",
             public_auth_method=public_auth_method,
         )
         db.add(budget)

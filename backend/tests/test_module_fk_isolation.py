@@ -31,17 +31,7 @@ MODULES_ROOT = Path(_modules_pkg.__file__).resolve().parent
 
 # Pre-existing cross-module FKs that are tracked tech debt.
 # ``(source_module, table, column, target_table, target_module)``.
-# agenda→treatment_plan mirrors the import already tracked in
-# test_module_isolation.KNOWN_VIOLATIONS (the appointment↔plan-item link).
-KNOWN_FK_VIOLATIONS: set[tuple[str, str, str, str, str]] = {
-    (
-        "agenda",
-        "appointment_treatments",
-        "planned_treatment_item_id",
-        "planned_treatment_items",
-        "treatment_plan",
-    ),
-}
+KNOWN_FK_VIOLATIONS: set[tuple[str, str, str, str, str]] = set()
 
 
 def _list_modules() -> list[str]:
@@ -70,7 +60,7 @@ def _manifest_depends(module_name: str) -> set[str]:
             and isinstance(attr.manifest, dict)
             and attr.manifest.get("name") == module_name
         ):
-            return set(attr.manifest.get("depends", []))
+            return set(attr.manifest.get("depends", [])) | set(attr.manifest.get("integrates", []))
     raise AssertionError(f"Could not locate manifest for module {module_name}")
 
 

@@ -10,8 +10,48 @@ surface (appointments CRUD, transitions, cabinet assignments, kanban).
 
 ## Dependencies
 
-`manifest.depends` includes `professionals`: appointments reference the
-clinic directory's `professionals.id`, never a product-account ID.
+`manifest.depends` is empty, and **the agenda imports no other module**
+(ADR 0039) — not even under `TYPE_CHECKING`. A test reads the source and
+fails on any `app.modules.<other>` import.
+
+What it needs from its neighbours comes through core contracts
+(`app/core/contracts.py`), looked up in `integrations.py`:
+
+| Need | Contract | Supplied by |
+|---|---|---|
+| Patients | `PatientDirectory` | `patients` |
+| Professionals | `ProfessionalDirectory` | `professionals` |
+| Planned treatments | `PlannedTreatments` | `treatment_plan` |
+| Breaks / off hours | `WorkingHours` | `schedules` |
+
+`integrates` lists only the owners of tables its foreign keys point at
+(`patients`, `professionals`, `catalog`, `treatment_plan`). There are no
+ORM relationships to those rows: `presenter.py` builds the API response
+by asking each directory once per page. To use a new piece of another
+module, widen its contract and its provider — do not import it.
+
+An appointment can be booked with no patient, no professional and no
+treatments (ADR 0037). When a professional *is* assigned it references
+the clinic directory's `professionals.id`, never a product-account ID.
+While the Professionals App runs a professional is still required; that
+rule is the service's, not the schema's.
+
+**A contract with no supplier means the App is off.** The agenda then
+(1) refuses a new link — `_check_links` in the service — (2) hides the
+stored ones — the presenter leaves them out, ids included — and (3)
+deletes nothing, so they show again when the App returns. A new link
+needs all three, plus a test in `tests/test_agenda_optional_links.py`.
+On the frontend the same question is `useAgendaLinks()`.
+
+`appointments.title` names an appointment that has no patient.
+
+## Contracts offered
+
+`providers.py` supplies `AppointmentBook` (ADR 0039) — the patient of an
+appointment, a patient's appointment ids, and the notes left on planned
+treatments during visits. `clinical_notes` consumes it instead of
+importing `models.py`. Widen this contract rather than let another module
+import the agenda's tables.
 
 ## Permissions
 
@@ -80,6 +120,8 @@ None.
 - **Schedules must NOT be a dependency.** The `schedules` module depends
   on agenda; the data flow is one-way. Never declare
   `depends: ["schedules"]` here. See `schedules/CLAUDE.md`.
+  It is declared in `integrates` instead, along with `treatment_plan`
+  (ADR 0037): linked when it runs, done without when it does not.
 - **Status transitions go through `AppointmentService.transition`** —
   it publishes both the specific status event and the generic
   `appointment.status_changed`.

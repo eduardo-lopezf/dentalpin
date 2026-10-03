@@ -34,7 +34,13 @@ Routes mounted at `/api/v1/recalls/`.
 
 ## Dependencies
 
-`manifest.depends = ["patients", "agenda", "professionals"]`.
+`manifest.depends = ["patients", "agenda"]`,
+`manifest.integrates = ["professionals"]`.
+
+`professionals` is never imported: an assignment is validated through
+`contracts.provider(ProfessionalDirectory).is_bookable` (ADR 0039). With
+that App off a recall is created and worked with nobody assigned, and
+asking to assign one is refused.
 
 Treatment-plan integration is **event-driven only** — recalls reads
 the `treatment_category_key` snapshot field that treatment_plan added

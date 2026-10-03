@@ -51,18 +51,21 @@ class TreatmentPlanModule(BaseModule):
         "author": "DentalPin Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": [
-            "patients",
-            "agenda",
-            "odontogram",
-            "catalog",
-            "budget",
-            "media",
-            "professionals",
-            # Read-only: a plan the patient paid into cannot be deleted or
-            # cancelled, and only payments knows (`_guard_collections`).
-            "payments",
-        ],
+        "depends": ["patients", "odontogram", "catalog"],
+        # Optional (ADR 0037), and none is imported (ADR 0039):
+        # - `budget` prices a plan by reacting to what the plan announces
+        #   (ADR 0042); the plan only asks it questions (`PlanBudgets`).
+        #   With it off a confirmed plan goes straight to `active`.
+        # - `payments` is asked one thing (`Collections`): whether the
+        #   patient paid into a plan about to be deleted or cancelled.
+        # - `professionals` is the directory a plan or a treatment is
+        #   assigned to (`ProfessionalDirectory`). With it off nobody is
+        #   assigned and no prescription can be issued.
+        # - `agenda` tells the plan which treatments a visit covered, in
+        #   `appointment.completed`. With it off plans advance by hand.
+        # - `media` reads the attachment owner this module registers in
+        #   `app.core.attachments`.
+        "integrates": ["budget", "payments", "professionals", "agenda", "media"],
         "installable": True,
         "auto_install": True,
         "removable": False,
@@ -107,6 +110,13 @@ class TreatmentPlanModule(BaseModule):
             TreatmentPrescription,
         ]
 
+    def get_providers(self) -> dict[type, object]:
+        from app.core.contracts import PlannedTreatments, PlanQuotes
+
+        from .providers import plan_quotes, planned_treatments
+
+        return {PlannedTreatments: planned_treatments, PlanQuotes: plan_quotes}
+
     def get_router(self) -> APIRouter:
         return router
 
@@ -149,6 +159,7 @@ class TreatmentPlanModule(BaseModule):
         from .events import (
             on_appointment_completed,
             on_budget_accepted,
+            on_budget_created_for_plan,
             on_budget_rejected,
             on_budget_renegotiated,
             on_clinic_created,
@@ -158,6 +169,7 @@ class TreatmentPlanModule(BaseModule):
         return {
             EventType.CLINIC_CREATED: on_clinic_created,
             EventType.APPOINTMENT_COMPLETED: on_appointment_completed,
+            EventType.BUDGET_CREATED_FOR_PLAN: on_budget_created_for_plan,
             EventType.BUDGET_ACCEPTED: on_budget_accepted,
             EventType.BUDGET_REJECTED: on_budget_rejected,
             EventType.BUDGET_RENEGOTIATED: on_budget_renegotiated,

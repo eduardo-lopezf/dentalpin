@@ -36,6 +36,11 @@ class PatientsClinicalModule(BaseModule):
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients"],
+        # `professionals` owns the directory a clinical entry is attributed to
+        # (ADR 0032). The FK is ordered across branches with `depends_on` in
+        # `pc_0003`, the way `liquidations` does it. Optional (ADR 0037):
+        # with the directory off, an entry names no professional.
+        "integrates": ["professionals"],
         "installable": True,
         "auto_install": True,
         "removable": False,
@@ -64,6 +69,11 @@ class PatientsClinicalModule(BaseModule):
 
     def get_router(self) -> APIRouter:
         return router
+
+    def get_record_sections(self) -> list:
+        from . import record
+
+        return record.get_record_sections()
 
     def get_subject_contributors(self) -> list:
         from . import privacy

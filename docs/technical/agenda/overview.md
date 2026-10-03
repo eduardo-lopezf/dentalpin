@@ -9,6 +9,19 @@ Appointments are assigned to active clinic-directory profiles of type
 `dentist` or `hygienist`. `appointments.professional_id` is a foreign key
 to `professionals.id`, never to a product user account.
 
+Neither a professional, a patient nor treatments are required: all of
+them are `integrates`, not `depends`
+([ADR 0037](../../adr/0037-a-module-integrates-with-what-it-can-live-without.md)).
+The agenda imports none of those modules: it reaches them through the
+core contracts in `app/core/contracts.py`
+([ADR 0039](../../adr/0039-modules-reach-each-other-through-core-contracts.md)),
+and `presenter.py` assembles the response from them.
+`professional_id` and `patient_id` are nullable, `title` names an
+appointment without a patient, and while the owning App is off the
+agenda refuses new links, hides stored ones and deletes nothing
+(`backend/app/modules/agenda/integrations.py`). While Professionals
+runs, a professional is still required.
+
 ## API surface
 
 - `DELETE /api/v1/agenda/appointments/{appointment_id}`

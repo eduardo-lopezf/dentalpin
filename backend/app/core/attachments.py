@@ -10,8 +10,9 @@ Why a registry instead of a hardcoded enum?
 
 1. ``media`` is the lowest module in the dependency stack — it cannot
    import from its consumers without inverting the dependency graph.
-2. Consumers already declare ``"media"`` in their manifest depends, so
-   them registering here at import time is the right direction.
+2. It lives in the core so a consumer registers without importing
+   ``media`` (ADR 0039): its owner types are simply unused while the
+   Media App is off.
 3. CHECK constraints on ``owner_type`` would tie the schema to a fixed
    set; the registry is dynamic so adding a new module never requires
    a media-side migration.

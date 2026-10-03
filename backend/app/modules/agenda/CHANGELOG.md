@@ -2,6 +2,86 @@
 
 ## Unreleased
 
+- feat(agenda): `appointment.completed` (y `status_changed` a
+  `completed`) lleva `planned_items`: `[{planned_item_id, completed}]`,
+  lo que la visita cubrió. `treatment_plan` actúa con eso y ya no lee
+  las tablas de la agenda (ADR 0042).
+
+- feat(agenda): la agenda ofrece su primer contrato, `AppointmentBook`
+  (`providers.py`, ADR 0039): paciente de una cita, citas de un paciente
+  y notas de visita por tratamiento planificado. Lo consume
+  `clinical_notes`, que ya no importa los modelos de la agenda.
+
+- chore(agenda): los cinco widgets se marcan con `widget: true` en su
+  registro. Llevar etiqueta ya no basta para aparecer en Configuración →
+  Apps → Widgets, porque las pestañas también la llevan.
+- fix(agenda): la línea de tiempo de Inicio dibujaba cada cita desplazada
+  por la diferencia horaria del navegador respecto a UTC, mientras su
+  etiqueta decía la hora correcta: una cita de las 15:00 aparecía bajo
+  las 09:00 en un equipo en UTC−6. Leía `start_time` como instante en
+  lugar de como hora local de la clínica; ahora usa `wallClockDate`,
+  igual que el resto de widgets. Lo destapó el ejemplo con datos
+  ficticios de Configuración → Apps → Widgets.
+- feat(agenda): los ejemplos de widgets en Configuración → Apps usan
+  datos ficticios (`utils/previewSamples.ts`) en lugar de los de la
+  clínica. `useHomeAgenda` y la tarjeta «Próxima cita» los devuelven
+  cuando se renderizan dentro de un ejemplo (`useWidgetPreview`), en
+  estado propio, sin tocar el que comparte el panel de Inicio y sin
+  llamar a la API.
+- feat(agenda): los cinco widgets que la agenda aporta a Inicio y a la
+  ficha del paciente llevan ahora nombre y descripción (`labelKey` /
+  `descriptionKey`), y aparecen en Configuración → Apps → Widgets con un
+  ejemplo en vivo (ADR 0040). La app declara además la API «Google
+  Calendar» en `backend/apps.json` como `planned`: listada, todavía sin
+  integración detrás.
+- refactor(agenda): el módulo ya no importa ningún otro (ADR 0039).
+  Pacientes, profesionales, tratamientos planificados y horarios se
+  alcanzan por contratos del core (`app/core/contracts.py`); se eliminan
+  las relaciones ORM `appointment.patient`, `.professional`,
+  `.planned_item` y `.catalog_item`, y `presenter.py` arma la respuesta
+  preguntando a cada directorio una vez por página. La forma de la API no
+  cambia. `integrates` queda en los dueños de las tablas a las que
+  apuntan sus llaves foráneas: `patients`, `professionals`, `catalog` y
+  `treatment_plan`.
+  - fix: el kanban decidía si `schedules` estaba presente intentando
+    importarlo, y la importación nunca falla; seguía usando los horarios
+    con la app apagada. Ahora pregunta por el proveedor del contrato.
+- refactor(agenda): la página `/appointments` ya no lleva su propia
+  guardia para cuando la app está apagada; la cubre la guardia común
+  `useAppRouteGuard` (ADR 0038), con el mismo aviso.
+- feat(agenda): ninguna dependencia es obligatoria (ADR 0037).
+  `depends` queda vacío y `patients`, `professionals`, `catalog`,
+  `odontogram`, `treatment_plan` y `schedules` pasan a `integrates`.
+  - Migración `ag_0007`: `appointments.professional_id` admite nulo y se
+    añade `appointments.title`. Solo amplía lo que la tabla acepta; no
+    toca ninguna fila.
+  - Con Pacientes o Profesionales apagada, la cita se crea sin ese
+    enlace, el modal muestra «No se pueden asignar pacientes» /
+    «No se pueden asignar profesionales», la API rechaza con 400 un
+    enlace nuevo y los ya guardados no se muestran hasta que la app
+    vuelve. Sin paciente, la cita se identifica por su título.
+  - Con Profesionales habilitada el profesional sigue siendo
+    obligatorio: no cambia nada para una clínica que lo tiene todo.
+  - La vista de día añade la columna «Sin profesional» cuando hay citas
+    sin asignar o no hay directorio.
+  - fix: los eventos `appointment.*` enviaban el texto `"None"` como
+    `professional_id` cuando no había profesional; ahora envían `null`.
+- feat(agenda): con la app Tratamientos apagada (`backend/apps.json`) la
+  agenda sigue creando citas, sin tratamientos. El modal muestra «No se
+  pueden asignar tratamientos» en lugar del selector, la API rechaza con
+  400 un `planned_item_ids` nuevo, la nota de visita responde 409, y los
+  enlaces ya guardados no se muestran: siguen en la base y vuelven al
+  habilitar la app (ADR 0037).
+- feat(agenda): la app Agenda (módulos `agenda` + `schedules`) se puede
+  apagar para todo el despliegue desde `backend/apps.json` (ADR 0038).
+  Apagada, no se montan sus rutas, permisos, tareas ni entrada de menú,
+  y `/appointments` redirige al inicio con el aviso «No se pueden crear
+  citas». Sus tablas y datos no se tocan.
+- chore(agenda): el manifiesto declara `integrates: [treatment_plan,
+  schedules]` (ADR 0037). No cambia el comportamiento: eran los dos
+  enlaces que el módulo ya tenía sin declarar (la FK e import hacia
+  `treatment_plan`, y el import de `schedules` en el kanban) y que
+  figuraban como deuda en las pruebas de aislamiento.
 - fix(agenda): cerrar la ficha de una cita lanzaba «Must be called at the
   top of a `setup` function». El `watch` de `open` en `AppointmentModal`
   llamaba a `useAppointmentNotesIndicator()` dentro del callback, y ese

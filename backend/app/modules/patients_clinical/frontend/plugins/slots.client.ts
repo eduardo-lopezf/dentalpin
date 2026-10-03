@@ -12,6 +12,9 @@ import { registerSlot } from '~~/app/composables/useModuleSlots'
 export default defineNuxtPlugin(() => {
   registerSlot('patient.summary.cards', {
     id: 'patients_clinical.patient.summary.cards.medical',
+    labelKey: 'settings.widgets.catalog.patients.medicalHistory.title',
+    descriptionKey: 'settings.widgets.catalog.patients.medicalHistory.summary',
+    widget: true,
     component: defineAsyncComponent(
       () => import('../components/summary/MedicalHistoryCard.vue')
     ),
@@ -21,6 +24,9 @@ export default defineNuxtPlugin(() => {
 
   registerSlot('patient.header.alerts', {
     id: 'patients_clinical.patient.header.alerts',
+    labelKey: 'settings.widgets.catalog.patients.alerts.title',
+    descriptionKey: 'settings.widgets.catalog.patients.alerts.summary',
+    widget: true,
     component: defineAsyncComponent(
       () => import('../components/header/PatientHeaderAlertsChips.vue')
     ),

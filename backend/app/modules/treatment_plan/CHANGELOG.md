@@ -1,6 +1,61 @@
 # Changelog — treatment_plan module
 
 ## Unreleased
+
+- refactor(treatment_plan): `PlannedTreatmentSelector` vive ahora en esta
+  capa y no en la app base (ADR 0044).
+
+- fix(treatment_plan): el número de plan es el **mayor del año más uno**,
+  no el recuento más uno. Contando, en cuanto faltaba una fila el
+  siguiente número caía sobre un plan existente y crear planes fallaba
+  con `uq_treatment_plan_number`. Misma regla que los presupuestos.
+
+- refactor(treatment_plan): `professionals`, `agenda` y `media` pasan de
+  `depends` a `integrates` y dejan de importarse (ADR 0039, ADR 0042). El
+  módulo ya solo importa y exige `patients` de fuera de la App.
+  - Profesionales: validación, nombres y firmante de recetas por
+    `ProfessionalDirectory`. Con la App apagada no se puede asignar a
+    nadie ni emitir recetas; lo demás funciona.
+  - Agenda: `on_appointment_completed` usa `planned_items` del evento en
+    vez de leer `appointment_treatments`.
+  - Media: el dueño de adjuntos `plan_item` se registra en
+    `app.core.attachments`.
+  - Se quitan las relaciones ORM `assigned_professional` (plan e ítem);
+    las claves foráneas no cambian.
+
+- refactor(treatment_plan): **el plan ya no llama a Presupuestos ni a
+  Cobros** ([ADR 0042](../../../../docs/adr/0042-core-apps-must-stay-separable.md)).
+  `budget` y `payments` pasan de `depends` a `integrates` y no se importan.
+  Confirmar, reabrir y borrar publican eventos y `budget` crea, cancela o
+  borra el presupuesto en su propia transacción; el plan se enlaza al oír
+  `budget.created_for_plan`. Las lecturas van por los contratos
+  `PlanBudgets` y `Collections`. `plan.budget` deja de ser una relación.
+- **Cambio de comportamiento:** la respuesta de `POST …/confirm` ya no
+  trae `budget_id`; hay que releer el plan (el frontend ya lo hacía). Si
+  la creación del presupuesto falla, el plan queda confirmado y su
+  siguiente paso es «generar presupuesto».
+- feat(treatment_plan): con la App Presupuestos apagada un plan confirmado
+  pasa directamente a `active`, no queda bloqueado ni «sin presupuestar», y
+  al volver la App se puede generar su presupuesto. Con Cobros apagada, un
+  plan se puede borrar o cancelar sin la comprobación de cobros.
+- removed: `POST …/generate-budget` y `POST …/budget-addendum`; ahora son
+  `POST /api/v1/budget/plans/{id}/budget` y `/addendum`.
+- feat(treatment_plan): evento `treatment_plan.deleted`; contrato
+  `PlanQuotes` para que `budget` lea el plan.
+
+- feat(treatment_plan): la pestaña «Clínico» de la ficha del paciente es
+  ahora de este módulo (ADR 0041). `ClinicalTab` y
+  `DiagnosisModeContainer` llegan desde `patients` y la pestaña se
+  registra en `patient.detail.tabs`; se muestra, como antes, a quien
+  pueda leer el odontograma o los planes.
+- feat(treatment_plan): el módulo ofrece el contrato del core
+  `PlannedTreatments` desde `providers.py` (ADR 0039): validar ítems
+  planificados y describirlos para quien los enlaza. Esa descripción la
+  armaba antes el esquema de la agenda leyendo modelos de tres módulos.
+- feat(treatment_plan): «Agendar» en el detalle del plan pasa por
+  `useAppointmentBooking()`, y la nota de visita queda en solo lectura
+  cuando la app Agenda está deshabilitada (`backend/apps.json`, ADR
+  0038): la nota se guarda a través de la API de agenda.
 - feat(treatment_plan): **un tratamiento sin precio deja de sumar cero en silencio.** El constructor cuenta las líneas que el catálogo no valora y lo dice junto al total, con enlace al catálogo para quien pueda editarlo; se repite en el paso del botón *Crear* y en la ventana de *Confirmar plan* —«N tratamientos entran sin precio, así que el presupuesto no los cobrará»—, que es el momento en que esa cifra se convierte en el presupuesto que el paciente firma. La línea ya mostraba «-», pero nadie lee un guion cuando debajo hay un total. Avisa y no impide: hay trabajo que se presupuesta caso por caso, y vale la misma regla que para los conflictos del odontograma.
 - fix(treatment_plan): la descripción de *Confirmar plan* seguía diciendo que al confirmar «los tratamientos quedan bloqueados», que dejó de ser cierto al permitirse añadir. Ahora dice lo que pasa: se puede seguir añadiendo, y cambiar o quitar lo que ya está pide reabrir. De paso nombra el estado nuevo, *Esperando aceptación*.
 

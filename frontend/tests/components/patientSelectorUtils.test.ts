@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { splitName, normalizePhone } from '../../app/components/shared/patientSelectorUtils'
+import { splitName, normalizePhone } from '../../../backend/app/modules/patients/frontend/components/shared/patientSelectorUtils'
 
 describe('splitName', () => {
   it('returns empty parts for empty / whitespace input', () => {

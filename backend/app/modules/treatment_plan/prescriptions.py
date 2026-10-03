@@ -19,8 +19,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.models import Clinic
+from app.core.contracts import ProfessionalDirectory, provider
 from app.modules.patients.models import Patient
-from app.modules.professionals.models import Professional
 
 from .models import PlannedTreatmentItem, TreatmentPrescription
 from .service import TreatmentPlanService, _item_label
@@ -69,14 +69,15 @@ class PrescriptionService:
         if plan is None:
             return None
 
-        professional = (
-            await db.execute(
-                select(Professional).where(
-                    Professional.id == professional_id,
-                    Professional.clinic_id == clinic_id,
-                )
-            )
-        ).scalar_one_or_none()
+        # The signing professional comes from the directory's contract
+        # (ADR 0039). A prescription has to name one, so with the
+        # Professionals App off none can be issued.
+        directory = provider(ProfessionalDirectory)
+        if directory is None:
+            raise ProfessionalNotFoundError("Professionals are not available")
+        professional = (await directory.briefs(db, clinic_id, [professional_id])).get(
+            professional_id
+        )
         if professional is None:
             raise ProfessionalNotFoundError("Professional not found")
 
@@ -86,7 +87,7 @@ class PrescriptionService:
             plan_item_id=item.id,
             treatment_label=_item_label(item),
             professional_id=professional.id,
-            professional_name=professional.full_name,
+            professional_name=f"{professional.first_name} {professional.last_name}".strip(),
             professional_license=professional.license_number,
             body=body,
             issued_by=user_id,

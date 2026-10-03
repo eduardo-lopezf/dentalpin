@@ -51,6 +51,25 @@ export interface ModuleInfo {
   in_disk: boolean
 }
 
+export interface AppApi {
+  name: string
+  status: 'planned' | 'enabled' | 'disabled'
+}
+
+export interface AppInfo {
+  name: string
+  version: string
+  enabled: boolean
+  /** What `apps.json` says now, when it differs from what runs; null otherwise. */
+  pending_enabled: boolean | null
+  /** `base`: the App everything runs on, never disabled (ADR 0043). */
+  tier: 'base' | 'core' | 'optional'
+  modules: string[]
+  requires: string[]
+  integrates: string[]
+  apis: AppApi[]
+}
+
 export interface ModuleStatus {
   by_state: Record<string, number>
   pending: string[]
@@ -64,11 +83,6 @@ export interface ModuleDoctorReport {
   missing_dependencies: Array<{ module: string, missing: string }>
   manifest_errors: Array<{ module: string, error: string }>
   errored_modules: Array<{ module: string, error: string }>
-}
-
-export interface ModuleOperationResult {
-  scheduled: string[]
-  requires_restart: boolean
 }
 
 export interface ModuleOperationLogEntry {

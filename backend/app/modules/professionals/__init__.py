@@ -46,6 +46,13 @@ class ProfessionalsModule(BaseModule):
     def get_models(self) -> list:
         return [Professional]
 
+    def get_providers(self) -> dict[type, object]:
+        from app.core.contracts import ProfessionalDirectory
+
+        from .providers import professionals_directory
+
+        return {ProfessionalDirectory: professionals_directory}
+
     def get_router(self) -> APIRouter:
         return router
 

@@ -85,7 +85,8 @@ monitoring scripts.
 ### Official modules
 
 Bundled with every DentalPin release. They auto-install on the first
-boot of a fresh database. Reinstall if they ended up in `uninstalled`:
+boot of a fresh database; the optional ones start `disabled` (see §5).
+Reinstall if they ended up in `uninstalled`:
 
 ```bash
 ./bin/dentalpin modules install billing
@@ -137,7 +138,74 @@ If the disk and DB versions already match, the command exits with
 
 ---
 
-## 5. Uninstalling a module
+## 5. Enabling and disabling a module
+
+The everyday switch. Neither touches the module's tables or data
+([ADR 0035](../../adr/0035-apps-are-disabled-not-uninstalled.md)).
+
+```bash
+./bin/dentalpin modules enable verifactu
+./bin/dentalpin modules disable verifactu
+./bin/dentalpin modules restart
+```
+
+- `enable` also enables every dependency that is off, and lists them.
+- `disable` is refused while another enabled module lists this one in
+  its `depends`. Disable those first; there is no `--force`.
+- After the restart a disabled module has no routes, navigation,
+  permissions, jobs or event handlers. Its schema is still migrated on
+  every boot, so enabling it again is immediate.
+- A disabled module does not hear events. Data it derives from them
+  (the patient timeline, for instance) has a gap for the time it was
+  off.
+
+The **Apps** section of Settings has three pages. *Apps* shows the App
+catalog — first the *Workspace*, the main App, always enabled; then the
+core Apps and the rest (an App groups modules — Agenda is `agenda` + `schedules`) and,
+below it, every module with its state. *Widgets* lists what each App
+contributes to other screens, with a live example of each. *APIs* lists
+the outside services an App can connect to (Agenda: Google Calendar, not
+available yet). All three are read-only. A fourth, *Workspace*, is the
+main App's own page and the one that changes something: its *Home*
+section chooses which widgets the home page shows and in what order, for
+the whole clinic (admins only).
+These commands are the only way to change a module, and
+an App listed as disabled changes nothing about its modules yet.
+
+---
+
+## 5a. Switching an App off for the whole deployment
+
+`backend/apps.json` lists the Apps and whether each is `enabled` or
+`disabled` ([ADR 0038](../../adr/0038-apps-json-switches-apps-for-the-whole-deployment.md)):
+
+```json
+{ "name": "agenda", "version": "0.1", "status": "disabled",
+  "modules": ["agenda", "schedules"] }
+```
+
+Edit the status and restart the backend. A disabled App's modules are
+not mounted: no routes, no menu entry, no permissions, no jobs. Their
+data and their state in the module list are untouched, so setting the
+status back and restarting restores everything.
+
+Apps today: `agenda` (appointments and working hours), `treatments`
+(treatment plans, odontogram, periodontogram), `patients` and
+`professionals`. The agenda books an appointment without any of the
+other three. With `treatments` off
+the agenda still books appointments, without treatments, and says "No
+se pueden asignar tratamientos".
+
+Unlike `modules disable`, this does not ask about dependents: the other
+apps keep running, and where they used to offer an appointment they say
+"No se pueden crear citas".
+
+---
+
+## 5b. Uninstalling a module
+
+Removes the module's tables. Use it only to get rid of a module for
+good; to switch one off, disable it.
 
 ```bash
 ./bin/dentalpin modules uninstall my_module

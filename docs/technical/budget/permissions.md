@@ -13,7 +13,7 @@ Returned by `BudgetModule.get_permissions()`
 | Permission | Allows | Required by |
 |------------|--------|-------------|
 | `budget.read` | _Describe what this allows._ | _List the endpoints._ |
-| `budget.write` | _Describe what this allows._ | _List the endpoints._ |
+| `budget.write` | Create and edit budgets — including a treatment plan's: mint the budget of a plan that has none, and price the treatments added after it was confirmed (ADR 0042). | `POST /plans/{plan_id}/budget`, `POST /plans/{plan_id}/addendum`, _and the budget CRUD endpoints._ |
 | `budget.admin` | Soft-delete a budget **that no treatment plan owns**. A plan's budget (any with `plan_number_snapshot`, or linked from `treatment_plans.budget_id`) answers 409: it is deleted only by deleting the plan (`BudgetService.delete_for_plan`). | `DELETE /budgets/{budget_id}` |
 | `budget.renegotiate` | _Describe what this allows._ | _List the endpoints._ |
 | `budget.accept_in_clinic` | _Describe what this allows._ | _List the endpoints._ |

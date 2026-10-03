@@ -18,7 +18,12 @@ from app.modules.media.validation import validate_file_size, validate_mime_type
 
 from .models import Professional
 from .schemas import ProfessionalCreate, ProfessionalResponse, ProfessionalUpdate
-from .service import ProfessionalService, UnknownSpecialtyError
+from .service import (
+    ProfessionalService,
+    UnknownSpecialtyError,
+    UnknownUserLinkError,
+    UserLinkTakenError,
+)
 
 router = APIRouter()
 
@@ -105,6 +110,10 @@ async def create_professional(
         professional = await ProfessionalService.create(db, ctx.clinic_id, data.model_dump())
     except UnknownSpecialtyError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except UnknownUserLinkError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except UserLinkTakenError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return ApiResponse(data=await _to_response(db, ctx.clinic_id, professional))
 
 
@@ -125,6 +134,10 @@ async def update_professional(
         )
     except UnknownSpecialtyError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except UnknownUserLinkError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except UserLinkTakenError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return ApiResponse(data=await _to_response(db, ctx.clinic_id, updated))
 
 

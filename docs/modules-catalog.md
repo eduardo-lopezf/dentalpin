@@ -8,33 +8,35 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 
 ## Summary
 
-| Module | Version | Category | Depends | Install | Removable | Permissions | Emits | Consumes | FE layer |
-|--------|---------|----------|---------|---------|-----------|-------------|-------|----------|----------|
-| `accounting_export` | 0.1.0 | official | billing, payments | manual | yes | 2 | 0 | 0 | yes |
-| `agenda` | 0.4.0 | official | patients, catalog, odontogram, professionals | auto | no | 4 | 11 | 0 | yes |
-| `billing` | 0.1.0 | official | patients, catalog, budget, payments | auto | no | 3 | 3 | 1 | yes |
-| `budget` | 0.1.0 | official | patients, catalog, odontogram, professionals | auto | no | 5 | 7 | 4 | yes |
-| `cashbox` | 0.1.0 | official | payments | auto | no | 5 | 0 | 0 | yes |
-| `catalog` | 0.1.0 | official | — | auto | no | 3 | 0 | 1 | yes |
-| `clinical_notes` | 0.2.0 | official | patients, odontogram, treatment_plan, media, agenda | auto | no | 2 | 6 | 0 | yes |
-| `copilot` | 0.1.0 | official | — | auto | yes | 5 | 3 | 1 | yes |
-| `liquidations` | 0.1.0 | official | payments, professionals, cashbox | manual | no | 3 | 0 | 0 | yes |
-| `media` | 0.2.0 | official | patients | auto | no | 4 | 7 | 1 | yes |
-| `migration_import` | 0.1.0 | official | patients, patients_clinical, clinical_notes, agenda, schedules, recalls, catalog, budget, odontogram, treatment_plan, billing, payments, media | manual | yes | 4 | 5 | 0 | yes |
-| `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog, professionals | auto | no | 8 | 7 | 6 | yes |
-| `odontogram` | 0.3.0 | official | patients, catalog | auto | no | 4 | 7 | 0 | yes |
-| `patient_timeline` | 0.1.0 | official | patients | auto | no | 1 | 0 | 35 | yes |
-| `patients` | 0.1.0 | official | — | auto | no | 2 | 3 | 0 | yes |
-| `patients_clinical` | 0.1.0 | official | patients | auto | no | 4 | 1 | 0 | yes |
-| `payments` | 0.1.0 | official | patients, budget | auto | no | 4 | 3 | 3 | yes |
-| `periodontogram` | 0.1.0 | official | patients, odontogram | manual | yes | 2 | 1 | 2 | yes |
-| `professionals` | 0.1.0 | official | media, catalog | auto | yes | 2 | 0 | 0 | yes |
-| `recalls` | 0.1.0 | official | patients, agenda, professionals | auto | yes | 3 | 4 | 5 | yes |
-| `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments, professionals | auto | no | 3 | 0 | 0 | yes |
-| `schedules` | 0.1.0 | official | agenda, professionals | auto | yes | 8 | 0 | 3 | yes |
-| `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media, professionals, payments | auto | no | 8 | 14 | 6 | yes |
-| `verifactu` | 0.1.0 | official | billing, catalog | manual | yes | 5 | 1 | 1 | yes |
-| `whatsapp_kapso` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | yes |
+| Module | Version | Category | Depends | Integrates | Install | Removable | Permissions | Emits | Consumes | FE layer |
+|--------|---------|----------|---------|------------|---------|-----------|-------------|-------|----------|----------|
+| `accounting_export` | 0.1.0 | official | billing, payments | — | manual | yes | 2 | 0 | 0 | yes |
+| `agenda` | 0.4.0 | official | — | patients, professionals, catalog, treatment_plan | auto | no | 4 | 11 | 0 | yes |
+| `billing` | 0.1.0 | official | patients, catalog, budget, payments | — | auto | no | 3 | 3 | 1 | yes |
+| `budget` | 0.1.0 | official | patients, catalog, odontogram, professionals | — | auto | no | 5 | 8 | 7 | yes |
+| `cashbox` | 0.1.0 | official | payments | — | auto | no | 5 | 0 | 0 | yes |
+| `catalog` | 0.1.0 | official | — | — | auto | no | 3 | 0 | 1 | yes |
+| `clinical_notes` | 0.2.0 | official | patients, odontogram, treatment_plan, media | professionals, agenda | auto | no | 2 | 6 | 0 | yes |
+| `consents` | 0.1.0 | official | patients | professionals | manual | no | 3 | 0 | 0 | yes |
+| `copilot` | 0.1.0 | official | — | — | auto | yes | 5 | 3 | 1 | yes |
+| `liquidations` | 0.1.0 | official | payments, professionals, cashbox | — | manual | no | 3 | 0 | 0 | yes |
+| `media` | 0.2.0 | official | patients | — | auto | no | 4 | 7 | 1 | yes |
+| `migration_import` | 0.1.0 | official | patients, patients_clinical, clinical_notes, agenda, schedules, recalls, catalog, budget, odontogram, treatment_plan, billing, payments, media | — | manual | yes | 4 | 5 | 0 | yes |
+| `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog, professionals | — | auto | no | 8 | 7 | 6 | yes |
+| `odontogram` | 0.3.0 | official | patients, catalog | — | auto | no | 4 | 7 | 0 | yes |
+| `patient_timeline` | 0.1.0 | official | patients | — | auto | no | 1 | 0 | 35 | yes |
+| `patients` | 0.1.0 | official | — | — | auto | no | 2 | 3 | 0 | yes |
+| `patients_clinical` | 0.1.0 | official | patients | professionals | auto | no | 4 | 1 | 0 | yes |
+| `payments` | 0.1.0 | official | patients, budget | — | auto | no | 4 | 3 | 3 | yes |
+| `periodontogram` | 0.1.0 | official | patients, odontogram | — | manual | yes | 2 | 1 | 2 | yes |
+| `professionals` | 0.1.0 | official | media, catalog | — | auto | yes | 2 | 0 | 0 | yes |
+| `recalls` | 0.1.0 | official | patients, agenda | professionals | auto | yes | 3 | 4 | 5 | yes |
+| `record` | 0.1.0 | official | patients, professionals | — | manual | yes | 1 | 0 | 0 | yes |
+| `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments, professionals | — | auto | no | 3 | 0 | 0 | yes |
+| `schedules` | 0.1.0 | official | agenda | professionals | auto | yes | 8 | 0 | 3 | yes |
+| `treatment_plan` | 0.1.0 | official | patients, odontogram, catalog | budget, payments, professionals, agenda, media | auto | no | 8 | 15 | 7 | yes |
+| `verifactu` | 0.1.0 | official | billing, catalog | — | manual | yes | 5 | 1 | 1 | yes |
+| `whatsapp_kapso` | 0.1.0 | community | notifications, patients | — | manual | yes | 2 | 0 | 0 | yes |
 
 ## Modules
 
@@ -47,6 +49,7 @@ Export invoices and payments for the accountant (gestoría).
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=True
 - **Depends:** `billing`, `payments`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `accounting_export.export.read`
@@ -63,7 +66,8 @@ Appointments, scheduling, cabinets.
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
-- **Depends:** `patients`, `catalog`, `odontogram`, `professionals`
+- **Depends:** —
+- **Integrates:** `patients`, `professionals`, `catalog`, `treatment_plan`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `agenda.appointments.read`
@@ -94,6 +98,7 @@ Invoices, payments, credit notes, PDF billing.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `patients`, `catalog`, `budget`, `payments`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `billing.admin`
@@ -116,6 +121,7 @@ Dental treatment quotes, versioning, signatures.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `patients`, `catalog`, `odontogram`, `professionals`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `budget.accept_in_clinic`
@@ -125,6 +131,7 @@ Dental treatment quotes, versioning, signatures.
   - `budget.write`
 - **Events emitted:**
   - `budget.accepted`
+  - `budget.created_for_plan`
   - `budget.expired`
   - `budget.rejected`
   - `budget.reminder_sent`
@@ -134,6 +141,9 @@ Dental treatment quotes, versioning, signatures.
 - **Events consumed:**
   - `odontogram.treatment.performed`
   - `treatment_plan.budget_sync_requested`
+  - `treatment_plan.confirmed`
+  - `treatment_plan.deleted`
+  - `treatment_plan.status_changed`
   - `treatment_plan.treatment_added`
   - `treatment_plan.treatment_removed`
 - **Module CLAUDE.md:** [`backend/app/modules/budget/CLAUDE.md`](../backend/app/modules/budget/CLAUDE.md)
@@ -147,6 +157,7 @@ Caja de la clínica: movimientos de efectivo, arqueo diario y cortes por periodo
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `payments`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `cashbox.closing.read`
@@ -167,6 +178,7 @@ Treatment catalog, categories, VAT types.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** —
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `catalog.admin`
@@ -185,7 +197,8 @@ Polymorphic clinical notes (administrative, diagnosis, treatment, treatment plan
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
-- **Depends:** `patients`, `odontogram`, `treatment_plan`, `media`, `agenda`
+- **Depends:** `patients`, `odontogram`, `treatment_plan`, `media`
+- **Integrates:** `professionals`, `agenda`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `clinical_notes.notes.read`
@@ -200,6 +213,25 @@ Polymorphic clinical notes (administrative, diagnosis, treatment, treatment plan
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/clinical_notes/CLAUDE.md`](../backend/app/modules/clinical_notes/CLAUDE.md)
 
+### `consents` — v0.1.0
+
+Consent letters: informed consent to treat and consent to data use.
+
+- **Author:** DentalPin Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `patients`
+- **Integrates:** `professionals`
+- **Frontend layer:** `frontend`
+- **Permissions:**
+  - `consents.read`
+  - `consents.templates.write`
+  - `consents.write`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/consents/CLAUDE.md`](../backend/app/modules/consents/CLAUDE.md)
+
 ### `copilot` — v0.1.0
 
 Conversational AI agent over DentalPin, scoped to the caller's permissions.
@@ -209,6 +241,7 @@ Conversational AI agent over DentalPin, scoped to the caller's permissions.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
 - **Depends:** —
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `copilot.chat`
@@ -233,6 +266,7 @@ Liquidación a profesionales asociados: lo devengado, lo cobrado y el porcentaje
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=False
 - **Depends:** `payments`, `professionals`, `cashbox`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `liquidations.commission.write`
@@ -251,6 +285,7 @@ Patient documents, photos, X-rays + polymorphic attachments.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `patients`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `media.attachments.read`
@@ -278,6 +313,7 @@ Importa datos de pacientes, citas, presupuestos, pagos y documentos desde un arc
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=True
 - **Depends:** `patients`, `patients_clinical`, `clinical_notes`, `agenda`, `schedules`, `recalls`, `catalog`, `budget`, `odontogram`, `treatment_plan`, `billing`, `payments`, `media`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `migration_import.binary.write`
@@ -302,6 +338,7 @@ Email templates, preferences, SMTP, event-driven sending.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `patients`, `agenda`, `budget`, `billing`, `catalog`, `professionals`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `notifications.logs.read`
@@ -338,6 +375,7 @@ Dental charting, tooth state, clinical treatments.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `patients`, `catalog`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `odontogram.read`
@@ -364,6 +402,7 @@ Patient timeline — unified activity log.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `patients`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `patient_timeline.read`
@@ -415,6 +454,7 @@ Patient identity: name, contact, demographics, status.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** —
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `patients.read`
@@ -435,6 +475,7 @@ Normalized medical history, allergies, medications, emergency contacts.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `patients`
+- **Integrates:** `professionals`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `patients_clinical.emergency.read`
@@ -455,6 +496,7 @@ Patient-centric collections, allocations to budgets / on-account, refunds, patie
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `patients`, `budget`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `payments.record.read`
@@ -480,6 +522,7 @@ SEPA periodontal charting — snapshots, probing sites, BoP/PI/CAL indices.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=True
 - **Depends:** `patients`, `odontogram`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `periodontogram.read`
@@ -500,6 +543,7 @@ Clinic directory and scheduling source of truth for professionals.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
 - **Depends:** `media`, `catalog`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `professionals.read`
@@ -516,7 +560,8 @@ Patient recalls: schedule call-backs, work the monthly call list, log attempts, 
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
-- **Depends:** `patients`, `agenda`, `professionals`
+- **Depends:** `patients`, `agenda`
+- **Integrates:** `professionals`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `recalls.delete`
@@ -535,6 +580,23 @@ Patient recalls: schedule call-backs, work the monthly call list, log attempts, 
   - `treatment_plan.treatment_completed`
 - **Module CLAUDE.md:** [`backend/app/modules/recalls/CLAUDE.md`](../backend/app/modules/recalls/CLAUDE.md)
 
+### `record` — v0.1.0
+
+The clinical record: composes the installed modules' clinical data into a patient-scoped document.
+
+- **Author:** DentalPin Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=True
+- **Depends:** `patients`, `professionals`
+- **Integrates:** —
+- **Frontend layer:** `frontend`
+- **Permissions:**
+  - `record.read`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/record/CLAUDE.md`](../backend/app/modules/record/CLAUDE.md)
+
 ### `reports` — v0.1.0
 
 Cross-module reporting: billing, budgets, scheduling.
@@ -544,6 +606,7 @@ Cross-module reporting: billing, budgets, scheduling.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `patients`, `agenda`, `catalog`, `budget`, `billing`, `payments`, `professionals`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `reports.billing.read`
@@ -561,7 +624,8 @@ Clinic + professional operating hours, overrides, availability, and occupancy an
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
-- **Depends:** `agenda`, `professionals`
+- **Depends:** `agenda`
+- **Integrates:** `professionals`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `schedules.analytics.read`
@@ -587,7 +651,8 @@ Patient treatment plans with budget + odontogram sync.
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
-- **Depends:** `patients`, `agenda`, `odontogram`, `catalog`, `budget`, `media`, `professionals`, `payments`
+- **Depends:** `patients`, `odontogram`, `catalog`
+- **Integrates:** `budget`, `payments`, `professionals`, `agenda`, `media`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `treatment_plan.plans.close`
@@ -603,6 +668,7 @@ Patient treatment plans with budget + odontogram sync.
   - `treatment_plan.closed`
   - `treatment_plan.confirmed`
   - `treatment_plan.created`
+  - `treatment_plan.deleted`
   - `treatment_plan.item_completed_without_note`
   - `treatment_plan.item_session_completed`
   - `treatment_plan.item_session_reopened`
@@ -615,6 +681,7 @@ Patient treatment plans with budget + odontogram sync.
 - **Events consumed:**
   - `appointment.completed`
   - `budget.accepted`
+  - `budget.created_for_plan`
   - `budget.rejected`
   - `budget.renegotiated`
   - `clinic.created`
@@ -630,6 +697,7 @@ Cumplimiento Veri*Factu (AEAT) para clínicas en España.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=True
 - **Depends:** `billing`, `catalog`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `verifactu.environment.promote`
@@ -652,6 +720,7 @@ WhatsApp para notifications vía Kapso (Meta Cloud API).
 - **Category:** community
 - **Install policy:** installable=True · auto_install=False · removable=True
 - **Depends:** `notifications`, `patients`
+- **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `whatsapp_kapso.settings.read`

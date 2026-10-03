@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- feat(billing): el resumen de facturación del paciente se registra en
+  el slot `patient.detail.administracion.billing` (ADR 0041) en lugar de
+  ser incrustado por nombre desde la ficha.
+- feat(billing): con la app Pacientes apagada (`backend/apps.json`, ADR
+  0038), el selector de paciente de «Nueva factura» y de la edición
+  muestra «No se pueden asignar pacientes» en lugar de un buscador que
+  solo podía responder 404. El cambio vive en el componente compartido
+  `PatientVisualSelector`.
 - fix(i18n): la columna de estado del resumen de facturación del paciente
   mostraba `invoice.status.title` como encabezado. El código era
   `t('invoice.status.title') || t('common.status')`, que **nunca** llega al

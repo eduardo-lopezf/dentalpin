@@ -17,7 +17,22 @@ Routes mounted at `/api/v1/schedules/`.
 
 ## Dependencies
 
-`manifest.depends = ["agenda", "professionals"]`. Schedules **reads** appointment data
+`manifest.depends = ["agenda"]`, `manifest.integrates = ["professionals"]`
+(ADR 0037): clinic hours need no directory; per-professional hours do,
+and have nobody to list while the Professionals App is off.
+
+**Schedules does not import `professionals`** (ADR 0039) — a test reads
+the source and fails if it does. It asks the core contract
+`ProfessionalDirectory` to validate and list professionals, and keeps
+only foreign keys into the directory. `agenda`, its one hard
+dependency, is the only module it imports. In the other direction it
+supplies `WorkingHours` from `providers.py`, which is how the agenda
+learns who is on a break without importing this module.
+
+`seed_schedules_demo` takes `directory=` because a seed script runs with
+nothing mounted and cannot look the directory up.
+
+Schedules **reads** appointment data
 to compute occupancy, but **agenda must NEVER declare
 `depends: ["schedules"]`** — that would make schedules required and
 defeat the uninstall story. Integration goes the other way: agenda's

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- refactor(timeline): la siembra demo sale del módulo
+  (`seed.py` → `backend/app/seeds/timeline_demo.py`). Leía los modelos de
+  `agenda`, `billing`, `budget`, `odontogram` y `treatment_plan`, cinco
+  imports que el módulo no declaraba y que figuraban como deuda conocida
+  en `tests/test_module_isolation.py`. El módulo ya solo importa
+  `patients`.
+
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

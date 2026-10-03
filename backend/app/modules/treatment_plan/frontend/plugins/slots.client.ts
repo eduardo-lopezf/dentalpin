@@ -8,6 +8,8 @@ import { defineAsyncComponent } from 'vue'
 import { registerSlot } from '~~/app/composables/useModuleSlots'
 
 export default defineNuxtPlugin(() => {
+  const { can } = usePermissions()
+
   // Patient Resumen — active-plan smart card. The patients module
   // exposes the ``patient.summary.cards`` slot and never imports
   // anything from treatment_plan; this registration is the contract.
@@ -18,5 +20,20 @@ export default defineNuxtPlugin(() => {
     ),
     order: 10,
     permission: 'treatment_plan.plans.read'
+  })
+
+  // Patient record — the Clínico tab (diagnosis, plans, appointments).
+  // None of it is `patients`' own, so the tab is contributed here and the
+  // patient page hosts it without importing this module. Shown to anyone
+  // who can read the chart *or* the plans, as before the move.
+  registerSlot('patient.detail.tabs', {
+    id: 'treatment_plan.patient.detail.tabs.clinical',
+    component: defineAsyncComponent(
+      () => import('../components/patient/PatientClinicalTabEntry.vue')
+    ),
+    tab: { value: 'clinical', icon: 'i-lucide-stethoscope' },
+    labelKey: 'patientDetail.tabs.clinical',
+    condition: () => can('odontogram.read') || can('treatment_plan.plans.read'),
+    order: 30
   })
 })

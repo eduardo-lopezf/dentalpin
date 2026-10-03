@@ -14,14 +14,19 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.auth.models import User
 from app.core.events import EventType, event_bus
-from app.modules.catalog.models import TreatmentCatalogItem  # noqa: F401
-from app.modules.odontogram.models import Treatment
-from app.modules.patients.models import Patient
-from app.modules.professionals.models import Professional
-from app.modules.treatment_plan.models import PlannedTreatmentItem
 
+from .integrations import (
+    PATIENTS_UNAVAILABLE,
+    PROFESSIONALS_UNAVAILABLE,
+    TREATMENTS_UNAVAILABLE,
+    patients,
+    patients_available,
+    planned_treatments,
+    professionals,
+    professionals_available,
+    treatments_available,
+)
 from .models import (
     Appointment,
     AppointmentCabinetEvent,
@@ -169,18 +174,7 @@ class AppointmentService:
         query = (
             select(Appointment)
             .options(
-                selectinload(Appointment.patient),
-                selectinload(Appointment.professional),
-                selectinload(Appointment.treatments).options(
-                    selectinload(AppointmentTreatment.planned_item).options(
-                        selectinload(PlannedTreatmentItem.treatment).options(
-                            selectinload(Treatment.teeth),
-                            selectinload(Treatment.catalog_item),
-                        ),
-                        selectinload(PlannedTreatmentItem.treatment_plan),
-                    ),
-                    selectinload(AppointmentTreatment.catalog_item),
-                ),
+                selectinload(Appointment.treatments),
             )
             .where(Appointment.clinic_id == clinic_id)
         )
@@ -267,18 +261,7 @@ class AppointmentService:
         result = await db.execute(
             select(Appointment)
             .options(
-                selectinload(Appointment.patient),
-                selectinload(Appointment.professional),
-                selectinload(Appointment.treatments).options(
-                    selectinload(AppointmentTreatment.planned_item).options(
-                        selectinload(PlannedTreatmentItem.treatment).options(
-                            selectinload(Treatment.teeth),
-                            selectinload(Treatment.catalog_item),
-                        ),
-                        selectinload(PlannedTreatmentItem.treatment_plan),
-                    ),
-                    selectinload(AppointmentTreatment.catalog_item),
-                ),
+                selectinload(Appointment.treatments),
             )
             .where(
                 Appointment.id == appointment_id,
@@ -288,35 +271,33 @@ class AppointmentService:
         return result.scalar_one_or_none()
 
     @staticmethod
+    def _check_links(data: dict, planned_item_ids: list[UUID] | None) -> None:
+        """Refuse a new link into an App that is not running (ADR 0037)."""
+        if data.get("patient_id") and not patients_available():
+            raise ValueError(PATIENTS_UNAVAILABLE)
+        if data.get("professional_id") and not professionals_available():
+            raise ValueError(PROFESSIONALS_UNAVAILABLE)
+        if planned_item_ids and not treatments_available():
+            raise ValueError(TREATMENTS_UNAVAILABLE)
+
+    @staticmethod
     async def validate_patient_access(db: AsyncSession, clinic_id: UUID, patient_id: UUID) -> bool:
-        result = await db.execute(
-            select(Patient.id).where(
-                Patient.id == patient_id,
-                Patient.clinic_id == clinic_id,
-                Patient.status != "archived",
-            )
-        )
-        return result.scalar_one_or_none() is not None
+        # No directory means the Patients App is off; `_check_links`
+        # refuses the link with the reason, which reads better than a
+        # "not found" from here.
+        directory = patients()
+        if directory is None:
+            return True
+        return await directory.is_bookable(db, clinic_id, patient_id)
 
     @staticmethod
     async def validate_professional_access(
         db: AsyncSession, clinic_id: UUID, professional_id: UUID
     ) -> bool:
-        # Appointments must target a directory `Professional` profile
-        # (agenda/CLAUDE.md "Professional identity") — a bare `User`/
-        # account id is never valid here, even when a `Professional` row
-        # happens to share its id with a `User` (the mirroring in
-        # `create_appointment` and various test fixtures do this on
-        # purpose so legacy account-based ids keep working transparently).
-        result = await db.execute(
-            select(Professional.id).where(
-                Professional.id == professional_id,
-                Professional.clinic_id == clinic_id,
-                Professional.is_active.is_(True),
-                Professional.professional_type.in_(["dentist", "hygienist"]),
-            )
-        )
-        return result.scalar_one_or_none() is not None
+        directory = professionals()
+        if directory is None:
+            return True
+        return await directory.is_bookable(db, clinic_id, professional_id)
 
     @staticmethod
     async def validate_planned_items(
@@ -329,37 +310,31 @@ class AppointmentService:
 
         Raises ValueError with details if validation fails.
         """
-        if not planned_item_ids:
+        provider = planned_treatments()
+        if not planned_item_ids or provider is None:
             return
-
-        result = await db.execute(
-            select(PlannedTreatmentItem)
-            .options(selectinload(PlannedTreatmentItem.treatment_plan))
-            .where(PlannedTreatmentItem.id.in_(planned_item_ids))
-        )
-        items = {item.id: item for item in result.scalars().all()}
-
-        errors = []
-        for item_id in planned_item_ids:
-            item = items.get(item_id)
-            if not item:
-                errors.append(f"Treatment item {item_id} not found")
-                continue
-            if item.clinic_id != clinic_id:
-                errors.append(f"Treatment item {item_id} not found")
-                continue
-            plan = item.treatment_plan
-            if not plan or plan.patient_id != patient_id:
-                errors.append(f"Treatment item {item_id} does not belong to patient")
-                continue
-            if plan.status not in ("active", "draft"):
-                errors.append(f"Treatment item {item_id} belongs to {plan.status} plan")
-                continue
-            if item.status != "pending":
-                errors.append(f"Treatment item {item_id} is already {item.status}")
-
+        errors = await provider.problems(db, clinic_id, patient_id, planned_item_ids)
         if errors:
             raise ValueError("; ".join(errors))
+
+    @staticmethod
+    async def _treatment_links(
+        db: AsyncSession, clinic_id: UUID, appointment_id: UUID, planned_item_ids: list[UUID]
+    ) -> list[AppointmentTreatment]:
+        """The link rows for ``planned_item_ids``, in order."""
+        provider = planned_treatments()
+        catalog_ids = (
+            await provider.catalog_item_ids(db, clinic_id, planned_item_ids) if provider else {}
+        )
+        return [
+            AppointmentTreatment(
+                appointment_id=appointment_id,
+                planned_treatment_item_id=planned_item_id,
+                catalog_item_id=catalog_ids.get(planned_item_id),
+                display_order=order,
+            )
+            for order, planned_item_id in enumerate(planned_item_ids)
+        ]
 
     @staticmethod
     async def _resolve_cabinet(db: AsyncSession, clinic_id: UUID, data: dict) -> None:
@@ -408,6 +383,10 @@ class AppointmentService:
 
         await AppointmentService._resolve_cabinet(db, clinic_id, data)
 
+        AppointmentService._check_links(data, planned_item_ids)
+        if professionals_available() and not data.get("professional_id"):
+            raise ValueError("A professional is required")
+
         if planned_item_ids and data.get("patient_id"):
             await AppointmentService.validate_planned_items(
                 db, clinic_id, data["patient_id"], planned_item_ids
@@ -422,30 +401,11 @@ class AppointmentService:
         if data.get("cabinet_id") is not None:
             data.setdefault("cabinet_assigned_at", now)
             data.setdefault("cabinet_assigned_by", created_by)
-        # Ensure the professional FK points to a `professionals` row.
-        # Tests and some import paths may pass a `User` id; create a
-        # mirrored `Professional` when a `User` exists but no
-        # `Professional` row is present for this clinic.
-        professional_id = data.get("professional_id")
-        if professional_id is not None:
-            exists = await db.execute(
-                select(Professional.id).where(
-                    Professional.id == professional_id, Professional.clinic_id == clinic_id
-                )
-            )
-            if exists.scalar_one_or_none() is None:
-                # Try to copy basic info from the users table.
-                user = await db.get(User, professional_id)
-                if user is not None:
-                    prof = Professional(
-                        id=professional_id,
-                        clinic_id=clinic_id,
-                        first_name=(getattr(user, "first_name", "") or ""),
-                        last_name=(getattr(user, "last_name", "") or ""),
-                        email=(getattr(user, "email", None)),
-                    )
-                    db.add(prof)
-                    await db.flush()
+        # Legacy callers may pass a user account id where a directory
+        # profile belongs; the directory mirrors it so the foreign key holds.
+        directory = professionals()
+        if data.get("professional_id") is not None and directory is not None:
+            await directory.ensure_profile(db, clinic_id, data["professional_id"])
 
         appointment = Appointment(clinic_id=clinic_id, **data)
         db.add(appointment)
@@ -483,21 +443,11 @@ class AppointmentService:
             )
 
         if planned_item_ids:
-            for order, planned_item_id in enumerate(planned_item_ids):
-                planned_item = await db.get(PlannedTreatmentItem, planned_item_id)
-                catalog_item_id = None
-                if planned_item:
-                    await db.refresh(planned_item, ["treatment"])
-                    if planned_item.treatment:
-                        catalog_item_id = planned_item.treatment.catalog_item_id
-
-                treatment = AppointmentTreatment(
-                    appointment_id=appointment.id,
-                    planned_treatment_item_id=planned_item_id,
-                    catalog_item_id=catalog_item_id,
-                    display_order=order,
+            db.add_all(
+                await AppointmentService._treatment_links(
+                    db, clinic_id, appointment.id, planned_item_ids
                 )
-                db.add(treatment)
+            )
             await db.flush()
 
         event_bus.publish_after_commit(
@@ -507,7 +457,9 @@ class AppointmentService:
                 "appointment_id": str(appointment.id),
                 "clinic_id": str(appointment.clinic_id),
                 "patient_id": str(appointment.patient_id) if appointment.patient_id else None,
-                "professional_id": str(appointment.professional_id),
+                "professional_id": (
+                    str(appointment.professional_id) if appointment.professional_id else None
+                ),
                 "start_time": appointment.start_time.isoformat(),
                 "end_time": appointment.end_time.isoformat(),
                 "treatment_type": appointment.treatment_type,
@@ -515,13 +467,7 @@ class AppointmentService:
             },
         )
 
-        await db.refresh(appointment, ["patient", "professional", "treatments"])
-        for treatment in appointment.treatments:
-            await db.refresh(treatment, ["planned_item", "catalog_item"])
-            if treatment.planned_item:
-                await db.refresh(treatment.planned_item, ["treatment", "treatment_plan"])
-                if treatment.planned_item.treatment:
-                    await db.refresh(treatment.planned_item.treatment, ["teeth", "catalog_item"])
+        await db.refresh(appointment, ["treatments"])
 
         return appointment
 
@@ -567,6 +513,8 @@ class AppointmentService:
             await AppointmentService._resolve_cabinet(db, appointment.clinic_id, tmp)
             resolved_cabinet_id = tmp["cabinet_id"]
 
+        AppointmentService._check_links(data, planned_item_ids)
+
         if planned_item_ids:
             patient_id = data.get("patient_id") or appointment.patient_id
             if patient_id:
@@ -589,32 +537,14 @@ class AppointmentService:
                 await db.delete(existing)
             await db.flush()
 
-            for order, planned_item_id in enumerate(planned_item_ids):
-                planned_item = await db.get(PlannedTreatmentItem, planned_item_id)
-                catalog_item_id = None
-                if planned_item:
-                    await db.refresh(planned_item, ["treatment"])
-                    if planned_item.treatment:
-                        catalog_item_id = planned_item.treatment.catalog_item_id
-
-                treatment = AppointmentTreatment(
-                    appointment_id=appointment.id,
-                    planned_treatment_item_id=planned_item_id,
-                    catalog_item_id=catalog_item_id,
-                    display_order=order,
+            db.add_all(
+                await AppointmentService._treatment_links(
+                    db, appointment.clinic_id, appointment.id, planned_item_ids
                 )
-                db.add(treatment)
+            )
             await db.flush()
 
             await db.refresh(appointment, ["treatments"])
-            for treatment in appointment.treatments:
-                await db.refresh(treatment, ["planned_item", "catalog_item"])
-                if treatment.planned_item:
-                    await db.refresh(treatment.planned_item, ["treatment", "treatment_plan"])
-                    if treatment.planned_item.treatment:
-                        await db.refresh(
-                            treatment.planned_item.treatment, ["teeth", "catalog_item"]
-                        )
 
         if cabinet_change_requested and resolved_cabinet_id != appointment.cabinet_id:
             await AppointmentService.assign_cabinet(
@@ -712,7 +642,9 @@ class AppointmentService:
             "appointment_id": str(appointment.id),
             "clinic_id": str(appointment.clinic_id),
             "patient_id": (str(appointment.patient_id) if appointment.patient_id else None),
-            "professional_id": str(appointment.professional_id),
+            "professional_id": (
+                str(appointment.professional_id) if appointment.professional_id else None
+            ),
             "treatment_type": appointment.treatment_type,
             "cabinet": appointment.cabinet,
             "start_time": appointment.start_time.isoformat(),
@@ -723,6 +655,24 @@ class AppointmentService:
             "changed_by": str(changed_by) if changed_by else None,
             "note": note,
         }
+
+        # A completed visit says which planned treatments it covered, so
+        # whoever owns the plan can act on the event alone, without
+        # reading this module's tables (ADR 0042).
+        if to_status == "completed":
+            links = await db.execute(
+                select(
+                    AppointmentTreatment.planned_treatment_item_id,
+                    AppointmentTreatment.completed_in_appointment,
+                ).where(
+                    AppointmentTreatment.appointment_id == appointment.id,
+                    AppointmentTreatment.planned_treatment_item_id.is_not(None),
+                )
+            )
+            payload["planned_items"] = [
+                {"planned_item_id": str(item_id), "completed": bool(completed)}
+                for item_id, completed in links.all()
+            ]
 
         # Always publish the generic transition event — the recommended
         # subscription for new consumers.
@@ -804,7 +754,9 @@ class AppointmentService:
                 "appointment_id": str(appointment.id),
                 "clinic_id": str(appointment.clinic_id),
                 "patient_id": (str(appointment.patient_id) if appointment.patient_id else None),
-                "professional_id": str(appointment.professional_id),
+                "professional_id": (
+                    str(appointment.professional_id) if appointment.professional_id else None
+                ),
                 "from_cabinet_id": (str(from_cabinet_id) if from_cabinet_id else None),
                 "to_cabinet_id": str(cabinet_id) if cabinet_id else None,
                 "changed_at": now.isoformat(),

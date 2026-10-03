@@ -14,6 +14,9 @@ modules, the only **hard** dependency is `patients` (the entity it
 indexes). Other event sources are runtime-optional — when a producing
 module is uninstalled, this module simply stops receiving its events.
 
+The demo seed reads those modules' models, so it lives outside the module,
+in `backend/app/seeds/timeline_demo.py`. Nothing in here imports them.
+
 ## Permissions
 
 `patient_timeline.read`.

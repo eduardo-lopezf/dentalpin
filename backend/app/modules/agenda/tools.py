@@ -25,6 +25,8 @@ from sqlalchemy.exc import IntegrityError
 from app.core.agents import AgentContext, Tool, ToolCategory
 
 from .kanban_service import _fetch_professionals
+from .presenter import present, present_one
+from .schemas import AppointmentResponse
 from .service import (
     VALID_TRANSITIONS,
     AlreadyInStateError,
@@ -75,10 +77,13 @@ class UpdateAppointmentStatusArgs(BaseModel):
     note: str | None = Field(default=None, max_length=500)
 
 
-def _appt_summary(appt) -> dict:
+def _summary(appt: AppointmentResponse) -> dict:
+    # Built from the presented appointment, so a link into an App that is
+    # off is left out here exactly as it is over HTTP (ADR 0037).
     patient = appt.patient
     return {
         "id": appt.id,
+        "title": appt.title,
         "patient_id": appt.patient_id,
         "patient_name": f"{patient.first_name} {patient.last_name}" if patient else None,
         "professional_id": appt.professional_id,
@@ -89,11 +94,15 @@ def _appt_summary(appt) -> dict:
     }
 
 
+async def _appt_summary(ctx: AgentContext, appt) -> dict:
+    return _summary(await present_one(ctx.db, appt))
+
+
 async def _get_appointment(ctx: AgentContext, params: GetAppointmentArgs) -> dict:
     appt = await AppointmentService.get_appointment(ctx.db, ctx.clinic_id, params.appointment_id)
     if appt is None:
         return {"error": "not_found"}
-    return _appt_summary(appt)
+    return await _appt_summary(ctx, appt)
 
 
 async def _list_cabinets(ctx: AgentContext, params: NoArgs) -> dict:
@@ -122,7 +131,7 @@ async def _get_day_overview(ctx: AgentContext, params: DayOverviewArgs) -> dict:
     return {
         "date": params.date,
         "total": total,
-        "appointments": [_appt_summary(a) for a in items],
+        "appointments": [_summary(a) for a in await present(ctx.db, ctx.clinic_id, items)],
     }
 
 
@@ -140,6 +149,10 @@ async def _book_appointment(ctx: AgentContext, params: BookAppointmentArgs) -> d
         # model can explain instead of a raw 500.
         await ctx.db.rollback()
         return {"error": "slot_conflict", "detail": "El hueco solicitado no está disponible."}
+    except ValueError as exc:
+        # A link the agenda cannot make right now — the patient's or the
+        # professional's App is off (ADR 0037). Nothing was written.
+        return {"error": "not_allowed", "detail": str(exc)}
     return {"id": appt.id, "start_time": appt.start_time, "status": appt.status}
 
 
@@ -156,7 +169,9 @@ async def _reschedule_appointment(ctx: AgentContext, params: RescheduleAppointme
     except IntegrityError:
         # update_appointment already rolled the session back.
         return {"error": "slot_conflict", "detail": "El hueco solicitado no está disponible."}
-    return _appt_summary(appt)
+    except ValueError as exc:
+        return {"error": "not_allowed", "detail": str(exc)}
+    return await _appt_summary(ctx, appt)
 
 
 async def _update_appointment_status(

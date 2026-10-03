@@ -53,6 +53,9 @@ watch(
   }
 )
 
+// A disabled App's pages are still in the build; send visits home (ADR 0038).
+useAppRouteGuard()
+
 // Sidebar state (everything but a phone)
 const isSidebarCollapsed = useState('sidebar:collapsed', () => false)
 

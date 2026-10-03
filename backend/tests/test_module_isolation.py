@@ -1,7 +1,7 @@
 """Module isolation guard.
 
 Each module under ``app.modules`` must only import other modules that
-are listed in its own ``manifest.depends``. Reads via ORM, services or
+are listed in its own ``manifest.depends`` or ``manifest.integrates``. Reads via ORM, services or
 plain ``app.modules.X`` paths all count as "imports" — the only legal
 cross-module communication outside of ``depends`` is the event bus.
 
@@ -53,7 +53,7 @@ def _load_manifest_depends(module_name: str) -> set[str]:
             and isinstance(attr.manifest, dict)
             and attr.manifest.get("name") == module_name
         ):
-            return set(attr.manifest.get("depends", []))
+            return set(attr.manifest.get("depends", [])) | set(attr.manifest.get("integrates", []))
     raise AssertionError(f"Could not locate manifest for module {module_name}")
 
 
@@ -104,14 +104,7 @@ def _list_modules() -> list[str]:
 # fails until the allowlist is updated (forcing the cleanup to be
 # explicit). The goal is to drain this set over time, not grow it.
 KNOWN_VIOLATIONS: set[tuple[str, str, str]] = {
-    ("agenda", "service.py", "treatment_plan"),
-    ("agenda", "kanban_service.py", "schedules"),
     ("billing", "router.py", "reports"),
-    ("patient_timeline", "seed.py", "agenda"),
-    ("patient_timeline", "seed.py", "billing"),
-    ("patient_timeline", "seed.py", "budget"),
-    ("patient_timeline", "seed.py", "odontogram"),
-    ("patient_timeline", "seed.py", "treatment_plan"),
 }
 
 

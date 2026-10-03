@@ -182,6 +182,33 @@ async def test_failed_branch_migration_keeps_the_module_unmounted(
     assert "relation already exists" in (row.error_message or "")
 
 
+async def test_disabled_branches_keep_being_migrated(db_session: AsyncSession, monkeypatch) -> None:
+    """A disabled module keeps its tables, so they must not fall behind.
+
+    Left at an old revision it could not be enabled again without a
+    catch-up, and the modules it depends on would have moved on without
+    it (ADR 0035).
+    """
+    migrated: list[str] = []
+    monkeypatch.setattr(
+        processor_mod, "_alembic_cmd", lambda args: migrated.append(args[-1]) or args[-1]
+    )
+
+    head = resolve_module_branch_head(module_registry.get(UNLABELLED))
+    db_session.add(_record(UNLABELLED, ModuleState.DISABLED, "pat_0001"))
+    await db_session.commit()
+
+    assert await PendingProcessor(async_session_maker)._migrate_installed() == set()
+    assert migrated == [head]
+
+    row = (
+        await db_session.execute(select(ModuleRecord).where(ModuleRecord.name == UNLABELLED))
+    ).scalar_one()
+    await db_session.refresh(row)
+    assert row.state == ModuleState.DISABLED.value
+    assert row.applied_revision == head
+
+
 @pytest.mark.parametrize("state", [ModuleState.UNINSTALLED, ModuleState.TO_REMOVE])
 async def test_uninstalled_branches_are_never_migrated(
     db_session: AsyncSession, monkeypatch, state: ModuleState

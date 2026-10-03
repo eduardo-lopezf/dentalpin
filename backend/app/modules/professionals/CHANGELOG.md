@@ -2,6 +2,51 @@
 
 ## Unreleased
 
+- refactor(professionals): `useProfessionals` vive ahora en esta capa
+  (`frontend/composables/`) y no en la app base (ADR 0044).
+
+- feat(professionals): `ProfessionalDirectory.briefs` devuelve también
+  `license_number`, que una receta debe mostrar. Lo usa `treatment_plan`.
+
+- feat(professionals): `ProfessionalDirectory` gana `for_account`
+  (ADR 0039): el perfil que una cuenta *es* en la clínica, sin crearlo
+  nunca. Envuelve `ProfessionalService.for_user`; lo usa
+  `patients_clinical` para atribuir una entrada clínica.
+
+- feat(professionals): `ProfessionalDirectory` gana
+  `profile_for_account` (ADR 0039): el perfil del directorio que
+  corresponde a una cuenta de usuario, creándolo si falta. Es la lógica
+  que antes vivía en la siembra de `schedules`, escribiendo en esta
+  tabla desde fuera.
+- feat(professionals): el módulo ofrece el contrato del core `ProfessionalDirectory` (validar, listar y resumir profesionales, y crear el perfil espejo de una cuenta antigua, que antes hacía la agenda escribiendo en esta tabla) desde
+  `providers.py` (ADR 0039), para que otros módulos lo consulten sin
+  importarlo.
+- feat(profesionales): una ficha del directorio puede **nombrar la cuenta** con
+  la que esa persona entra al sistema (`user_id`, `pro_0003`). El directorio
+  sigue siendo independiente de `users` —un colaborador puede estar sin cuenta,
+  y por eso la columna admite nulo—, pero ahora se puede responder a «qué
+  profesional es quien está operando el sistema», que es de donde sale la
+  autoría de una anotación clínica
+  ([ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md)).
+
+  **No se deduce del correo.** `has_system_access` compara correos para dar una
+  pista, y una pista es el peso justo de una coincidencia: dos personas
+  comparten una dirección familiar, alguien cambia de correo, una clínica
+  reutiliza uno. Una autoría clínica escrita en un documento que sirve de
+  prueba no puede apoyarse en eso, así que el vínculo lo declara un
+  administrador. Sin relleno automático en la migración, por lo mismo.
+
+  Dos negativas en la validación, ambas por lo que corromperían: una cuenta sin
+  membresía en la clínica (nombraría a un extraño como autor de sus registros,
+  400) y una cuenta ya vinculada a otra ficha de la misma clínica (haría
+  irresoluble quién responde por una entrada, 409). Índice único parcial por
+  clínica, porque la misma persona puede tener ficha en dos.
+
+  En la pantalla es un desplegable **Cuenta vinculada** en el formulario, que
+  solo ofrece cuentas con acceso a esta clínica y omite las ya tomadas. Si el
+  perfil no puede listar cuentas, el campo no aparece y el resto del formulario
+  sigue funcionando.
+
 - feat(ui): a row opens the professional's card instead of the edit form.
   The pencil is gone: the whole row is one button, so the common intent —
   finding out who someone is — is what a click answers, and editing is a

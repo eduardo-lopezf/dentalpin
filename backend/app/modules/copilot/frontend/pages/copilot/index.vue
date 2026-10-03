@@ -5,7 +5,14 @@ const { t } = useI18n()
 const { can } = usePermissions()
 const { messages, busy, reset } = useCopilot()
 
-if (!can(PERMISSIONS.copilot.chat)) {
+// With the AI App switched off (`backend/apps.json`, ADR 0038) nobody holds
+// the permission, and that is not a denial: the layout's route guard sends
+// the visit home with a notice. A 403 here would replace the layout, and
+// the guard with it, by an error page.
+const { active, isActive } = useModules()
+const appIsOff = computed(() => active.value !== null && !isActive('copilot'))
+
+if (!can(PERMISSIONS.copilot.chat) && !appIsOff.value) {
   throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
 }
 </script>

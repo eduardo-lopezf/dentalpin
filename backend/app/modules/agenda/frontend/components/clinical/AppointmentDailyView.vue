@@ -149,7 +149,7 @@ const {
 
     const newStartTime = slotIndexToTime(startSlot)
     const oldStartTime = appointment.start_time.split('T')[1]?.substring(0, 5) ?? ''
-    if (newStartTime === oldStartTime && prof.id === appointment.professional_id) return
+    if (newStartTime === oldStartTime && prof.id === (appointment.professional_id ?? '')) return
 
     emit('appointment-move', appointmentId, prof.id, newStartTime, slotIndexToTime(endSlot))
   },
@@ -176,7 +176,7 @@ function startAppointmentDrag(
 ) {
   const startTime = appointment.start_time.split('T')[1]?.substring(0, 5) ?? '08:00'
   const endTime = appointment.end_time.split('T')[1]?.substring(0, 5) ?? '08:15'
-  const profIndex = props.professionals.findIndex(p => p.id === appointment.professional_id)
+  const profIndex = props.professionals.findIndex(p => p.id === (appointment.professional_id ?? ''))
   onAppointmentPointerDown(
     {
       type,
@@ -318,8 +318,8 @@ const appointmentsByProfId = computed(() => {
   for (const apt of props.appointments) {
     if (apt.status === 'cancelled') continue
     if (apt.start_time.split('T')[0] !== dateStr) continue
-    const profId = apt.professional_id
-    if (!profId) continue
+    // '' is the unassigned column the page adds (see `dayViewColumns`).
+    const profId = apt.professional_id ?? ''
     let bucket = map.get(profId)
     if (!bucket) {
       bucket = []
@@ -370,7 +370,7 @@ const appointmentsByProfIndex = computed(() => {
   if (dragId && dragType === 'move' && typeof dragProfIdx === 'number') {
     const dragged = props.appointments.find(a => a.id === dragId)
     if (dragged) {
-      const originalIdx = props.professionals.findIndex(p => p.id === dragged.professional_id)
+      const originalIdx = props.professionals.findIndex(p => p.id === (dragged.professional_id ?? ''))
       if (originalIdx !== dragProfIdx) {
         const fromBucket = map.get(originalIdx)
         if (fromBucket) {
@@ -568,7 +568,7 @@ const appointmentsByProfIndex = computed(() => {
                         class="w-3 h-3 flex-shrink-0"
                       />
                       <span class="text-xs font-medium truncate">
-                        {{ appointment.patient ? `${appointment.patient.first_name} ${appointment.patient.last_name}` : 'Sin paciente' }}
+                        {{ appointment.patient ? `${appointment.patient.first_name} ${appointment.patient.last_name}` : (appointment.title || t('appointments.noPatient')) }}
                       </span>
                       <UIcon
                         v-if="notesIndicator.has(appointment.id)"

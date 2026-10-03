@@ -24,6 +24,8 @@ the scaffold could not infer.
 - `GET /api/v1/budget/budgets/{budget_id}/signature`
 - `GET /api/v1/budget/budgets/{budget_id}/versions`
 - `POST /api/v1/budget/budgets`
+- `POST /api/v1/budget/plans/{plan_id}/addendum`
+- `POST /api/v1/budget/plans/{plan_id}/budget`
 - `POST /api/v1/budget/budgets/{budget_id}/accept`
 - `POST /api/v1/budget/budgets/{budget_id}/accept-in-clinic`
 - `POST /api/v1/budget/budgets/{budget_id}/cancel`

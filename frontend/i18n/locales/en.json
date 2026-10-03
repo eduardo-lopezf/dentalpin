@@ -1039,6 +1039,13 @@
   },
   "appointments": {
     "title": "Schedule",
+    "unavailable": "Appointments cannot be created",
+    "patientsUnavailable": "Patients cannot be assigned",
+    "professionalsUnavailable": "Professionals cannot be assigned",
+    "noProfessional": "Unassigned",
+    "titleLabel": "Title",
+    "titlePlaceholder": "What the appointment is for",
+    "treatmentsUnavailable": "Treatments cannot be assigned",
     "create": "New appointment",
     "edit": "Edit appointment",
     "today": "Today",
@@ -1261,7 +1268,7 @@
         "description": "Clinic profile, branding and timezone."
       },
       "workspace": {
-        "label": "Workspace",
+        "label": "Clinic & hours",
         "description": "Cabinets, opening hours and availability."
       },
       "people": {
@@ -1285,8 +1292,8 @@
         "description": "External services and providers."
       },
       "modules": {
-        "label": "Modules",
-        "description": "Install, upgrade and uninstall modules."
+        "label": "Apps",
+        "description": "The apps enabled in your clinic."
       },
       "account": {
         "label": "Account",
@@ -1410,16 +1417,189 @@
       "userUpdated": "User updated successfully",
       "userRemoved": "User removed from the clinic"
     },
+    "home": {
+      "title": "Home",
+      "workspaceCard": "The main app. Choose which widgets show on the home page, and in what order.",
+      "intro": "What you choose here is what the whole clinic sees. Each widget stays in its area of the page; the order is within that area.",
+      "reset": "Restore defaults",
+      "saved": "Home page updated",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "labels": {
+        "recallsDue": "Pending recalls",
+        "overdueHero": "Overdue payments · summary",
+        "overduePanel": "Overdue payments · list",
+        "weekGlance": "Week at a glance"
+      }
+    },
+    "widgets": {
+      "title": "Widgets",
+      "description": "Cards each app adds to other screens, with an example of each.",
+      "intro": "Pieces an app contributes to other screens. The examples use made-up data, not your clinic's.",
+      "appearsIn": "Appears in",
+      "example": "Example",
+      "empty": "There are no widgets to show.",
+      "slots": {
+        "dashboard": {
+          "hero": "Home · top strip",
+          "timeline": "Home · timeline",
+          "attention": "Home · attention panel",
+          "activity": "Home · activity",
+          "widgets": "Home · other"
+        },
+        "patient": {
+          "summary": {
+            "cards": "Patient record · Summary"
+          },
+          "header": {
+            "alerts": "Patient record · header"
+          }
+        }
+      },
+      "catalog": {
+        "agenda": {
+          "todayAppointments": {
+            "title": "Today's appointments",
+            "summary": "How many appointments there are today and how they are spread."
+          },
+          "inClinicNow": {
+            "title": "In the clinic now",
+            "summary": "Patients currently waiting or in treatment."
+          },
+          "todayTimeline": {
+            "title": "Today's timeline",
+            "summary": "The day's appointments per professional, each one a click away."
+          },
+          "unconfirmed": {
+            "title": "Unconfirmed",
+            "summary": "Upcoming appointments that have not been confirmed yet."
+          },
+          "nextAppointment": {
+            "title": "Next appointment",
+            "summary": "The patient's next appointment, on their record."
+          }
+        },
+        "patients": {
+          "recent": {
+            "title": "Recent patients",
+            "summary": "The latest patients added, with how to reach them."
+          },
+          "medicalHistory": {
+            "title": "Medical history",
+            "summary": "The allergies, conditions and medication of the patient, with their risk level."
+          },
+          "alerts": {
+            "title": "Medical alerts",
+            "summary": "The critical and high alerts of the patient, always in view in the header."
+          },
+          "quickActions": {
+            "title": "Quick actions",
+            "summary": "Shortcuts to book a visit or upload a document from the patient summary."
+          }
+        }
+      }
+    },
+    "apis": {
+      "title": "APIs",
+      "description": "Outside services each app can connect to.",
+      "intro": "Outside services an app can connect to.",
+      "empty": "There are no APIs to show.",
+      "status": {
+        "planned": "Coming soon",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "catalog": {
+        "google_calendar": {
+          "title": "Google Calendar",
+          "summary": "Syncs the agenda's appointments with Google Calendar."
+        },
+        "whatsapp": {
+          "title": "WhatsApp",
+          "summary": "Sends messages to patients over WhatsApp (through Kapso)."
+        }
+      }
+    },
+    "apps": {
+      "includes": "Includes",
+      "requires": "Requires",
+      "integrates": "Integrates with",
+      "alwaysOn": "Always enabled",
+      "configure": "Configure",
+      "pendingEnable": "Will be enabled on restart",
+      "pendingDisable": "Will be disabled on restart",
+      "tier": {
+        "base": "Main app",
+        "core": "Core app",
+        "optional": "Optional app"
+      },
+      "notEnabled": "The {name} app is not enabled",
+      "modulesHeading": "Modules",
+      "catalog": {
+          "budgets_payments": {
+            "title": "Budgets & payments",
+            "summary": "Budgets, payments, invoicing and, in Spain, Veri*Factu and the export for the accountant."
+          },
+          "cash": {
+            "title": "Cash desk",
+            "summary": "Cash movements, daily count, period cuts and payouts to associate professionals."
+          },
+          "clinical_record": {
+            "title": "Clinical record",
+            "summary": "The patient's clinical record as a document."
+          },
+          "reports": {
+            "title": "Reports",
+            "summary": "Billing, budget and scheduling reports."
+          },
+          "ai": {
+            "title": "AI",
+            "summary": "The clinic's AI assistant."
+          },
+          "data_migration": {
+            "title": "Data migration",
+            "summary": "Imports patients, appointments, budgets, payments and documents from another program."
+          },
+          "communications": {
+            "title": "Communications",
+            "summary": "Patient notifications by email and, later on, by WhatsApp."
+          },
+          "workspace": {
+            "title": "Workspace",
+            "summary": "The main app: the clinic, its users and permissions, the home page with its widgets, and settings. Every other app runs on it."
+          },
+        "agenda": {
+          "title": "Agenda",
+          "summary": "Appointments, cabinets and working hours for the clinic and its professionals."
+        },
+        "recalls": {
+          "title": "Recalls",
+          "summary": "Periodic check-ups and the patient call list."
+        },
+        "treatments": {
+          "title": "Treatments",
+          "summary": "Treatment catalog, odontogram, periodontogram, treatment plans and clinical notes."
+        },
+        "patients": {
+          "title": "Patients",
+          "summary": "Patient records, contact details, medical history, documents and photos."
+        },
+        "professionals": {
+          "title": "Professionals",
+          "summary": "The clinic's directory of professionals."
+        }
+      }
+    },
     "modules": {
-      "title": "Modules",
-      "subtitle": "Install, uninstall and upgrade clinic modules.",
-      "description": "Manage which modules are active in your clinic.",
+      "title": "Apps",
+      "subtitle": "The apps your clinic has and which ones are enabled.",
+      "description": "See which apps are enabled in your clinic.",
       "deps": "Dependencies",
       "noDeps": "No dependencies",
       "state": {
-        "installed": "Installed",
-        "uninstalled": "Not installed",
-        "toInstall": "Pending install",
+        "installed": "Enabled",
+        "uninstalled": "Uninstalled",
+        "toInstall": "Pending enable",
         "toUpgrade": "Pending upgrade",
         "toRemove": "Pending removal",
         "disabled": "Disabled",
@@ -1430,46 +1610,22 @@
         "community": "Community"
       },
       "actions": {
-        "install": "Install",
-        "uninstall": "Uninstall",
-        "upgrade": "Upgrade",
-        "apply": "Apply changes",
-        "viewDetails": "Details",
-        "force": "Force uninstall"
-      },
-      "confirmInstall": {
-        "title": "Install {name}?",
-        "message": "The module will be scheduled for install and become active after applying changes.",
-        "scheduled": "These dependencies will also be installed:"
-      },
-      "confirmUninstall": {
-        "title": "Uninstall {name}?",
-        "warning": "The module tables will be removed. A pg_dump backup is created first so data can be recovered.",
-        "forceHint": "Ignores dependent modules. Only use this if you know what you're doing."
-      },
-      "confirmUpgrade": {
-        "title": "Upgrade {name}?",
-        "message": "The module will be upgraded to the on-disk manifest version when changes are applied."
-      },
-      "confirmApply": {
-        "title": "Apply changes",
-        "message": "The backend will restart. The session may be briefly interrupted while pending operations run."
+        "viewDetails": "Details"
       },
       "pending": {
-        "banner": "Pending changes:",
-        "apply": "Apply changes"
+        "banner": "Changes that will apply when the server restarts:"
       },
       "doctor": {
-        "banner": "Issues detected in the module system.",
-        "orphans": "orphan modules",
+        "banner": "Issues detected in the app system.",
+        "orphans": "orphan apps",
         "missingDeps": "missing dependencies",
         "manifestErrors": "manifest errors",
-        "errored": "errored modules"
+        "errored": "errored apps"
       },
       "detail": {
         "state": "State",
         "category": "Category",
-        "installedAt": "Installed at",
+        "installedAt": "Enabled at",
         "lastChange": "Last change",
         "baseRevision": "Base revision",
         "appliedRevision": "Applied revision",
@@ -1477,16 +1633,6 @@
         "errorMessage": "Error message",
         "operationLog": "Operation log",
         "noOperations": "No operations recorded."
-      },
-      "restart": {
-        "inProgress": "Restarting backend…",
-        "done": "Changes applied",
-        "failed": "Failed to apply changes",
-        "timeout": "Timed out waiting for backend"
-      },
-      "toasts": {
-        "scheduled": "Operation scheduled. Apply changes to complete.",
-        "applied": "Changes applied successfully."
       }
     }
   },
@@ -1519,6 +1665,12 @@
       "cancel": "Cancel",
       "errorGeneric": "Couldn't create the patient. Retry."
     }
+  },
+  "errors": {
+    "loadFailed": "Failed to load the data",
+    "createFailed": "Failed to create",
+    "updateFailed": "Failed to save the changes",
+    "deleteFailed": "Failed to delete"
   },
   "common": {
     "save": "Save",
@@ -2173,7 +2325,10 @@
         "reactivated": "Reactivated",
         "item_added": "Treatment added",
         "item_removed": "Treatment removed",
-        "item_reopened": "Treatment reopened"
+        "item_reopened": "Treatment reopened",
+        "budget_created": "Budget created",
+        "budget_addendum": "Budget addendum",
+        "budget_extended": "Budget extended"
       }
     }
   },
@@ -3057,6 +3212,15 @@
       "title": "Billing settings"
     }
   },
+  "record": {
+    "section": {
+      "allergies": "Allergies",
+      "medications": "Medication",
+      "systemic_diseases": "Systemic diseases",
+      "surgical_history": "Surgical history",
+      "consents": "Consents"
+    }
+  },
   "reports": {
     "title": "Reports",
     "subtitle": "Clinic analytics and statistics",
@@ -3460,5 +3624,75 @@
       "emptyHint": "Your role can work the lists but cannot read the money reports."
     },
     "empty": "No finance module is installed."
+  },
+  "consents": {
+    "title": "Consents",
+    "new": "New consent",
+    "view": "View",
+    "discard": "Discard",
+    "signAction": "Sign",
+    "revoke": "Revoke",
+    "revokePrompt": "Reason for revoking (it is kept in the record):",
+    "signedBy": "Signed by {name}",
+    "signatureAlt": "Signature",
+    "kinds": {
+      "informed": "Informed consent",
+      "data_use": "Use of personal data"
+    },
+    "status": {
+      "draft": "Draft",
+      "signed": "Signed",
+      "declined": "Declined",
+      "revoked": "Revoked",
+      "discarded": "Discarded"
+    },
+    "capacity": {
+      "patient": "The patient",
+      "guardian": "Legal guardian",
+      "representative": "Representative"
+    },
+    "empty": {
+      "title": "No consents",
+      "description": "The consent letters of the patient appear here: those waiting for a signature and those already signed."
+    },
+    "form": {
+      "newTitle": "New consent",
+      "editTitle": "Edit draft",
+      "kind": "Kind",
+      "template": "Template",
+      "templatePlaceholder": "Choose a template",
+      "noTemplates": "No templates of this kind",
+      "title": "Title",
+      "procedure": "Procedure",
+      "procedureHint": "What it is about: an extraction, an orthodontic plan…",
+      "body": "Text",
+      "bodyHintInformed": "What will be done, its risks and the alternatives, in words the patient understands.",
+      "bodyHintData": "The privacy notice: who processes the data, which data, what for, and how to exercise their rights.",
+      "explainedBy": "Explained by",
+      "explainedByHint": "The professional who informed the patient. Required to sign.",
+      "explainedByPlaceholder": "Choose a professional",
+      "professionalsUnavailable": "Professionals cannot be assigned: the Professionals app is not enabled.",
+      "saveDraft": "Save draft"
+    },
+    "sign": {
+      "explainedBy": "Explained by {name}",
+      "missingProfessional": "The professional who explained it is missing. Edit the draft before signing.",
+      "signerName": "Name of the signer",
+      "capacity": "Signs as",
+      "signHere": "Sign here",
+      "decline": "The patient declines",
+      "confirm": "Sign"
+    },
+    "templates": {
+      "title": "Consent templates",
+      "description": "The informed consent texts and privacy notice of the clinic.",
+      "intro": "The texts the clinic uses for its consent letters. Their wording belongs to the clinic and its legal adviser. Editing a template creates a new version and does not change letters already written from it.",
+      "new": "New template",
+      "editTitle": "Edit template",
+      "retire": "Retire",
+      "restore": "Restore",
+      "emptyTitle": "No templates",
+      "emptyDescription": "Create one template per procedure, and one for the privacy notice."
+    }
   }
 }

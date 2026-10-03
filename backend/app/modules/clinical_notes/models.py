@@ -39,6 +39,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -102,7 +103,29 @@ class ClinicalNote(Base, TimestampMixin):
     tooth_number: Mapped[int | None] = mapped_column(Integer)
 
     body: Mapped[str] = mapped_column(Text)
+    #: The account that operated the software. The audit trail, unchanged.
     author_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    #: Who answers for the note clinically, and through whom an exported record
+    #: names a licence (ADR 0032). Two fields rather than one because an
+    #: assistant may type what a dentist is responsible for. Resolved from the
+    #: acting account's directory profile; NULL when it has none, which is the
+    #: truthful answer rather than a guess.
+    authored_by_professional_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("professionals.id"), default=None, index=True
+    )
+
+    # Which version of the text ``body`` currently holds, counting from 1.
+    # The current text stays right here, on the note, because that is what
+    # every consumer reads and reading it must not cost a join
+    # ([ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md)).
+    # What changed is that superseding it now files the old text away instead
+    # of destroying it.
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    # When the text was last corrected. NULL means never: the note still says
+    # what it said when it was written, and a reader can tell at a glance —
+    # which is the distinction that was impossible before, when an amendment
+    # and an original were the same thing.
+    amended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -148,4 +171,59 @@ class ClinicalNote(Base, TimestampMixin):
             "created_at",
         ),
         Index("idx_clinical_notes_author", "author_id"),
+    )
+
+
+class ClinicalNoteVersion(Base, TimestampMixin):
+    """A superseded body of a note, kept with the reason it was superseded.
+
+    ``clinical_notes.body`` used to be assigned in place: `note.body = body`.
+    The prior text was gone, so a correction and an original were the same
+    thing, and "what did the note say on the day of the procedure" — the
+    question a complaint or an insurance review turns on — had no answer.
+
+    An amendment is now a new version. The note keeps the current text; each
+    earlier text lands here with its number, the instant it stopped being
+    current, who replaced it and why. Reconstructing the note at any past
+    instant is walking these rows: the first one whose ``superseded_at`` is
+    later than the instant asked about holds the text that was on screen then,
+    and if none is, the note itself does.
+
+    Rows are never updated or deleted. A wrong amendment is corrected by
+    amending again, which is the same rule the rest of the clinical surface
+    follows.
+    """
+
+    __tablename__ = "clinical_note_versions"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+    note_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("clinical_notes.id", ondelete="CASCADE"),
+        index=True,
+    )
+
+    #: Which version this text was. 1 is the note as first written.
+    version: Mapped[int] = mapped_column(Integer)
+    body: Mapped[str] = mapped_column(Text)
+
+    superseded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: The account that replaced this text. The note's own ``author_id`` still
+    #: names whoever wrote it — an admin correcting someone else's note does
+    #: not become its author.
+    superseded_by_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    #: And who answers for the correction clinically. A correction is part of
+    #: what the note says, so it is attributable the same way the original is.
+    superseded_by_professional_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("professionals.id"), default=None
+    )
+    #: Free text, optional. Asking for a reason and refusing the amendment
+    #: without one would buy a record full of "correction"; the useful ones are
+    #: written when there is something to say.
+    amendment_reason: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (
+        UniqueConstraint("note_id", "version", name="uq_clinical_note_version"),
+        Index("idx_clinical_note_versions_note", "note_id", "version"),
     )

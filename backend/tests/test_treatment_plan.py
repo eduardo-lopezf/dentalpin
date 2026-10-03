@@ -436,7 +436,7 @@ async def test_remove_item_blocked_when_budget_generated(
         json={"status": "active"},
     )
     await client.post(
-        f"/api/v1/treatment_plan/treatment-plans/{plan_id}/generate-budget",
+        f"/api/v1/budget/plans/{plan_id}/budget",
         headers=auth_headers,
     )
 
@@ -1365,6 +1365,8 @@ async def test_reconfirm_after_reopen_links_the_fresh_budget(
         headers=auth_headers,
     )
     assert r.status_code == 200, r.text
+    # Minted by `budget` on hearing of the confirmation (ADR 0042).
+    r = await client.get(f"/api/v1/treatment_plan/treatment-plans/{plan_id}", headers=auth_headers)
     first_budget_id = r.json()["data"]["budget_id"]
     assert first_budget_id is not None
 
@@ -1380,8 +1382,9 @@ async def test_reconfirm_after_reopen_links_the_fresh_budget(
         headers=auth_headers,
     )
     assert r.status_code == 200, r.text
+    assert r.json()["data"]["status"] == "pending"
+    r = await client.get(f"/api/v1/treatment_plan/treatment-plans/{plan_id}", headers=auth_headers)
     plan = r.json()["data"]
-    assert plan["status"] == "pending"
 
     second_budget_id = plan["budget_id"]
     assert second_budget_id is not None
@@ -1476,6 +1479,7 @@ async def test_accepting_the_budget_after_a_reopen_still_activates_the_plan(
         headers=auth_headers,
     )
     assert r.status_code == 200, r.text
+    r = await client.get(f"/api/v1/treatment_plan/treatment-plans/{plan_id}", headers=auth_headers)
     budget_id = r.json()["data"]["budget_id"]
 
     r = await client.post(
@@ -1573,6 +1577,8 @@ async def test_attending_an_appointment_moves_the_plan_to_active(
             "appointment_id": str(appointment.id),
             "clinic_id": str(setup["clinic_id"]),
             "patient_id": str(setup["patient_id"]),
+            # What the agenda puts in the event (ADR 0042).
+            "planned_items": [{"planned_item_id": str(item_ids[0]), "completed": False}],
         }
     )
 
@@ -1637,6 +1643,8 @@ async def test_attendance_does_not_start_an_unconfirmed_plan(
             "appointment_id": str(appointment.id),
             "clinic_id": str(setup["clinic_id"]),
             "patient_id": str(setup["patient_id"]),
+            # What the agenda puts in the event (ADR 0042).
+            "planned_items": [{"planned_item_id": str(item_ids[0]), "completed": False}],
         }
     )
 
@@ -2036,3 +2044,43 @@ async def test_pipeline_search_matches_full_name_and_ignores_accents(
     assert plan_id in await found("Begona Nuno")
     assert plan_id in await found("Nuno")
     assert plan_id not in await found("Begona Zzzz")
+
+
+@pytest.mark.asyncio
+async def test_plan_number_survives_a_gap_in_the_sequence(
+    client: AsyncClient, auth_headers: dict, setup: dict, db_session: AsyncSession
+) -> None:
+    """The number is one past the highest, not one past the count.
+
+    Counting handed out a number that already existed as soon as a plan
+    row had ever been removed, and every later plan failed on the unique
+    constraint.
+    """
+    from sqlalchemy import delete
+
+    from app.modules.treatment_plan.models import TreatmentPlan
+
+    numbers = []
+    ids = []
+    for _ in range(2):
+        r = await client.post(
+            "/api/v1/treatment_plan/treatment-plans",
+            headers=auth_headers,
+            json={"patient_id": setup["patient_id"], "title": "Gap"},
+        )
+        assert r.status_code == 201, r.text
+        numbers.append(r.json()["data"]["plan_number"])
+        ids.append(r.json()["data"]["id"])
+
+    await db_session.execute(delete(TreatmentPlan).where(TreatmentPlan.id == UUID(ids[0])))
+    await db_session.commit()
+
+    r = await client.post(
+        "/api/v1/treatment_plan/treatment-plans",
+        headers=auth_headers,
+        json={"patient_id": setup["patient_id"], "title": "Gap"},
+    )
+    assert r.status_code == 201, r.text
+    third = r.json()["data"]["plan_number"]
+    assert third not in numbers
+    assert int(third.split("-")[-1]) == int(numbers[1].split("-")[-1]) + 1

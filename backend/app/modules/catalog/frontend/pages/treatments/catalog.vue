@@ -57,7 +57,15 @@ interface ProfessionalRow {
   specialties: { id: string }[]
 }
 
+// The directory belongs to the Professionals App, which the deployment
+// can switch off (ADR 0038): nothing to ask, and no team to filter by.
+const { active: activeModules, isActive } = useModules()
+const professionalsAvailable = computed(
+  () => activeModules.value === null || isActive('professionals')
+)
+
 async function loadStaffSpecialties() {
+  if (!professionalsAvailable.value) return
   try {
     const response = await api.get<{ data: ProfessionalRow[] }>(
       '/api/v1/professionals?page_size=100'
@@ -251,19 +259,24 @@ function categoryName(categoryId: string): string {
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-3">
+          <!-- The wrapper stays so the right-hand group keeps its place;
+               the team filter has nothing to filter by without the
+               Professionals App. -->
           <div class="flex items-center gap-2">
-            <USwitch v-model="onlyMyTeam" />
-            <span class="text-sm text-muted dark:text-subtle">
-              {{ t('treatments.onlyMyTeam') }}
-            </span>
-            <UBadge
-              v-if="onlyMyTeam && staffSpecialtyIds.size === 0"
-              color="warning"
-              variant="subtle"
-              size="xs"
-            >
-              {{ t('treatments.noStaffSpecialties') }}
-            </UBadge>
+            <template v-if="professionalsAvailable">
+              <USwitch v-model="onlyMyTeam" />
+              <span class="text-sm text-muted dark:text-subtle">
+                {{ t('treatments.onlyMyTeam') }}
+              </span>
+              <UBadge
+                v-if="onlyMyTeam && staffSpecialtyIds.size === 0"
+                color="warning"
+                variant="subtle"
+                size="xs"
+              >
+                {{ t('treatments.noStaffSpecialties') }}
+              </UBadge>
+            </template>
           </div>
           <div class="flex items-center gap-3">
             <span class="text-sm text-muted dark:text-subtle">

@@ -16,7 +16,7 @@ related_endpoints:
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/close
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/confirm
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/contact-log
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/generate-budget
+  - POST /api/v1/budget/plans/{plan_id}/budget
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/items
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/link-budget
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/reactivate

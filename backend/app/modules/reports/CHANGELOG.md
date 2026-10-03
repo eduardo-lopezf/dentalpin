@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- feat(reports): los tres paneles de Inicio llevan nombre (`labelKey`)
+  para poder ocultarlos o reordenarlos desde Configuración → Apps → Espacio de trabajo.
+
 - fix(money): the week-glance delta takes `Money` and coerces inside;
   it was declared to take numbers while receiving Decimal strings.
 

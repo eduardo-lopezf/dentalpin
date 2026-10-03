@@ -11,6 +11,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
+const { book } = useAppointmentBooking()
 const toast = useToast()
 const recallsApi = useRecalls()
 
@@ -58,9 +59,7 @@ async function quickNoAnswer() {
 }
 
 async function bookAppointment() {
-  await navigateTo(
-    `/appointments?patient_id=${props.recall.patient_id}&recall_id=${props.recall.id}`
-  )
+  await book({ patient_id: props.recall.patient_id, recall_id: props.recall.id })
 }
 
 async function snooze() {

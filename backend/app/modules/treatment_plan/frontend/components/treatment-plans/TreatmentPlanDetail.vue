@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PlannedTreatmentItem, TreatmentPlanDetail } from '~~/app/types'
+import { PERMISSIONS } from '~~/app/config/permissions'
 
 const props = defineProps<{
   plan: TreatmentPlanDetail
@@ -15,6 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, d } = useI18n()
+const { can } = usePermissions()
 const { format: formatMoney } = useCurrency()
 
 // Collapsible state for completed items
@@ -132,7 +134,7 @@ function getBudgetStatusColor(status: string): string {
           </UButton>
 
           <UButton
-            v-if="(!plan.budget_id || plan.budget?.status === 'cancelled') && plan.items.length > 0"
+            v-if="(!plan.budget || plan.budget.status === 'cancelled') && plan.items.length > 0 && can(PERMISSIONS.budget.write)"
             color="primary"
             variant="soft"
             icon="i-lucide-file-text"

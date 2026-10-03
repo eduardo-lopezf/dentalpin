@@ -46,8 +46,9 @@ export interface SlotEntry<Ctx = unknown> {
   condition?: (ctx: Ctx) => boolean
   // ---- settings.sections extensions ---------------------------------
   // Optional fields used by the ``settings.sections`` slot to place the
-  // entry inside the categorised settings IA. All other slots ignore
-  // them.
+  // entry inside the categorised settings IA. Other slots ignore them,
+  // except ``labelKey`` / ``descriptionKey``, which also name a tab
+  // (``tab``) and a widget (``widget``).
   /** Settings category bucket. Default: ``'modules'`` (fallback). */
   category?: SettingsCategoryId
   /** Synonyms surfaced by Cmd-K search (lowercase substrings). */
@@ -58,6 +59,30 @@ export interface SlotEntry<Ctx = unknown> {
   descriptionKey?: string
   /** Renders an amber dot when truthy at resolve time. */
   attention?: () => boolean
+  /**
+   * List this entry in Settings → Apps → Widgets, with an example
+   * (ADR 0040). Opt-in: a label alone does not make a widget — tabs and
+   * settings pages carry one too. The component must then honour
+   * ``useWidgetPreview()``.
+   */
+  widget?: boolean
+  // ---- tab slots ------------------------------------------------------
+  /**
+   * For slots that render as tabs (``patient.detail.tabs``): the tab's
+   * value — what ``?tab=`` carries, so it must stay stable — and its
+   * icon. The label comes from ``labelKey``.
+   */
+  tab?: { value: string, icon: string }
+  // ---- data hook ------------------------------------------------------
+  /**
+   * Data the host fetches on the entry's behalf and hands back through
+   * ``ctx`` — one bulk request for a whole page of rows instead of one
+   * per rendered row. The host passes its own API client, because
+   * ``useApi()`` can only be created during a component's setup and this
+   * runs later. The slot's documentation says what ``input`` and the
+   * result are; the host knows neither the endpoint nor the module.
+   */
+  loader?: (api: ReturnType<typeof useApi>, input?: unknown) => Promise<unknown>
 }
 
 type SlotMap = Record<string, SlotEntry[]>
@@ -96,6 +121,18 @@ export function unregisterSlot(name: string, id: string): void {
 export function clearSlots(name?: string): void {
   const state = useSlotState()
   state.value = name ? { ...state.value, [name]: [] } : {}
+}
+
+/**
+ * Every registration, with the slot it went into. For screens that
+ * describe the registry itself (Settings → Apps → Widgets) rather than
+ * render one slot.
+ */
+export function listSlotEntries(): Array<{ slot: string, entry: SlotEntry }> {
+  const state = useSlotState()
+  return Object.entries(state.value).flatMap(([slot, entries]) =>
+    entries.map(entry => ({ slot, entry }))
+  )
 }
 
 export function resolveSlot<Ctx = unknown>(

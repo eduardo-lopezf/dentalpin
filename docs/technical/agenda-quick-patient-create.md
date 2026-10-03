@@ -95,7 +95,7 @@ If `canCreate.value === false`, do not render the footer slot. Already-existing 
 
 No prop additions. No breaking changes for existing callers — both additions are opt-in.
 
-### 2. `frontend/app/components/shared/PatientVisualSelector.vue`
+### 2. `backend/app/modules/patients/frontend/components/shared/PatientVisualSelector.vue`
 
 Net new logic:
 
@@ -280,7 +280,7 @@ No backend changes → no new backend tests. Existing `tests/test_clinics_and_co
 
 ```
 frontend/app/components/shared/VisualSelector.vue           # +footer slot, +footer-enter emit, Enter key tweak
-frontend/app/components/shared/PatientVisualSelector.vue    # state machine, mini-form, dup lookup, recents cache update
+backend/app/modules/patients/frontend/components/shared/PatientVisualSelector.vue    # state machine, mini-form, dup lookup, recents cache update
 frontend/i18n/locales/en.json                                # +patientSelector.*
 frontend/i18n/locales/es.json                                # +patientSelector.*
 frontend/tests/unit/PatientVisualSelector.spec.ts            # NEW

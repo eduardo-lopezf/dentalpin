@@ -5,15 +5,10 @@ import { MODULE_STATE_ROLE } from '~/config/severity'
 
 interface Props {
   module: ModuleInfo
-  upgradeAvailable?: boolean
-  canWrite: boolean
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
-  install: [name: string]
-  uninstall: [name: string]
-  upgrade: [name: string]
   viewDetails: [name: string]
 }>()
 const { t } = useI18n()
@@ -25,22 +20,6 @@ const categoryLabel = computed(() => t(`settings.modules.category.${props.module
 function camelState(state: string): string {
   return state.replace(/_(.)/g, (_, c) => c.toUpperCase())
 }
-
-const canInstall = computed(
-  () => props.module.state === 'uninstalled' && props.module.in_disk
-)
-// Show uninstall for any installed, removable module. The backend still
-// enforces reverse-dep checks and Alembic safety, surfacing a 400 with a
-// readable reason if removal isn't safe yet — the UI then offers `force`.
-const canUninstall = computed(
-  () => props.module.state === 'installed' && props.module.removable
-)
-const canUpgrade = computed(
-  () => props.module.state === 'installed' && props.upgradeAvailable
-)
-const pending = computed(() =>
-  ['to_install', 'to_upgrade', 'to_remove'].includes(props.module.state)
-)
 
 const categoryColor = computed<UiColor>(() =>
   props.module.category === 'official' ? 'primary' : 'info'
@@ -117,36 +96,6 @@ const categoryColor = computed<UiColor>(() =>
           @click="emit('viewDetails', module.name)"
         >
           {{ t('settings.modules.actions.viewDetails') }}
-        </UButton>
-
-        <UButton
-          v-if="canWrite && canInstall && !pending"
-          size="xs"
-          icon="i-lucide-download"
-          @click="emit('install', module.name)"
-        >
-          {{ t('settings.modules.actions.install') }}
-        </UButton>
-
-        <UButton
-          v-if="canWrite && canUpgrade && !pending"
-          size="xs"
-          color="info"
-          icon="i-lucide-arrow-up-circle"
-          @click="emit('upgrade', module.name)"
-        >
-          {{ t('settings.modules.actions.upgrade') }}
-        </UButton>
-
-        <UButton
-          v-if="canWrite && canUninstall && !pending"
-          size="xs"
-          color="error"
-          variant="soft"
-          icon="i-lucide-trash-2"
-          @click="emit('uninstall', module.name)"
-        >
-          {{ t('settings.modules.actions.uninstall') }}
         </UButton>
       </div>
     </div>

@@ -18,6 +18,7 @@ const props = defineProps<{ ctx: Ctx }>()
 
 const { t } = useI18n()
 const router = useRouter()
+const { book } = useAppointmentBooking()
 
 const patientId = computed(() => props.ctx.patient.id)
 
@@ -25,7 +26,7 @@ function newAppointment() {
   // Send the user to the agenda with `patient_id` in the URL. When they
   // pick a free slot, the create modal seeds the patient picker from
   // `initialPatientId` automatically.
-  router.push(`/appointments?patient_id=${patientId.value}`)
+  book({ patient_id: patientId.value })
 }
 
 function uploadDocument() {

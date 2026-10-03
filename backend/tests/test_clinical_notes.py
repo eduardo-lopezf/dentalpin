@@ -12,6 +12,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.models import Clinic, ClinicMembership
+from app.core.plugins.registry import module_registry
 from app.modules.agenda.models import Appointment
 from app.modules.agenda.service import AppointmentService
 from app.modules.odontogram.models import Treatment
@@ -332,6 +333,60 @@ async def test_appointment_note_resolves_to_patient_in_feed(
     assert recent.status_code == 200
     bodies = [e["body"] for e in recent.json()["data"]]
     assert any("Visible in patient feed" in b for b in bodies)
+
+
+@pytest.mark.asyncio
+async def test_appointment_notes_while_the_agenda_app_is_off(
+    client: AsyncClient, auth_headers: dict[str, str], db_session: AsyncSession
+):
+    """Agenda is an integration (ADR 0037): with it off, a note cannot be
+    added to an appointment and the ones that exist are not offered. The
+    patient's other notes keep working, and everything returns with it."""
+    ctx = await _seed_clinic_and_patient(db_session, client, auth_headers)
+    me = await client.get("/api/v1/auth/me", headers=auth_headers)
+    user_id = UUID(me.json()["data"]["user"]["id"])
+    apt = await _seed_appointment(
+        db_session, UUID(ctx["clinic_id"]), UUID(ctx["patient_id"]), user_id
+    )
+    on_appointment = {
+        "note_type": "appointment_clinical",
+        "owner_type": "appointment",
+        "owner_id": str(apt.id),
+        "body": "Written with the agenda on",
+    }
+    assert (
+        await client.post("/api/v1/clinical_notes/notes", headers=auth_headers, json=on_appointment)
+    ).status_code == 201
+    recent_url = f"/api/v1/clinical_notes/patients/{ctx['patient_id']}/recent"
+
+    module_registry.deactivate("agenda")
+    try:
+        refused = await client.post(
+            "/api/v1/clinical_notes/notes", headers=auth_headers, json=on_appointment
+        )
+        on_patient = await client.post(
+            "/api/v1/clinical_notes/notes",
+            headers=auth_headers,
+            json={
+                "note_type": "administrative",
+                "owner_type": "patient",
+                "owner_id": ctx["patient_id"],
+                "body": "Written with the agenda off",
+            },
+        )
+        recent_off = await client.get(recent_url, headers=auth_headers)
+    finally:
+        module_registry.activate("agenda")
+
+    assert refused.status_code == 404, refused.text
+    assert on_patient.status_code == 201, on_patient.text
+    assert recent_off.status_code == 200, recent_off.text
+    bodies_off = [e["body"] for e in recent_off.json()["data"]]
+    assert bodies_off == ["Written with the agenda off"]
+
+    recent_on = await client.get(recent_url, headers=auth_headers)
+    bodies_on = {e["body"] for e in recent_on.json()["data"]}
+    assert bodies_on == {"Written with the agenda on", "Written with the agenda off"}
 
 
 @pytest.mark.asyncio

@@ -16,8 +16,8 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.contracts import ProfessionalDirectory, provider
 from app.modules.agenda.models import Appointment, Cabinet
-from app.modules.professionals.models import Professional
 
 from .availability import AvailabilityService
 
@@ -88,18 +88,19 @@ class AnalyticsService:
         end: date,
         professional_id: UUID | None = None,
     ) -> list[dict[str, Any]]:
-        professionals_query = (
-            select(Professional.id, Professional.first_name, Professional.last_name)
-            .where(
-                Professional.clinic_id == clinic_id,
-                Professional.is_active.is_(True),
-                Professional.professional_type.in_(["dentist", "hygienist"]),
-            )
-            .order_by(Professional.last_name, Professional.first_name)
+        # The directory is the Professionals App's to offer (ADR 0039);
+        # with it off there is nobody to report on.
+        directory = provider(ProfessionalDirectory)
+        if directory is None:
+            return []
+        professionals = sorted(
+            (
+                p
+                for p in await directory.list_bookable(db, clinic_id)
+                if professional_id is None or p.id == professional_id
+            ),
+            key=lambda p: (p.last_name, p.first_name),
         )
-        if professional_id is not None:
-            professionals_query = professionals_query.where(Professional.id == professional_id)
-        professionals = (await db.execute(professionals_query)).all()
         if not professionals:
             return []
 

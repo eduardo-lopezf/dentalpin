@@ -78,3 +78,14 @@ Triggers (any one):
 | 0031 | [A request's writes are committed before its response is sent](0031-writes-commit-before-the-response.md) | accepted | 2026-09-22 |
 | 0032 | [The clinical record is append-only, and every entry names a licensed author](0032-clinical-record-is-append-only.md) | proposed | 2026-09-22 |
 | 0033 | [Disclosure requires a recorded authorisation, and the authorisation is part of the record](0033-disclosure-requires-a-recorded-authorisation.md) | proposed | 2026-09-22 |
+| 0035 | [Apps are disabled, not uninstalled, and every database carries the whole schema](0035-apps-are-disabled-not-uninstalled.md) | accepted | 2026-09-30 |
+| 0036 | [An App is a declared group of modules](0036-an-app-is-a-declared-group-of-modules.md) | accepted | 2026-09-30 |
+| 0037 | [A module integrates with what it can live without](0037-a-module-integrates-with-what-it-can-live-without.md) | accepted | 2026-10-01 |
+| 0038 | [`apps.json` switches Apps for the whole deployment](0038-apps-json-switches-apps-for-the-whole-deployment.md) | accepted | 2026-10-01 |
+| 0039 | [A module reaches another's data through a core contract, not an import](0039-modules-reach-each-other-through-core-contracts.md) | accepted | 2026-10-01 |
+| 0040 | [Widgets are read from the slot registry; APIs are declared in `apps.json`](0040-widgets-are-read-from-the-registry-apis-are-declared-in-apps-json.md) | accepted | 2026-10-02 |
+| 0041 | [A screen hosts other Apps through slots, never by naming them](0041-a-screen-hosts-other-apps-through-slots.md) | accepted | 2026-10-02 |
+| 0042 | [Core Apps must stay separable from the backend process](0042-core-apps-must-stay-separable.md) | accepted | 2026-10-02 |
+| 0043 | [The workspace is the base App, and every App has a tier](0043-the-workspace-is-the-base-app.md) | accepted | 2026-10-03 |
+| 0044 | [The App organises; the module holds the code](0044-the-app-organises-the-module-holds-the-code.md) | accepted | 2026-10-03 |
+| 0045 | [A consent is a record entry, written from the clinic's own text](0045-a-consent-is-a-record-entry.md) | accepted | 2026-10-03 |

@@ -1,5 +1,10 @@
 {
   "professionals": {
+    "account": {
+      "label": "Linked account",
+      "help": "The account this person signs in with. It is what lets a clinical entry name who is responsible for it. Leave it on \"No account\" if they do not use the system.",
+      "none": "No account"
+    },
     "nav": "Professionals",
     "title": "Professionals",
     "description": "Manage your clinic's professional profiles.",

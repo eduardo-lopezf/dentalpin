@@ -1,11 +1,11 @@
 {
   "layers": [
+    "/module_layers/agenda/frontend",
     "/module_layers/patients/frontend",
     "/module_layers/catalog/frontend",
     "/module_layers/odontogram/frontend",
     "/module_layers/media/frontend",
     "/module_layers/professionals/frontend",
-    "/module_layers/agenda/frontend",
     "/module_layers/budget/frontend",
     "/module_layers/payments/frontend",
     "/module_layers/billing/frontend",
@@ -20,9 +20,15 @@
     "/module_layers/notifications/frontend",
     "/module_layers/patient_timeline/frontend",
     "/module_layers/reports/frontend",
-    "/module_layers/periodontogram/frontend"
+    "/module_layers/consents/frontend",
+    "/module_layers/periodontogram/frontend",
+    "/module_layers/record/frontend"
   ],
   "modules": [
+    {
+      "name": "agenda",
+      "path": "/module_layers/agenda/frontend"
+    },
     {
       "name": "patients",
       "path": "/module_layers/patients/frontend"
@@ -42,10 +48,6 @@
     {
       "name": "professionals",
       "path": "/module_layers/professionals/frontend"
-    },
-    {
-      "name": "agenda",
-      "path": "/module_layers/agenda/frontend"
     },
     {
       "name": "budget",
@@ -104,8 +106,16 @@
       "path": "/module_layers/reports/frontend"
     },
     {
+      "name": "consents",
+      "path": "/module_layers/consents/frontend"
+    },
+    {
       "name": "periodontogram",
       "path": "/module_layers/periodontogram/frontend"
+    },
+    {
+      "name": "record",
+      "path": "/module_layers/record/frontend"
     }
   ],
   "version": 1

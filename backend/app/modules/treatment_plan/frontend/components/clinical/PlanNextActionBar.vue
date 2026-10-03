@@ -30,6 +30,8 @@ const props = defineProps<{
   readonly?: boolean
   /** Mirrors the header button's own rule, so the bar never offers what the header hides. */
   canGenerateBudget?: boolean
+  /** May write budgets — false while the Budgets App is off. */
+  canBudget?: boolean
   /** Confirming and scheduling are writes; without the permission the bar only explains. */
   canWrite?: boolean
 }>()
@@ -124,7 +126,7 @@ const cta = computed(() => {
         ? { label: t('treatmentPlans.actions.confirm'), icon: 'i-lucide-check-circle-2', run: () => emit('confirm') }
         : null
     case 'budget_addendum':
-      return props.canWrite
+      return props.canBudget
         ? { label: t('clinical.plans.nextAction.budget_addendum.cta'), icon: 'i-lucide-file-plus-2', run: () => emit('budget-addendum') }
         : null
     case 'generate_budget':

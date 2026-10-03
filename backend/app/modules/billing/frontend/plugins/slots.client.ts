@@ -15,4 +15,14 @@ export default defineNuxtPlugin(() => {
     labelKey: 'nav.invoices',
     order: 30
   })
+
+  // Patient record → Administración → invoices.
+  registerSlot('patient.detail.administracion.billing', {
+    id: 'billing.patient.detail.administracion.billing',
+    component: defineAsyncComponent(
+      () => import('../components/patient/PatientBillingPanel.vue')
+    ),
+    permission: 'billing.read',
+    order: 10
+  })
 })

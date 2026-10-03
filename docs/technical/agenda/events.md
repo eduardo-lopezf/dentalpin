@@ -24,7 +24,7 @@ referenced in that file.
 | `appointment.confirmed` | → confirmed | patient_timeline |
 | `appointment.checked_in` | → checked-in | patient_timeline |
 | `appointment.in_treatment` | → in-treatment | patient_timeline |
-| `appointment.completed` | → completed | patient_timeline, recalls, treatment_plan |
+| `appointment.completed` | → completed. Besides the transition payload it carries `planned_items`: `[{planned_item_id, completed}]`, the planned treatments the visit covered, so `treatment_plan` needs nothing else (ADR 0042). | patient_timeline, recalls, treatment_plan |
 | `appointment.cancelled` | → cancelled | copilot, notifications, patient_timeline, recalls, schedules |
 | `appointment.no_show` | → no-show | patient_timeline |
 | `appointment.cabinet_changed` | Cabinet reassigned | — |

@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from app.core.agents.base import BaseAgent
     from app.core.agents.tools.tool import Tool
     from app.core.privacy import SubjectContributor
+    from app.core.record import RecordSection
     from app.core.scheduling import ScheduledJob
 
     from .context import ModuleContext
@@ -94,6 +95,16 @@ class BaseModule(ABC):
         """
         return []
 
+    def get_providers(self) -> dict[type, object]:
+        """Implementations of core contracts this module supplies.
+
+        ``{ContractProtocol: instance}`` — see :mod:`app.core.contracts`.
+        Consumers reach them through ``contracts.provider()``, which only
+        looks at running modules, so supplying one is also how a module
+        says "this is available" (ADR 0039). Default: none.
+        """
+        return {}
+
     def get_agents(self) -> list[type[BaseAgent]]:
         """Return :class:`~app.core.agents.base.BaseAgent` subclasses
         this module registers.
@@ -118,6 +129,28 @@ class BaseModule(ABC):
         states a ``retention_reason`` explaining why it legally cannot —
         invoices outlive erasure requests. See
         :mod:`app.core.privacy.subject` and ADR 0026.
+        """
+        return []
+
+    # --- Clinical record contract ----------------------------------------
+
+    def get_record_sections(self) -> list[RecordSection]:
+        """Return what of this module's data belongs in a clinical record.
+
+        Default is an empty list, which is right for most modules: a record is
+        what one clinician hands another, so billing, payments and the fiscal
+        modules contribute **nothing** even though they hold plenty about the
+        patient. That is a different question, answered by
+        ``get_subject_contributors()``.
+
+        A module that holds clinical facts — history, notes, charting, images,
+        plans — contributes one section per coherent part of them. The
+        ``record`` module composes the sections of the modules
+        ``core_module.state`` says are installed; when it is not installed,
+        nothing calls this.
+
+        See :mod:`app.core.record` for why the vocabulary lives in core, and
+        `docs/features/expediente-clinico.md` §2 for the contract's shape.
         """
         return []
 

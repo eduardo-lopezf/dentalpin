@@ -1,6 +1,6 @@
 # 0018 — Install state is the authority on what runs
 
-- **Status:** accepted
+- **Status:** accepted — invariant 2 amended by [ADR 0035](0035-apps-are-disabled-not-uninstalled.md): `disabled` modules are migrated too; narrowed by [ADR 0038](0038-apps-json-switches-apps-for-the-whole-deployment.md): `apps.json` holds back the modules of a disabled App
 - **Date:** 2026-08-26
 - **Deciders:** Eduardo (maintainer)
 - **Tags:** modules, lifecycle, migrations, boot

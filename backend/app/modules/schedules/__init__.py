@@ -44,7 +44,11 @@ class SchedulesModule(BaseModule):
         "author": "DentalPin Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": ["agenda", "professionals"],
+        "depends": ["agenda"],
+        # Per-professional hours need the directory; clinic hours do not.
+        # Reached through the core contract, never imported (ADR 0039);
+        # listed because the hours tables hold foreign keys into it.
+        "integrates": ["professionals"],
         "installable": True,
         "auto_install": True,
         "removable": True,
@@ -89,6 +93,13 @@ class SchedulesModule(BaseModule):
             ProfessionalOverride,
             ScheduleShift,
         ]
+
+    def get_providers(self) -> dict[type, object]:
+        from app.core.contracts import WorkingHours
+
+        from .providers import working_hours
+
+        return {WorkingHours: working_hours}
 
     def get_router(self) -> APIRouter:
         return router

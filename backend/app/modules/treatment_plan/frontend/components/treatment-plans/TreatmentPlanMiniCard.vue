@@ -7,6 +7,7 @@
  * the card.
  */
 import type { TreatmentPlan, TreatmentPlanStatus } from '~~/app/types'
+import { PERMISSIONS } from '~~/app/config/permissions'
 
 const props = defineProps<{
   plan: TreatmentPlan
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { can } = usePermissions()
 
 // Progress calculations
 const totalCount = computed(() => props.plan.item_count || 0)
@@ -48,8 +50,9 @@ function getStatusColor(status: TreatmentPlanStatus) {
 const canActivate = computed(() => props.plan.status === 'draft' && totalCount.value > 0)
 const canGenerateBudget = computed(() =>
   ['active', 'completed'].includes(props.plan.status)
-  && (!props.plan.budget_id || props.plan.budget?.status === 'cancelled')
+  && (!props.plan.budget || props.plan.budget.status === 'cancelled')
   && totalCount.value > 0
+  && can(PERMISSIONS.budget.write)
 )
 
 // Format currency — clinic-wide via useCurrency.

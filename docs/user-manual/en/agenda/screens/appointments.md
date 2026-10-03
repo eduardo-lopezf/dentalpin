@@ -85,6 +85,24 @@ professionals and rooms, and walk them through their workflow
 3. **Save**. The `appointment.scheduled` event is published so
    sibling modules (like notifications) can send the confirmation.
 
+### When an app is not enabled
+
+The agenda works even if the clinic runs without Patients,
+Professionals or Treatments. In the form, where the picker would be,
+you will see the matching notice:
+
+- **"Patients cannot be assigned"** — the appointment is saved with no
+  patient. Type a **title** so you can recognise it on the calendar.
+- **"Professionals cannot be assigned"** — the appointment is saved with
+  nobody assigned and shows in the **Unassigned** column of the day
+  view.
+- **"Treatments cannot be assigned"** — the appointment is saved with no
+  treatments.
+
+Appointments that already had a patient, a professional or treatments
+keep them: they stop being shown while the app is off and show again
+when it is enabled.
+
 ## Move or resize
 
 > Requires `agenda.appointments.write`.

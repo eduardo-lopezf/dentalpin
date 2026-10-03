@@ -50,7 +50,9 @@ services:
       # Mount the frontend root read-write so the backend can regenerate
       # modules.json when a module with a Nuxt layer is installed.
       - ./frontend:/host_frontend
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --proxy-headers --forwarded-allow-ips=*
+    # `apps.json` is read once at boot (ADR 0038): watch it too, so switching
+    # an App in development takes effect without a manual restart.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-include apps.json --proxy-headers --forwarded-allow-ips=*
 
   frontend:
     build:

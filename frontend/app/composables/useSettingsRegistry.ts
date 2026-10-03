@@ -49,7 +49,7 @@ export interface SettingsCategory {
  *
  * If ``to`` is provided the entry behaves as an external link card
  * instead of a registered page (no component is mounted) — used for
- * pre-existing pages we don't want to move (e.g. ``/settings/modules``).
+ * pre-existing pages we don't want to move (e.g. ``/settings/apps``).
  */
 export interface SettingsPageEntry {
   /** URL slug. Must be unique within its category. */

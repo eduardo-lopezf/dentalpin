@@ -101,6 +101,11 @@ export const PERMISSIONS = {
     configure: 'agents.configure',
     manage: 'agents.manage'
   },
+  consents: {
+    read: 'consents.read',
+    write: 'consents.write',
+    templatesWrite: 'consents.templates.write'
+  },
   admin: {
     clinicRead: 'admin.clinic.read',
     clinicWrite: 'admin.clinic.write'
@@ -116,6 +121,12 @@ export const PERMISSIONS = {
     recordWrite: 'payments.record.write',
     recordRefund: 'payments.record.refund',
     reportsRead: 'payments.reports.read'
+  },
+  record: {
+    // The clinical record is read-only for now. `export`, `disclose` and
+    // `authorise` arrive with the endpoints that use them — a permission with
+    // nothing behind it is a promise the UI starts making on its own.
+    read: 'record.read'
   },
   liquidations: {
     settlementRead: 'liquidations.settlement.read',

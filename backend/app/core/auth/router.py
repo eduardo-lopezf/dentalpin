@@ -964,6 +964,70 @@ async def update_budget_settings(
 
 
 # ---------------------------------------------------------------------------
+# Home page layout (clinic-wide). The workspace App's first customisation
+# (ADR 0043): which widgets the home page shows and in what order. Stored
+# under ``home_layout``; the frontend applies it per slot, so the order is
+# within each area of the page.
+# ---------------------------------------------------------------------------
+
+#: A widget id is a slot registration id: ``<module>.<slot>.<qualifier>``.
+_WIDGET_ID = r"^[a-z][a-z0-9_]*(\.[A-Za-z0-9_-]+)+$"
+
+
+class _HomeLayout(BaseModel):
+    #: Widgets not shown. A widget left out of both lists is shown, in its
+    #: own default place — so one added by a newly enabled App appears.
+    hidden: list[Annotated[str, Field(pattern=_WIDGET_ID, max_length=120)]] = Field(
+        default_factory=list, max_length=100
+    )
+    #: Display order. Applied within each area of the home page.
+    order: list[Annotated[str, Field(pattern=_WIDGET_ID, max_length=120)]] = Field(
+        default_factory=list, max_length=100
+    )
+
+
+def _read_home_layout(raw: dict | None) -> _HomeLayout:
+    stored = (raw or {}).get("home_layout") or {}
+    try:
+        return _HomeLayout.model_validate(stored)
+    except ValueError:
+        # Whatever is stored and no longer parses is not worth a broken
+        # home page: fall back to every widget in its default place.
+        return _HomeLayout()
+
+
+@router.get("/clinic/settings/home", response_model=ApiResponse[_HomeLayout])
+async def get_home_layout(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+) -> ApiResponse[_HomeLayout]:
+    """The home page layout. Every member's home page reads it, so it
+    asks for no permission beyond belonging to the clinic."""
+    return ApiResponse(data=_read_home_layout(ctx.clinic.settings))
+
+
+@router.put("/clinic/settings/home", response_model=ApiResponse[_HomeLayout])
+async def update_home_layout(
+    data: _HomeLayout,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("admin.clinic.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[_HomeLayout]:
+    """Replace the home page layout (admin only). Empty lists restore the
+    default: every widget, in the order its App gives it."""
+    clinic = ctx.clinic
+    clinic.settings = {
+        **(clinic.settings or {}),
+        "home_layout": {
+            "hidden": list(dict.fromkeys(data.hidden)),
+            "order": list(dict.fromkeys(data.order)),
+        },
+    }
+    await db.commit()
+    await db.refresh(clinic)
+    return ApiResponse(data=_read_home_layout(clinic.settings))
+
+
+# ---------------------------------------------------------------------------
 # Communications settings (clinic-wide). Drives the language used for
 # patient-facing pages (public budget link), email templates, and
 # future SMS / WhatsApp messages.

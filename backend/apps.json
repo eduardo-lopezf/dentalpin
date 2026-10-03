@@ -1,0 +1,101 @@
+{
+  "apps": [
+    {
+      "name": "workspace",
+      "version": "0.1",
+      "tier": "base",
+      "status": "enabled",
+      "modules": []
+    },
+    {
+      "name": "agenda",
+      "version": "0.1",
+      "tier": "core",
+      "status": "enabled",
+      "modules": ["agenda", "schedules"],
+      "apis": [
+        { "name": "google_calendar", "status": "planned" }
+      ]
+    },
+    {
+      "name": "patients",
+      "version": "0.1",
+      "tier": "core",
+      "status": "enabled",
+      "modules": ["patients", "patients_clinical", "patient_timeline", "media"]
+    },
+    {
+      "name": "recalls",
+      "version": "0.1",
+      "tier": "core",
+      "status": "enabled",
+      "modules": ["recalls"]
+    },
+    {
+      "name": "treatments",
+      "version": "0.1",
+      "tier": "core",
+      "status": "enabled",
+      "modules": ["catalog", "treatment_plan", "odontogram", "periodontogram", "clinical_notes"]
+    },
+    {
+      "name": "budgets_payments",
+      "version": "0.1",
+      "tier": "optional",
+      "status": "enabled",
+      "modules": ["budget", "payments", "billing", "verifactu", "accounting_export"]
+    },
+    {
+      "name": "cash",
+      "version": "0.1",
+      "tier": "optional",
+      "status": "enabled",
+      "modules": ["cashbox", "liquidations"]
+    },
+    {
+      "name": "communications",
+      "version": "0.1",
+      "tier": "optional",
+      "status": "enabled",
+      "modules": ["notifications", "whatsapp_kapso"],
+      "apis": [
+        { "name": "whatsapp", "status": "planned" }
+      ]
+    },
+    {
+      "name": "professionals",
+      "version": "0.1",
+      "tier": "optional",
+      "status": "enabled",
+      "modules": ["professionals"]
+    },
+    {
+      "name": "clinical_record",
+      "version": "0.1",
+      "tier": "optional",
+      "status": "enabled",
+      "modules": ["record", "consents"]
+    },
+    {
+      "name": "reports",
+      "version": "0.1",
+      "tier": "optional",
+      "status": "enabled",
+      "modules": ["reports"]
+    },
+    {
+      "name": "ai",
+      "version": "0.1",
+      "tier": "optional",
+      "status": "disabled",
+      "modules": ["copilot"]
+    },
+    {
+      "name": "data_migration",
+      "version": "0.1",
+      "tier": "optional",
+      "status": "enabled",
+      "modules": ["migration_import"]
+    }
+  ]
+}

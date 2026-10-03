@@ -24,6 +24,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const { book } = useAppointmentBooking()
 
 // ============================================================================
 // Composables
@@ -184,7 +185,7 @@ watch(() => props.initialPlanId, (newId) => {
       @updated="handlePlanUpdated"
       @activate="loadPatientPlans()"
       @generate-budget="handleDetailGenerateBudget"
-      @schedule="router.push(`/appointments?patient_id=${patientId}`)"
+      @schedule="book({ patient_id: patientId })"
       @cancelled="handlePlanCancelled"
     />
   </div>

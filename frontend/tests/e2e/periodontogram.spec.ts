@@ -4,10 +4,10 @@ import { test, expect, type Page } from './_fixtures'
  * Periodontogram smoke: end-to-end flow against the live stack.
  *
  * Preconditions (handled by `./scripts/seed-demo.sh` + a one-off
- * `POST /api/v1/modules/periodontogram/install`):
+ * `POST /api/v1/modules/periodontogram/enable`):
  * - Demo users seeded (`admin@demo.clinic` / `demo1234`).
- * - Periodontogram module installed (`auto_install=False`, so the
- *   suite assumes the operator activated it from the admin UI).
+ * - Periodontogram module enabled (`auto_install=False`, so the
+ *   suite assumes the operator enabled it).
  *
  * What this guards:
  * 1. Optional sub-tab shows up inside Diagnosis when the module is
@@ -160,7 +160,10 @@ test.describe('periodontogram — admin', () => {
       .first()
     await expect(sondajeRow).toBeVisible({ timeout: 10_000 })
 
-    const firstSiteInput = sondajeRow.locator('input[type="number"]').first()
+    // The first *editable* site: a tooth the chart marks absent (a wisdom
+    // tooth the seed extracted, say) renders its inputs disabled, and which
+    // tooth comes first depends on the patient the list happens to return.
+    const firstSiteInput = sondajeRow.locator('input[type="number"]:enabled').first()
     await firstSiteInput.click()
     await firstSiteInput.fill('5')
     await firstSiteInput.blur()

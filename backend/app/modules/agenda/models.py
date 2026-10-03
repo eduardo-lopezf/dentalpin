@@ -36,10 +36,6 @@ APPOINTMENT_STATUSES: tuple[str, ...] = (
 
 if TYPE_CHECKING:
     from app.core.auth.models import Clinic, User
-    from app.modules.catalog.models import TreatmentCatalogItem
-    from app.modules.patients.models import Patient
-    from app.modules.professionals.models import Professional
-    from app.modules.treatment_plan.models import PlannedTreatmentItem
 
 
 class Cabinet(Base, TimestampMixin):
@@ -80,7 +76,11 @@ class Appointment(Base, TimestampMixin):
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
     patient_id: Mapped[UUID | None] = mapped_column(ForeignKey("patients.id"))
-    professional_id: Mapped[UUID] = mapped_column(ForeignKey("professionals.id"))
+    # Nullable: a clinic without the Professionals App still books
+    # appointments, with nobody assigned (ADR 0037).
+    professional_id: Mapped[UUID | None] = mapped_column(ForeignKey("professionals.id"))
+    # What the appointment is called when there is no patient to name it by.
+    title: Mapped[str | None] = mapped_column(String(200))
     # Denormalized cabinet name (kept in sync on Cabinet rename). The
     # authoritative reference is ``cabinet_id`` — the string lets
     # legacy filters keep working during the frontend migration.
@@ -111,11 +111,10 @@ class Appointment(Base, TimestampMixin):
     color: Mapped[str | None] = mapped_column(String(7))
 
     clinic: Mapped[Clinic] = relationship(back_populates="appointments")
-    # No ``back_populates`` — patients is foundational and cannot
-    # reference consumer modules. The relationship stays
-    # one-directional (Appointment → Patient).
-    patient: Mapped[Patient | None] = relationship()
-    professional: Mapped[Professional] = relationship(foreign_keys=[professional_id])
+    # No relationship to the patient or the professional: those rows
+    # belong to other modules, and the agenda reaches them through the
+    # core contracts, not through the ORM (ADR 0039). The foreign keys
+    # above are what keeps the references honest.
     cabinet_assigner: Mapped[User | None] = relationship(foreign_keys=[cabinet_assigned_by])
     cabinet_ref: Mapped[Cabinet | None] = relationship()
 
@@ -175,8 +174,6 @@ class AppointmentTreatment(Base):
     notes: Mapped[str | None] = mapped_column(Text, default=None)
 
     appointment: Mapped[Appointment] = relationship(back_populates="treatments")
-    planned_item: Mapped[PlannedTreatmentItem] = relationship()
-    catalog_item: Mapped[TreatmentCatalogItem | None] = relationship()
 
 
 class AppointmentStatusEvent(Base):

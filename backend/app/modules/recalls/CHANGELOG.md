@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- feat(recalls): el contador de Inicio lleva nombre (`labelKey`) para
+  poder ocultarlo o reordenarlo desde Configuración → Apps → Espacio de trabajo.
+
+- fix(recalls): `usePatientRecalls` no consulta la API dentro de un
+  ejemplo de widget (ADR 0040). El botón «Programar recordatorio» aparece
+  en el ejemplo de «Acciones rápidas», y pedía los recordatorios de un
+  paciente ficticio (422).
+
+- feat(apps): **Recordatorios** es una App propia en `backend/apps.json`
+  (`recalls`), tercera en el orden, y `/recalls` entra en
+  `appRoutes.ts`.
+- refactor(recalls): `professionals` pasa de `depends` a `integrates` y
+  deja de importarse (ADR 0039). La asignación se valida con
+  `ProfessionalDirectory.is_bookable`. Con la App Profesionales apagada
+  un recordatorio se crea y se trabaja sin profesional asignado; pedir
+  una asignación se rechaza. La clave foránea no cambia.
+
+- feat(recalls): «Agendar» en una fila de recordatorio pasa por
+  `useAppointmentBooking()`: con la app Agenda deshabilitada
+  (`backend/apps.json`, ADR 0038) avisa «No se pueden crear citas» y el
+  resto de la pantalla sigue funcionando.
 - feat(recalls): `SetRecallFromTreatmentButton` acepta `ctx.labelled` y se
   pinta como botón de texto azul a todo el ancho **Programar
   recordatorio** en el pie de la

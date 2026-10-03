@@ -23,12 +23,17 @@ License: BSL 1.1 (converts to Apache 2.0 after 4 years).
 DentalPin is built as independent modules under `backend/app/modules/<name>/` with matching Nuxt layers. Treat the boundary as a contract.
 
 **Hard rules:**
-- Respect module isolation. Do **not** create cross-module dependencies that are not declared in the module's `manifest.depends`.
-- Prefer the **event bus** for cross-module reactions. Direct service-to-service imports across modules are forbidden unless the target is in `depends`.
-- Cross-module FKs are allowed **only** when the target is in `depends`. CI rejects migrations otherwise.
+- Respect module isolation. Do **not** create cross-module dependencies that are not declared in the module's `manifest.depends` or `manifest.integrates`.
+- Prefer the **event bus** for cross-module reactions. Direct service-to-service imports across modules are forbidden unless the target is in `depends` or `integrates`.
+- Cross-module FKs are allowed **only** when the target is in `depends` or `integrates`. CI rejects migrations otherwise.
+- **A screen hosts other Apps through slots** ([ADR 0041](./docs/adr/0041-a-screen-hosts-other-apps-through-slots.md)). The Patients App's frontend uses no component and calls no API of a module outside it; `frontend/tests/app-frontend-isolation.test.ts` fails if it does. To show your module's part of a patient, register a tab (`patient.detail.tabs`) or a slot entry with a `loader` — never import into the host.
+- **Prefer a core contract to an import** ([ADR 0039](./docs/adr/0039-modules-reach-each-other-through-core-contracts.md)). To validate or label another module's record, ask `contracts.provider(Contract)` (`app/core/contracts.py`); the owner supplies it from `get_providers()`. `None` means that App is off. `agenda` imports no other module — keep it that way: widen a contract instead.
+- **`depends` is required, `integrates` is optional** ([ADR 0037](./docs/adr/0037-a-module-integrates-with-what-it-can-live-without.md)). A module must keep working while something it `integrates` is disabled: guard with `module_registry.is_installed()`, offer none of its records, write nothing to it, delete nothing. Columns pointing at an integration are nullable.
 - Each module owns its Alembic branch (`branch_labels = ("<name>",)`). Never thread one module's revisions through another's chain — uninstall safety depends on it (issue #56).
 - Permissions are namespaced: a module returns `resource.action` from `get_permissions()`; the registry prefixes with the module name.
 - **`core_module.state` decides what runs** ([ADR 0018](./docs/adr/0018-install-state-is-the-mount-authority.md)). Never derive routes, handlers, tools, permissions, jobs or migration targets from what is on disk. `module_registry.list_discovered()` is the inventory; `list_modules()` / `is_installed()` is the active set.
+- **`backend/apps.json` can hold a whole App back** ([ADR 0038](./docs/adr/0038-apps-json-switches-apps-for-the-whole-deployment.md)): its modules stay `installed` but are not mounted, and their dependents keep running. So a module in `depends` may not be running — check `module_registry.is_installed()` before calling into it, and on the frontend send people to the agenda through `useAppointmentBooking()`, never `router.push('/appointments')`. A page that belongs to an App in `apps.json` gets a row in `frontend/app/config/appRoutes.ts` so `useAppRouteGuard` can turn visits away while the App is off.
+- **Switching a module off is `disable`, never `uninstall`** ([ADR 0035](./docs/adr/0035-apps-are-disabled-not-uninstalled.md)). A disabled module keeps its tables and its branch keeps being migrated; only what is mounted changes. Do not write code that assumes a module's tables are absent because it is not running.
 
 **Before adding a feature, read `docs/technical/creating-modules.md`** — it is the source of truth for module structure, lifecycle, manifest, slots, events, tools/agents, and migrations.
 
@@ -43,6 +48,8 @@ DentalPin is built as independent modules under `backend/app/modules/<name>/` wi
 
 | Trigger | Required actions |
 |---------|------------------|
+| New page that belongs to an App in `backend/apps.json` | Add its path prefix to `frontend/app/config/appRoutes.ts`. Without it the page stays reachable by URL while the App is off. |
+| New App, or a module changes App | Edit `backend/apps.json` — every module belongs to exactly one App ([ADR 0044](./docs/adr/0044-the-app-organises-the-module-holds-the-code.md)). Create `docs/apps/<app>/{README.md,CHANGELOG.md}`. Add the App to `IMPORTS`/`REQUIRES` in `backend/tests/test_app_isolation.py`, its title and summary to `settings.apps.catalog` in both locales, and its pages to `frontend/app/config/appRoutes.ts`. Run `python backend/scripts/generate_catalogs.py`. Never move a module's folder for it. |
 | New module | Create `backend/app/modules/<name>/CLAUDE.md` + `CHANGELOG.md`. Create `docs/technical/<name>/{overview,events,permissions}.md`. If the module has Nuxt pages, also `docs/user-manual/{en,es}/<name>/{index.md, screens/<slug>.md}` per page. Run `python backend/scripts/generate_catalogs.py`. Follow `docs/checklists/new-module.md`. |
 | New screen (page under `<module>/frontend/pages/**`) | Create both `docs/user-manual/en/<module>/screens/<slug>.md` and `docs/user-manual/es/<module>/screens/<slug>.md` with the [frontmatter contract](./docs/technical/documentation-portal.md#2-frontmatter-contract-the-part-claude-relies-on). Screenshots into `docs/screenshots/<module>/`. |
 | New interactive surface (any screen or component with controls) | Nothing to do for tap targets — `main.css` enforces the 44 px minimum under `(pointer: coarse)`. If the surface's cells are units of time or anatomy rather than buttons, put `data-dense` on a container **and** pair it with a real touch interaction; it is a debt marker, never a way to silence the audit. Add the route to `frontend/tests/e2e/tablet-touch.spec.ts` if it matters on tablet. See [`docs/technical/touch-adaptation.md`](./docs/technical/touch-adaptation.md) ([ADR 0022](./docs/adr/0022-touch-adaptation-is-capability-driven.md)). |
@@ -58,7 +65,7 @@ DentalPin is built as independent modules under `backend/app/modules/<name>/` wi
 | New domain term (ES↔EN) | Append to `docs/glossary.md`. |
 | New documentation file | Pick the folder by type from the **Documentation policy** table below. Never drop new files at `docs/` root. |
 | Touched any module | Update its `backend/app/modules/<name>/CHANGELOG.md` under `## Unreleased`. |
-| Cross-module FK or import | Target module MUST be in `manifest.depends`. CI rejects otherwise. |
+| Cross-module FK or import | Target module MUST be in `manifest.depends` or `manifest.integrates`. CI rejects otherwise. |
 
 Full docs-update recipe: [`docs/checklists/updating-docs.md`](./docs/checklists/updating-docs.md).
 Architecture + rationale: [`docs/technical/documentation-portal.md`](./docs/technical/documentation-portal.md) ([ADR 0009](./docs/adr/0009-documentation-portal.md)).
@@ -69,6 +76,7 @@ Reference material:
 - Per-module CLAUDE.md template: `docs/checklists/module-claude-template.md`
 - ADRs: `docs/adr/` (start with 0001 for the modular contract)
 - Glossary: `docs/glossary.md`
+- Apps catalog: `docs/apps-catalog.md` (auto-generated); what each App is for: `docs/apps/<app>/`
 - Module catalog: `docs/modules-catalog.md` (auto-generated)
 - Event catalog: `docs/events-catalog.md` (auto-generated)
 - Reference modules to copy from: `patients` (simple), `schedules` (removable), `treatment_plan` (heavy deps), `verifactu` (compliance)
@@ -90,9 +98,10 @@ Reference material:
 | Diagram source (Mermaid / PlantUML) | `docs/diagrams/` |
 | Image asset (PNG / SVG) | `docs/screenshots/` |
 | Operational runbook / end-to-end workflow | `docs/workflows/` |
+| What an App is for + its changelog | `docs/apps/<app>/` (`README.md`, `CHANGELOG.md`) |
 | Auto-generated catalog | `docs/` root, suffix `-catalog.md` |
 
-**Only these files live at `docs/` root:** `README.md` (taxonomy index), `glossary.md`, `events-catalog.md`, `modules-catalog.md`, `subprocessors-catalog.md`. Anything else fails CI.
+**Only these files live at `docs/` root:** `README.md` (taxonomy index), `glossary.md`, `events-catalog.md`, `modules-catalog.md`, `subprocessors-catalog.md`, `apps-catalog.md`. Anything else fails CI.
 
 Decision tree + folder descriptions: [`docs/README.md`](./docs/README.md).
 

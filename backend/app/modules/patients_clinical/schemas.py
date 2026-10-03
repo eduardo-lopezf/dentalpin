@@ -184,17 +184,45 @@ class LegalGuardianResponse(LegalGuardianBase):
 # --- Aggregate medical history (legacy-shaped payload for the form) -----
 
 
+# The bulk payload carries ids, the per-row create endpoints do not.
+#
+# The form edits the very objects the GET returned, so each line already knows
+# which row it is — but the payload was validated against the create schemas,
+# which have no `id`, and Pydantic dropped it. With the id gone the backend
+# could only replace the whole block, which is how a save came to delete and
+# recreate a patient's history. An id is optional: a line typed into the form
+# a moment ago does not have one yet.
+
+
+class AllergySubmit(AllergyCreate):
+    id: UUID | None = None
+
+
+class MedicationSubmit(MedicationCreate):
+    id: UUID | None = None
+
+
+class SystemicDiseaseSubmit(SystemicDiseaseCreate):
+    id: UUID | None = None
+
+
+class SurgicalHistorySubmit(SurgicalHistoryCreate):
+    id: UUID | None = None
+
+
 class MedicalHistoryUpdate(BaseModel):
     """Bulk update payload mirroring the legacy JSONB shape.
 
-    The frontend form submits the entire medical history in one go.
-    Backend converts it into the normalized tables atomically.
+    The frontend form submits the entire medical history in one go. The
+    backend reconciles it against the stored rows — matching on id, inserting
+    what is new, retracting what the form dropped — rather than replacing the
+    block, which used to destroy every row on every save.
     """
 
-    allergies: list[AllergyCreate] = []
-    medications: list[MedicationCreate] = []
-    systemic_diseases: list[SystemicDiseaseCreate] = []
-    surgical_history: list[SurgicalHistoryCreate] = []
+    allergies: list[AllergySubmit] = []
+    medications: list[MedicationSubmit] = []
+    systemic_diseases: list[SystemicDiseaseSubmit] = []
+    surgical_history: list[SurgicalHistorySubmit] = []
 
     is_pregnant: bool = False
     pregnancy_week: int | None = Field(default=None, ge=1, le=42)

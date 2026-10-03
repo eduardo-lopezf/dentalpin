@@ -11,6 +11,7 @@ import type { Appointment, PaginatedResponse, PatientExtended } from '~~/app/typ
 // ``start_time`` is a clinic wall clock, so it is compared against a
 // browser-local "now" rather than treated as an instant.
 import { formatWallClockTime, wallClockDate } from '../../utils/date'
+import { sampleUpcomingForPatient } from '../../utils/previewSamples'
 
 interface Ctx {
   patient: PatientExtended
@@ -23,9 +24,16 @@ const api = useApi()
 
 const patientId = computed(() => props.ctx.patient.id)
 
+// Inside a widget example (Settings → Apps) the visit is made up.
+const preview = useWidgetPreview()
+
 const { data, status } = await useAsyncData(
-  () => `agenda:summary-card:${patientId.value}`,
+  () => `agenda:summary-card:${preview ? 'preview' : patientId.value}`,
   async () => {
+    if (preview) {
+      const sample = sampleUpcomingForPatient()
+      return { data: sample, total: sample.length, page: 1, page_size: 20 }
+    }
     try {
       return await api.get<PaginatedResponse<Appointment>>(
         `/api/v1/agenda/appointments?patient_id=${patientId.value}`

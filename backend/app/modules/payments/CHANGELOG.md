@@ -1,6 +1,18 @@
 # payments — CHANGELOG
 
 ## Unreleased
+
+- refactor(payments): `CollectAmountModal` vive ahora en esta capa y no en
+  la app base (ADR 0044).
+
+- feat(payments): `providers.py` ofrece el contrato `Collections`
+  (ADR 0039): si el paciente ha pagado sobre un plan. Lo usa
+  `treatment_plan`, que ya no importa `LedgerService`.
+
+- refactor(payments): los slots del listado de pacientes llevan su propio
+  `loader` (ADR 0041): este módulo hace la consulta de resúmenes y la del
+  filtro «Con deuda», y la página de pacientes ya no conoce sus
+  endpoints.
 - feat(payments): **el estado de cuenta del paciente enseña la resta, no solo el resultado.** `total_earned` se cargaba y se tiraba, así que el panel mostraba una deuda sin ninguna de las dos cifras de las que sale. Ahora van en el orden que las convierte en una frase —*tratamiento realizado → total pagado → lo que falta*— con la regla escrita debajo: se debe lo realizado y no cobrado, y un presupuesto no debe nada hasta que el trabajo existe. Ése es el error habitual: dar por deuda la diferencia entre lo presupuestado y lo pagado.
 - feat(payments): la tarjeta *Calendario de pagos* dice en su icono de ayuda que responde otra pregunta que «por cobrar» y que **las dos nunca se suman**. Conviven en el mismo lateral del plan y en un caso grande parecen contradecirse —se cobra casi todo por adelantado, así que «por cobrar» marca 0 mientras el calendario muestra el importe entero—; hasta ahora eso solo estaba explicado en una nota que lee un programador.
 

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { Patient, PatientCreate, PaginatedResponse, ApiResponse } from '~~/app/types'
 import { PATIENT_STATUS_ROLE, type PatientStatus } from '~~/app/config/severity'
-import { PERMISSIONS } from '~~/app/config/permissions'
 
 /**
  * /patients — list page.
@@ -9,32 +8,26 @@ import { PERMISSIONS } from '~~/app/config/permissions'
  * Filter + enrichment design:
  *   - Native filters (status, city, do_not_contact, search, sort) hit
  *     ``GET /api/v1/patients`` directly.
- *   - Cross-module enrichment (debt, on-account credit) is rendered via
- *     the ``patients.list.row.financial`` slot. Payments registers the
- *     slot filler. The page fetches the payment summary in bulk after
- *     the patient page loads and passes it into each slot's ctx.
- *   - Cross-module filter "Con deuda" uses ``patients.list.filter``
- *     slot. The page translates the filter into a payments-side call
- *     (``/api/v1/payments/filters/patients-with-debt``) returning the
- *     patient_ids set, which is then intersected with /patients via
- *     ``?patient_ids=`` query params.
+ *   - Row enrichment (debt, on-account credit) is rendered via the
+ *     ``patients.list.row.financial`` slot. After each page loads, the
+ *     page calls the registered entry's ``loader`` with the page's
+ *     patient ids and passes each row its result through ``ctx``.
+ *   - The module filter ("Con deuda") uses the ``patients.list.filter``
+ *     slot. When it is on, the page calls the entry's ``loader`` for
+ *     the ids it selects and intersects them with /patients via
+ *     ``?patient_ids=``.
  *
- * Patients module never imports payments code — both calls go through
- * ``useApi()`` against the public HTTP surface.
+ * This page knows neither who fills those slots nor what they call:
+ * the endpoints live in the registering module (today, ``payments``).
+ * With nobody registered there is no filter, no badge and no request.
  */
-
-interface PatientDebtSummary {
-  total_paid: string
-  debt: string
-  on_account_balance: string
-}
 
 const { t } = useI18n()
 const api = useApi()
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
-const { can } = usePermissions()
+const { resolve } = useModuleSlots()
 
 // --- Filter shape (URL-synced) ------------------------------------------
 interface PatientListFilters {
@@ -53,9 +46,9 @@ const defaults: PatientListFilters = {
   with_debt: false
 }
 
-// Map of patient_id → payment summary; filled after each page load and
-// passed into the slot via ctx.
-const debtSummaries = ref<Record<string, PatientDebtSummary | null>>({})
+// Map of patient_id → whatever the row slot's provider returned for that
+// patient; filled after each page load and passed into the slot via ctx.
+const debtSummaries = ref<Record<string, unknown>>({})
 
 async function fetcher(q: {
   filters: PatientListFilters
@@ -63,17 +56,16 @@ async function fetcher(q: {
   pageSize: number
   sort: string
 }) {
-  // Step 1: when "with_debt" is on, resolve the candidate ids through
-  // the payments-side filter endpoint. Public HTTP — no code-level
-  // dependency on the payments module.
+  // Step 1: when the module filter is on, ask whoever registered it for
+  // the ids it selects. No provider (module off, or no permission) means
+  // no filter.
   let patientIdsIntersect: string[] | undefined
-  if (q.filters.with_debt) {
+  const filterEntry = resolve('patients.list.filter', {}).find(entry => entry.loader)
+  if (q.filters.with_debt && filterEntry?.loader) {
     try {
-      const res = await api.get<ApiResponse<{ patient_ids: string[], truncated: boolean }>>(
-        '/api/v1/payments/filters/patients-with-debt?min_debt=0.01'
-      )
-      patientIdsIntersect = res.data.patient_ids ?? []
-      if (res.data.truncated) {
+      const res = await filterEntry.loader(api) as { patient_ids?: string[], truncated?: boolean }
+      patientIdsIntersect = res.patient_ids ?? []
+      if (res.truncated) {
         toast.add({ title: t('lists.truncatedWarning'), color: 'warning' })
       }
       if (!patientIdsIntersect.length) {
@@ -81,7 +73,6 @@ async function fetcher(q: {
         return { data: [], total: 0 }
       }
     } catch {
-      // Permission denied or payments uninstalled → ignore the filter.
       patientIdsIntersect = undefined
     }
   }
@@ -103,16 +94,15 @@ async function fetcher(q: {
 
   const response = await api.get<PaginatedResponse<Patient>>(`/api/v1/patients?${params.toString()}`)
 
-  // Step 3: bulk-fetch payment summaries for the page rows (when the
-  // user has permission). The slot renders nothing for ids missing
-  // from the map.
-  if (can(PERMISSIONS.payments.recordRead) && response.data.length) {
+  // Step 3: one bulk request for the page's rows, made by the row
+  // slot's provider. The slot renders nothing for ids missing from the map.
+  const rowEntry = resolve('patients.list.row.financial', {}).find(entry => entry.loader)
+  if (rowEntry?.loader && response.data.length) {
     try {
-      const summaryRes = await api.post<ApiResponse<{ summaries: Record<string, PatientDebtSummary> }>>(
-        '/api/v1/payments/summary/by-patients',
-        { patient_ids: response.data.map(x => x.id) }
-      )
-      debtSummaries.value = summaryRes.data.summaries
+      debtSummaries.value = await rowEntry.loader(
+        api,
+        response.data.map(x => x.id)
+      ) as Record<string, unknown>
     } catch {
       debtSummaries.value = {}
     }

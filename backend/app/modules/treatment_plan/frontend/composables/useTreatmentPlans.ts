@@ -518,7 +518,7 @@ export function useTreatmentPlans() {
     loading.value = true
     try {
       const response = await api.post<ApiResponse<GenerateBudgetResponse>>(
-        `/api/v1/treatment_plan/treatment-plans/${planId}/generate-budget`
+        `/api/v1/budget/plans/${planId}/budget`
       )
       if (currentPlan.value?.id === planId) {
         currentPlan.value.budget_id = response.data.budget_id

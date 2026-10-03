@@ -110,7 +110,10 @@ const filteredAppointments = computed(() => {
 
   // Filter by professional
   if (selectedProfessionals.value.length > 0) {
-    result = result.filter(apt => selectedProfessionals.value.includes(apt.professional_id))
+    // Unassigned appointments always pass, like unassigned cabinets above.
+    result = result.filter(
+      apt => apt.professional_id === null || selectedProfessionals.value.includes(apt.professional_id)
+    )
   }
 
   return result
@@ -140,6 +143,25 @@ const professionalsWithColors = computed(() => {
     ...prof,
     color: getProfessionalColor(prof.id)
   }))
+})
+
+// The day view is one column per professional. An appointment with
+// nobody assigned — or a clinic running without the Professionals App
+// (ADR 0037) — needs a column to live in, or it would not be on screen.
+const UNASSIGNED_PROFESSIONAL = ''
+const dayViewColumns = computed(() => {
+  const columns = professionalsWithColors.value
+  const hasUnassigned = filteredAppointments.value.some(apt => apt.professional_id === null)
+  if (columns.length > 0 && !hasUnassigned) return columns
+  return [
+    ...columns,
+    {
+      id: UNASSIGNED_PROFESSIONAL,
+      first_name: t('appointments.noProfessional'),
+      last_name: '',
+      color: 'var(--color-text-subtle)'
+    } as (typeof columns)[number]
+  ]
 })
 
 // Toggle cabinet filter
@@ -334,7 +356,9 @@ async function handleDailyAppointmentMove(appointmentId: string, newProfessional
 
   try {
     await updateAppointment(appointmentId, {
-      professional_id: newProfessionalId,
+      // Dropping on the unassigned column changes the time only: the
+      // API has no way to take a professional off an appointment.
+      professional_id: newProfessionalId || undefined,
       start_time: `${date}T${newStartTime}:00`,
       end_time: `${date}T${newEndTime}:00`
     })
@@ -768,7 +792,7 @@ watch(isPhone, async (mobile) => {
       <AppointmentDailyView
         v-else-if="viewMode === 'day'"
         :appointments="filteredAppointments"
-        :professionals="professionalsWithColors"
+        :professionals="dayViewColumns"
         :current-date="currentDate"
         :is-loading="isLoading"
         :highlighted-appointment-id="highlightedAppointmentId"

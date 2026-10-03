@@ -130,13 +130,18 @@ class PendingProcessor:
     # --- Catch-up migrations --------------------------------------------
 
     async def _migrate_installed(self) -> set[str]:
-        """Upgrade every installed module's branch to its head.
+        """Upgrade every enabled or disabled module's branch to its head.
 
         Boot used to run ``alembic upgrade heads``, which walks every
         branch on disk and so re-created the tables of a module that had
         been uninstalled (audit S1). The entrypoint now applies the core
         chain only, and module branches are applied here — where
         ``core_module.state`` is known.
+
+        A ``disabled`` module is migrated like an enabled one (ADR 0035):
+        its tables stay, other modules hold foreign keys into them, and a
+        branch left behind would have to be caught up before it could be
+        enabled again. Only ``uninstalled`` branches are skipped.
 
         Only modules whose recorded ``applied_revision`` is behind the
         head do any work, so the usual boot runs no Alembic at all.
@@ -152,7 +157,11 @@ class PendingProcessor:
 
         async with self._session_factory() as session:
             result = await session.execute(
-                select(ModuleRecord).where(ModuleRecord.state == ModuleState.INSTALLED.value)
+                select(ModuleRecord).where(
+                    ModuleRecord.state.in_(
+                        [ModuleState.INSTALLED.value, ModuleState.DISABLED.value]
+                    )
+                )
             )
             records = list(result.scalars())
 
@@ -191,7 +200,7 @@ class PendingProcessor:
                     db_record.error_at = None
                     await session.commit()
             await self._op_log.completed(log_id, {"applied_revision": applied})
-            logger.info("Migrated installed module %s to %s", record.name, applied or head)
+            logger.info("Migrated module %s to %s", record.name, applied or head)
 
         return failed
 

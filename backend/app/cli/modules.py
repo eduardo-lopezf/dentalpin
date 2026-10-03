@@ -2,7 +2,8 @@
 
 Etapa 1 covers read-only queries: ``list``, ``info``, ``status``,
 ``doctor``, and the recovery command ``orphan``. Install, uninstall
-and upgrade land in Etapa 3.
+and upgrade land in Etapa 3. ``enable`` / ``disable`` are the everyday
+pair: they never touch a module's tables (ADR 0035).
 """
 
 from __future__ import annotations
@@ -66,6 +67,14 @@ def register(sub: argparse._SubParsersAction) -> None:
         help="Override removable=False / reverse-dep checks (cannot bypass legacy block)",
     )
     p_uninstall.set_defaults(func=_run(_cmd_uninstall))
+
+    p_enable = mod_sub.add_parser("enable", help="Enable a module and its dependencies")
+    p_enable.add_argument("name")
+    p_enable.set_defaults(func=_run(_cmd_enable))
+
+    p_disable = mod_sub.add_parser("disable", help="Stop a module from running; its data stays")
+    p_disable.add_argument("name")
+    p_disable.set_defaults(func=_run(_cmd_disable))
 
     p_upgrade = mod_sub.add_parser("upgrade", help="Schedule a module upgrade")
     p_upgrade.add_argument("name")
@@ -247,6 +256,36 @@ async def _cmd_uninstall(svc: ModuleService, args: argparse.Namespace) -> int:
 
     print(f"Scheduled uninstall for {args.name}.")
     print("A data backup will be taken before Alembic downgrade.")
+    print("Run `dentalpin modules restart` to apply.")
+    return 0
+
+
+async def _cmd_enable(svc: ModuleService, args: argparse.Namespace) -> int:
+    try:
+        scheduled = await svc.enable(args.name)
+    except ModuleOperationError as exc:
+        print(f"Enable blocked: {exc}", file=sys.stderr)
+        return 3
+
+    if not scheduled:
+        print(f"{args.name} is already enabled.")
+        return 0
+
+    print("Will be enabled on next restart:")
+    for item in scheduled:
+        print(f"  - {item}")
+    print("\nRun `dentalpin modules restart` to apply.")
+    return 0
+
+
+async def _cmd_disable(svc: ModuleService, args: argparse.Namespace) -> int:
+    try:
+        await svc.disable(args.name)
+    except ModuleOperationError as exc:
+        print(f"Disable blocked: {exc}", file=sys.stderr)
+        return 3
+
+    print(f"Disabled {args.name}. Its tables and data are kept.")
     print("Run `dentalpin modules restart` to apply.")
     return 0
 

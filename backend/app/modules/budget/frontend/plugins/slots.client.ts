@@ -5,6 +5,8 @@ import { registerSlot } from '~~/app/composables/useModuleSlots'
  * Slot registrations for the `budget` module.
  */
 export default defineNuxtPlugin(() => {
+  const { can } = usePermissions()
+
   // Tab of the host's Finanzas page. The host owns the page and the
   // sidebar entry; this module owns its own list and never learns about
   // its sibling tabs. Uninstalling the module removes the tab.
@@ -14,5 +16,20 @@ export default defineNuxtPlugin(() => {
     permission: 'budget.read',
     labelKey: 'nav.budgets',
     order: 20
+  })
+
+  // Patient record — the Administración tab. Budgets are this module's;
+  // invoices, payments and documents arrive through the
+  // `patient.detail.administracion.*` slots, so this module never learns
+  // about the ones that depend on it.
+  registerSlot('patient.detail.tabs', {
+    id: 'budget.patient.detail.tabs.administration',
+    component: defineAsyncComponent(
+      () => import('../components/patient/PatientAdministrationTabEntry.vue')
+    ),
+    tab: { value: 'administration', icon: 'i-lucide-briefcase' },
+    labelKey: 'patientDetail.tabs.administration',
+    condition: () => can('budget.read') || can('billing.read'),
+    order: 40
   })
 })

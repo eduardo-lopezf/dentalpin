@@ -27,7 +27,12 @@ const toast = useToast()
 const body = ref(props.initialNotes ?? '')
 const saving = ref(false)
 
-const canWrite = computed(() => !props.readonly && can(PERMISSIONS.clinicalNotes.write))
+// The note is stored on the appointment, so it is the agenda that saves it.
+const { available: agendaAvailable } = useAppointmentBooking()
+
+const canWrite = computed(
+  () => !props.readonly && agendaAvailable.value && can(PERMISSIONS.clinicalNotes.write)
+)
 
 watch(
   () => props.initialNotes,

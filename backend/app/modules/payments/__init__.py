@@ -104,6 +104,13 @@ class PaymentsModule(BaseModule):
     def get_permissions(self) -> list[str]:
         return ["record.read", "record.write", "record.refund", "reports.read"]
 
+    def get_providers(self) -> dict[type, object]:
+        from app.core.contracts import Collections
+
+        from .providers import collections
+
+        return {Collections: collections}
+
     def get_tools(self) -> list:
         from . import tools
 

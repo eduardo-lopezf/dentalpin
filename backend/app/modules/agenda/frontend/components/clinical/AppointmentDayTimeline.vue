@@ -44,7 +44,7 @@ function formatTime(d: Date): string {
   return d.toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
-function professionalFor(id: string): ProfessionalWithColor | undefined {
+function professionalFor(id: string | null): ProfessionalWithColor | undefined {
   return props.professionals.find(p => p.id === id)
 }
 
@@ -57,7 +57,7 @@ function patientName(apt: Appointment): string {
     const full = `${apt.patient.first_name ?? ''} ${apt.patient.last_name ?? ''}`.trim()
     return full || t('appointments.noPatient')
   }
-  return t('appointments.noPatient')
+  return apt.title || t('appointments.noPatient')
 }
 
 function busyDurationMin(apt: Appointment): number {

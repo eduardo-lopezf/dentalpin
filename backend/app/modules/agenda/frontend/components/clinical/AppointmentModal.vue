@@ -34,6 +34,9 @@ const auth = useAuth()
 const clinic = useClinic()
 const api = useApi()
 const { can } = usePermissions()
+// Patients, professionals and planned treatments are other Apps'. The
+// appointment is booked with or without them (ADR 0037).
+const { patientsAvailable, professionalsAvailable, treatmentsAvailable } = useAgendaLinks()
 const { isMobile } = useBreakpoint()
 const { createAppointment, updateAppointment, cancelAppointment } = useAppointments()
 const { professionals, fetchProfessionals, getProfessionalColor } = useProfessionals()
@@ -62,7 +65,8 @@ const formData = reactive({
   date: '',
   startTime: '09:00',
   duration: 30,
-  cabinet: UNASSIGNED_CABINET
+  cabinet: UNASSIGNED_CABINET,
+  title: ''
 })
 
 // Duration options (in minutes)
@@ -152,8 +156,15 @@ const emailDropdownItems = computed(() => [[
 
 const canSave = computed(() => {
   // Cabinet is optional (#51) — only patient + date + start time +
-  // professional are required to book.
-  return selectedPatient.value && formData.date && formData.startTime && selectedProfessionalId.value
+  // professional are required to book. Patient and professional are
+  // required only while their App runs: with it off there is nothing to
+  // pick, and the appointment is booked without (ADR 0037).
+  return Boolean(
+    formData.date
+    && formData.startTime
+    && (selectedPatient.value || !patientsAvailable.value)
+    && (selectedProfessionalId.value || !professionalsAvailable.value)
+  )
 })
 
 // Email notification computed properties
@@ -303,7 +314,8 @@ watch(() => props.open, async (isOpen) => {
     // Edit mode - populate from appointment
     const apt = props.appointment
     selectedPatient.value = apt.patient || null
-    selectedProfessionalId.value = apt.professional_id
+    selectedProfessionalId.value = apt.professional_id ?? ''
+    formData.title = apt.title ?? ''
     formData.date = apt.start_time.split('T')[0] ?? ''
     formData.startTime = apt.start_time.split('T')[1]?.substring(0, 5) ?? '09:00'
     // null cabinet (#51) maps to the "assign later" option.
@@ -462,7 +474,7 @@ function calculateEndTime(): string {
 }
 
 async function handleSave() {
-  if (!canSave.value || !selectedPatient.value) return
+  if (!canSave.value) return
 
   isSubmitting.value = true
   // Silence the overlap watcher: createAppointment mutates the shared
@@ -524,8 +536,9 @@ async function handleSave() {
       : null
 
     const appointmentData: AppointmentCreate = {
-      patient_id: selectedPatient.value.id,
-      professional_id: selectedProfessionalId.value,
+      patient_id: selectedPatient.value?.id,
+      professional_id: selectedProfessionalId.value || undefined,
+      title: formData.title.trim() || undefined,
       cabinet: cabinetValue,
       start_time: startTime,
       end_time: endTime,
@@ -690,17 +703,38 @@ function openPatientFile() {
                 {{ t('appointments.selectPatient') }}
               </div>
               <PatientVisualSelector
+                v-if="patientsAvailable"
                 v-model="selectedPatient"
                 in-modal
               />
+              <template v-else>
+                <p class="text-sm text-muted">
+                  {{ t('appointments.patientsUnavailable') }}
+                </p>
+                <UFormField :label="t('appointments.titleLabel')">
+                  <UInput
+                    v-model="formData.title"
+                    :placeholder="t('appointments.titlePlaceholder')"
+                    maxlength="200"
+                    class="w-full"
+                  />
+                </UFormField>
+              </template>
               <div v-if="selectedPatient">
                 <p class="text-caption text-subtle mb-1.5">
                   {{ t('appointments.treatments') }}
                 </p>
                 <PlannedTreatmentSelector
+                  v-if="treatmentsAvailable"
                   v-model="selectedTreatments"
                   :patient-id="selectedPatient?.id"
                 />
+                <p
+                  v-else
+                  class="text-sm text-muted"
+                >
+                  {{ t('appointments.treatmentsUnavailable') }}
+                </p>
               </div>
             </section>
 
@@ -783,6 +817,15 @@ function openPatientFile() {
               </UFormField>
 
               <UFormField
+                v-if="!professionalsAvailable"
+                :label="t('appointments.professional')"
+              >
+                <p class="text-sm text-muted">
+                  {{ t('appointments.professionalsUnavailable') }}
+                </p>
+              </UFormField>
+              <UFormField
+                v-else
                 :label="t('appointments.professional')"
                 required
               >

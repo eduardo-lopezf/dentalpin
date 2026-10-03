@@ -86,7 +86,8 @@ through `attachment_registry`.
   iOS uploads work without per-clinic config changes.
 - **Files must be scoped by `clinic_id`** in the storage layout.
 - **`media_attachments.owner_type` has no CHECK constraint** by design
-  — see ADR 0007. Validation lives in `attachment_registry`.
+  — see ADR 0007. Validation lives in `attachment_registry`, which is
+  defined in `app/core/attachments.py` and re-exported here.
 
 ## Related ADRs
 

@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .alembic_paths import resolve_module_branch_head
+from .apps import modules_disabled_by_app
 from .base import BaseModule
 from .db_models import ModuleOperationLog, ModuleRecord
 from .gate import module_gate
@@ -40,11 +41,15 @@ async def installed_module_names(db: AsyncSession) -> set[str]:
     has not been processed yet or failed half-way, and a module with
     partially created or partially dropped tables must not serve
     traffic.
+
+    ``apps.json`` then holds back the modules of any App the deployment
+    has disabled (ADR 0038). Their records stay ``installed`` — nothing
+    about them changed — they are just not part of what runs.
     """
     result = await db.execute(
         select(ModuleRecord.name).where(ModuleRecord.state == ModuleState.INSTALLED.value)
     )
-    return set(result.scalars())
+    return set(result.scalars()) - modules_disabled_by_app()
 
 
 class ModuleOperationError(RuntimeError):
@@ -182,31 +187,22 @@ class ModuleService:
             # :mod:`manifest_validator`) — reconcile trusts it.
             record = existing.get(module.name)
             if record is None:
-                # Modules with ``auto_install=False`` must wait for an
-                # explicit Install action from the admin UI before they
-                # become active. They appear in the registry but stay
-                # in ``uninstalled`` state — their lifecycle install()
-                # hook is NOT called, their event handlers do not fire,
-                # and ``base_revision`` is left blank until the user
-                # promotes them.
+                # Modules with ``auto_install=False`` start ``disabled``:
+                # their tables exist (ADR 0035 — every database carries
+                # the whole schema) but nothing is mounted, their
+                # lifecycle install() hook is NOT called and their event
+                # handlers do not fire until somebody enables them.
                 #
-                # Note that the underlying Alembic migration was still
-                # applied as part of the main ``alembic upgrade heads``
-                # at boot (the schema lives on disk, not behind state).
-                # When the user later triggers Install, the processor's
-                # ``_run_migrate`` is a no-op (already at head) and the
-                # rest of the pipeline (seed → lifecycle hook → finalize)
-                # runs normally, eventually setting state=installed.
+                # Either way the branch is recorded at head: a new
+                # database was bootstrapped with ``alembic upgrade
+                # heads``, so the tables are there, and the processor
+                # keeps both states migrated from here on.
                 if manifest.auto_install:
                     initial_state = ModuleState.INSTALLED.value
                     initial_installed_at = now
-                    initial_base_revision = branch_head
-                    initial_applied_revision = branch_head
                 else:
-                    initial_state = ModuleState.UNINSTALLED.value
+                    initial_state = ModuleState.DISABLED.value
                     initial_installed_at = None
-                    initial_base_revision = None
-                    initial_applied_revision = None
 
                 self.db.add(
                     ModuleRecord(
@@ -219,8 +215,8 @@ class ModuleService:
                         installed_at=initial_installed_at,
                         last_state_change=now,
                         manifest_snapshot=manifest.to_snapshot(),
-                        base_revision=initial_base_revision,
-                        applied_revision=initial_applied_revision,
+                        base_revision=branch_head,
+                        applied_revision=branch_head,
                     )
                 )
                 logger.info(
@@ -238,6 +234,18 @@ class ModuleService:
                     manifest.version,
                 )
                 record.version = manifest.version
+
+            # A module that was never installed used to rest in
+            # ``uninstalled`` with its tables in place. That is what
+            # ``disabled`` means now (ADR 0035). A real uninstall leaves
+            # ``base_revision`` set and clears ``applied_revision`` — the
+            # tables were dropped on purpose — and is left alone.
+            really_uninstalled = (
+                record.base_revision is not None and record.applied_revision is None
+            )
+            if record.state == ModuleState.UNINSTALLED.value and not really_uninstalled:
+                record.state = ModuleState.DISABLED.value
+                record.last_state_change = now
 
             # Always refresh the snapshot so DB stays in sync with disk.
             record.manifest_snapshot = manifest.to_snapshot()
@@ -488,6 +496,118 @@ class ModuleService:
         await self.db.commit()
         return scheduled
 
+    async def enable(self, name: str) -> list[str]:
+        """Enable ``name`` and every dependency that is not enabled yet.
+
+        Enabling is the install flow: the processor finds the tables
+        already there, so its migrate step is a no-op and the seed and
+        lifecycle hook run as they would on a first install.
+        """
+        return await self.install(name)
+
+    async def disable(self, name: str) -> None:
+        """Stop ``name`` from running without touching its data.
+
+        The record goes straight to ``disabled``: the next boot does not
+        mount it, and its branch keeps being migrated so the schema never
+        falls behind the modules that reference it (ADR 0035).
+
+        Blocked while another enabled module declares ``name`` in its
+        ``depends`` — that module's code imports this one's. There is no
+        ``force``: the block is what keeps the running set coherent.
+        """
+        records = await self._load_existing_records()
+        record = records.get(name)
+        if record is None:
+            raise ModuleOperationError(f"Unknown module: '{name}'")
+
+        if record.state == ModuleState.DISABLED.value:
+            return  # no-op
+
+        if record.state != ModuleState.INSTALLED.value:
+            raise ModuleOperationError(
+                f"Module '{name}' is '{record.state}', only an enabled module can be disabled."
+            )
+
+        dependents = self._active_dependents(name, records)
+        if dependents:
+            raise ModuleOperationError(
+                f"Cannot disable '{name}' — required by: {dependents}. Disable them first."
+            )
+
+        record.state = ModuleState.DISABLED.value
+        record.last_state_change = datetime.now(UTC)
+        record.error_message = None
+        record.error_at = None
+        await self.db.commit()
+
+        # Still mounted until the restart; stop it answering meanwhile.
+        module_gate.block(name)
+
+    @staticmethod
+    def _active_dependents(name: str, records: dict[str, ModuleRecord]) -> list[str]:
+        """Modules that are live (or about to be) and depend on ``name``.
+
+        ``integrates`` does not count: a module carries on without the
+        ones it merely integrates with (ADR 0037).
+        """
+        return [
+            other.name
+            for other in records.values()
+            if other.state
+            in {
+                ModuleState.INSTALLED.value,
+                ModuleState.TO_INSTALL.value,
+                ModuleState.TO_UPGRADE.value,
+            }
+            and name in (other.manifest_snapshot or {}).get("depends", [])
+        ]
+
+    @staticmethod
+    def _schema_dependents(name: str, records: dict[str, ModuleRecord]) -> list[str]:
+        """Modules that stand in the way of dropping ``name``'s tables.
+
+        Two kinds. A module that is running and declares ``name`` in
+        ``depends`` or ``integrates`` — it expects to find it. And any
+        module whose own tables hold a foreign key into ``name``'s,
+        running or not: a disabled module still has its tables (ADR
+        0035), and the drop would fail against them or cascade.
+
+        The second is read off the models rather than the manifests so a
+        disabled module that merely *declares* a dependency, with no
+        foreign key behind it, does not block a removal it would never
+        notice.
+        """
+        target = module_registry.get(name)
+        target_tables = {
+            str(model.__tablename__)
+            for model in (target.get_models() if target else [])
+            if getattr(model, "__tablename__", None)
+        }
+        running = {
+            ModuleState.INSTALLED.value,
+            ModuleState.TO_INSTALL.value,
+            ModuleState.TO_UPGRADE.value,
+        }
+
+        blockers: list[str] = []
+        for other in records.values():
+            if other.name == name or other.state == ModuleState.UNINSTALLED.value:
+                continue
+            snapshot = other.manifest_snapshot or {}
+            declared = [*snapshot.get("depends", []), *snapshot.get("integrates", [])]
+            if other.state in running and name in declared:
+                blockers.append(other.name)
+                continue
+            module = module_registry.get(other.name)
+            if module is not None and any(
+                fk.column.table.name in target_tables
+                for model in module.get_models()
+                for fk in model.__table__.foreign_keys
+            ):
+                blockers.append(other.name)
+        return blockers
+
     async def uninstall(self, name: str, *, force: bool = False) -> None:
         """Mark ``name`` as ``to_remove`` unless blocked.
 
@@ -495,8 +615,10 @@ class ModuleService:
 
         * module is ``removable=False`` (official modules) and
           ``force`` is not set.
-        * another installed module declares ``name`` in its ``depends``
-          — reverse-dep. Unless ``force``.
+        * another running module declares ``name`` in its ``depends``
+          or ``integrates``, or any module that still has its tables —
+          enabled or disabled — holds a foreign key into the ones about
+          to be dropped. Unless ``force``.
         * module has no Alembic ``base_revision`` (Fase A legacy) —
           its schema is part of main linear and cannot be cleanly
           unwound. Always blocked, even with ``force``.
@@ -520,17 +642,7 @@ class ModuleService:
                 f"Module '{name}' is marked removable=False. Use force=True to override."
             )
 
-        dependents = [
-            other.name
-            for other in records.values()
-            if other.state
-            in {
-                ModuleState.INSTALLED.value,
-                ModuleState.TO_INSTALL.value,
-                ModuleState.TO_UPGRADE.value,
-            }
-            and name in (other.manifest_snapshot or {}).get("depends", [])
-        ]
+        dependents = self._schema_dependents(name, records)
         if dependents and not force:
             raise ModuleOperationError(
                 f"Cannot uninstall '{name}' — required by: {dependents}. "

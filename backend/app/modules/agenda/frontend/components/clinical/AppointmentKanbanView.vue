@@ -280,7 +280,7 @@ function beginDrag(apt: Appointment, event: PointerEvent) {
     appointmentId: apt.id,
     targetColumnId: null,
     targetCabinetName: null,
-    label: apt.patient ? `${apt.patient.first_name} ${apt.patient.last_name}` : t('appointments.noPatient', 'Sin paciente'),
+    label: apt.patient ? `${apt.patient.first_name} ${apt.patient.last_name}` : (apt.title || t('appointments.noPatient', 'Sin paciente')),
     x: event.clientX,
     y: event.clientY
   }

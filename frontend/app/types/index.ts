@@ -126,6 +126,12 @@ export interface Professional {
   photo_url: string | null
   notes: string | null
   is_active: boolean
+  /** The account this person signs in with, stated by an admin. Null when the
+   *  directory profile has none — a collaborator without product access. It is
+   *  what makes a clinical entry attributable to a professional. */
+  user_id: string | null
+  /** Hint only: the email matches an account with access here. Never the
+   *  source of attribution — a shared address would name the wrong person. */
   has_system_access: boolean
 }
 
@@ -285,7 +291,11 @@ export interface Appointment {
   id: string
   clinic_id: string
   patient_id?: string
-  professional_id: string
+  // Null when nobody is assigned: the Professionals App is optional
+  // (ADR 0037), and so is the link while it is switched off.
+  professional_id: string | null
+  // What the appointment is called when there is no patient to name it by.
+  title?: string | null
   // Cabinet is optional now (#51): a booked appointment may exist without
   // a cabinet decision until the patient arrives.
   cabinet: string | null
@@ -309,8 +319,9 @@ export interface Appointment {
 }
 
 export interface AppointmentCreate {
-  patient_id: string
-  professional_id: string
+  patient_id?: string
+  professional_id?: string
+  title?: string
   cabinet?: string | null
   cabinet_id?: string | null
   start_time: string

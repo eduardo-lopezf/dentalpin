@@ -24,7 +24,15 @@ class AgendaModule(BaseModule):
         "author": "DentalPin Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": ["patients", "catalog", "odontogram", "professionals"],
+        # Nothing is required: the agenda books an appointment with no
+        # patient, no professional and no treatments (ADR 0037).
+        "depends": [],
+        # Linked when they run, done without when they do not. The agenda
+        # imports none of them — it reaches them through the core
+        # contracts (ADR 0039) — so this lists only the owners of tables
+        # its foreign keys point at. `schedules` and `odontogram` are
+        # reached through contracts alone and need no entry.
+        "integrates": ["patients", "professionals", "catalog", "treatment_plan"],
         "installable": True,
         "auto_install": True,
         "removable": False,
@@ -69,6 +77,13 @@ class AgendaModule(BaseModule):
             AppointmentStatusEvent,
             AppointmentCabinetEvent,
         ]
+
+    def get_providers(self) -> dict[type, object]:
+        from app.core.contracts import AppointmentBook
+
+        from .providers import appointment_book
+
+        return {AppointmentBook: appointment_book}
 
     def get_router(self) -> APIRouter:
         return router

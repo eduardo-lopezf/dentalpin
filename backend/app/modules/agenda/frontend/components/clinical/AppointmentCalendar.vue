@@ -41,7 +41,7 @@ watch(() => props.highlightedAppointmentId, (newId) => {
   }
 }, { immediate: true })
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
 // Time slots configuration. START_HOUR/END_HOUR default to 8–21 and
 // get narrowed to the actual clinic opening hours when the schedules
@@ -290,12 +290,12 @@ function getCabinetColor(cabinetName: string): string {
 }
 
 // Get professional by ID
-function getProfessional(professionalId: string): ProfessionalWithColor | undefined {
+function getProfessional(professionalId: string | null): ProfessionalWithColor | undefined {
   return props.professionals?.find(p => p.id === professionalId)
 }
 
 // Get professional initials
-function getProfessionalInitials(professionalId: string): string {
+function getProfessionalInitials(professionalId: string | null): string {
   const prof = getProfessional(professionalId)
   if (!prof) return '?'
   const first = prof.first_name.charAt(0).toUpperCase()
@@ -304,13 +304,13 @@ function getProfessionalInitials(professionalId: string): string {
 }
 
 // Get professional color
-function getProfessionalColor(professionalId: string): string {
+function getProfessionalColor(professionalId: string | null): string {
   const prof = getProfessional(professionalId)
   return prof?.color || '#6B7280'
 }
 
 // Get professional full name
-function getProfessionalFullName(professionalId: string): string {
+function getProfessionalFullName(professionalId: string | null): string {
   const prof = getProfessional(professionalId)
   if (!prof) return 'Desconocido'
   return `${prof.first_name} ${prof.last_name}`
@@ -686,7 +686,7 @@ const allAppointmentsWithDayIndex = computed(() => {
                         class="w-3 h-3 flex-shrink-0"
                       />
                       <span class="text-xs font-medium truncate">
-                        {{ appointment.patient ? `${appointment.patient.last_name}` : 'Sin paciente' }}
+                        {{ appointment.patient ? `${appointment.patient.last_name}` : (appointment.title || t('appointments.noPatient')) }}
                       </span>
                       <UIcon
                         v-if="notesIndicator.has(appointment.id)"

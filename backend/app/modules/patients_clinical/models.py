@@ -25,6 +25,69 @@ if TYPE_CHECKING:
     from app.modules.patients.models import Patient
 
 
+class ClinicalEntryMixin:
+    """Lifecycle and attribution shared by the entries of the medical history.
+
+    Per [ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md):
+    a clinical entry is corrected by appending, never by deleting, and it names
+    the professional responsible for it separately from the account that typed
+    it.
+
+    **"No longer true" and "never was true" are different states**, which is
+    why there are two columns and not one ``deleted_at``:
+
+    - ``ended_at`` — the fact was true and stopped being true. A medication the
+      patient discontinued is history: it stays part of the record and stays
+      readable, because a colleague reading the chart in 2029 needs to know it
+      was taken.
+    - ``retracted_at`` — the entry should never have been there: the wrong
+      patient, a mistaken tap. It stops driving alerts and stops appearing in a
+      disclosure, and it is *still not deleted*, because "what did the chart say
+      that day" has to stay answerable.
+
+    Collapsing the two loses the distinction that matters clinically. Neither
+    removes the row.
+
+    Attribution is two fields, for the reason it is two on a paper chart: an
+    assistant may type what a dentist is responsible for.
+    ``recorded_by_user_id`` is who operated the software;
+    ``recorded_by_professional_id`` is who answers for it clinically, and
+    through them the licence number an exported record has to show.
+
+    The professional is resolved from the acting account's directory profile
+    (``professionals.user_id``), so it fills itself in for the common case —
+    the dentist recording their own patient's history. An account with no
+    profile leaves it NULL, which is the truthful answer and not a gap to fill
+    with a guess: an email that happens to match is a coincidence, and
+    clinical authorship in a document meant to be evidence cannot rest on one.
+    The case the ADR describes — an assistant typing for a dentist — needs the
+    responsible professional to be *asked for*, and nothing asks yet.
+
+    Rows recorded before the rule keep both NULL rather than being assigned an
+    author who never signed them.
+    """
+
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None, index=True
+    )
+    retracted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None, index=True
+    )
+    retraction_reason: Mapped[str | None] = mapped_column(Text, default=None)
+
+    recorded_by_user_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), default=None
+    )
+    recorded_by_professional_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("professionals.id"), default=None
+    )
+
+    @property
+    def is_live(self) -> bool:
+        """Currently true and never retracted — what a form shows by default."""
+        return self.ended_at is None and self.retracted_at is None
+
+
 class MedicalContext(Base, TimestampMixin):
     """1:1 medical flags + anesthesia + lifestyle context for a patient."""
 
@@ -61,7 +124,7 @@ class MedicalContext(Base, TimestampMixin):
     patient: Mapped[Patient] = relationship()
 
 
-class Allergy(Base, TimestampMixin):
+class Allergy(Base, TimestampMixin, ClinicalEntryMixin):
     """Individual allergy entry (N:1 patient)."""
 
     __tablename__ = "patients_clinical_allergy"
@@ -82,7 +145,7 @@ class Allergy(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text)
 
 
-class Medication(Base, TimestampMixin):
+class Medication(Base, TimestampMixin, ClinicalEntryMixin):
     """Medication the patient is currently taking (N:1)."""
 
     __tablename__ = "patients_clinical_medication"
@@ -102,7 +165,7 @@ class Medication(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text)
 
 
-class SystemicDisease(Base, TimestampMixin):
+class SystemicDisease(Base, TimestampMixin, ClinicalEntryMixin):
     """Systemic disease / condition (N:1)."""
 
     __tablename__ = "patients_clinical_systemic_disease"
@@ -124,7 +187,7 @@ class SystemicDisease(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text)
 
 
-class SurgicalHistory(Base, TimestampMixin):
+class SurgicalHistory(Base, TimestampMixin, ClinicalEntryMixin):
     """Past surgery / procedure (N:1)."""
 
     __tablename__ = "patients_clinical_surgical_history"

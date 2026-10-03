@@ -94,7 +94,7 @@ Reutilizamos el mismo selector de paciente: si la búsqueda no encuentra coincid
 
 ## Componentes implicados (referencia, no diseño técnico)
 
-- `frontend/app/components/shared/PatientVisualSelector.vue` — orquesta el flujo, mini-form, llama a `POST /patients`, autoselecciona resultado.
+- `backend/app/modules/patients/frontend/components/shared/PatientVisualSelector.vue` — orquesta el flujo, mini-form, llama a `POST /patients`, autoselecciona resultado.
 - `frontend/app/components/shared/VisualSelector.vue` — slot/footer opcional para acción "crear".
 - `backend/app/modules/agenda/frontend/components/clinical/AppointmentModal.vue` — sin cambios funcionales relevantes.
 - Backend: **sin cambios**. Reutilizamos `POST /api/v1/patients` y `GET /api/v1/patients?search=`.

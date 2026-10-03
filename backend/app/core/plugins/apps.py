@@ -1,0 +1,202 @@
+"""The App catalog.
+
+An App is what a clinic chooses; a module is what the code is made of.
+One App groups the modules that only make sense together — "Agenda" is
+``agenda`` plus ``schedules`` — and carries its own version, which moves
+independently of theirs (ADR 0036).
+
+The catalog is ``backend/apps.json``, one file for the whole deployment.
+Each App is ``enabled`` or ``disabled`` there, and a disabled App's
+modules are not mounted, whatever ``core_module.state`` says about them
+(ADR 0038). Nothing else changes: their tables, their data and their
+install state stay as they are, so flipping the flag back restores them.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from enum import StrEnum
+from functools import cache
+from pathlib import Path
+
+from .registry import module_registry
+from .topology import topological_sort
+
+APPS_FILE = Path(__file__).resolve().parents[3] / "apps.json"
+
+
+class AppStatus(StrEnum):
+    ENABLED = "enabled"
+    DISABLED = "disabled"
+
+
+class AppTier(StrEnum):
+    """How much of every workspace an App is.
+
+    ``base`` is the one App everything else runs on — the clinic, its
+    people, the shell and settings. It is the core and the host app, not a
+    group of modules, so it lists none, and it cannot be disabled (ADR 0043).
+    ``core`` Apps are set up for every workspace; ``optional`` ones are
+    chosen.
+    """
+
+    BASE = "base"
+    CORE = "core"
+    OPTIONAL = "optional"
+
+
+class ApiStatus(StrEnum):
+    """Where an App's connection to an outside service stands.
+
+    ``planned`` is listed and nothing more: there is no code behind it
+    yet, so it cannot be switched on by editing the file.
+    """
+
+    PLANNED = "planned"
+    ENABLED = "enabled"
+    DISABLED = "disabled"
+
+
+@dataclass(frozen=True, slots=True)
+class ApiDefinition:
+    """An outside service an App can connect to (ADR 0040).
+
+    Only the name and the switch live here. Credentials never do: this
+    file is committed.
+    """
+
+    name: str
+    status: ApiStatus
+
+
+class AppCatalogError(ValueError):
+    """``apps.json`` is malformed."""
+
+
+@dataclass(frozen=True, slots=True)
+class AppDefinition:
+    name: str
+    version: str
+    modules: tuple[str, ...]
+    status: AppStatus = AppStatus.ENABLED
+    apis: tuple[ApiDefinition, ...] = ()
+    tier: AppTier = AppTier.OPTIONAL
+
+    @property
+    def enabled(self) -> bool:
+        return self.status is AppStatus.ENABLED
+
+
+@cache
+def load_app_catalog() -> tuple[AppDefinition, ...]:
+    """Read ``apps.json``.
+
+    Cached for the life of the process: what is mounted was decided from
+    this file at boot, so a later edit must not be reported as if it had
+    taken effect. It does at the next restart.
+    """
+    raw = json.loads(APPS_FILE.read_text(encoding="utf-8"))
+
+    apps: list[AppDefinition] = []
+    owner: dict[str, str] = {}
+    for entry in raw["apps"]:
+        try:
+            app = AppDefinition(
+                name=entry["name"],
+                version=entry["version"],
+                modules=tuple(entry["modules"]),
+                status=AppStatus(entry["status"]),
+                tier=AppTier(entry.get("tier", AppTier.OPTIONAL)),
+                apis=tuple(
+                    ApiDefinition(name=api["name"], status=ApiStatus(api["status"]))
+                    for api in entry.get("apis", ())
+                ),
+            )
+        except (KeyError, ValueError) as exc:
+            raise AppCatalogError(f"Invalid app entry in {APPS_FILE.name}: {entry!r}") from exc
+
+        if app.tier is AppTier.BASE and not app.enabled:
+            raise AppCatalogError(
+                f"App '{app.name}' is the base App and cannot be disabled in {APPS_FILE.name}"
+            )
+        if app.tier is AppTier.BASE and any(other.tier is AppTier.BASE for other in apps):
+            raise AppCatalogError(f"{APPS_FILE.name} declares more than one base App")
+        if app.tier is not AppTier.BASE and not app.modules:
+            raise AppCatalogError(f"App '{app.name}' groups no modules in {APPS_FILE.name}")
+        api_names = [api.name for api in app.apis]
+        if len(api_names) != len(set(api_names)):
+            raise AppCatalogError(f"App '{app.name}' lists an API twice in {APPS_FILE.name}")
+        if any(app.name == other.name for other in apps):
+            raise AppCatalogError(f"App '{app.name}' is listed twice in {APPS_FILE.name}")
+        for module in app.modules:
+            if module in owner:
+                raise AppCatalogError(
+                    f"Module '{module}' belongs to both '{owner[module]}' and '{app.name}'"
+                )
+            owner[module] = app.name
+        apps.append(app)
+
+    return tuple(apps)
+
+
+def statuses_on_disk() -> dict[str, AppStatus]:
+    """Each App's status as ``apps.json`` says it *now*.
+
+    Not cached, unlike :func:`load_app_catalog`: the difference between
+    the two is a change that is written and waiting for a restart. The
+    Apps screen says so, instead of showing a running App as if the edit
+    had not been made. A file that no longer parses yields nothing — the
+    next boot will refuse it, loudly.
+    """
+    try:
+        raw = json.loads(APPS_FILE.read_text(encoding="utf-8"))
+        return {entry["name"]: AppStatus(entry["status"]) for entry in raw["apps"]}
+    except (OSError, ValueError, KeyError, TypeError):
+        return {}
+
+
+def modules_disabled_by_app() -> frozenset[str]:
+    """Modules that must not be mounted because their App is disabled."""
+    return frozenset(
+        module for app in load_app_catalog() if not app.enabled for module in app.modules
+    )
+
+
+def integrated_modules(app: AppDefinition) -> list[str]:
+    """Modules outside ``app`` that its own modules integrate with (ADR 0037).
+
+    Optional, unlike :func:`required_modules`: the App works without
+    them and links to them when they run.
+    """
+    found: list[str] = []
+    for name in app.modules:
+        module = module_registry.get(name)
+        if module is None:
+            raise ValueError(f"App '{app.name}' needs module '{name}', which is not discovered")
+        for other in module.get_manifest().integrates:
+            if other not in app.modules and other not in found:
+                found.append(other)
+    return found
+
+
+def required_modules(app: AppDefinition) -> list[str]:
+    """Modules outside ``app`` that its own modules depend on, dependencies first.
+
+    Transitive: what would have to be enabled alongside the App for its
+    modules to run.
+    """
+    closure: dict[str, list[str]] = {}
+    stack = list(app.modules)
+    while stack:
+        name = stack.pop()
+        if name in closure:
+            continue
+        module = module_registry.get(name)
+        if module is None:
+            raise ValueError(f"App '{app.name}' needs module '{name}', which is not discovered")
+        closure[name] = module.dependencies
+        stack.extend(closure[name])
+
+    ordered = topological_sort(closure, key=lambda name: name, deps_of=lambda name: closure[name])
+    return [name for name in ordered if name not in app.modules]

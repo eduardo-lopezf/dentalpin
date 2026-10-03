@@ -51,6 +51,13 @@ class PatientsModule(BaseModule):
     def get_models(self) -> list:
         return [Patient]
 
+    def get_providers(self) -> dict[type, object]:
+        from app.core.contracts import PatientDirectory
+
+        from .providers import patients_directory
+
+        return {PatientDirectory: patients_directory}
+
     def get_router(self) -> APIRouter:
         return router
 

@@ -13,7 +13,8 @@ Routes mounted at `/api/v1/clinical_notes/`.
 
 - `GET    /notes?owner_type=…&owner_id=…`         — list for owner; `clinical_notes.notes.read`
 - `POST   /notes`                                  — create; `clinical_notes.notes.write`
-- `PATCH  /notes/{id}`                             — edit body; author or admin
+- `PATCH  /notes/{id}`                             — amend body; author or admin
+- `GET    /notes/{id}/versions`                    — superseded bodies; `clinical_notes.notes.read`
 - `DELETE /notes/{id}`                             — soft delete; author or admin
 - `GET    /attachments?owner_type=…&owner_id=…`    — read-only proxy; new
   callers should use `/api/v1/media/attachments` directly
@@ -43,7 +44,17 @@ travels with the treatment when it later becomes part of a plan.
 
 ## Dependencies
 
-`manifest.depends = ["patients", "odontogram", "treatment_plan", "media"]`.
+`manifest.depends = ["patients", "odontogram", "treatment_plan", "media"]`,
+`manifest.integrates = ["professionals", "agenda"]`.
+
+`agenda` is never imported: appointment owners and visit notes come from
+`contracts.provider(AppointmentBook)` (ADR 0039). With that App off a note
+cannot be added to an appointment and appointment/visit notes are not
+listed; they stay stored.
+
+`professionals` is never imported: attribution and visit-note authors come
+from `contracts.provider(ProfessionalDirectory)` (ADR 0039). With that App
+off a note is written with the account and no professional.
 
 Backend reads cross-module models for two reasons:
 
@@ -96,6 +107,23 @@ None.
 
 ## Gotchas
 
+- **A note body is amended, never overwritten**
+  ([ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md)).
+  `NoteService.update` files the superseded text into `clinical_note_versions`
+  and bumps `note.version`. Never assign `note.body` from anywhere else, and do
+  not add an "edit without history" path: that is the defect this closed. A
+  save whose text is unchanged writes no version on purpose — otherwise
+  opening a note and pressing save manufactures history.
+
+- **The current text stays on the note.** `clinical_notes.body` is the latest
+  version and every consumer keeps reading it; the versions table holds only
+  what was superseded. Reading a note must not cost a join.
+
+- **Amending does not change `author_id`.** An admin correcting someone else's
+  note does not become its author; the version row records who superseded the
+  text. Clinical authorship by licensed professional is still missing — the two
+  blockers are in `docs/features/expediente-clinico.md`.
+
 - **Treatment notes survive plan churn.** They reference
   ``treatments.id`` directly, so removing a plan item, archiving the
   plan or moving the treatment to another plan all keep the notes
@@ -112,6 +140,8 @@ None.
   / patients UIs depend on them through the slot registry.
 
 ## Related ADRs
+
+- `docs/adr/0032-clinical-record-is-append-only.md`
 
 - `docs/adr/0001-modular-plugin-architecture.md`
 - `docs/adr/0002-per-module-alembic-branches.md`

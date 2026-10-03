@@ -2,6 +2,86 @@
 
 ## Unreleased
 
+- feat(widgets): «Historial médico» (Resumen de la ficha) y «Alertas
+  médicas» (cabecera de la ficha) se listan en Configuración → Widgets,
+  con datos ficticios (ADR 0040). `useMedicalHistory` y
+  `usePatientAlerts` no llaman a la API dentro de un ejemplo
+  (`utils/previewSamples.ts`).
+
+- refactor(clínico): `professionals` pasa de `depends` a `integrates` y
+  deja de importarse
+  ([ADR 0039](../../../../docs/adr/0039-modules-reach-each-other-through-core-contracts.md)).
+  El profesional responsable de una entrada se pregunta a
+  `ProfessionalDirectory.for_account`. Con la App Profesionales apagada
+  la entrada se guarda igual, con la cuenta que la escribió y sin
+  profesional; la clave foránea y los datos ya guardados no cambian.
+
+- feat(clínico): una entrada de antecedentes **nombra al profesional
+  responsable** (`recorded_by_professional_id`, `pc_0003`). Se resuelve desde la
+  ficha de directorio de la cuenta que la escribe (`professionals.user_id`), así
+  que se rellena sola en el caso normal: el dentista registrando la historia de
+  su paciente. Una cuenta sin ficha lo deja vacío, que es la respuesta
+  verdadera; el caso que describe el ADR —un auxiliar escribiendo lo que dicta
+  un dentista— necesita que alguien *pregunte* quién responde, y todavía nadie
+  pregunta.
+
+  La clave foránea cruza de rama con `depends_on = ("professionals",)`, como ya
+  hace `liq_0001`. Sin eso fallaba en toda base vacía, que es lo que obligó a
+  aplazar la columna en `pc_0002`.
+
+- feat(clínico): **los antecedentes dejan de borrarse.** Alergias, medicación,
+  enfermedades sistémicas e historia quirúrgica ganan el ciclo de vida que pide
+  el [ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md):
+  `ended_at` (era cierto y dejó de serlo), `retracted_at` + `retraction_reason`
+  (nunca debió constar) y `recorded_by_user_id`. Son dos columnas y no un
+  `deleted_at` porque son dos cosas distintas: una medicación suspendida sigue
+  siendo historia y debe leerse; una alergia retractada deja de disparar
+  avisos. Ninguna de las dos borra la fila.
+
+  Las seis bajas por fila pasan a ser retractaciones. Una alergia a la
+  penicilina quitada por un toque equivocado ya no desaparece sin rastro — era
+  un defecto de seguridad del paciente antes que de cumplimiento.
+
+- fix(clínico): **guardar el formulario de antecedentes reescribía la historia
+  entera.** `PUT /medical-history` borraba todas las filas de las cuatro tablas
+  e insertaba otras nuevas en cada guardado. No hacía falta un error: la vía
+  normal destruía la historia en cada visita, así que una alergia perdía la
+  fecha en que se registró por primera vez y el expediente no podía decir desde
+  cuándo constaba.
+
+  Ahora se reconcilia por id: una línea con id actualiza su fila, una sin id es
+  entrada nueva, y una fila viva que el formulario ya no trae se **retracta**.
+  Los ids ya iban y venían —el formulario edita el objeto que devolvió el GET—
+  pero se validaban contra los esquemas de alta, que no tienen `id`, y Pydantic
+  los descartaba; de ahí que solo quedara reemplazar el bloque. Se añaden
+  esquemas `*Submit` que sí lo llevan, así que la pantalla no cambia.
+
+  Quitar una línea se lee como retractación y no como fecha de fin: el
+  formulario no pregunta *cuándo* dejó de ser cierto, e inventarlo pondría en
+  el expediente una afirmación clínica que nadie hizo.
+
+- **Pendiente, y por qué.** El ADR 0032 pide además que cada entrada nombre al
+  **profesional colegiado** responsable. No está, por dos motivos verificados:
+
+  1. No existe vínculo entre una cuenta y una ficha del directorio.
+     `professionals` es independiente de `users` a propósito, y el único puente
+     es una comparación de correos que sirve para mostrar «tiene acceso».
+     Deducir de ahí la autoría clínica sería una conjetura escrita en un
+     documento cuyo objeto es servir de prueba.
+  2. La clave foránea no sobrevive a una instalación nueva. Este módulo está en
+     la cadena central de migraciones, que el arranque aplica primero;
+     `professionals` es un módulo desinstalable en su propia rama, que se aplica
+     después. El primer borrador de `pc_0002` la incluía y fallaba con
+     `relation "professionals" does not exist` en cualquier base vacía.
+
+  La columna se retira hasta que el producto decida de dónde sale la autoría.
+
+- test(clínico): `test_clinical_history_migration_with_rows.py` — la migración
+  contra una base **con pacientes dentro**, que es lo que el ADR exige por su
+  nombre y lo que la prueba de ida y vuelta existente no cubre: esa parte de
+  vacío y llega a `heads`, con todas las ramas en un orden que resultó
+  funcionar. Fue la que encontró el fallo de orden entre ramas.
+
 - fix(i18n): la banda de alertas del paciente usaba tres claves ausentes.
   `common.collapse` y `common.expand` estaban tapadas por su valor por
   defecto; `common.more` no lo tenía, así que el contador de alertas ocultas

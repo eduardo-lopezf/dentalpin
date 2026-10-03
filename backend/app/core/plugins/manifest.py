@@ -39,6 +39,11 @@ class Manifest:
     min_core_version: str | None = None
     max_core_version: str | None = None
     depends: tuple[str, ...] = ()
+    integrates: tuple[str, ...] = ()
+    """Modules this one links to when they run and lives without when
+    they do not (ADR 0037). Imports and foreign keys are allowed, as with
+    ``depends``; enabling does not pull them in and disabling one is
+    not blocked."""
     installable: bool = True
     auto_install: bool = True
     removable: bool = False
@@ -80,6 +85,15 @@ class Manifest:
         except EgressError as exc:
             raise ManifestError(str(exc)) from exc
 
+        depends = tuple(data.get("depends") or ())
+        integrates = tuple(data.get("integrates") or ())
+        both = sorted(set(depends) & set(integrates))
+        if both:
+            raise ManifestError(
+                f"Module '{data['name']}' lists {both} in both depends and integrates; "
+                "a module is either required or optional"
+            )
+
         return cls(
             name=str(data["name"]),
             version=str(data["version"]),
@@ -89,7 +103,8 @@ class Manifest:
             category=category,
             min_core_version=data.get("min_core_version"),
             max_core_version=data.get("max_core_version"),
-            depends=tuple(data.get("depends") or ()),
+            depends=depends,
+            integrates=integrates,
             installable=bool(data.get("installable", True)),
             auto_install=bool(data.get("auto_install", True)),
             removable=bool(data.get("removable", False)),
@@ -111,6 +126,7 @@ class Manifest:
             "min_core_version": self.min_core_version,
             "max_core_version": self.max_core_version,
             "depends": list(self.depends),
+            "integrates": list(self.integrates),
             "installable": self.installable,
             "auto_install": self.auto_install,
             "removable": self.removable,

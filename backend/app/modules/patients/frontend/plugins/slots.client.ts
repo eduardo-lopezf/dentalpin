@@ -4,6 +4,9 @@ import { registerSlot } from '~~/app/composables/useModuleSlots'
 export default defineNuxtPlugin(() => {
   registerSlot('dashboard.activity', {
     id: 'patients.dashboard.recent',
+    labelKey: 'settings.widgets.catalog.patients.recent.title',
+    descriptionKey: 'settings.widgets.catalog.patients.recent.summary',
+    widget: true,
     component: defineAsyncComponent(() => import('../components/home/RecentPatientsPanel.vue')),
     order: 10,
     permission: 'patients.read'
@@ -13,6 +16,9 @@ export default defineNuxtPlugin(() => {
   // (order 60) so the data snapshots from other modules surface first.
   registerSlot('patient.summary.cards', {
     id: 'patients.patient.summary.cards.quickActions',
+    labelKey: 'settings.widgets.catalog.patients.quickActions.title',
+    descriptionKey: 'settings.widgets.catalog.patients.quickActions.summary',
+    widget: true,
     component: defineAsyncComponent(() => import('../components/patient/QuickActionsCard.vue')),
     order: 60,
     permission: 'patients.read'

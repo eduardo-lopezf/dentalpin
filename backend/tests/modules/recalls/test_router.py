@@ -265,3 +265,62 @@ async def test_suggestion_uses_category_map(
     assert suggestion["reason"] == "hygiene"
     assert suggestion["interval_months"] == 6
     assert suggestion["matched_setting"] is True
+
+
+@pytest.mark.asyncio
+async def test_recalls_work_while_the_professionals_app_is_off(
+    client: AsyncClient,
+    auth_headers: dict,
+    test_clinic: Clinic,
+    test_patient: Patient,
+    db_session: AsyncSession,
+):
+    """The directory is an integration (ADR 0037): with it off a recall is
+    created and listed with nobody assigned, and assigning is refused."""
+    from uuid import uuid4
+
+    from app.core.plugins.registry import module_registry
+    from app.modules.professionals.models import Professional
+
+    dentist = Professional(
+        id=uuid4(),
+        clinic_id=test_clinic.id,
+        first_name="Dra",
+        last_name="Soto",
+        professional_type="dentist",
+        is_active=True,
+    )
+    db_session.add(dentist)
+    await db_session.commit()
+    payload = {
+        "patient_id": str(test_patient.id),
+        "due_month": "2026-08-01",
+        "reason": "hygiene",
+    }
+
+    module_registry.deactivate("professionals")
+    try:
+        assigned = await client.post(
+            "/api/v1/recalls/",
+            json={**payload, "assigned_professional_id": str(dentist.id)},
+            headers=auth_headers,
+        )
+        unassigned = await client.post("/api/v1/recalls/", json=payload, headers=auth_headers)
+        listed = await client.get("/api/v1/recalls/?page_size=10", headers=auth_headers)
+    finally:
+        module_registry.activate("professionals")
+
+    assert assigned.status_code == 404, assigned.text
+    assert "not available" in assigned.text
+    assert unassigned.status_code == 201, unassigned.text
+    assert unassigned.json()["data"]["assigned_professional_id"] is None
+    assert listed.status_code == 200 and listed.json()["total"] == 1
+
+    # Back on: the same assignment goes through.
+    again = await client.post(
+        "/api/v1/recalls/",
+        json={**payload, "assigned_professional_id": str(dentist.id)},
+        headers=auth_headers,
+    )
+    assert again.status_code == 201, again.text
+    assert again.json()["data"]["assigned_professional_id"] == str(dentist.id)

@@ -195,17 +195,6 @@ class TreatmentPlanResponse(BaseModel):
     budget: BudgetBrief | None = None
 
 
-class BudgetAddendumResponse(BaseModel):
-    """Result of pricing the treatments added after a plan was confirmed."""
-
-    budget_id: UUID
-    budget_number: str
-    #: False when the lines joined the plan's existing draft instead of
-    #: becoming a document of their own.
-    created: bool
-    item_count: int
-
-
 class PlanNextAction(BaseModel):
     """What has to happen next for the plan to move on.
 
@@ -368,11 +357,6 @@ class ReorderItemsRequest(BaseModel):
 
 class LinkBudgetRequest(BaseModel):
     budget_id: UUID
-
-
-class GenerateBudgetResponse(BaseModel):
-    budget_id: UUID
-    budget_number: str
 
 
 # ---------------------------------------------------------------------------

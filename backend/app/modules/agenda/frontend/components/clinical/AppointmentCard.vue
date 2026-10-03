@@ -65,7 +65,7 @@ const professionalInitials = computed(() => {
 
 const patientName = computed(() => {
   const p = props.appointment.patient
-  if (!p) return '—'
+  if (!p) return props.appointment.title || '—'
   return `${p.first_name} ${p.last_name}`.trim()
 })
 

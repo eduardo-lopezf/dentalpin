@@ -44,6 +44,7 @@ export default defineNuxtPlugin(() => {
   // Dashboard widget — counters strip.
   registerSlot('dashboard.attention', {
     id: 'recalls.dashboard.due-overdue',
+    labelKey: 'settings.home.labels.recallsDue',
     component: defineAsyncComponent(() => import('../components/RecallDashboardWidget.vue')),
     permission: 'recalls.read',
     order: 30

@@ -62,6 +62,7 @@ See `docs/technical/core-api.md` for the full schema. Key fields:
 | `category` | yes | `official` or `community`. |
 | `min_core_version` | recommended | Reject install if core is older. |
 | `depends` | yes (list) | Module names that must install first. |
+| `integrates` | no (list) | Modules linked when they run and done without when they do not. See §6. |
 | `installable` / `auto_install` / `removable` | yes | Policy flags. `removable` defaults to `False`; opt in only when the module ships an isolated Alembic branch (the validator enforces this). |
 | `data_files` | optional | Seed YAML paths (relative). |
 | `role_permissions` | recommended | Declarative RBAC (see §7). |
@@ -485,15 +486,24 @@ survives in two places: a manual full-schema upgrade, and the bootstrap
 of a database that has no `core_module` table yet (nothing can have been
 uninstalled there).
 
-#### What happens between the click and the restart
+#### Disabled is not uninstalled
 
-`POST /api/v1/modules/<name>/uninstall` returns `202` with
-`requires_restart: true` — the lifespan processor does the work at the
-next boot. Until then the module is still mounted, so the core closes
-`module_gate` for it: every `/api/v1/<name>/…` request answers `409`
-instead of writing into tables that are about to be dropped. Installing
-the module again before the restart cancels the removal and re-opens the
-gate.
+A module that is switched off is `disabled`: nothing of it is mounted,
+but its tables stay and its branch keeps being migrated at boot
+([ADR 0035](../adr/0035-apps-are-disabled-not-uninstalled.md)). That is
+the everyday switch — `dentalpin modules enable|disable <name>` — and it
+is why a module with `auto_install=False` starts `disabled`, not
+`uninstalled`. `uninstall` is CLI-only and is the one operation that
+drops tables.
+
+#### What happens between the command and the restart
+
+`dentalpin modules disable` and `uninstall` both take effect at the next
+boot. Until then the module is still mounted, so the core closes
+`module_gate` for it: every `/api/v1/<name>/…` request answers `409` —
+after an uninstall, instead of writing into tables that are about to be
+dropped. Enabling the module again before the restart cancels the change
+and re-opens the gate.
 
 When the processor finally runs, its `unmount` step takes the module's
 event handlers off the bus and its tools out of the copilot registry
@@ -632,6 +642,30 @@ The frontend fetches `/api/v1/modules/-/active` at login and renders
 the merged list. Permission filtering runs server-side; i18n resolves
 client-side.
 
+### Contributing a tab or data to another App's screen
+
+A screen never names the modules it hosts
+([ADR 0041](../adr/0041-a-screen-hosts-other-apps-through-slots.md)).
+To add a tab to the patient record, register into `patient.detail.tabs`
+with `tab: { value, icon }` and a `labelKey`; the component receives
+`ctx: { patient }`. To give a list your data for a whole page of rows,
+add a `loader(api, input)` to the registration — the host calls it with
+its own API client and passes the result back through `ctx`.
+
+### Listing a registration as a widget
+
+Give a registration `widget: true` with a `labelKey` (and
+`descriptionKey`) and the Widgets page of Settings (`/settings/widgets`) lists it, with an
+example of the component fed made-up data — so whatever loads its data
+must honour `useWidgetPreview()`
+([ADR 0040](../adr/0040-widgets-are-read-from-the-registry-apis-are-declared-in-apps-json.md)).
+Add the slot's place name under `settings.widgets.slots.<slot>` in the
+host locales if it is not there yet.
+
+A registration in a home-page slot (`dashboard.*`) should carry a `labelKey`
+even when it is not a widget: Settings → Apps → Espacio de trabajo lists every one so
+the clinic can hide or reorder it, and shows the raw id when it has no name.
+
 ### Canonical slots (v1)
 
 | Name | Context (`ctx`) |
@@ -716,6 +750,44 @@ dependencies are uninstalled schedules the full chain.
 Circular dependencies are rejected at discovery time (topological
 sort fails loud).
 
+### Contracts
+
+To use another module's data without importing it, ask the core
+([ADR 0039](../adr/0039-modules-reach-each-other-through-core-contracts.md)).
+`app/core/contracts.py` declares what can be asked for; the owner
+returns an implementation from `get_providers()`, and you call
+`contracts.provider(Contract)`:
+
+```python
+from app.core.contracts import PatientDirectory, provider
+
+directory = provider(PatientDirectory)
+if directory is None:
+    ...  # the Patients App is off: carry on without the link
+else:
+    briefs = await directory.briefs(db, clinic_id, patient_ids)
+```
+
+`provider()` only sees running modules, so `None` is the availability
+check. Prefer this over an import even for a module in `depends` when
+all you need is to validate or label a reference: `agenda` imports no
+other module at all. If the contract lacks what you need, widen it and
+its provider.
+
+### `integrates`
+
+Optional link ([ADR 0037](../adr/0037-a-module-integrates-with-what-it-can-live-without.md)).
+Imports and foreign keys into the target are allowed, as with `depends`,
+but enabling your module does not enable it and it can be disabled while
+yours runs. It takes no part in ordering, so it may point at a module
+that depends on yours.
+
+Declaring it is a promise: while the target is disabled your module
+keeps working, offers none of the target's records (and says so),
+writes nothing to it, and deletes nothing — the links show again when
+the target is enabled. Guard with `module_registry.is_installed("<name>")`,
+and make any column that points at the target nullable.
+
 ### Events
 
 The core publishes a fixed catalog of events. See `docs/technical/core-api.md`
@@ -740,7 +812,8 @@ Naming convention: `<module>.<action>` (lower-snake).
 
 ### FK cross-module
 
-Allowed **only** when the target module is in `depends`. A CI
+Allowed **only** when the target module is in `depends` or
+`integrates`. A CI
 validator rejects migrations that reference tables of undeclared
 modules.
 

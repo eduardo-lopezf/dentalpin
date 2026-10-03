@@ -32,6 +32,9 @@ async def _confirmed_plan(client: AsyncClient, auth_headers: dict, setup: dict, 
     plan_id, item_ids = await _create_plan_with_items(client, auth_headers, setup, [tooth])
     r = await client.post(f"{PLANS}/{plan_id}/confirm", headers=auth_headers)
     assert r.status_code == 200, r.text
+    # The budget is minted by `budget` when it hears of the confirmation
+    # (ADR 0042), so it is on the plan, not in the confirm response.
+    r = await client.get(f"{PLANS}/{plan_id}", headers=auth_headers)
     return plan_id, r.json()["data"]["budget_id"], item_ids
 
 

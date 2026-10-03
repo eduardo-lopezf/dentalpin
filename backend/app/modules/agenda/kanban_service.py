@@ -28,22 +28,24 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.models import ClinicMembership, User
-from app.modules.professionals.models import Professional
 
+from .integrations import professionals, working_hours
 from .models import Appointment
 
 
 async def _fetch_professionals(db: AsyncSession, clinic_id: UUID) -> list[tuple[UUID, str, str]]:
-    """Return every active, schedulable professional in the clinic."""
-    # First, load explicit directory `Professional` rows.
-    result = await db.execute(
-        select(Professional.id, Professional.first_name, Professional.last_name).where(
-            Professional.clinic_id == clinic_id,
-            Professional.professional_type.in_(["dentist", "hygienist"]),
-            Professional.is_active.is_(True),
-        )
-    )
-    pros: list[tuple[UUID, str, str]] = [(r.id, r.first_name, r.last_name) for r in result.all()]
+    """Return every active, schedulable professional in the clinic.
+
+    None while the Professionals App is off: the directory is theirs to
+    offer (ADR 0037).
+    """
+    directory = professionals()
+    if directory is None:
+        return []
+
+    pros: list[tuple[UUID, str, str]] = [
+        (p.id, p.first_name, p.last_name) for p in await directory.list_bookable(db, clinic_id)
+    ]
 
     # Also include active `User` accounts that have a ClinicMembership with a
     # clinical role (dentist/hygienist) and don't already have a directory
@@ -80,6 +82,7 @@ async def _fetch_active_treatments(
         ).where(
             Appointment.clinic_id == clinic_id,
             Appointment.status == "in_treatment",
+            Appointment.professional_id.isnot(None),
             Appointment.start_time >= day_start,
             Appointment.start_time <= day_end,
         )
@@ -103,41 +106,14 @@ async def _fetch_schedule_states(
     (the professional has working hours today but this minute is a closed
     block inside them) or ``"off"`` (outside working hours entirely).
 
-    Uses the ``schedules`` module when installed; otherwise returns an
-    empty dict so every professional defaults to ``free`` / ``in_treatment``.
+    Asks whoever supplies working hours — the ``schedules`` module, when
+    it runs. With nobody to ask, every professional defaults to ``free``
+    / ``in_treatment``.
     """
-    try:
-        from app.modules.schedules.services.availability import AvailabilityService
-    except Exception:
+    hours = working_hours()
+    if hours is None:
         return {}
-
-    target_day = target.date()
-    out: dict[UUID, str] = {}
-    for pid in professional_ids:
-        try:
-            _, ranges = await AvailabilityService.resolve(
-                db, clinic_id, target_day, target_day, professional_id=pid
-            )
-        except Exception:
-            continue
-
-        # Find the range containing ``target``. If inside an "open" range
-        # → keep default (free/in_treatment); if "closed" (break inside
-        # working hours) → on_break; otherwise off.
-        state = "off"
-        any_open_today = any(r.state == "open" for r in ranges)
-        for r in ranges:
-            if r.start <= target <= r.end:
-                if r.state == "open":
-                    state = "free"
-                elif r.state == "closed" and any_open_today:
-                    state = "on_break"
-                else:
-                    state = "off"
-                break
-        if state != "free":
-            out[pid] = state
-    return out
+    return await hours.professional_states(db, clinic_id, professional_ids, target)
 
 
 class KanbanDayService:

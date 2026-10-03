@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- refactor(media): el registro de dueños de adjuntos pasa a
+  `app/core/attachments.py`; `media/attachment_registry.py` lo reexporta.
+  Así un módulo registra su `owner_type` sin importar `media` (ADR 0039).
+
+- feat(media): el módulo registra por primera vez sus piezas de la ficha
+  del paciente (ADR 0041): la pestaña «Galería» en `patient.detail.tabs`
+  y el modo Documentos en `patient.detail.administracion.documents`.
+  Antes la ficha las incrustaba por nombre.
 - feat(i18n): el módulo tiene **fichero de idiomas**. No tenía ninguno: sus
   pantallas —galería de fotos, subida y visor de documentos— funcionaban
   enteras con el segundo argumento de `t(clave, 'por defecto')`, unas 100

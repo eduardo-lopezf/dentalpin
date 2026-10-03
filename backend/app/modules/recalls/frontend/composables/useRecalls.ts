@@ -292,9 +292,12 @@ export function usePatientRecalls(patientId: string) {
   const isLoading = useState<boolean>(`${stateKey}:loading`, () => false)
   const loaded = useState<boolean>(`${stateKey}:loaded`, () => false)
   const api = useRecalls()
+  // Inside a widget example (Settings → Widgets) the patient is made up:
+  // there is nothing to ask the API about (ADR 0040).
+  const preview = useWidgetPreview()
 
   async function refresh() {
-    if (!patientId) {
+    if (!patientId || preview) {
       recalls.value = []
       return
     }

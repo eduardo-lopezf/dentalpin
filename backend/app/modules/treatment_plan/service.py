@@ -12,12 +12,12 @@ from sqlalchemy import text as sa_text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.contracts import Collections, PlanBudgets, ProfessionalDirectory, provider
 from app.core.events import event_bus
 from app.core.events.types import EventType
 from app.core.utils.search import FOLD_FROM, FOLD_TO, search_tokens
 from app.modules.odontogram.models import Treatment
 from app.modules.patients.models import Patient
-from app.modules.professionals.models import Professional
 
 from .models import (
     PlannedTreatmentItem,
@@ -37,19 +37,19 @@ async def _validate_professional_in_clinic(
     profile. Raises ``ValueError`` so the router maps it to a 400 response,
     in line with the other validation errors in this module.
     """
-    result = await db.execute(
-        select(Professional.id).where(
-            Professional.id == professional_id,
-            Professional.clinic_id == clinic_id,
-            Professional.professional_type.in_(("dentist", "hygienist")),
-            Professional.is_active.is_(True),
-        )
-    )
-    if result.scalar_one_or_none() is None:
+    # Asked of the directory's contract, not read from its table
+    # (ADR 0039). With the Professionals App off nobody can be assigned.
+    directory = provider(ProfessionalDirectory)
+    if directory is None:
+        raise ValueError(PROFESSIONALS_UNAVAILABLE)
+    if not await directory.is_bookable(db, clinic_id, professional_id):
         raise ValueError("Invalid professional for this clinic")
 
 
 logger = logging.getLogger(__name__)
+
+PROFESSIONALS_UNAVAILABLE = "Professionals are not available — nobody can be assigned"
+BUDGETS_UNAVAILABLE = "Budgets are not available — a plan cannot be linked to one"
 
 
 def _treatment_loader() -> selectinload:
@@ -259,6 +259,20 @@ async def stewards_of(db: AsyncSession, clinic_id: UUID, plan: TreatmentPlan) ->
     return {row.id for row in rows}
 
 
+async def _attach_budgets(db: AsyncSession, clinic_id: UUID, plans: list[TreatmentPlan]) -> None:
+    """Put each plan's budget brief on ``plan.budget``.
+
+    Asked of the ``PlanBudgets`` contract in one go (ADR 0039). With the
+    Budgets App off every plan reads as having no budget: nothing is
+    locked by one, nothing is waiting on one, and the links stay stored.
+    """
+    budgets = provider(PlanBudgets)
+    ids = {plan.budget_id for plan in plans if plan.budget_id}
+    briefs = await budgets.briefs(db, clinic_id, ids) if budgets and ids else {}
+    for plan in plans:
+        plan.budget = briefs.get(plan.budget_id) if plan.budget_id else None
+
+
 def _is_plan_locked(plan: TreatmentPlan) -> bool:
     """A plan is locked once it has a non-cancelled budget attached.
 
@@ -269,7 +283,7 @@ def _is_plan_locked(plan: TreatmentPlan) -> bool:
 
     **Adding is exempt and does not consult this.** A treatment added to a
     confirmed plan alters none of the agreed lines; what it costs is priced
-    separately (``unbudgeted_items`` and ``budget_the_addendum``). Callers:
+    separately (``unbudgeted_items``, and ``budget``'s ``price_additions``). Callers:
     ``update_item``, ``remove_item`` and ``reorder_items``.
     """
     if not plan.budget_id or plan.budget is None:
@@ -286,19 +300,31 @@ class TreatmentPlanService:
 
     @staticmethod
     async def generate_plan_number(db: AsyncSession, clinic_id: UUID) -> str:
-        """Generate a unique plan number for the clinic."""
-        year = datetime.now(UTC).year
+        """Generate a unique plan number for the clinic.
 
-        # Count existing plans for this year
+        One past the highest number of the year, not one past the count:
+        counting breaks the moment a row is ever removed — the next number
+        lands on a plan that exists and the insert fails on
+        ``uq_treatment_plan_number``. Soft-deleted plans still hold their
+        number, so they are counted in. Same rule as
+        ``BudgetNumberService``.
+        """
+        year = datetime.now(UTC).year
+        prefix = f"PLAN-{year}-"
+
         result = await db.execute(
-            select(func.count(TreatmentPlan.id)).where(
+            select(func.max(TreatmentPlan.plan_number)).where(
                 TreatmentPlan.clinic_id == clinic_id,
-                TreatmentPlan.plan_number.like(f"PLAN-{year}-%"),
+                TreatmentPlan.plan_number.like(f"{prefix}%"),
             )
         )
-        count = result.scalar_one()
+        highest = result.scalar_one_or_none()
+        try:
+            sequence = int(highest.split("-")[-1]) + 1 if highest else 1
+        except ValueError:
+            sequence = 1
 
-        return f"PLAN-{year}-{count + 1:04d}"
+        return f"{prefix}{sequence:04d}"
 
     # -------------------------------------------------------------------------
     # CRUD Operations
@@ -377,7 +403,6 @@ class TreatmentPlanService:
             .where(*base_where)
             .options(
                 selectinload(TreatmentPlan.patient),
-                selectinload(TreatmentPlan.budget),
                 selectinload(TreatmentPlan.items)
                 .selectinload(PlannedTreatmentItem.treatment)
                 .options(
@@ -392,6 +417,7 @@ class TreatmentPlanService:
         )
         result = await db.execute(query)
         items = list(result.scalars().all())
+        await _attach_budgets(db, clinic_id, items)
 
         return items, total
 
@@ -411,7 +437,6 @@ class TreatmentPlanService:
             )
             .options(
                 selectinload(TreatmentPlan.patient),
-                selectinload(TreatmentPlan.budget),
                 selectinload(TreatmentPlan.items)
                 .selectinload(PlannedTreatmentItem.treatment)
                 .selectinload(Treatment.teeth),
@@ -421,7 +446,10 @@ class TreatmentPlanService:
                 selectinload(TreatmentPlan.items).selectinload(PlannedTreatmentItem.sessions),
             )
         )
-        return result.scalar_one_or_none()
+        plan = result.scalar_one_or_none()
+        if plan is not None:
+            await _attach_budgets(db, clinic_id, [plan])
+        return plan
 
     @staticmethod
     async def unbudgeted_items(
@@ -448,33 +476,15 @@ class TreatmentPlanService:
         guard use. Cancelled ones do not count: a reopen cancels a budget,
         and its lines stop being a quote anybody owes.
         """
-        from app.modules.budget.models import Budget, BudgetItem
-
         items = plan.items or []
         if not items:
             return []
 
-        conditions = [Budget.plan_number_snapshot == plan.plan_number]
-        if plan.budget_id is not None:
-            conditions.append(Budget.id == plan.budget_id)
-
-        priced = set(
-            (
-                await db.execute(
-                    select(BudgetItem.treatment_id)
-                    .join(Budget, Budget.id == BudgetItem.budget_id)
-                    .where(
-                        Budget.clinic_id == clinic_id,
-                        Budget.deleted_at.is_(None),
-                        Budget.status != "cancelled",
-                        BudgetItem.treatment_id.is_not(None),
-                        or_(*conditions),
-                    )
-                )
-            )
-            .scalars()
-            .all()
-        )
+        # With the Budgets App off nothing is quoted, so nothing is behind.
+        budgets = provider(PlanBudgets)
+        if budgets is None:
+            return []
+        priced = await budgets.priced_treatment_ids(db, clinic_id, plan.plan_number, plan.budget_id)
 
         return [i for i in items if i.treatment_id and i.treatment_id not in priced]
 
@@ -491,112 +501,11 @@ class TreatmentPlanService:
         scrolling the patient's budget list, which is exactly how a second
         document goes unsent.
         """
-        from app.modules.budget.models import Budget
-
-        if not plan.plan_number:
+        budgets = provider(PlanBudgets)
+        if budgets is None:
             return []
-        rows = await db.execute(
-            select(Budget)
-            .where(
-                Budget.clinic_id == clinic_id,
-                Budget.deleted_at.is_(None),
-                Budget.status != "cancelled",
-                Budget.plan_number_snapshot == plan.plan_number,
-            )
-            .order_by(Budget.created_at.asc())
-        )
-        return [b for b in rows.scalars().all() if b.id != plan.budget_id]
-
-    @staticmethod
-    async def budget_the_addendum(
-        db: AsyncSession,
-        clinic_id: UUID,
-        plan_id: UUID,
-        user_id: UUID,
-    ):
-        """Put a price on the treatments added since the plan was confirmed.
-
-        Normally this mints an **addendum**: its own draft, its own
-        acceptance, carrying the plan's number so every query that walks a
-        plan's budgets finds it. The document the patient was shown is not
-        touched.
-
-        It only ever has work to do because `budget`'s own
-        ``_on_treatment_added_to_plan`` stops at a budget that is not a
-        draft. While the budget is still a draft that handler mirrors every
-        addition into it as it happens, so nothing is ever left unpriced
-        and this is not called. The draft branch below is therefore a
-        **repair path**, not the usual one: an event handler that raised
-        is recorded and never retried (ADR 0020), and without it the only
-        way to price those lines again would be by hand.
-
-        ``plan.budget_id`` keeps pointing at the original. It means "the
-        budget this plan was agreed on", and an addendum does not replace
-        that — `unbudgeted_items` is what knows about both.
-
-        Returns ``(budget, created, item_count)``. The count comes from
-        here rather than from ``budget.items`` at the caller: that is a
-        lazy relationship, and reading it after the service returns asks
-        for IO where none can happen.
-        """
-        from app.modules.budget.models import Budget
-        from app.modules.budget.service import BudgetItemService, BudgetService
-
-        plan = await TreatmentPlanService.get(db, clinic_id, plan_id)
-        if not plan:
-            raise ValueError("Plan not found")
-        if plan.status not in ("pending", "active"):
-            raise ValueError("Only a plan in progress can have an addendum")
-
-        pending_items = await TreatmentPlanService.unbudgeted_items(db, clinic_id, plan)
-        if not pending_items:
-            raise ValueError("Every treatment in this plan is already budgeted")
-
-        patient = await db.get(Patient, plan.patient_id)
-        snapshot = TreatmentPlanService._build_plan_snapshot(plan, patient)
-        wanted = {str(i.treatment_id) for i in pending_items}
-        lines = [line for line in snapshot["items"] if line.get("treatment_id") in wanted]
-        snapshot["items"] = lines
-        snapshot["plan_status"] = plan.status
-
-        current = await db.get(Budget, plan.budget_id) if plan.budget_id else None
-        if current is not None and current.status == "draft":
-            for line in lines:
-                if not line.get("catalog_item_id") or not line.get("treatment_id"):
-                    continue
-                unit_price = line.get("unit_price")
-                await BudgetItemService.create_item(
-                    db,
-                    clinic_id,
-                    current.id,
-                    {
-                        "catalog_item_id": UUID(line["catalog_item_id"]),
-                        "quantity": 1,
-                        "treatment_id": UUID(line["treatment_id"]),
-                        "tooth_number": line.get("tooth_number"),
-                        "surfaces": line.get("surfaces"),
-                        "unit_price": (Decimal(unit_price) if unit_price is not None else None),
-                    },
-                )
-            await BudgetService._recalculate_totals(db, current)
-            budget, created = current, False
-        else:
-            budget = await BudgetService.create_addendum_for_plan(db, clinic_id, user_id, snapshot)
-            created = True
-
-        TreatmentPlanService.record_history(
-            db,
-            clinic_id=clinic_id,
-            plan_id=plan.id,
-            action="budget_addendum" if created else "budget_extended",
-            actor_user_id=user_id,
-            payload={
-                "budget_id": str(budget.id),
-                "budget_number": budget.budget_number,
-                "item_count": len(lines),
-            },
-        )
-        return budget, created, len(lines)
+        live = await budgets.live_for_plan(db, clinic_id, plan.plan_number)
+        return [b for b in live if b.id != plan.budget_id]
 
     @staticmethod
     async def next_action(
@@ -642,7 +551,9 @@ class TreatmentPlanService:
         # including on an `active` plan, where treatment has begun off the
         # back of an attended visit and the paperwork is now the thing
         # that is behind.
-        if budget_status is None:
+        # No budget and somebody to make one. With the Budgets App off
+        # there is nobody to ask, and the plan moves on to the chair.
+        if budget_status is None and provider(PlanBudgets) is not None:
             return {"key": "generate_budget"}
 
         # Work the clinic took on after the plan was confirmed, which no
@@ -819,18 +730,17 @@ class TreatmentPlanService:
         # so it is worth a line of its own in the history rather than
         # disappearing into a generic "updated".
         if new_professional_id != old_professional_id:
-            names = await db.execute(
-                sa_text(
-                    "SELECT id, first_name || ' ' || last_name AS full_name "
-                    "FROM professionals WHERE id = ANY(:ids)"
-                ),
-                {
-                    "ids": [
-                        pid for pid in (old_professional_id, new_professional_id) if pid is not None
-                    ]
-                },
+            directory = provider(ProfessionalDirectory)
+            briefs = (
+                await directory.briefs(
+                    db,
+                    clinic_id,
+                    [p for p in (old_professional_id, new_professional_id) if p is not None],
+                )
+                if directory
+                else {}
             )
-            by_id = {row.id: row.full_name for row in names}
+            by_id = {pid: f"{b.first_name} {b.last_name}".strip() for pid, b in briefs.items()}
             TreatmentPlanService.record_history(
                 db,
                 clinic_id=clinic_id,
@@ -913,47 +823,50 @@ class TreatmentPlanService:
         await TreatmentPlanService._guard_collections(db, clinic_id, plan)
         await TreatmentPlanService._cleanup_orphan_planned_treatments(db, clinic_id, plan, user_id)
 
-        # The budget goes with its plan, every version of it — and this is
-        # the only way it goes (the budget endpoint refuses a plan's budget).
-        # Direct call, same carve-out as `confirm`/`reopen`: `budget` is in
-        # `manifest.depends` and the two must not be left half-deleted.
-        from app.modules.budget.service import BudgetService
-
-        await BudgetService.delete_for_plan(
-            db, clinic_id, plan.plan_number, plan.budget_id, user_id
-        )
-
         plan.deleted_at = datetime.now(UTC)
+
+        # The budgets go with their plan, every version of them — `budget`
+        # deletes them when it hears this (ADR 0042). The budget endpoint
+        # refuses to delete a plan's budget, so this is the only way they go.
+        event_bus.publish_after_commit(
+            db,
+            EventType.TREATMENT_PLAN_DELETED,
+            {
+                "plan_id": str(plan.id),
+                "clinic_id": str(clinic_id),
+                "patient_id": str(plan.patient_id),
+                "plan_number": plan.plan_number,
+                "budget_id": str(plan.budget_id) if plan.budget_id else None,
+                "deleted_by_user_id": str(user_id),
+            },
+        )
         return True
 
     @staticmethod
     async def _guard_collections(db: AsyncSession, clinic_id: UUID, plan: TreatmentPlan) -> None:
         """Refuse to delete or cancel a plan the patient has paid into.
 
-        Asks `payments` directly (it is in `manifest.depends`): this is a
+        Asks `payments` through the ``Collections`` contract: this is a
         precondition of the write, and an event could only report the
         mistake after it was made. The plan's budgets are every one it
         produced — the current link plus any carrying its number, so money
         on a budget cancelled by a reopen still counts.
-        """
-        from app.modules.budget.models import Budget
-        from app.modules.payments.service import LedgerService
 
-        conditions = [Budget.plan_number_snapshot == plan.plan_number]
-        if plan.budget_id is not None:
-            conditions.append(Budget.id == plan.budget_id)
-        budget_ids = list(
-            (
-                await db.execute(
-                    select(Budget.id).where(Budget.clinic_id == clinic_id, or_(*conditions))
-                )
-            )
-            .scalars()
-            .all()
+        With the Payments App off there is no ledger to ask and nothing
+        new is being collected, so the plan may go (ADR 0037).
+        """
+        ledger = provider(Collections)
+        if ledger is None:
+            return
+        budgets = provider(PlanBudgets)
+        budget_ids = (
+            await budgets.ids_for_plan(db, clinic_id, plan.plan_number, plan.budget_id)
+            if budgets
+            else []
         )
         treatment_ids = [item.treatment_id for item in plan.items if item.treatment_id]
 
-        if await LedgerService.plan_has_collections(
+        if await ledger.plan_has_collections(
             db, clinic_id, plan.patient_id, budget_ids, treatment_ids
         ):
             raise PlanHasCollectionsError()
@@ -1242,17 +1155,16 @@ class TreatmentPlanService:
         """
         # Load plan to confirm ownership (with budget for lock check).
         plan_q = await db.execute(
-            select(TreatmentPlan)
-            .where(
+            select(TreatmentPlan).where(
                 TreatmentPlan.id == plan_id,
                 TreatmentPlan.clinic_id == clinic_id,
                 TreatmentPlan.deleted_at.is_(None),
             )
-            .options(selectinload(TreatmentPlan.budget))
         )
         plan = plan_q.scalar_one_or_none()
         if not plan:
             return None
+        await _attach_budgets(db, clinic_id, [plan])
         if _is_plan_locked(plan):
             raise PlanLockedError("Plan is locked by an active budget")
 
@@ -1951,21 +1863,23 @@ class TreatmentPlanService:
         budget_id: UUID,
     ) -> TreatmentPlan | None:
         """Link an existing budget to the plan."""
-        from app.modules.budget.models import Budget
-
         plan = await TreatmentPlanService.get(db, clinic_id, plan_id)
         if not plan:
             return None
 
         # Verify budget exists and belongs to same clinic/patient
-        budget = await db.get(Budget, budget_id)
-        if not budget or budget.clinic_id != clinic_id:
+        budgets = provider(PlanBudgets)
+        if budgets is None:
+            raise ValueError(BUDGETS_UNAVAILABLE)
+        budget = (await budgets.briefs(db, clinic_id, [budget_id])).get(budget_id)
+        if not budget:
             raise ValueError("Invalid budget")
 
         if budget.patient_id != plan.patient_id:
             raise ValueError("Budget belongs to different patient")
 
         plan.budget_id = budget_id
+        plan.budget = budget
 
         return plan
 
@@ -2334,16 +2248,16 @@ class TreatmentPlanService:
 
         Side effects:
 
-        - Sets ``confirmed_at`` and increments the workflow timestamp.
-        - Calls ``BudgetService.create_from_plan`` to provision a draft
-          budget reusing the plan items as a snapshot. Atomicity is
-          guaranteed: if budget creation fails, the whole transaction
-          rolls back. ``treatment_plan`` declares ``budget`` in its
-          ``manifest.depends`` so the direct call respects the module
-          contract.
-        - Publishes ``treatment_plan.confirmed`` with a snapshot
-          payload so subscribers (patient_timeline, future hooks) do
-          not need to import treatment_plan models.
+        - Sets ``confirmed_at``.
+        - Publishes ``treatment_plan.confirmed`` with a snapshot payload.
+          ``budget`` hears it and mints the draft budget in its own
+          transaction, then announces ``budget.created_for_plan``, which
+          links it here (``events.on_budget_created_for_plan``). The plan
+          does not call ``budget`` and does not wait for it (ADR 0042): a
+          budget that fails to appear leaves a confirmed plan whose next
+          step is "generate budget".
+        - With the Budgets App off there is no acceptance to wait for, so
+          the plan goes straight on to ``active``.
         """
         plan = await TreatmentPlanService.get(db, clinic_id, plan_id)
         if not plan:
@@ -2365,32 +2279,12 @@ class TreatmentPlanService:
         snapshot["confirmed_at"] = plan.confirmed_at.isoformat()
         snapshot["confirmed_by_user_id"] = str(user_id)
 
-        # Create the draft budget alongside the transition. budget is in
-        # treatment_plan.manifest.depends so the direct service call is
-        # allowed (see treatment_plan/CLAUDE.md "Plan→budget direct
-        # call carve-out"). Budget creation is idempotent: if a budget
-        # already exists for the plan, BudgetService skips creation.
-        from app.modules.budget.service import BudgetService
-
-        budget = await BudgetService.create_from_plan_snapshot(
-            db,
-            clinic_id=clinic_id,
-            user_id=user_id,
-            snapshot=snapshot,
-        )
-        # Relink whenever the provisioning call handed us a budget, not
-        # only on the first confirmation. ``create_from_plan_snapshot``
-        # is idempotent against *non-cancelled* budgets, so on a
-        # re-confirmation after a reopen it returns a brand-new draft —
-        # and the old guard (`plan.budget_id is None`) dropped it on the
-        # floor, because reopen cancels the budget without clearing the
-        # link. The plan then sat in `pending` pointing at a cancelled
-        # budget, which matches no bandeja tab, while the fresh budget
-        # was orphaned. When nothing changed this is a no-op assignment.
-        if budget is not None:
-            plan.budget_id = budget.id
-
-        await db.flush()
+        # The budget the plan still links to, if it is live. `budget` mints
+        # a new one unless this is set — after a reopen the link points at
+        # a cancelled budget, which does not count.
+        live_budget = plan.budget if plan.budget and plan.budget.status != "cancelled" else None
+        snapshot["budget_id"] = str(live_budget.id) if live_budget else None
+        snapshot["plan_status"] = "pending"
 
         TreatmentPlanService.record_history(
             db,
@@ -2400,8 +2294,24 @@ class TreatmentPlanService:
             actor_user_id=user_id,
             from_status="draft",
             to_status="pending",
-            payload={"budget": budget.budget_number} if budget is not None else None,
         )
+
+        # Acceptance of the budget is what moves a plan from `pending` to
+        # `active`. With the Budgets App off nobody will ever accept one.
+        budgets_available = provider(PlanBudgets) is not None
+        if not budgets_available:
+            plan.status = "active"
+            TreatmentPlanService.record_history(
+                db,
+                clinic_id=clinic_id,
+                plan_id=plan.id,
+                action="started",
+                from_status="pending",
+                to_status="active",
+                payload={"trigger": "budgets_unavailable"},
+            )
+
+        await db.flush()
 
         event_bus.publish_after_commit(db, EventType.TREATMENT_PLAN_CONFIRMED, snapshot)
         event_bus.publish_after_commit(
@@ -2410,7 +2320,7 @@ class TreatmentPlanService:
             {
                 "plan_id": str(plan.id),
                 "old_status": "draft",
-                "new_status": "pending",
+                "new_status": plan.status,
                 "clinic_id": str(clinic_id),
             },
         )
@@ -2425,9 +2335,9 @@ class TreatmentPlanService:
     ) -> TreatmentPlan:
         """Reopen a plan that is under way back to ``draft``.
 
-        Cancels the linked budget if there is one (so reception can edit
-        items again). The companion budget event is published by
-        ``BudgetWorkflowService.cancel_budget``.
+        ``budget`` cancels the linked budget when it hears the status
+        change (ADR 0042), so reception can edit items again. Until it has,
+        the plan is already a draft, and a draft is editable.
 
         Accepts ``active`` as well as ``pending``. It used to take only
         ``pending``, which was fine while acceptance was the sole way in;
@@ -2445,20 +2355,8 @@ class TreatmentPlanService:
             raise ValueError(f"Cannot reopen plan in status '{plan.status}'")
         previous_status = plan.status
 
-        # Cancel linked budget if one exists. The plan ↔ budget unlock
-        # is the established carve-out (treatment_plan depends on
-        # budget) — see ADR 0003.
-        if plan.budget_id and plan.budget is not None and plan.budget.status != "cancelled":
-            from app.modules.budget.workflow import BudgetWorkflowService
-
-            await BudgetWorkflowService.cancel_budget(
-                db,
-                plan.budget,
-                user_id,
-                reason="Plan reopened for editing",
-            )
-
-        cancelled_budget = plan.budget.budget_number if plan.budget is not None else None
+        live_budget = plan.budget if plan.budget and plan.budget.status != "cancelled" else None
+        cancelled_budget = live_budget.budget_number if live_budget else None
 
         plan.status = "draft"
         plan.confirmed_at = None
@@ -2484,8 +2382,14 @@ class TreatmentPlanService:
                 "old_status": previous_status,
                 "new_status": "draft",
                 "clinic_id": str(clinic_id),
+                # What `budget` needs to cancel the plan's budget.
+                "budget_id": str(live_budget.id) if live_budget else None,
+                "user_id": str(user_id),
             },
         )
+        # The draft is no longer held by that budget, whatever the brief
+        # loaded a moment ago says.
+        plan.budget = None
         return plan
 
     @staticmethod

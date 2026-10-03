@@ -96,3 +96,18 @@ def test_manifest_snapshot_roundtrip() -> None:
     assert restored.name == m.name
     assert restored.depends == m.depends
     assert restored.role_permissions == m.role_permissions
+
+
+def test_integrates_defaults_to_empty_and_round_trips() -> None:
+    assert Manifest.from_dict({"name": "foo", "version": "1.0"}).integrates == ()
+
+    m = Manifest.from_dict({"name": "foo", "version": "1.0", "integrates": ["bar", "baz"]})
+    assert m.integrates == ("bar", "baz")
+    assert Manifest.from_dict(m.to_snapshot()).integrates == m.integrates
+
+
+def test_a_module_cannot_be_both_required_and_optional() -> None:
+    with pytest.raises(ManifestError, match="both depends and integrates"):
+        Manifest.from_dict(
+            {"name": "foo", "version": "1.0", "depends": ["bar"], "integrates": ["bar"]}
+        )

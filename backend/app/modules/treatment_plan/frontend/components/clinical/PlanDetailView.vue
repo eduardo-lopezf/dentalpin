@@ -394,7 +394,7 @@ function historyDetail(entry: PlanHistoryEntry): string {
   if (entry.action === 'closed') {
     return [p.reason, p.note].filter(Boolean).join(' · ')
   }
-  return String(p.treatment || p.budget || '')
+  return String(p.treatment || p.budget || p.budget_number || '')
 }
 
 function formatHistoryDate(iso: string): string {
@@ -522,11 +522,15 @@ const pendingCount = computed(() =>
   props.plan.items.filter(i => i.status === 'pending').length
 )
 
-// Can create budget: active or completed plan, without active budget
+// Can create budget: a confirmed plan without a live budget. `pending`
+// counts: confirming no longer makes the budget itself — `budget` does
+// when it hears of it — so a plan can be confirmed and still lack one.
+// Budgets are that App's to write, hence its permission: with the App
+// off nobody holds it and the action is not offered.
 const canGenerateBudget = computed(() => {
-  const validStatus = ['active', 'completed'].includes(props.plan.status)
-  const noActiveBudget = !props.plan.budget_id || props.plan.budget?.status === 'cancelled'
-  return validStatus && noActiveBudget
+  const validStatus = ['pending', 'active', 'completed'].includes(props.plan.status)
+  const noActiveBudget = !props.plan.budget || props.plan.budget.status === 'cancelled'
+  return validStatus && noActiveBudget && can(PERMISSIONS.budget.write)
 })
 
 // ============================================================================
@@ -792,7 +796,7 @@ async function handleBudgetAddendum() {
       budget_number: string
       created: boolean
       item_count: number
-    }>>(`/api/v1/treatment_plan/treatment-plans/${props.plan.id}/budget-addendum`)
+    }>>(`/api/v1/budget/plans/${props.plan.id}/addendum`)
     const result = response.data
     if (!result) return
 
@@ -1238,6 +1242,7 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
       :readonly="readonly"
       :can-generate-budget="canGenerateBudget"
       :can-write="can(PERMISSIONS.treatmentPlans.write)"
+      :can-budget="can(PERMISSIONS.budget.write)"
       @confirm="openActivateModal"
       @generate-budget="handleGenerateBudget"
       @budget-addendum="handleBudgetAddendum"

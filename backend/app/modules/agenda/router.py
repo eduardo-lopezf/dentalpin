@@ -20,8 +20,10 @@ from app.core.auth.dependencies import ClinicContext, get_clinic_context, requir
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import get_db
 
+from .integrations import TREATMENTS_UNAVAILABLE, treatments_available
 from .kanban_service import KanbanDayService
 from .models import Appointment
+from .presenter import present, present_one
 from .schemas import (
     AppointmentCabinetAssignment,
     AppointmentCabinetEventResponse,
@@ -79,7 +81,7 @@ async def list_appointments(
         patient_id=patient_id,
     )
     return PaginatedApiResponse(
-        data=[AppointmentResponse.model_validate(a) for a in appointments],
+        data=await present(db, ctx.clinic_id, appointments),
         total=total,
         page=page,
         page_size=page_size,
@@ -105,7 +107,7 @@ async def create_appointment(
                 detail="Patient not found",
             )
 
-    if not await AppointmentService.validate_professional_access(
+    if data.professional_id and not await AppointmentService.validate_professional_access(
         db, ctx.clinic_id, data.professional_id
     ):
         raise HTTPException(
@@ -131,7 +133,7 @@ async def create_appointment(
             detail="Time slot is already occupied",
         ) from e
 
-    return ApiResponse(data=AppointmentResponse.model_validate(appointment))
+    return ApiResponse(data=await present_one(db, appointment))
 
 
 @router.get("/appointments/{appointment_id}", response_model=ApiResponse[AppointmentResponse])
@@ -149,7 +151,7 @@ async def get_appointment(
             detail="Appointment not found",
         )
     events = await AppointmentService.list_status_events(db, ctx.clinic_id, appointment.id)
-    response = AppointmentResponse.model_validate(appointment)
+    response = await present_one(db, appointment)
     response.history = [AppointmentStatusEventResponse.model_validate(e) for e in events]
     return ApiResponse(data=response)
 
@@ -204,7 +206,7 @@ async def update_appointment(
             detail="Time slot is already occupied",
         ) from e
 
-    return ApiResponse(data=AppointmentResponse.model_validate(appointment))
+    return ApiResponse(data=await present_one(db, appointment))
 
 
 @router.delete("/appointments/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -273,7 +275,7 @@ async def transition_appointment(
         ) from e
 
     events = await AppointmentService.list_status_events(db, ctx.clinic_id, appointment.id)
-    response = AppointmentResponse.model_validate(appointment)
+    response = await present_one(db, appointment)
     response.history = [AppointmentStatusEventResponse.model_validate(e) for e in events]
     return ApiResponse(data=response)
 
@@ -341,7 +343,7 @@ async def assign_appointment_cabinet(
         ) from e
 
     events = await AppointmentService.list_cabinet_events(db, ctx.clinic_id, appointment.id)
-    response = AppointmentResponse.model_validate(appointment)
+    response = await present_one(db, appointment)
     response.cabinet_history = [AppointmentCabinetEventResponse.model_validate(e) for e in events]
     return ApiResponse(data=response)
 
@@ -518,6 +520,9 @@ async def update_appointment_treatment_note(
     is the visit-level anchor of the four-level clinical-notes model even
     though the row is owned by the agenda module (issue #60).
     """
+    if not treatments_available():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=TREATMENTS_UNAVAILABLE)
+
     row = await AppointmentService.update_appointment_treatment_note(
         db,
         ctx.clinic_id,

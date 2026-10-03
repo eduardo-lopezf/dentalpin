@@ -47,21 +47,26 @@ async def on_appointment_completed(data: dict[str, Any]) -> None:
 
     When an appointment is completed, mark associated planned treatments as completed.
     """
-    appointment_id = data.get("appointment_id")
     clinic_id = data.get("clinic_id")
+    if not clinic_id:
+        logger.warning("on_appointment_completed: missing clinic_id")
+        return
 
-    if not appointment_id or not clinic_id:
-        logger.warning("on_appointment_completed: missing appointment_id or clinic_id")
+    # The agenda says which planned treatments the visit covered
+    # (``planned_items``); nothing here reads its tables (ADR 0042).
+    covered = [
+        (UUID(link["planned_item_id"]), bool(link.get("completed")))
+        for link in data.get("planned_items") or []
+        if link.get("planned_item_id")
+    ]
+    if not covered:
         return
 
     async with async_session_maker() as db:
         try:
-            # Import here to avoid circular imports
-            from app.modules.agenda.models import AppointmentTreatment
-
             from .service import TreatmentPlanService
 
-            # Attendance first, and on a *wider* query than the loop
+            # Attendance first, and on a *wider* set than the loop
             # below: the plans this appointment belongs to are all the
             # ones it links to, whether or not any treatment was ticked
             # off in it. A first diagnostic consultation usually ticks
@@ -70,12 +75,8 @@ async def on_appointment_completed(data: dict[str, Any]) -> None:
             # as the plan getting under way.
             linked = await db.execute(
                 select(PlannedTreatmentItem.treatment_plan_id)
-                .join(
-                    AppointmentTreatment,
-                    AppointmentTreatment.planned_treatment_item_id == PlannedTreatmentItem.id,
-                )
                 .where(
-                    AppointmentTreatment.appointment_id == UUID(appointment_id),
+                    PlannedTreatmentItem.id.in_([item_id for item_id, _ in covered]),
                     PlannedTreatmentItem.clinic_id == UUID(clinic_id),
                 )
                 .distinct()
@@ -83,21 +84,13 @@ async def on_appointment_completed(data: dict[str, Any]) -> None:
             for (plan_id,) in linked.all():
                 await TreatmentPlanService.activate_from_attendance(db, UUID(clinic_id), plan_id)
 
-            # Get completed treatments from the appointment
-            result = await db.execute(
-                select(AppointmentTreatment).where(
-                    AppointmentTreatment.appointment_id == UUID(appointment_id),
-                    AppointmentTreatment.completed_in_appointment == True,  # noqa: E712
-                )
-            )
-            completed_treatments = result.scalars().all()
+            completed_item_ids = [item_id for item_id, done in covered if done]
 
-            for apt_treatment in completed_treatments:
-                # Find planned item that references this treatment
-                if apt_treatment.planned_treatment_item_id:
+            for planned_item_id in completed_item_ids:
+                if planned_item_id:
                     item_result = await db.execute(
                         select(PlannedTreatmentItem).where(
-                            PlannedTreatmentItem.id == apt_treatment.planned_treatment_item_id,
+                            PlannedTreatmentItem.id == planned_item_id,
                             PlannedTreatmentItem.clinic_id == UUID(clinic_id),
                         )
                     )
@@ -129,12 +122,62 @@ async def on_appointment_completed(data: dict[str, Any]) -> None:
 
             await db.commit()
             logger.info(
-                f"Processed appointment completion for {len(completed_treatments)} treatments"
+                f"Processed appointment completion for {len(completed_item_ids)} treatments"
             )
 
         except Exception as e:
             logger.error(f"Error processing appointment completion: {e}", exc_info=True)
             await db.rollback()
+
+
+async def on_budget_created_for_plan(data: dict[str, Any]) -> None:
+    """Link and log a budget that ``budget`` made for one of our plans.
+
+    The plan's half of what used to be one transaction (ADR 0042):
+    ``budget`` writes the budget and announces it; the plan's row is
+    only ever written here. ``primary`` is the plan's own budget and
+    becomes its link; an addendum stands beside it and is only logged.
+
+    Repeatable: linking the same budget twice changes nothing, and the
+    log entry is skipped when the plan already points at it.
+    """
+    clinic_id, plan_id, budget_id = (
+        data.get("clinic_id"),
+        data.get("plan_id"),
+        data.get("budget_id"),
+    )
+    if not clinic_id or not plan_id or not budget_id:
+        return
+    kind = data.get("kind") or "primary"
+    user_id = data.get("user_id")
+
+    from .service import TreatmentPlanService
+
+    async with async_session_maker() as db:
+        plan = await TreatmentPlanService.get(db, UUID(clinic_id), UUID(plan_id))
+        if plan is None:
+            return
+        if kind == "primary":
+            if plan.budget_id == UUID(budget_id):
+                return
+            plan.budget_id = UUID(budget_id)
+            action, payload = "budget_created", {"budget": data.get("budget_number")}
+        else:
+            action = "budget_addendum" if kind == "addendum" else "budget_extended"
+            payload = {
+                "budget_id": budget_id,
+                "budget_number": data.get("budget_number"),
+                "item_count": data.get("item_count"),
+            }
+        TreatmentPlanService.record_history(
+            db,
+            clinic_id=UUID(clinic_id),
+            plan_id=plan.id,
+            action=action,
+            actor_user_id=UUID(user_id) if user_id else None,
+            payload=payload,
+        )
+        await db.commit()
 
 
 async def on_budget_accepted(data: dict[str, Any]) -> None:

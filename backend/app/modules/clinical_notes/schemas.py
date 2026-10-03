@@ -101,9 +101,32 @@ class ClinicalNoteCreate(BaseModel):
 
 
 class ClinicalNoteUpdate(BaseModel):
-    """Edit a note body. Author or admin only."""
+    """Amend a note body. Author or admin only.
+
+    The edit does not overwrite: the previous text is kept as a version
+    ([ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md)).
+    """
 
     body: str = Field(..., min_length=1)
+    #: Why the text changed, filed with the superseded version. Optional:
+    #: demanding one would fill the record with "correction", and the reasons
+    #: worth having are written when there is something to say.
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class ClinicalNoteVersionResponse(BaseModel):
+    """A superseded body of a note."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    note_id: UUID
+    version: int
+    body: str
+    superseded_at: datetime
+    superseded_by_user_id: UUID
+    superseded_by_professional_id: UUID | None = None
+    amendment_reason: str | None = None
 
 
 class ClinicalNoteResponse(BaseModel):
@@ -119,7 +142,15 @@ class ClinicalNoteResponse(BaseModel):
     tooth_number: int | None
     body: str
     author_id: UUID
+    #: Who answers for the note clinically. NULL when the account that wrote it
+    #: has no directory profile.
+    authored_by_professional_id: UUID | None = None
     author: "AuthorBrief | None" = None
+    # Which version the body is, and when it was last corrected. `amended_at`
+    # NULL means the note still says what it said when it was written — a
+    # reader could not tell that before.
+    version: int = 1
+    amended_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
     attachments: list[NoteAttachmentResponse] = Field(default_factory=list)

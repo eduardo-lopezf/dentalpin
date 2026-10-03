@@ -28,9 +28,9 @@ from sqlalchemy import and_, false, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.contracts import AppointmentBook, ProfessionalDirectory, provider
 from app.core.events import event_bus
 from app.core.events.types import EventType
-from app.modules.agenda.models import Appointment
 from app.modules.media.models import Document, MediaAttachment
 from app.modules.media.service import AttachmentService
 from app.modules.odontogram.models import Treatment
@@ -50,9 +50,28 @@ from .models import (
     NOTE_TYPE_TREATMENT,
     NOTE_TYPE_TREATMENT_PLAN,
     ClinicalNote,
+    ClinicalNoteVersion,
 )
 
+
+async def _professional_for(db: AsyncSession, clinic_id: UUID, user_id: UUID | None):
+    """The directory professional the acting account is, or None.
+
+    How a note comes to name who answers for it clinically (ADR 0032), as
+    opposed to `author_id`, which records who operated the software. None is a
+    real answer — an assistant typing what a dentist dictates has no profile —
+    and it is better than a guess in a document meant to be evidence.
+
+    The directory is asked through its core contract, not imported
+    (ADR 0039). With the Professionals App off there is nobody to name.
+    """
+    directory = provider(ProfessionalDirectory)
+    return await directory.for_account(db, clinic_id, user_id) if directory else None
+
+
 logger = logging.getLogger(__name__)
+
+APPOINTMENTS_UNAVAILABLE = "Appointments are not available — notes cannot be added to one"
 
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -142,20 +161,19 @@ async def _resolve_plan_owner(
 async def _resolve_appointment_owner(
     db: AsyncSession, clinic_id: UUID, appointment_id: UUID
 ) -> tuple[UUID, UUID]:
-    result = await db.execute(
-        select(Appointment.id, Appointment.patient_id).where(
-            Appointment.id == appointment_id,
-            Appointment.clinic_id == clinic_id,
-        )
-    )
-    row = result.first()
-    if row is None:
+    # Asked of the agenda's contract, not read from its tables (ADR 0039).
+    book = provider(AppointmentBook)
+    if book is None:
+        raise NoteOwnerError(APPOINTMENTS_UNAVAILABLE)
+    found = await book.patients_of(db, clinic_id, [appointment_id])
+    if appointment_id not in found:
         raise NoteOwnerError(f"appointment {appointment_id} not found")
-    if row[1] is None:
+    patient_id = found[appointment_id]
+    if patient_id is None:
         raise NoteOwnerError(
             f"appointment {appointment_id} has no patient — notes require a patient binding"
         )
-    return row[0], row[1]
+    return appointment_id, patient_id
 
 
 async def resolve_owner_patient(
@@ -244,6 +262,7 @@ class NoteService:
             tooth_number=tooth_number if note_type == NOTE_TYPE_DIAGNOSIS else None,
             body=body,
             author_id=user_id,
+            authored_by_professional_id=await _professional_for(db, clinic_id, user_id),
         )
         db.add(note)
         await db.flush()
@@ -288,7 +307,26 @@ class NoteService:
         body: str,
         user_id: UUID,
         is_admin: bool,
+        reason: str | None = None,
     ) -> ClinicalNote | None:
+        """Amend a note: file the current text away, then write the new one.
+
+        This was ``note.body = body``. The prior text was destroyed, which made
+        a correction indistinguishable from an original and left "what did the
+        note say on the day of the procedure" unanswerable — the question a
+        complaint, an insurance review or a court actually asks
+        ([ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md)).
+
+        The superseded body lands in ``clinical_note_versions`` with its
+        number, the instant it stopped being current, the account that replaced
+        it and the reason if one was given. The note keeps the current text, so
+        nothing that reads a note pays for this.
+
+        A save that does not change the text is not an amendment and writes no
+        version. Otherwise opening a note and pressing save would manufacture
+        history that never happened, and the record would fill with identical
+        versions that mean nothing.
+        """
         result = await db.execute(
             select(ClinicalNote).where(
                 ClinicalNote.id == note_id,
@@ -301,9 +339,52 @@ class NoteService:
             return None
         if note.author_id != user_id and not is_admin:
             raise PermissionError("Only the author or an admin can edit this note")
+
+        if body == note.body:
+            return note
+
+        now = datetime.now(UTC)
+        db.add(
+            ClinicalNoteVersion(
+                clinic_id=note.clinic_id,
+                note_id=note.id,
+                version=note.version,
+                body=note.body,
+                superseded_at=now,
+                superseded_by_user_id=user_id,
+                superseded_by_professional_id=await _professional_for(db, clinic_id, user_id),
+                amendment_reason=reason,
+            )
+        )
         note.body = body
+        note.version += 1
+        note.amended_at = now
         await db.flush()
         return note
+
+    @staticmethod
+    async def versions(
+        db: AsyncSession,
+        *,
+        clinic_id: UUID,
+        note_id: UUID,
+    ) -> list[ClinicalNoteVersion]:
+        """Every superseded text of a note, oldest first.
+
+        The current one is not here — it is on the note. Reconstructing what
+        the note said at a past instant is walking these in order: the first
+        row whose ``superseded_at`` is later than that instant holds the text
+        that was on screen then.
+        """
+        result = await db.execute(
+            select(ClinicalNoteVersion)
+            .where(
+                ClinicalNoteVersion.note_id == note_id,
+                ClinicalNoteVersion.clinic_id == clinic_id,
+            )
+            .order_by(ClinicalNoteVersion.version)
+        )
+        return list(result.scalars())
 
     @staticmethod
     async def soft_delete(
@@ -487,13 +568,10 @@ async def list_recent_for_patient(
     plan_ids = [p.id for p in plans]
     plan_by_id = {p.id: p for p in plans}
 
-    appointments_result = await db.execute(
-        select(Appointment.id).where(
-            Appointment.clinic_id == clinic_id,
-            Appointment.patient_id == patient_id,
-        )
-    )
-    appointment_ids = [row[0] for row in appointments_result.all()]
+    # With the Agenda App off its appointments are not offered, and neither
+    # are the notes that hang from them (ADR 0037). They are still stored.
+    book = provider(AppointmentBook)
+    appointment_ids = await book.ids_for_patient(db, clinic_id, patient_id) if book else []
 
     treatment_clause = and_(
         ClinicalNote.owner_type == NOTE_OWNER_TREATMENT,
@@ -625,8 +703,6 @@ def _build_linked(
 
 async def list_merged_for_plan(db: AsyncSession, clinic_id: UUID, plan_id: UUID) -> list[dict]:
     """Plan + treatment + visit notes for a single plan, newest-first."""
-    from app.modules.agenda.models import Appointment, AppointmentTreatment
-
     plan_result = await db.execute(
         select(TreatmentPlan).where(
             TreatmentPlan.id == plan_id,
@@ -695,31 +771,28 @@ async def list_merged_for_plan(db: AsyncSession, clinic_id: UUID, plan_id: UUID)
             }
         )
 
-    if item_rows:
-        item_ids = [row[0] for row in item_rows]
-        visit_result = await db.execute(
-            select(AppointmentTreatment, Appointment)
-            .join(Appointment, AppointmentTreatment.appointment_id == Appointment.id)
-            .options(selectinload(Appointment.professional))
-            .where(
-                AppointmentTreatment.planned_treatment_item_id.in_(item_ids),
-                AppointmentTreatment.notes.is_not(None),
-                AppointmentTreatment.notes != "",
-                Appointment.clinic_id == clinic_id,
-            )
-        )
-        for apt_tr, appointment in visit_result.all():
-            professional = appointment.professional if appointment else None
+    book = provider(AppointmentBook)
+    if item_rows and book is not None:
+        visits = await book.visit_notes(db, clinic_id, [row[0] for row in item_rows])
+
+        # The agenda holds the professional's id, not a relationship to
+        # the directory; ask the directory to label them (ADR 0039).
+        author_ids = {visit.professional_id for visit in visits if visit.professional_id}
+        directory = provider(ProfessionalDirectory)
+        authors = await directory.briefs(db, clinic_id, author_ids) if directory else {}
+
+        for visit in visits:
+            professional = authors.get(visit.professional_id)
             entries.append(
                 {
                     "source": "visit",
                     "note_id": None,
-                    "owner_id": apt_tr.id,
-                    "plan_item_id": apt_tr.planned_treatment_item_id,
-                    "body": apt_tr.notes or "",
-                    "author_id": appointment.professional_id if appointment else None,
+                    "owner_id": visit.id,
+                    "plan_item_id": visit.planned_item_id,
+                    "body": visit.body,
+                    "author_id": visit.professional_id,
                     "author": _author_brief(professional) if professional else None,
-                    "created_at": apt_tr.created_at or appointment.created_at,
+                    "created_at": visit.created_at,
                     "updated_at": None,
                     "attachments": [],
                 }

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, ForeignKey, Index, String, Table, Text
+from sqlalchemy import Boolean, Column, ForeignKey, Index, String, Table, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -62,6 +62,25 @@ class Professional(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
+    # The account this person signs in with, when they have one.
+    #
+    # The directory stays independent of `users` — a collaborator can be
+    # recorded before, or without, ever receiving an account, which is why this
+    # is nullable and why the two are separate tables. What the link adds is
+    # the answer to "which professional is the person operating the software",
+    # and without it a clinical entry could not name who is responsible for it
+    # ([ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md)).
+    #
+    # Deliberately *not* inferred from a matching email. `has_system_access`
+    # compares emails to show a hint, and a hint is the right weight for a
+    # coincidence: two people share a family address, someone changes their
+    # email, a clinic reuses one. Clinical authorship written into a document
+    # meant to be evidence cannot rest on that, so the link is something an
+    # admin states.
+    user_id: Mapped[UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), default=None, index=True
+    )
+
     specialties: Mapped[list[Specialty]] = relationship(
         secondary=professional_specialties,
         lazy="selectin",
@@ -71,6 +90,17 @@ class Professional(Base, TimestampMixin):
     __table_args__ = (
         Index("ix_professionals_clinic_name", "clinic_id", "last_name", "first_name"),
         Index("ix_professionals_clinic_type_active", "clinic_id", "professional_type", "is_active"),
+        # One account is at most one professional *per clinic*. The same person
+        # can hold a profile in two clinics — that is a different row, and the
+        # constraint is scoped so it stays possible. Partial, because "no
+        # account" is the normal state and many rows share it.
+        Index(
+            "uq_professionals_clinic_user",
+            "clinic_id",
+            "user_id",
+            unique=True,
+            postgresql_where=text("user_id IS NOT NULL"),
+        ),
     )
 
     @property

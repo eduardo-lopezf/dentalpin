@@ -1,0 +1,84 @@
+import type { Professional, PaginatedResponse } from '~/types'
+import { useApi } from '~/composables/useApi'
+
+const PROFESSIONAL_COLORS = [
+  '#3B82F6', // blue
+  '#10B981', // emerald
+  '#8B5CF6', // violet
+  '#F59E0B', // amber
+  '#EF4444', // red
+  '#EC4899', // pink
+  '#06B6D4', // cyan
+  '#84CC16' // lime
+]
+
+export function useProfessionals() {
+  const api = useApi()
+  const { t } = useI18n()
+  const { active, isActive } = useModules()
+
+  const professionals = ref<Professional[]>([])
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
+
+  const professionalColors = ref<Map<string, string>>(new Map())
+
+  async function fetchProfessionals(): Promise<void> {
+    // The directory belongs to the Professionals App. While it is off
+    // there is nobody to offer, and its API is not there to ask.
+    if (active.value !== null && !isActive('professionals')) {
+      professionals.value = []
+      return
+    }
+
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const response = await api.get<PaginatedResponse<Professional>>('/api/v1/professionals')
+      professionals.value = response.data
+
+      professionalColors.value = new Map()
+      professionals.value.forEach((prof: Professional, index: number) => {
+        const color = PROFESSIONAL_COLORS[index % PROFESSIONAL_COLORS.length]
+        if (color) {
+          professionalColors.value.set(prof.id, color)
+        }
+      })
+    } catch (e) {
+      error.value = t('professionals.toast.loadFailed')
+      console.error('Failed to fetch professionals:', e)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  function getProfessionalById(id: string): Professional | undefined {
+    return professionals.value.find((p: Professional) => p.id === id)
+  }
+
+  function getProfessionalColor(id: string): string {
+    return professionalColors.value.get(id) || '#6B7280' // Default gray
+  }
+
+  function getProfessionalInitials(professional: Professional): string {
+    const first = professional.first_name.charAt(0).toUpperCase()
+    const last = professional.last_name.charAt(0).toUpperCase()
+    return `${first}${last}`
+  }
+
+  function getProfessionalFullName(professional: Professional): string {
+    return `${professional.first_name} ${professional.last_name}`
+  }
+
+  return {
+    professionals: readonly(professionals),
+    isLoading: readonly(isLoading),
+    error: readonly(error),
+    fetchProfessionals,
+    getProfessionalById,
+    getProfessionalColor,
+    getProfessionalInitials,
+    getProfessionalFullName
+  }
+}

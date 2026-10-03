@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- test(cashbox): las pruebas del corte (`test_cash_periods.py`) ya no
+  fallan del 1 al 4 de cada mes. Reservaban dinero uno a tres días antes
+  de hoy y pedían el mes de hoy; ahora preguntan por `ANCHOR`, que es hoy
+  o, esos días, el último del mes anterior. El código del módulo no
+  cambia. Se retira el aviso de `CLAUDE.md` y el pendiente de
+  `docs/technical/todos.md`.
+
 - feat(cashbox): ficha de **Caja** para el Resumen de Finanzas: los días sin arquear de la quincena, que hasta ahora solo veía quien abría esta pestaña y leía la tarjeta del periodo — un arqueo abandonado tres semanas se descubría persiguiendo un descuadre. Distingue tres estados y no dos: *sin arquear*, *al día* y *sin movimiento*, porque leer cero días contados como «al día» le diría a una clínica que nunca ha arqueado que va perfectamente.
 - feat(cashbox): **un gasto que no sale del cajón ya tiene dónde apuntarse.** `CashMovement` gana `method` (efectivo, tarjeta, transferencia, domiciliado, otro) con valor por defecto `cash`, así que toda fila anterior sigue siendo correcta sin backfill: la tabla era el cajón y nada más. Con eso entran al sistema el laboratorio por transferencia, el alquiler domiciliado y el proveedor a treinta días, que hasta ahora no podían registrarse en ninguna parte — y por eso ninguna cifra del producto era una salida. Tres reglas lo sostienen: `expected_cash` lee `cash_*` y nunca `total_*`; el cierre congela solo las filas de efectivo, porque un arqueo es una afirmación sobre el cajón; y las entradas tardías también miran solo el efectivo, o cada transferencia de un día cerrado saldría como tardía para siempre. `day_totals` devuelve los dos pares y la pantalla canta la diferencia cuando la hay. Migración `cash_0004`. Pineado en `tests/modules/cashbox/test_cash_movement_methods.py`.
 

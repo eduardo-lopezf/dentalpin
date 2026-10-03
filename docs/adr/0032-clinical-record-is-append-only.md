@@ -1,9 +1,26 @@
 # 0032 — The clinical record is append-only, and every entry names a licensed author
 
-- **Status:** proposed
+- **Status:** proposed — partially implemented
 - **Date:** 2026-09-22
 - **Deciders:** Eduardo
 - **Tags:** clinical, compliance, privacy, modules
+
+> **Where this stands (2026-09-28).** All three defects are fixed.
+> `patients_clinical` no longer hard-deletes its history entries and its bulk
+> form reconciles instead of rewriting the block (`pc_0002`); an amendment to a
+> note is a version rather than an overwrite (`cn_0005`); and a clinical entry
+> names the professional responsible for it (`pro_0003` links an account to a
+> directory profile, `pc_0003` and `cn_0006` carry the author). Two things
+> blocked the third and are worth remembering: nothing linked an account to a
+> professional, and a foreign key from the core migration chain into the
+> `professionals` branch fails on an empty database unless it declares
+> `depends_on`.
+>
+> Still open before the phase closes: the 1:1 emergency-contact and
+> legal-guardian rows, the contract test this ADR specifies, and a screen that
+> asks who is responsible when the account typing is not a professional. All of
+> it is tracked in `docs/features/expediente-clinico.md` under *Phase 0, where
+> it actually stands*. The ADR stays `proposed` until the phase closes.
 
 ## Context
 

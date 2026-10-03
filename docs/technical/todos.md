@@ -337,16 +337,20 @@ Opportunities for developers, equipment manufacturers, labs, and insurers.
 | Module | Country | Description |
 |--------|---------|-------------|
 | `verifactu-es` | 🇪🇸 Spain | Hash chain, QR, AEAT submission |
+| `cfdi-mx` | 🇲🇽 Mexico | CFDI 4.0, timbrado via PAC, cancellation, complemento de pago — **first-party commitment**, see [commitments register](commitments-register.md) §14 |
 | `factur-x-fr` | 🇫🇷 France | French electronic invoicing |
 | `sdi-it` | 🇮🇹 Italy | Sistema di Interscambio |
 | `furs-si` | 🇸🇮 Slovenia | FURS fiscalization |
+
+> Mexico was absent from this table while MXN was already the default
+> currency. It is a stated commitment, not a third-party opportunity.
 
 #### Clinical Integrations
 
 | Module | Type | Description |
 |--------|------|-------------|
 | `dicom-viewer` | Radiology | Embedded DICOM viewer |
-| `lab-orders` | Labs | Orders to prosthetic labs |
+| `lab-orders` | Labs | Orders to prosthetic labs — **now a first-party commitment**, see [commitments register](commitments-register.md) §13 |
 | `insurance-claims` | Insurance | Claims processing |
 | `intraoral-capture` | Hardware | Intraoral camera capture |
 
@@ -402,6 +406,13 @@ DentalPin is designed so the **entire dental industry** can build modules.
 | `shade-management` | Color communication |
 
 **Benefit:** Direct order channel from clinical workflow.
+
+> **Ownership changed.** Lab ordering is now a first-party commitment,
+> covering prosthetics *and* imaging referrals (radiography, tomography),
+> internal or external. The two are different workflows that share only
+> "send out, get back" — see [commitments register](commitments-register.md) §13.
+> What remains a third-party opportunity is the lab's own side of the
+> channel.
 
 ### For Insurance Companies
 
@@ -575,6 +586,47 @@ Small, well-scoped features for new contributors.
 - [ ] E2E tests with Playwright for critical flows
 - [ ] Increase unit test coverage to 80%
 - [ ] Accessibility (a11y) tests
+
+### Apps (`backend/apps.json`)
+
+> The commitments among these — WhatsApp for Recalls, classifying the
+> optional Apps, SAT invoicing — are tracked in
+> [`commitments-register.md`](./commitments-register.md) (18, 19, 14), which
+> is the status of record.
+
+- [ ] **Classify the optional Apps.** Every App that is not the base
+  (`workspace`) or one of the four core Apps is `optional` for now —
+  today Communications and Professionals — and the screen labels it
+  "App opcional". Decide each one's tier; Professionals is meant to be
+  core for workspaces of the Clinic kind, which the catalog cannot yet
+  express ([ADR 0043](../adr/0043-the-workspace-is-the-base-app.md)).
+- [ ] **Replace Veri*Factu with SAT invoicing.** `verifactu` (Spain, AEAT)
+  sits in Budgets & payments for now; it is to be replaced by electronic
+  invoicing for Mexico's SAT (CFDI).
+- [ ] **Optional Apps that require other optional Apps.** Decouple, the way
+  Treatments was ([ADR 0042](../adr/0042-core-apps-must-stay-separable.md)):
+  `notifications` (Communications) depends on `budget` and `billing`
+  (Budgets & payments); `budget` and `liquidations` depend on
+  `professionals`, which is optional; `reports` depends on Agenda, Budgets
+  & payments and Professionals — it should integrate, and show only the
+  reports of the Apps that run.
+- [ ] **The public budget page** (`/p/budget/[token]`) has no route guard:
+  it is opened by patients, not staff. With Budgets & payments off it
+  answers 404.
+- [ ] **WhatsApp for Communications.** The App lists the API as `planned`.
+  To switch it on: the `whatsapp_kapso` module installed and its Kapso
+  credentials set (in the clinic settings or the environment, never in
+  `apps.json`), and Meta-approved message templates.
+- [ ] **Recalls over WhatsApp.** Recalls sends nothing today; WhatsApp is
+  only a channel the reception logs by hand. Plan: Recalls publishes an
+  event (a recall falls due) and Communications reacts by sending the
+  template, honouring the patient's "do not contact" flag and logging the
+  send as a contact attempt. Recalls `integrates` Communications — never
+  `depends` — so it stays a core App with a phone call list when
+  Communications or WhatsApp is off
+  ([ADR 0037](../adr/0037-a-module-integrates-with-what-it-can-live-without.md),
+  [ADR 0042](../adr/0042-core-apps-must-stay-separable.md)). The same
+  channel would serve Agenda reminders and budgets.
 
 ---
 

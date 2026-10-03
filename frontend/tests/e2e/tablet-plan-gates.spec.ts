@@ -13,8 +13,9 @@ import { API_BASE, expect, test, tokenFor } from './_fixtures'
  * Run on tablet because this is where the plan is worked: the dialog is
  * the only way in on a touch screen.
  *
- * The plan is built and deleted by the test, so the seeded dataset is left
- * as it was.
+ * The plan is built and deleted by the test, and what it completed is
+ * reopened first, so nothing of it stays visible on the patient. The rows
+ * themselves are soft-deleted, as any deleted plan's are.
  */
 test.describe('plan gates by status', () => {
   test.use({ role: 'admin' })
@@ -123,6 +124,17 @@ test.describe('plan gates by status', () => {
       )
       expect(((await budget.json()) as { data: { status: string } }).data.status).toBe('cancelled')
     } finally {
+      // Deleting a plan does not undo what it completed: the treatment
+      // stays `performed` on the patient's chart and its earned entry
+      // stays in the ledger. Reopen what this test completed first, so
+      // the delete takes the treatments with it.
+      const plan = await page.request.get(`${PLANS}/${planId}`, { headers: auth })
+      const items = plan.ok()
+        ? ((await plan.json()) as { data: { items: { id: string, status: string }[] } }).data.items
+        : []
+      for (const done of items.filter(i => i.status === 'completed')) {
+        await page.request.patch(`${PLANS}/${planId}/items/${done.id}/reopen`, { headers: auth })
+      }
       await page.request.delete(`${PLANS}/${planId}`, { headers: auth })
     }
   })

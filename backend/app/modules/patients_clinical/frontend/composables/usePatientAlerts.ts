@@ -1,4 +1,5 @@
 import type { ApiResponse, PatientAlert } from '~~/app/types'
+import { sampleAlerts } from '../utils/previewSamples'
 
 export function usePatientAlerts(patientId: Ref<string | undefined>) {
   const api = useApi()
@@ -37,8 +38,16 @@ export function usePatientAlerts(patientId: Ref<string | undefined>) {
     alerts.value.some(a => a.type === 'anesthesia_reaction')
   )
 
+  // Inside a widget example (Settings → Widgets) the alerts are made up
+  // and nothing is fetched (ADR 0040).
+  const preview = useWidgetPreview()
+
   async function fetchAlerts() {
     if (!patientId.value) return
+    if (preview) {
+      alerts.value = sampleAlerts()
+      return
+    }
 
     isLoading.value = true
     error.value = null

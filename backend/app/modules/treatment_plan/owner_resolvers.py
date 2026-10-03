@@ -1,6 +1,6 @@
 """Attachment owner resolver for the treatment_plan module.
 
-Registers the ``plan_item`` owner_type with ``media.attachment_registry``
+Registers the ``plan_item`` owner_type with ``app.core.attachments``
 so any document can be attached to a planned treatment item via the
 generic media endpoints.
 
@@ -18,7 +18,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.media.attachment_registry import OwnerSpec, attachment_registry
+from app.core.attachments import OwnerSpec, attachment_registry
 
 from .models import PlannedTreatmentItem, TreatmentPlan
 

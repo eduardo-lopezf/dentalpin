@@ -36,12 +36,15 @@ ROOT_FILES_ALLOWED: frozenset[str] = frozenset(
         "events-catalog.md",
         "modules-catalog.md",
         "subprocessors-catalog.md",
+        "apps-catalog.md",
     }
 )
 
 FOLDERS_ALLOWED: frozenset[str] = frozenset(
     {
         "user-manual",
+        # One folder per App of `backend/apps.json`: README + CHANGELOG.
+        "apps",
         "features",
         "technical",
         "modules",

@@ -779,13 +779,17 @@ async def main(lang: str = "en") -> None:
             # uninstall schedules`` cleanly skips this step.
             if await _module_is_installed(db, "schedules"):
                 print("\n[opt] Creating schedules demo (module installed)...")
+                from app.modules.professionals.providers import professionals_directory
                 from app.modules.schedules.seed import seed_schedules_demo
 
+                # Nothing is mounted in a script, so the seed cannot look
+                # the directory up for itself (ADR 0039).
                 stats = await seed_schedules_demo(
                     db,
                     clinic_id=CLINIC_ID,
                     dentist_id=USER_DENTIST_ID,
                     hygienist_id=USER_HYGIENIST_ID,
+                    directory=professionals_directory,
                 )
                 print(
                     f"  Clinic shifts: {stats['clinic_shifts']} | "
@@ -795,7 +799,7 @@ async def main(lang: str = "en") -> None:
 
             if await _module_is_installed(db, "patient_timeline"):
                 print("\n[opt] Creating patient timeline demo (module installed)...")
-                from app.modules.patient_timeline.seed import seed_timeline_demo
+                from app.seeds.timeline_demo import seed_timeline_demo
 
                 stats = await seed_timeline_demo(db, clinic_id=CLINIC_ID)
                 print(

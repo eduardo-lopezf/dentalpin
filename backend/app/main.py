@@ -302,13 +302,14 @@ def _cors_headers(request: Request) -> dict[str, str]:
 
 @app.middleware("http")
 async def module_gate_middleware(request: Request, call_next):
-    """Refuse traffic for a module whose removal is already scheduled.
+    """Refuse traffic for a module that is on its way out.
 
     Lifecycle transitions take effect at the next restart, so between
-    the admin's uninstall and that restart the module is still mounted.
-    Anything written in that window lands in tables the processor is
-    about to drop — backed up to a ``pg_dump`` file nobody will read.
-    A ``409`` says so instead of pretending the write survived.
+    a disable or uninstall and that restart the module is still mounted.
+    After an uninstall, anything written in that window lands in tables
+    the processor is about to drop — backed up to a ``pg_dump`` file
+    nobody will read. A ``409`` says so instead of pretending the write
+    survived.
 
     Preflight requests pass through: answering ``OPTIONS`` with 409
     makes the browser report a CORS failure and hides the real status
@@ -318,8 +319,8 @@ async def module_gate_middleware(request: Request, call_next):
         blocked = module_gate.match(request.url.path)
         if blocked is not None:
             error = ErrorResponse(
-                message=f"Module '{blocked}' is being uninstalled and no longer accepts requests.",
-                errors=[f"module '{blocked}' pending removal"],
+                message=f"Module '{blocked}' is being turned off and no longer accepts requests.",
+                errors=[f"module '{blocked}' pending deactivation"],
             )
             return JSONResponse(
                 status_code=409,
@@ -370,10 +371,12 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 # Mount auth router
 app.include_router(auth_router, prefix="/api/v1")
 
-# Mount module management router (install/uninstall/upgrade/restart).
+# Mount module management router (enable/upgrade/restart).
+from app.core.plugins.router import apps_router  # noqa: E402
 from app.core.plugins.router import router as modules_router  # noqa: E402
 
 app.include_router(modules_router, prefix="/api/v1")
+app.include_router(apps_router, prefix="/api/v1")
 
 # Mount AI agents infrastructure router (approval queue, audit, agent CRUD).
 from app.core.events.router import router as events_router  # noqa: E402

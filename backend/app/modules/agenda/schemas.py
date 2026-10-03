@@ -1,7 +1,8 @@
 """Pydantic schemas for the agenda module.
 
 Moved from ``app.modules.clinical.schemas`` in Fase B.2 chunk 1.
-Patient-related schemas come from ``app.modules.patients.schemas``.
+The briefs embedded in a response are the agenda's own shapes, filled
+from the core contracts (ADR 0039) — nothing here imports another module.
 """
 
 from datetime import date, datetime
@@ -9,8 +10,6 @@ from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-
-from app.modules.patients.schemas import PatientBrief
 
 AppointmentStatus = Literal[
     "scheduled",
@@ -22,7 +21,19 @@ AppointmentStatus = Literal[
     "no_show",
 ]
 
-# --- Professional brief -------------------------------------------------
+# --- Briefs ---------------------------------------------------------------
+
+
+class PatientBrief(BaseModel):
+    """Brief patient info for appointment references."""
+
+    id: UUID
+    first_name: str
+    last_name: str
+    phone: str | None = None
+    email: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProfessionalBrief(BaseModel):
@@ -84,52 +95,7 @@ class AppointmentTreatmentBrief(BaseModel):
     # Completion tracking
     completed_in_appointment: bool = False
 
-    @classmethod
-    def from_appointment_treatment(cls, apt_treatment: "Any") -> "AppointmentTreatmentBrief":
-        """Create from AppointmentTreatment with planned_item + catalog_item loaded."""
-        planned_item = apt_treatment.planned_item
-        catalog_item = apt_treatment.catalog_item
-
-        treatment = planned_item.treatment if planned_item else None
-
-        if not catalog_item and treatment:
-            catalog_item = treatment.catalog_item
-
-        tooth_number = None
-        surfaces = None
-        is_global = True
-        if treatment and treatment.teeth:
-            primary = treatment.teeth[0]
-            tooth_number = primary.tooth_number
-            surfaces = primary.surfaces
-            is_global = False
-
-        price: float | None = None
-        if treatment and treatment.price_snapshot is not None:
-            price = float(treatment.price_snapshot)
-        elif catalog_item and catalog_item.default_price is not None:
-            price = float(catalog_item.default_price)
-
-        return cls(
-            id=apt_treatment.id,
-            planned_item_id=apt_treatment.planned_treatment_item_id,
-            planned_item_status=planned_item.status if planned_item else "pending",
-            catalog_item_id=catalog_item.id if catalog_item else None,
-            internal_code=catalog_item.internal_code if catalog_item else "",
-            names=catalog_item.names if catalog_item else {},
-            default_price=price,
-            default_duration_minutes=catalog_item.default_duration_minutes
-            if catalog_item
-            else None,
-            tooth_number=tooth_number,
-            surfaces=surfaces,
-            is_global=is_global,
-            plan_id=planned_item.treatment_plan_id if planned_item else None,
-            plan_number=planned_item.treatment_plan.plan_number
-            if planned_item and planned_item.treatment_plan
-            else None,
-            completed_in_appointment=apt_treatment.completed_in_appointment,
-        )
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- Appointment CRUD ---------------------------------------------------
@@ -137,7 +103,10 @@ class AppointmentTreatmentBrief(BaseModel):
 
 class AppointmentCreate(BaseModel):
     patient_id: UUID | None = None
-    professional_id: UUID
+    # Required while the Professionals App runs — the service enforces
+    # it — and absent when it does not (ADR 0037).
+    professional_id: UUID | None = None
+    title: str | None = Field(default=None, max_length=200)
     # Callers may send either cabinet_id (preferred) or cabinet name;
     # the service resolves the other side.
     cabinet_id: UUID | None = None
@@ -152,6 +121,7 @@ class AppointmentCreate(BaseModel):
 class AppointmentUpdate(BaseModel):
     patient_id: UUID | None = None
     professional_id: UUID | None = None
+    title: str | None = Field(default=None, max_length=200)
     cabinet_id: UUID | None = None
     cabinet: str | None = Field(default=None, min_length=1, max_length=50)
     start_time: datetime | None = None
@@ -257,7 +227,8 @@ class AppointmentResponse(BaseModel):
     id: UUID
     clinic_id: UUID
     patient_id: UUID | None
-    professional_id: UUID
+    professional_id: UUID | None
+    title: str | None = None
     cabinet: str | None = None  # Denormalized name for legacy UI callers.
     cabinet_id: UUID | None = None
     cabinet_assigned_at: datetime | None = None
@@ -277,44 +248,6 @@ class AppointmentResponse(BaseModel):
     # list responses lean. List endpoints leave these as None.
     history: list[AppointmentStatusEventResponse] | None = None
     cabinet_history: list[AppointmentCabinetEventResponse] | None = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def convert_treatments(cls, data: Any) -> Any:
-        """Convert AppointmentTreatment models to AppointmentTreatmentBrief."""
-        if hasattr(data, "treatments"):
-            treatments_raw = data.treatments
-            treatments_list = []
-            if treatments_raw:
-                for t in treatments_raw:
-                    if t.planned_treatment_item_id:
-                        treatments_list.append(
-                            AppointmentTreatmentBrief.from_appointment_treatment(t)
-                        )
-            return {
-                "id": data.id,
-                "clinic_id": data.clinic_id,
-                "patient_id": data.patient_id,
-                "professional_id": data.professional_id,
-                "cabinet": data.cabinet,
-                "cabinet_id": data.cabinet_id,
-                "cabinet_assigned_at": data.cabinet_assigned_at,
-                "cabinet_assigned_by": data.cabinet_assigned_by,
-                "start_time": data.start_time,
-                "end_time": data.end_time,
-                "treatment_type": data.treatment_type,
-                "status": data.status,
-                "current_status_since": data.current_status_since,
-                "color": data.color,
-                "created_at": data.created_at,
-                "updated_at": data.updated_at,
-                "patient": data.patient,
-                "professional": data.professional,
-                "treatments": treatments_list,
-                "history": None,
-                "cabinet_history": None,
-            }
-        return data
 
     model_config = ConfigDict(from_attributes=True)
 

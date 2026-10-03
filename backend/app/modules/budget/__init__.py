@@ -80,6 +80,13 @@ class BudgetModule(BaseModule):
     def get_models(self) -> list:
         return [Budget, BudgetItem, BudgetSignature, BudgetHistory, BudgetAccessLog]
 
+    def get_providers(self) -> dict[type, object]:
+        from app.core.contracts import PlanBudgets
+
+        from .providers import plan_budgets
+
+        return {PlanBudgets: plan_budgets}
+
     def get_tools(self) -> list:
         from . import tools
 
@@ -139,9 +146,13 @@ class BudgetModule(BaseModule):
         ]
 
     def get_event_handlers(self) -> dict[str, Any]:
+        from . import plan_quotes
         from .service import BudgetService
 
         return {
+            EventType.TREATMENT_PLAN_CONFIRMED: plan_quotes.on_plan_confirmed,
+            EventType.TREATMENT_PLAN_STATUS_CHANGED: plan_quotes.on_plan_status_changed,
+            EventType.TREATMENT_PLAN_DELETED: plan_quotes.on_plan_deleted,
             EventType.ODONTOGRAM_TREATMENT_PERFORMED: BudgetService.on_treatment_performed,
             EventType.TREATMENT_PLAN_TREATMENT_ADDED: self._on_treatment_added_to_plan,
             EventType.TREATMENT_PLAN_TREATMENT_REMOVED: self._on_treatment_removed_from_plan,

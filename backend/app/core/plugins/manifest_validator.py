@@ -153,6 +153,15 @@ def validate_module(
                         message=f"depends on unknown module '{dep}'",
                     )
                 )
+        for dep in manifest.integrates:
+            if dep not in known_module_names:
+                issues.append(
+                    ValidationIssue(
+                        module_name=name,
+                        code="UNKNOWN_INTEGRATION",
+                        message=f"integrates with unknown module '{dep}'",
+                    )
+                )
 
     # ``removable=True`` requires an isolated Alembic branch — otherwise
     # uninstall would cascade into other modules' migrations (Bug #2,

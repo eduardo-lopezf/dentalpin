@@ -13,7 +13,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/professionals/frontend/pages/professionals/index.vue
   - backend/app/modules/professionals/router.py
-last_verified_commit: e2b7328
+last_verified_commit: 0d60d45
 ---
 
 # Directory
@@ -55,6 +55,27 @@ mode. To change anything, use **Edit profile** from inside the card.
 Profiles are directory records only. They do not grant a login or
 permissions. The "User with access" indicator only reports whether a
 matching account already exists — it does not create or link one.
+
+## Linked account
+
+The **Linked account** dropdown on the form says which account this person
+signs in with. It is what lets a clinical entry name **who is responsible for
+it**: when someone records an allergy or writes a note, the record keeps the
+account that operated the software and, through this link, the professional and
+their licence number.
+
+Leave it on **No account** when the person does not use the system — an
+external collaborator, someone not given access yet. The directory does not
+require an account, which is why the field can stay empty.
+
+**It is not inferred from the email.** The "User with access" indicator
+compares emails and is a hint, nothing more: two people can share a family
+address, someone changes their email, a clinic reuses one. The authorship of a
+clinical document cannot rest on a coincidence, so you state the link yourself.
+
+The list only offers accounts **with access to this clinic**, and never one
+already linked to another professional: an account is a person, and two
+profiles sharing it would leave unanswered who signs each entry.
 
 ## Specialty
 

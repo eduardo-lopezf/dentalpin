@@ -275,10 +275,22 @@ All routes under `/api/v1/modules`.
 | GET | `/modules/-/status` | `admin.clinic.read` | Counts + pending. |
 | GET | `/modules/-/doctor` | `admin.clinic.read` | Diagnostic report. |
 | GET | `/modules/{name}` | `admin.clinic.read` | Single module. |
-| POST | `/modules/{name}/install` | `admin.clinic.write` | 202 + scheduled list. |
-| POST | `/modules/{name}/uninstall` | `admin.clinic.write` | 202 + restart required. |
+| POST | `/modules/{name}/enable` | `admin.clinic.write` | 202 + scheduled list (the module and the dependencies it pulls in). |
 | POST | `/modules/{name}/upgrade` | `admin.clinic.write` | 202 if version changed. |
 | POST | `/modules/-/restart` | `admin.clinic.write` | 202 + SIGTERM to self. |
+
+`GET /api/v1/apps` (`admin.clinic.read`) lists the App catalog: each
+App's `name`, `version`, `enabled`, the `modules` it groups and the
+modules they `requires` ([ADR 0036](../adr/0036-an-app-is-a-declared-group-of-modules.md)).
+Each App also carries `apis`: outside services it can connect to, with
+`status` `planned`, `enabled` or `disabled`
+([ADR 0040](../adr/0040-widgets-are-read-from-the-registry-apis-are-declared-in-apps-json.md)).
+It is read from `backend/apps.json`; the modules of a disabled App are
+not mounted and are left out of `/modules/-/active`
+([ADR 0038](../adr/0038-apps-json-switches-apps-for-the-whole-deployment.md)).
+
+There is no `disable` or `uninstall` route: turning a module off is a
+CLI decision ([ADR 0035](../adr/0035-apps-are-disabled-not-uninstalled.md)).
 
 ---
 

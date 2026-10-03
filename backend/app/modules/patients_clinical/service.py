@@ -18,6 +18,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.contracts import ProfessionalDirectory, provider
+
 from .models import (
     Allergy,
     EmergencyContact,
@@ -27,6 +29,47 @@ from .models import (
     SurgicalHistory,
     SystemicDisease,
 )
+
+#: The four history tables that are append-only per ADR 0032. Emergency
+#: contacts and legal guardians are 1:1 rows keyed by ``patient_id`` and are
+#: not in this set — making them append-only means re-keying them.
+_HISTORY_ENTRY_MODELS = (Allergy, Medication, SystemicDisease, SurgicalHistory)
+
+#: Written into ``retraction_reason`` when a line disappears from the medical
+#: history form. The form has no field for "when did this stop being true", so
+#: removing a line cannot be read as an end date — it is the user taking the
+#: entry back, which is a retraction, and it says so rather than pretending to
+#: know more.
+REMOVED_FROM_FORM = "removed_from_history_form"
+
+
+def _live(model):
+    """Rows a form shows by default: still true, never retracted."""
+    return (model.retracted_at.is_(None)) & (model.ended_at.is_(None))
+
+
+async def _attribution(db: AsyncSession, clinic_id: UUID, user_id: UUID | None) -> dict:
+    """Who to credit for a clinical entry: the account, and the professional.
+
+    Two fields, because an assistant may type what a dentist is responsible
+    for (ADR 0032). The professional is the acting account's directory profile
+    — `professionals.user_id`, which an admin states rather than the product
+    inferring it from a matching email.
+
+    An account with no profile yields None, and that is the answer, not a gap:
+    a guess written into a document meant to be evidence is worse than a blank.
+
+    The directory is reached through its core contract, not imported
+    (ADR 0039). With the Professionals App off there is no directory to ask
+    and the entry names no professional — the same truthful blank.
+    """
+    directory = provider(ProfessionalDirectory)
+    return {
+        "recorded_by_user_id": user_id,
+        "recorded_by_professional_id": (
+            await directory.for_account(db, clinic_id, user_id) if directory else None
+        ),
+    }
 
 
 class PatientsClinicalService:
@@ -70,20 +113,64 @@ class PatientsClinicalService:
         await db.flush()
         return existing
 
+    @staticmethod
+    async def retract_entry(
+        db: AsyncSession,
+        entry,
+        reason: str | None = None,
+        user_id: UUID | None = None,
+    ) -> None:
+        """Take a clinical entry back without destroying it.
+
+        Used where the API said "delete". The row survives, stops driving
+        alerts and stops appearing in what leaves the clinic; what it said,
+        and that it was taken back, stay answerable — which is the property
+        that turns stored data into a record (ADR 0032).
+
+        Already-retracted entries are left alone rather than re-stamped: the
+        first retraction is the one that happened.
+        """
+        if entry.retracted_at is not None:
+            return
+        entry.retracted_at = datetime.now(UTC)
+        entry.retraction_reason = reason
+        if user_id is not None and entry.recorded_by_user_id is None:
+            entry.recorded_by_user_id = user_id
+        await db.flush()
+
     # --- Allergy -------------------------------------------------------
 
     @staticmethod
-    async def list_allergies(db: AsyncSession, patient_id: UUID) -> list[Allergy]:
-        result = await db.execute(
-            select(Allergy).where(Allergy.patient_id == patient_id).order_by(Allergy.created_at)
-        )
+    async def list_allergies(
+        db: AsyncSession, patient_id: UUID, include_history: bool = False
+    ) -> list[Allergy]:
+        """Live allergies, or everything ever recorded when asked.
+
+        The default is what a form and an alert need: currently true, never
+        retracted. `include_history` is how the clinical record reaches the
+        rest — a discontinued entry is part of the history, and a retracted one
+        still has to be answerable ("what did the chart say that day").
+        """
+        query = select(Allergy).where(Allergy.patient_id == patient_id)
+        if not include_history:
+            query = query.where(_live(Allergy))
+        result = await db.execute(query.order_by(Allergy.created_at))
         return list(result.scalars())
 
     @staticmethod
     async def create_allergy(
-        db: AsyncSession, clinic_id: UUID, patient_id: UUID, data: dict
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_id: UUID,
+        data: dict,
+        user_id: UUID | None = None,
     ) -> Allergy:
-        allergy = Allergy(clinic_id=clinic_id, patient_id=patient_id, **data)
+        allergy = Allergy(
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            **await _attribution(db, clinic_id, user_id),
+            **data,
+        )
         db.add(allergy)
         await db.flush()
         return allergy
@@ -101,26 +188,43 @@ class PatientsClinicalService:
         return allergy
 
     @staticmethod
-    async def delete_allergy(db: AsyncSession, allergy: Allergy) -> None:
-        await db.delete(allergy)
-        await db.flush()
+    async def delete_allergy(
+        db: AsyncSession, allergy: Allergy, user_id: UUID | None = None
+    ) -> None:
+        """Retract, never delete — see :meth:`retract_entry`.
+
+        The name stays `delete_*` because that is what the endpoint is called
+        and what the caller means; what it does to the row is the thing that
+        changed.
+        """
+        await PatientsClinicalService.retract_entry(db, allergy, user_id=user_id)
 
     # --- Medication ----------------------------------------------------
 
     @staticmethod
-    async def list_medications(db: AsyncSession, patient_id: UUID) -> list[Medication]:
-        result = await db.execute(
-            select(Medication)
-            .where(Medication.patient_id == patient_id)
-            .order_by(Medication.created_at)
-        )
+    async def list_medications(
+        db: AsyncSession, patient_id: UUID, include_history: bool = False
+    ) -> list[Medication]:
+        query = select(Medication).where(Medication.patient_id == patient_id)
+        if not include_history:
+            query = query.where(_live(Medication))
+        result = await db.execute(query.order_by(Medication.created_at))
         return list(result.scalars())
 
     @staticmethod
     async def create_medication(
-        db: AsyncSession, clinic_id: UUID, patient_id: UUID, data: dict
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_id: UUID,
+        data: dict,
+        user_id: UUID | None = None,
     ) -> Medication:
-        med = Medication(clinic_id=clinic_id, patient_id=patient_id, **data)
+        med = Medication(
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            **await _attribution(db, clinic_id, user_id),
+            **data,
+        )
         db.add(med)
         await db.flush()
         return med
@@ -138,26 +242,37 @@ class PatientsClinicalService:
         return med
 
     @staticmethod
-    async def delete_medication(db: AsyncSession, med: Medication) -> None:
-        await db.delete(med)
-        await db.flush()
+    async def delete_medication(
+        db: AsyncSession, med: Medication, user_id: UUID | None = None
+    ) -> None:
+        await PatientsClinicalService.retract_entry(db, med, user_id=user_id)
 
     # --- Systemic disease ----------------------------------------------
 
     @staticmethod
-    async def list_systemic_diseases(db: AsyncSession, patient_id: UUID) -> list[SystemicDisease]:
-        result = await db.execute(
-            select(SystemicDisease)
-            .where(SystemicDisease.patient_id == patient_id)
-            .order_by(SystemicDisease.created_at)
-        )
+    async def list_systemic_diseases(
+        db: AsyncSession, patient_id: UUID, include_history: bool = False
+    ) -> list[SystemicDisease]:
+        query = select(SystemicDisease).where(SystemicDisease.patient_id == patient_id)
+        if not include_history:
+            query = query.where(_live(SystemicDisease))
+        result = await db.execute(query.order_by(SystemicDisease.created_at))
         return list(result.scalars())
 
     @staticmethod
     async def create_systemic_disease(
-        db: AsyncSession, clinic_id: UUID, patient_id: UUID, data: dict
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_id: UUID,
+        data: dict,
+        user_id: UUID | None = None,
     ) -> SystemicDisease:
-        disease = SystemicDisease(clinic_id=clinic_id, patient_id=patient_id, **data)
+        disease = SystemicDisease(
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            **await _attribution(db, clinic_id, user_id),
+            **data,
+        )
         db.add(disease)
         await db.flush()
         return disease
@@ -177,26 +292,37 @@ class PatientsClinicalService:
         return disease
 
     @staticmethod
-    async def delete_systemic_disease(db: AsyncSession, disease: SystemicDisease) -> None:
-        await db.delete(disease)
-        await db.flush()
+    async def delete_systemic_disease(
+        db: AsyncSession, disease: SystemicDisease, user_id: UUID | None = None
+    ) -> None:
+        await PatientsClinicalService.retract_entry(db, disease, user_id=user_id)
 
     # --- Surgical history ----------------------------------------------
 
     @staticmethod
-    async def list_surgical_history(db: AsyncSession, patient_id: UUID) -> list[SurgicalHistory]:
-        result = await db.execute(
-            select(SurgicalHistory)
-            .where(SurgicalHistory.patient_id == patient_id)
-            .order_by(SurgicalHistory.created_at)
-        )
+    async def list_surgical_history(
+        db: AsyncSession, patient_id: UUID, include_history: bool = False
+    ) -> list[SurgicalHistory]:
+        query = select(SurgicalHistory).where(SurgicalHistory.patient_id == patient_id)
+        if not include_history:
+            query = query.where(_live(SurgicalHistory))
+        result = await db.execute(query.order_by(SurgicalHistory.created_at))
         return list(result.scalars())
 
     @staticmethod
     async def create_surgical_history(
-        db: AsyncSession, clinic_id: UUID, patient_id: UUID, data: dict
+        db: AsyncSession,
+        clinic_id: UUID,
+        patient_id: UUID,
+        data: dict,
+        user_id: UUID | None = None,
     ) -> SurgicalHistory:
-        surgery = SurgicalHistory(clinic_id=clinic_id, patient_id=patient_id, **data)
+        surgery = SurgicalHistory(
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            **await _attribution(db, clinic_id, user_id),
+            **data,
+        )
         db.add(surgery)
         await db.flush()
         return surgery
@@ -216,9 +342,10 @@ class PatientsClinicalService:
         return surgery
 
     @staticmethod
-    async def delete_surgical_history(db: AsyncSession, surgery: SurgicalHistory) -> None:
-        await db.delete(surgery)
-        await db.flush()
+    async def delete_surgical_history(
+        db: AsyncSession, surgery: SurgicalHistory, user_id: UUID | None = None
+    ) -> None:
+        await PatientsClinicalService.retract_entry(db, surgery, user_id=user_id)
 
     # --- Emergency contact (1:1) ---------------------------------------
 
@@ -403,30 +530,81 @@ class PatientsClinicalService:
         payload: dict,
         user_id: UUID | None,
     ) -> None:
-        """Replace allergies/medications/diseases/surgeries and context atomically.
+        """Reconcile allergies/medications/diseases/surgeries and context.
 
-        The frontend form submits the whole block, mirroring the old
-        JSONB shape. The backend wipes and reinserts the per-row tables
-        so the result is deterministic.
+        The form submits the whole block, mirroring the old JSONB shape, and
+        this used to honour that literally: **every save deleted every row and
+        inserted new ones**. Not a hazard reserved for a mistaken tap — the
+        normal path destroyed the history on each visit, so an allergy lost the
+        date it was first recorded and the record could not say since when it
+        was known. Rewriting the patient's history on every save is the exact
+        opposite of what ADR 0032 asks of clinical data.
+
+        So the block is reconciled instead, matched by id:
+
+        - a line carrying an id updates that row in place;
+        - a line without one is a new entry;
+        - a live row the form no longer carries is **retracted**, not deleted.
+
+        Removal is read as a retraction rather than an end date on purpose: the
+        form has no field for "when did this stop being true", and inventing
+        one would put a clinical claim in the record that nobody made. A
+        medication that was genuinely discontinued is ended through the entry's
+        own endpoint, which can say when.
+
+        Ids round-trip already — the form edits the object the GET returned —
+        so this needs nothing from the frontend to start preserving rows.
         """
+        lifecycle = {"retracted_at", "ended_at", "retraction_reason"}
+        # Resolved once: the acting account is the same for the whole block.
+        attribution = await _attribution(db, clinic_id, user_id)
+
         for table_cls, key in (
             (Allergy, "allergies"),
             (Medication, "medications"),
             (SystemicDisease, "systemic_diseases"),
             (SurgicalHistory, "surgical_history"),
         ):
-            existing = await db.execute(select(table_cls).where(table_cls.patient_id == patient_id))
-            for row in existing.scalars():
-                await db.delete(row)
+            result = await db.execute(
+                select(table_cls).where(
+                    table_cls.patient_id == patient_id,
+                    _live(table_cls),
+                )
+            )
+            live = {row.id: row for row in result.scalars()}
+            submitted = payload.get(key) or []
+            kept: set[UUID] = set()
 
-        for row in payload.get("allergies", []):
-            db.add(Allergy(clinic_id=clinic_id, patient_id=patient_id, **row))
-        for row in payload.get("medications", []):
-            db.add(Medication(clinic_id=clinic_id, patient_id=patient_id, **row))
-        for row in payload.get("systemic_diseases", []):
-            db.add(SystemicDisease(clinic_id=clinic_id, patient_id=patient_id, **row))
-        for row in payload.get("surgical_history", []):
-            db.add(SurgicalHistory(clinic_id=clinic_id, patient_id=patient_id, **row))
+            for row in submitted:
+                fields = {
+                    k: v
+                    for k, v in row.items()
+                    if k not in lifecycle and k not in ("id", "clinic_id", "patient_id")
+                }
+                existing = live.get(row.get("id")) if row.get("id") else None
+                if existing is not None:
+                    for field, value in fields.items():
+                        setattr(existing, field, value)
+                    kept.add(existing.id)
+                    continue
+
+                # An id the patient does not own is not a licence to write
+                # another patient's row: it is simply not a match, and the line
+                # is recorded as the new entry it looks like.
+                db.add(
+                    table_cls(
+                        clinic_id=clinic_id,
+                        patient_id=patient_id,
+                        **attribution,
+                        **fields,
+                    )
+                )
+
+            for row_id, row in live.items():
+                if row_id not in kept:
+                    await PatientsClinicalService.retract_entry(
+                        db, row, reason=REMOVED_FROM_FORM, user_id=user_id
+                    )
 
         context_fields = {
             k: payload[k]

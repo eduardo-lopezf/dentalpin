@@ -1,9 +1,12 @@
 """Pytest configuration and fixtures."""
 
 import asyncio
+import json
 import os
+import re
 import threading
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 # Set TESTING before importing settings
 os.environ["TESTING"] = "true"
@@ -506,3 +509,39 @@ async def test_patient(db_session: AsyncSession, test_clinic: Clinic) -> Patient
     await db_session.commit()
 
     return patient
+
+
+# --- One marker per App ------------------------------------------------------
+#
+# `pytest -m app_agenda` runs the tests that touch the Agenda App. A test
+# belongs to every App whose modules its file imports, or whose folder it
+# sits in (`tests/modules/<module>/`); a test that touches no module is the
+# base App's (`app_workspace`). The tests stay where they are: the code is
+# organised by module and the App is a way of looking at it (ADR 0044).
+
+_MODULE_IMPORT = re.compile(r"app\.modules\.([a-z_]+)")
+
+
+def _apps_by_module() -> dict[str, str]:
+    catalog = json.loads((Path(__file__).resolve().parents[1] / "apps.json").read_text())
+    return {module: entry["name"] for entry in catalog["apps"] for module in entry["modules"]}
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    for name in sorted(set(_apps_by_module().values()) | {"workspace"}):
+        config.addinivalue_line("markers", f"app_{name}: tests that touch the {name} App")
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    owner = _apps_by_module()
+    by_file: dict[Path, set[str]] = {}
+    for item in items:
+        path = Path(str(item.fspath))
+        if path not in by_file:
+            modules = set(_MODULE_IMPORT.findall(path.read_text(encoding="utf-8")))
+            parts = path.parts
+            if "modules" in parts and parts.index("modules") + 1 < len(parts) - 1:
+                modules.add(parts[parts.index("modules") + 1])
+            by_file[path] = {owner[m] for m in modules if m in owner} or {"workspace"}
+        for name in by_file[path]:
+            item.add_marker(getattr(pytest.mark, f"app_{name}"))

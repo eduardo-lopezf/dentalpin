@@ -6,6 +6,7 @@ import type {
   SurgicalHistoryEntry,
   SystemicDiseaseEntry
 } from '~~/app/types'
+import { sampleMedicalHistory } from '../utils/previewSamples'
 
 const DEFAULT_MEDICAL_HISTORY: MedicalHistory = {
   allergies: [],
@@ -39,8 +40,16 @@ export function useMedicalHistory(patientId: Ref<string | undefined>) {
   const isSaving = ref(false)
   const error = ref<string | null>(null)
 
+  // Inside a widget example (Settings → Widgets) the history is made up
+  // and nothing is fetched (ADR 0040).
+  const preview = useWidgetPreview()
+
   async function fetchMedicalHistory() {
     if (!patientId.value) return
+    if (preview) {
+      medicalHistory.value = sampleMedicalHistory({ ...DEFAULT_MEDICAL_HISTORY })
+      return
+    }
 
     isLoading.value = true
     error.value = null

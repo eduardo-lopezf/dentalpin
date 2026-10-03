@@ -888,3 +888,82 @@ async def preview_budget_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": "inline"},
     )
+
+
+# -----------------------------------------------------------------------------
+# Budgets for a treatment plan
+# -----------------------------------------------------------------------------
+#
+# These used to be `treatment_plan` endpoints that called into this module.
+# A budget is this module's to write (ADR 0042), so the request comes here
+# and the plan is read through the `PlanQuotes` contract.
+
+
+class PlanBudgetResponse(BaseModel):
+    budget_id: UUID
+    budget_number: str
+
+
+class PlanAddendumResponse(PlanBudgetResponse):
+    #: False when the lines joined the plan's existing draft instead of
+    #: becoming a document of their own.
+    created: bool
+    item_count: int
+
+
+@router.post(
+    "/plans/{plan_id}/budget",
+    response_model=ApiResponse[PlanBudgetResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_plan_budget(
+    plan_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("budget.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[PlanBudgetResponse]:
+    """Mint the budget of a treatment plan that has none."""
+    from . import plan_quotes
+
+    try:
+        budget = await plan_quotes.generate_for_plan(db, ctx.clinic_id, plan_id, ctx.user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return ApiResponse(
+        data=PlanBudgetResponse(budget_id=budget.id, budget_number=budget.budget_number)
+    )
+
+
+@router.post(
+    "/plans/{plan_id}/addendum",
+    response_model=ApiResponse[PlanAddendumResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def price_plan_additions(
+    plan_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("budget.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[PlanAddendumResponse]:
+    """Price the treatments added since the plan was confirmed.
+
+    Leaves the budget the patient was shown alone and quotes the new work
+    on its own document — unless that budget is still a draft, in which
+    case the lines simply join it.
+    """
+    from . import plan_quotes
+
+    try:
+        budget, created, item_count = await plan_quotes.price_additions(
+            db, ctx.clinic_id, plan_id, ctx.user_id
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return ApiResponse(
+        data=PlanAddendumResponse(
+            budget_id=budget.id,
+            budget_number=budget.budget_number,
+            created=created,
+            item_count=item_count,
+        )
+    )

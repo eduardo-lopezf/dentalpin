@@ -10,7 +10,12 @@ Routes mounted at `/api/v1/patients-clinical/`.
 
 ## Dependencies
 
-`manifest.depends = ["patients"]`.
+`manifest.depends = ["patients"]`, `manifest.integrates = ["professionals"]`.
+
+`professionals` is never imported: the professional behind an entry comes
+from `contracts.provider(ProfessionalDirectory).for_account(...)`
+(ADR 0039). With that App off the entry is written with the account and no
+professional. The foreign key stays, ordered by `depends_on` in `pc_0003`.
 
 ## Permissions
 
@@ -31,6 +36,31 @@ None.
 
 ## Gotchas
 
+- **The four history tables are append-only** ([ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md)).
+  Allergies, medications, systemic diseases and surgical history are corrected
+  by appending: `ended_at` for a fact that stopped being true, `retracted_at`
+  (+ `retraction_reason`) for one that should never have been recorded. Do not
+  add a `db.delete()` against them, and do not collapse the two columns into a
+  `deleted_at` — a retracted allergy must stop driving alerts while a
+  discontinued medication stays visible as history. Reads default to live rows;
+  `include_history=True` is how the clinical record reaches the rest.
+
+- **`replace_medical_history` reconciles, it does not replace.** The name is
+  historical. It matches submitted lines to stored rows by id, inserts what is
+  new and retracts what the form dropped. It used to delete every row and
+  insert new ones on every save, which silently reset when each entry was first
+  recorded. The bulk payload's `*Submit` schemas carry the `id` for exactly
+  this; the per-row `*Create` schemas deliberately do not.
+
+- **Emergency contacts and legal guardians still hard-delete.** They are 1:1
+  rows keyed by `patient_id`, so append-only means re-keying the tables — left
+  for the rest of phase 0 (`docs/features/expediente-clinico.md` §8).
+
+- **Clinical authorship is not recorded yet**, and the two blockers are written
+  down in `models.py` (`ClinicalEntryMixin`) and in `pc_0002`: there is no link
+  from an account to a directory professional, and a foreign key from this
+  module's chain to the `professionals` branch breaks a fresh install.
+
 - **Hygienists do NOT have write access** to medical history.
   Receptionists read only emergency contacts (in some clinic
   configurations not even that — check role policy).
@@ -43,6 +73,7 @@ None.
 
 - `docs/adr/0001-modular-plugin-architecture.md`
 - `docs/adr/0005-relative-permissions.md`
+- `docs/adr/0032-clinical-record-is-append-only.md`
 
 ## CHANGELOG
 

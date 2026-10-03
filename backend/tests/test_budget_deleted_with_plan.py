@@ -31,6 +31,9 @@ async def _confirmed_plan(client: AsyncClient, auth_headers: dict, setup: dict) 
     plan_id, _ = await _create_plan_with_items(client, auth_headers, setup, [16])
     r = await client.post(f"{PLANS}/{plan_id}/confirm", headers=auth_headers)
     assert r.status_code == 200, r.text
+    # The budget is minted by `budget` when it hears of the confirmation
+    # (ADR 0042), so it is on the plan, not in the confirm response.
+    r = await client.get(f"{PLANS}/{plan_id}", headers=auth_headers)
     budget_id = r.json()["data"]["budget_id"]
     assert budget_id
     return plan_id, budget_id
@@ -73,6 +76,7 @@ async def test_deleting_the_plan_takes_every_budget_it_produced(
     r = await client.post(f"{PLANS}/{plan_id}/reopen", headers=auth_headers)
     assert r.status_code == 200, r.text
     r = await client.post(f"{PLANS}/{plan_id}/confirm", headers=auth_headers)
+    r = await client.get(f"{PLANS}/{plan_id}", headers=auth_headers)
     second_budget = r.json()["data"]["budget_id"]
     assert second_budget != first_budget
 

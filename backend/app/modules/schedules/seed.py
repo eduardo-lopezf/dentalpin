@@ -14,7 +14,7 @@ from uuid import UUID
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.professionals.models import Professional
+from app.core.contracts import ProfessionalDirectory, provider
 
 from .models import (
     ClinicOverride,
@@ -30,6 +30,8 @@ async def seed_schedules_demo(
     clinic_id: UUID,
     dentist_id: UUID,
     hygienist_id: UUID,
+    *,
+    directory: ProfessionalDirectory | None = None,
 ) -> dict[str, int]:
     """Seed a realistic weekly schedule for the demo clinic + professionals.
 
@@ -37,6 +39,10 @@ async def seed_schedules_demo(
     templates so re-running the demo seeder gives predictable data.
     Leaves overrides untouched on re-run so manually-created overrides
     during a demo session survive.
+
+    ``directory`` is whoever resolves an account to its directory
+    profile. Inside a running app it is looked up; a seed script runs
+    with nothing mounted and has to hand it over.
 
     Returns a stats dict for the seed-demo summary.
     """
@@ -70,8 +76,16 @@ async def seed_schedules_demo(
         stats["clinic_shifts"] += 2
     await db.flush()
 
-    dentist_id = await _ensure_demo_professional(db, clinic_id, dentist_id, "dentist")
-    hygienist_id = await _ensure_demo_professional(db, clinic_id, hygienist_id, "hygienist")
+    # The demo input still exposes account ids; the directory says which
+    # profile stands for each (ADR 0039).
+    directory = directory or provider(ProfessionalDirectory)
+    if directory is None:
+        raise RuntimeError(
+            "Seeding professional hours needs the professionals directory: pass "
+            "`directory=` when seeding outside a running app."
+        )
+    dentist_id = await directory.profile_for_account(db, clinic_id, dentist_id, "dentist")
+    hygienist_id = await directory.profile_for_account(db, clinic_id, hygienist_id, "hygienist")
 
     # --- Dentist (Sarah / Dra.): Mon–Fri 09–14 + 16–19.
     await _seed_professional_weekly(
@@ -225,54 +239,3 @@ async def _ensure_professional_override(
     )
     await db.flush()
     return 1
-
-
-async def _ensure_demo_professional(
-    db: AsyncSession, clinic_id: UUID, legacy_user_id: UUID, professional_type: str
-) -> UUID:
-    """Return the seeded directory record associated with a demo account.
-
-    The demo input still exposes account IDs, so use a deterministic UUID to
-    keep the record stable while all scheduling data points to the directory.
-
-    **The account's own id is checked first**, because that is the id
-    `scripts/seed_demo.py` gives the directory record it creates for each
-    clinical user, and what every appointment, plan item and commission in
-    the demo points at. Deriving without looking made a *second* record for
-    the same person on every seed — a duplicate in every professional
-    picker, with this module's weekly hours hanging off the copy nobody
-    books, so the dentist carrying 28 appointments had no working hours at
-    all. The derived id stays for the case it was written for: a demo
-    account with no directory record yet.
-    """
-    from uuid import NAMESPACE_URL, uuid5
-
-    by_account = await db.get(Professional, legacy_user_id)
-    if by_account is not None and by_account.clinic_id == clinic_id:
-        return by_account.id
-
-    professional_id = uuid5(
-        NAMESPACE_URL, f"dentalpin:legacy-professional:{clinic_id}:{legacy_user_id}"
-    )
-    existing = await db.get(Professional, professional_id)
-    if existing is not None:
-        return existing.id
-
-    from app.core.auth.models import User
-
-    user = await db.get(User, legacy_user_id)
-    if user is None:
-        raise ValueError(f"Demo user {legacy_user_id} does not exist")
-    db.add(
-        Professional(
-            id=professional_id,
-            clinic_id=clinic_id,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            email=user.email,
-            professional_type=professional_type,
-            is_active=user.is_active,
-        )
-    )
-    await db.flush()
-    return professional_id

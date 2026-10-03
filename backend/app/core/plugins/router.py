@@ -1,7 +1,7 @@
 """HTTP endpoints for module management.
 
-Mirror of the CLI, exposed so UI clients can trigger the same state
-transitions. The heavy lifting happens at the next backend restart —
+A subset of the CLI: everything read-only, plus the transitions that
+cannot lose data. The heavy lifting happens at the next backend restart —
 every mutating endpoint responds ``202 Accepted`` with a "restart
 required" message and the list of modules that would be touched.
 
@@ -28,12 +28,51 @@ from app.core.auth.permissions import has_permission
 from app.core.schemas import ApiResponse
 from app.database import get_db
 
+from .apps import (
+    AppStatus,
+    integrated_modules,
+    load_app_catalog,
+    modules_disabled_by_app,
+    required_modules,
+    statuses_on_disk,
+)
 from .service import ModuleOperationError, ModuleService
 from .state import ModuleState
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/modules", tags=["modules"])
+apps_router = APIRouter(prefix="/apps", tags=["apps"])
+
+
+@apps_router.get("")
+async def list_apps(
+    _: Annotated[None, Depends(require_permission("admin.clinic.read"))],
+) -> ApiResponse[list[dict[str, Any]]]:
+    """The App catalog: each App, the modules it groups and what they need."""
+    on_disk = statuses_on_disk()
+    return ApiResponse(
+        data=[
+            {
+                "name": app.name,
+                "version": app.version,
+                "enabled": app.enabled,
+                # What `apps.json` says now, when it differs from what is
+                # running: the edit takes effect at the next restart.
+                "pending_enabled": (
+                    on_disk[app.name] is AppStatus.ENABLED
+                    if app.name in on_disk and on_disk[app.name] is not app.status
+                    else None
+                ),
+                "tier": app.tier.value,
+                "modules": list(app.modules),
+                "requires": required_modules(app),
+                "integrates": integrated_modules(app),
+                "apis": [{"name": api.name, "status": api.status.value} for api in app.apis],
+            }
+            for app in load_app_catalog()
+        ]
+    )
 
 
 # --- Read endpoints ------------------------------------------------------
@@ -76,7 +115,10 @@ async def active_modules(
     db: Annotated[AsyncSession, Depends(get_db)],
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
 ) -> ApiResponse[list[dict[str, Any]]]:
-    """Modules in ``installed`` state + nav items visible to the caller.
+    """Modules that are running + nav items visible to the caller.
+
+    Running means ``installed`` and not held back by a disabled App
+    (ADR 0038) — the same set the boot sequence mounted.
 
     This is the frontend's source of truth for the sidebar. Every
     authenticated user may read it; navigation entries are filtered by
@@ -96,9 +138,10 @@ async def active_modules(
     # so the entry still appears for a user who can see only one of the
     # contributing modules.
     seen_destinations: set[str] = set()
+    held_back = modules_disabled_by_app()
 
     for info in await svc.list_modules():
-        if info.state != ModuleState.INSTALLED:
+        if info.state != ModuleState.INSTALLED or info.name in held_back:
             continue
 
         module = svc.discovered()
@@ -176,39 +219,26 @@ async def module_operations(
 # --- Mutating endpoints --------------------------------------------------
 
 
-@router.post("/{name}/install", status_code=status.HTTP_202_ACCEPTED)
-async def install_module(
+@router.post("/{name}/enable", status_code=status.HTTP_202_ACCEPTED)
+async def enable_module(
     name: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     _: Annotated[None, Depends(require_permission("admin.clinic.write"))],
-    force: bool = False,
 ) -> ApiResponse[dict[str, Any]]:
+    """Enable ``name`` and the dependencies it needs.
+
+    There is deliberately no ``disable`` (or ``uninstall``) over HTTP:
+    turning an app off is an operator decision taken from the CLI, never
+    a button (ADR 0035).
+    """
     svc = ModuleService(db)
     try:
-        scheduled = await svc.install(name, force=force)
+        scheduled = await svc.enable(name)
     except ModuleOperationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return ApiResponse(
         data={"scheduled": scheduled, "requires_restart": bool(scheduled)},
         message="Restart required to apply.",
-    )
-
-
-@router.post("/{name}/uninstall", status_code=status.HTTP_202_ACCEPTED)
-async def uninstall_module(
-    name: str,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[None, Depends(require_permission("admin.clinic.write"))],
-    force: bool = False,
-) -> ApiResponse[dict[str, Any]]:
-    svc = ModuleService(db)
-    try:
-        await svc.uninstall(name, force=force)
-    except ModuleOperationError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return ApiResponse(
-        data={"scheduled": [name], "requires_restart": True},
-        message="Restart required to apply. A data backup will be created before removal.",
     )
 
 

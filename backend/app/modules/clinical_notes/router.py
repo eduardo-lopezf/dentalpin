@@ -26,6 +26,7 @@ from .schemas import (
     ClinicalNoteEntry,
     ClinicalNoteResponse,
     ClinicalNoteUpdate,
+    ClinicalNoteVersionResponse,
     NoteAttachmentResponse,
     NoteTemplateResponse,
     PlanNotesGroup,
@@ -190,7 +191,11 @@ async def update_note(
     _: Annotated[None, Depends(require_permission("clinical_notes.notes.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[ClinicalNoteResponse]:
-    """Edit a note body. Author or admin only."""
+    """Amend a note body. Author or admin only.
+
+    The previous text is kept as a version rather than overwritten — see
+    `GET /notes/{note_id}/versions`.
+    """
     try:
         note = await NoteService.update(
             db,
@@ -199,12 +204,33 @@ async def update_note(
             body=data.body,
             user_id=ctx.user_id,
             is_admin=_is_admin_role(ctx),
+            reason=data.reason,
         )
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e)) from e
     if note is None:
         raise HTTPException(status_code=404, detail="Note not found")
     return ApiResponse(data=await _decorate_note(db, ctx.clinic_id, note))
+
+
+@router.get(
+    "/notes/{note_id}/versions",
+    response_model=ApiResponse[list[ClinicalNoteVersionResponse]],
+)
+async def list_note_versions(
+    note_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("clinical_notes.notes.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[ClinicalNoteVersionResponse]]:
+    """What this note said before, oldest first.
+
+    Empty for a note nobody has corrected. Reading the history is the same
+    permission as reading the note: a correction is part of what the note says,
+    not a separate secret.
+    """
+    versions = await NoteService.versions(db, clinic_id=ctx.clinic_id, note_id=note_id)
+    return ApiResponse(data=[ClinicalNoteVersionResponse.model_validate(v) for v in versions])
 
 
 @router.delete(

@@ -1,11 +1,18 @@
 <script setup lang="ts">
 const { resolve } = useModuleSlots()
 
-const heroEntries = computed(() => resolve('dashboard.hero', {}))
-const timelineEntries = computed(() => resolve('dashboard.timeline', {}))
-const attentionEntries = computed(() => resolve('dashboard.attention', {}))
-const activityEntries = computed(() => resolve('dashboard.activity', {}))
-const widgetEntries = computed(() => resolve('dashboard.widgets', {}))
+// The clinic chooses which widgets show and their order (Settings →
+// Apps → Espacio de trabajo, ADR 0043). Nothing is drawn until that is known, so a
+// hidden widget never flashes in.
+const { layout, load, arrange } = useHomeLayout()
+onMounted(() => load())
+const ready = computed(() => layout.value !== null)
+
+const heroEntries = computed(() => arrange(resolve('dashboard.hero', {})))
+const timelineEntries = computed(() => arrange(resolve('dashboard.timeline', {})))
+const attentionEntries = computed(() => arrange(resolve('dashboard.attention', {})))
+const activityEntries = computed(() => arrange(resolve('dashboard.activity', {})))
+const widgetEntries = computed(() => arrange(resolve('dashboard.widgets', {})))
 
 const hasAnyContent = computed(() =>
   heroEntries.value.length
@@ -32,62 +39,100 @@ const { t } = useI18n()
       The content is client-only by construction, so say so.
     -->
     <ClientOnly>
-      <section
-        v-if="heroEntries.length > 0"
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-      >
-        <ModuleSlot
-          name="dashboard.hero"
-          :ctx="{}"
-        />
-      </section>
-
-      <section v-if="timelineEntries.length > 0">
-        <ModuleSlot
-          name="dashboard.timeline"
-          :ctx="{}"
-        />
-      </section>
-
-      <section
-        v-if="attentionEntries.length > 0 || activityEntries.length > 0"
-        class="grid grid-cols-1 lg:grid-cols-2 gap-6"
-      >
-        <div
-          v-if="attentionEntries.length > 0"
-          class="space-y-6"
+      <template v-if="ready">
+        <section
+          v-if="heroEntries.length > 0"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
-          <ModuleSlot
-            name="dashboard.attention"
-            :ctx="{}"
-          />
-        </div>
-        <div
-          v-if="activityEntries.length > 0"
-          class="space-y-6"
-          :class="{ 'lg:col-span-2': attentionEntries.length === 0 }"
+          <!-- `contents`: the wrapper takes no box, so grids lay out the widget itself. -->
+          <div
+            v-for="entry in heroEntries"
+            :key="entry.id"
+            class="contents"
+            :data-testid="`home-entry-${entry.id}`"
+          >
+            <component
+              :is="entry.component"
+              :ctx="{}"
+            />
+          </div>
+        </section>
+
+        <section v-if="timelineEntries.length > 0">
+          <div
+            v-for="entry in timelineEntries"
+            :key="entry.id"
+            class="contents"
+            :data-testid="`home-entry-${entry.id}`"
+          >
+            <component
+              :is="entry.component"
+              :ctx="{}"
+            />
+          </div>
+        </section>
+
+        <section
+          v-if="attentionEntries.length > 0 || activityEntries.length > 0"
+          class="grid grid-cols-1 lg:grid-cols-2 gap-6"
         >
-          <ModuleSlot
-            name="dashboard.activity"
-            :ctx="{}"
+          <div
+            v-if="attentionEntries.length > 0"
+            class="space-y-6"
+          >
+            <div
+              v-for="entry in attentionEntries"
+              :key="entry.id"
+              class="contents"
+              :data-testid="`home-entry-${entry.id}`"
+            >
+              <component
+                :is="entry.component"
+                :ctx="{}"
+              />
+            </div>
+          </div>
+          <div
+            v-if="activityEntries.length > 0"
+            class="space-y-6"
+            :class="{ 'lg:col-span-2': attentionEntries.length === 0 }"
+          >
+            <div
+              v-for="entry in activityEntries"
+              :key="entry.id"
+              class="contents"
+              :data-testid="`home-entry-${entry.id}`"
+            >
+              <component
+                :is="entry.component"
+                :ctx="{}"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section v-if="widgetEntries.length > 0">
+          <div
+            v-for="entry in widgetEntries"
+            :key="entry.id"
+            class="contents"
+            :data-testid="`home-entry-${entry.id}`"
+          >
+            <component
+              :is="entry.component"
+              :ctx="{}"
+            />
+          </div>
+        </section>
+
+        <UCard v-if="!hasAnyContent">
+          <EmptyState
+            icon="i-lucide-smile"
+            :title="t('dashboard.welcome')"
+            :description="t('dashboard.welcomeMessage')"
           />
-        </div>
-      </section>
-
-      <section v-if="widgetEntries.length > 0">
-        <ModuleSlot
-          name="dashboard.widgets"
-          :ctx="{}"
-        />
-      </section>
-
-      <UCard v-if="!hasAnyContent">
-        <EmptyState
-          icon="i-lucide-smile"
-          :title="t('dashboard.welcome')"
-          :description="t('dashboard.welcomeMessage')"
-        />
-      </UCard>
+        </UCard>
+      </template>
     </ClientOnly>
   </div>
 </template>

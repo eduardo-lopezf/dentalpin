@@ -1,5 +1,10 @@
 {
   "professionals": {
+    "account": {
+      "label": "Cuenta vinculada",
+      "help": "La cuenta con la que esta persona entra al sistema. Es lo que permite que una anotación clínica diga quién responde por ella. Déjalo en «Sin cuenta» si no usa el sistema.",
+      "none": "Sin cuenta"
+    },
     "nav": "Profesionales",
     "title": "Dentistas y Colaboradores",
     "description": "Gestiona los perfiles profesionales de tu clínica.",

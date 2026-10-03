@@ -100,18 +100,26 @@ contract.
 - **A plan's budget is deleted with the plan, and only then.**
   `DELETE /budgets/{id}` answers 409 for any budget
   `BudgetService.belongs_to_plan` recognises — `plan_number_snapshot` set,
-  or a live `treatment_plans.budget_id` link. Deleting the plan calls
-  `BudgetService.delete_for_plan` synchronously (`treatment_plan` depends on
-  this module), which soft-deletes **every** budget carrying that plan's
+  or a live `treatment_plans.budget_id` link. Deleting the plan publishes
+  `treatment_plan.deleted`; `plan_quotes.on_plan_deleted` runs
+  `BudgetService.delete_for_plan`, which soft-deletes **every** budget carrying that plan's
   number: renegotiated versions and the cancelled budget a reopen +
   confirm leaves behind included. The list has no trash can any more; it
   was offering one on accepted budgets. Payment allocations still point at a
   soft-deleted budget — the money is untouched.
 
-- **Budget → treatment_plan is event-driven, never direct.** Don't
-  import treatment_plan services or models from here. The reverse
-  direction (treatment_plan → budget) is allowed because budget is in
-  treatment_plan's depends. See ADR 0003.
+- **Neither side imports the other, and only this side writes budgets**
+  (ADR 0042). `plan_quotes.py` holds everything that creates, cancels or
+  deletes a budget because of a plan: handlers for
+  `treatment_plan.confirmed` / `status_changed` / `deleted`, and the two
+  endpoints `POST /plans/{plan_id}/budget` and `/addendum`, which read the
+  plan through the `PlanQuotes` contract. Whatever is created is announced
+  with `budget.created_for_plan`; the plan links itself. This module never
+  writes a plan's row. `providers.py` answers the plan's questions
+  (`PlanBudgets`) and is read-only — do not add a write to it.
+- **Known seams left** (shared-database assumptions a split would have to
+  replace): `BudgetWorkflowService._lookup_plan_id` and
+  `BudgetService.belongs_to_plan` read `treatment_plans` with raw SQL.
 - **Snapshot-only event handlers.** `_on_treatment_added_to_plan` and
   friends consume the data carried in the payload (catalog_item_id,
   tooth, surfaces, unit_price, budget_id) — no fetches against the

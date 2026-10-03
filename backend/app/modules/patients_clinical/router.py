@@ -137,7 +137,7 @@ async def create_allergy(
 ) -> ApiResponse[AllergyResponse]:
     await _ensure_patient(db, ctx.clinic_id, patient_id)
     allergy = await PatientsClinicalService.create_allergy(
-        db, ctx.clinic_id, patient_id, data.model_dump()
+        db, ctx.clinic_id, patient_id, data.model_dump(), user_id=ctx.user_id
     )
     await db.commit()
     await db.refresh(allergy)
@@ -183,7 +183,7 @@ async def delete_allergy(
     allergy = await PatientsClinicalService.get_allergy(db, allergy_id)
     if allergy is None or allergy.patient_id != patient_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Allergy not found")
-    await PatientsClinicalService.delete_allergy(db, allergy)
+    await PatientsClinicalService.delete_allergy(db, allergy, user_id=ctx.user_id)
     await db.commit()
 
 
@@ -219,7 +219,7 @@ async def create_medication(
 ) -> ApiResponse[MedicationResponse]:
     await _ensure_patient(db, ctx.clinic_id, patient_id)
     med = await PatientsClinicalService.create_medication(
-        db, ctx.clinic_id, patient_id, data.model_dump()
+        db, ctx.clinic_id, patient_id, data.model_dump(), user_id=ctx.user_id
     )
     await db.commit()
     await db.refresh(med)
@@ -265,7 +265,7 @@ async def delete_medication(
     med = await PatientsClinicalService.get_medication(db, medication_id)
     if med is None or med.patient_id != patient_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication not found")
-    await PatientsClinicalService.delete_medication(db, med)
+    await PatientsClinicalService.delete_medication(db, med, user_id=ctx.user_id)
     await db.commit()
 
 
@@ -301,7 +301,7 @@ async def create_systemic_disease(
 ) -> ApiResponse[SystemicDiseaseResponse]:
     await _ensure_patient(db, ctx.clinic_id, patient_id)
     disease = await PatientsClinicalService.create_systemic_disease(
-        db, ctx.clinic_id, patient_id, data.model_dump()
+        db, ctx.clinic_id, patient_id, data.model_dump(), user_id=ctx.user_id
     )
     await db.commit()
     await db.refresh(disease)
@@ -347,7 +347,7 @@ async def delete_systemic_disease(
     disease = await PatientsClinicalService.get_systemic_disease(db, disease_id)
     if disease is None or disease.patient_id != patient_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Disease not found")
-    await PatientsClinicalService.delete_systemic_disease(db, disease)
+    await PatientsClinicalService.delete_systemic_disease(db, disease, user_id=ctx.user_id)
     await db.commit()
 
 
@@ -383,7 +383,7 @@ async def create_surgical_history(
 ) -> ApiResponse[SurgicalHistoryResponse]:
     await _ensure_patient(db, ctx.clinic_id, patient_id)
     surgery = await PatientsClinicalService.create_surgical_history(
-        db, ctx.clinic_id, patient_id, data.model_dump()
+        db, ctx.clinic_id, patient_id, data.model_dump(), user_id=ctx.user_id
     )
     await db.commit()
     await db.refresh(surgery)
@@ -429,7 +429,7 @@ async def delete_surgical_history(
     surgery = await PatientsClinicalService.get_surgical_history(db, surgery_id)
     if surgery is None or surgery.patient_id != patient_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Surgery not found")
-    await PatientsClinicalService.delete_surgical_history(db, surgery)
+    await PatientsClinicalService.delete_surgical_history(db, surgery, user_id=ctx.user_id)
     await db.commit()
 
 

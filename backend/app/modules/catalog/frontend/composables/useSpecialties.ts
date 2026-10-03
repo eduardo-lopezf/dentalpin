@@ -13,6 +13,9 @@ export function useSpecialties() {
   const api = useApi()
   const { t, locale } = useI18n()
   const toast = useToast()
+  // Read here, at setup: this composable's functions also run from click
+  // handlers, where there is no Nuxt instance left to ask.
+  const { active, isActive } = useModules()
 
   // State
   const specialties = useState<Specialty[]>('specialties:list', () => [])
@@ -37,6 +40,12 @@ export function useSpecialties() {
 
   // Fetch all specialties for the clinic
   async function fetchSpecialties(includeInactive = false): Promise<void> {
+    // Other Apps call this (Professionals, for one). While the catalog is
+    // not running there are no specialties to offer and no API to ask.
+    if (active.value !== null && !isActive('catalog')) {
+      specialties.value = []
+      return
+    }
     isLoading.value = true
     try {
       const params = includeInactive ? '?include_inactive=true' : ''

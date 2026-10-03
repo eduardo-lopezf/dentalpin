@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- feat(apps): `notifications` forma parte de la App **Comunicaciones**
+  (`backend/apps.json`, nivel opcional), junto con `whatsapp_kapso`.
+
 - fix(i18n): el hilo de conversación con el paciente no tenía **ninguna** de
   sus cinco claves, y ninguna llevaba texto por defecto: la tarjeta se
   titulaba literalmente `notifications.conversation.title` y el campo de

@@ -23,6 +23,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `appointment.updated` | `EventType.APPOINTMENT_UPDATED` | `agenda` | `schedules` |
 | `budget.accepted` | `EventType.BUDGET_ACCEPTED` | `budget` | `notifications`, `patient_timeline`, `treatment_plan` |
 | `budget.created` | `EventType.BUDGET_CREATED` | — | — |
+| `budget.created_for_plan` | `EventType.BUDGET_CREATED_FOR_PLAN` | `budget` | `treatment_plan` |
 | `budget.expired` | `EventType.BUDGET_EXPIRED` | `budget` | `patient_timeline` |
 | `budget.rejected` | `EventType.BUDGET_REJECTED` | `budget` | `patient_timeline`, `treatment_plan` |
 | `budget.reminder_sent` | `EventType.BUDGET_REMINDER_SENT` | `budget` | `patient_timeline` |
@@ -94,14 +95,15 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `treatment.completed` | `EventType.TREATMENT_COMPLETED` | — | — |
 | `treatment_plan.budget_sync_requested` | `EventType.TREATMENT_PLAN_BUDGET_SYNC_REQUESTED` | `treatment_plan` | `budget` |
 | `treatment_plan.closed` | `EventType.TREATMENT_PLAN_CLOSED` | `treatment_plan` | `patient_timeline` |
-| `treatment_plan.confirmed` | `EventType.TREATMENT_PLAN_CONFIRMED` | `treatment_plan` | `patient_timeline` |
+| `treatment_plan.confirmed` | `EventType.TREATMENT_PLAN_CONFIRMED` | `treatment_plan` | `budget`, `patient_timeline` |
 | `treatment_plan.created` | `EventType.TREATMENT_PLAN_CREATED` | `treatment_plan` | `patient_timeline` |
+| `treatment_plan.deleted` | `EventType.TREATMENT_PLAN_DELETED` | `treatment_plan` | `budget` |
 | `treatment_plan.item_completed_without_note` | `EventType.TREATMENT_PLAN_ITEM_COMPLETED_WITHOUT_NOTE` | `treatment_plan` | `patient_timeline` |
 | `treatment_plan.item_session_completed` | `EventType.TREATMENT_PLAN_ITEM_SESSION_COMPLETED` | `treatment_plan` | `payments` |
 | `treatment_plan.item_session_reopened` | `EventType.TREATMENT_PLAN_ITEM_SESSION_REOPENED` | `treatment_plan` | `payments` |
 | `treatment_plan.items_reordered` | `EventType.TREATMENT_PLAN_ITEMS_REORDERED` | `treatment_plan` | — |
 | `treatment_plan.reactivated` | `EventType.TREATMENT_PLAN_REACTIVATED` | `treatment_plan` | `patient_timeline` |
-| `treatment_plan.status_changed` | `EventType.TREATMENT_PLAN_STATUS_CHANGED` | `treatment_plan` | — |
+| `treatment_plan.status_changed` | `EventType.TREATMENT_PLAN_STATUS_CHANGED` | `treatment_plan` | `budget` |
 | `treatment_plan.treatment_added` | `EventType.TREATMENT_PLAN_TREATMENT_ADDED` | `treatment_plan` | `budget` |
 | `treatment_plan.treatment_completed` | `EventType.TREATMENT_PLAN_TREATMENT_COMPLETED` | `treatment_plan` | `patient_timeline`, `recalls` |
 | `treatment_plan.treatment_removed` | `EventType.TREATMENT_PLAN_TREATMENT_REMOVED` | `treatment_plan` | `budget` |
@@ -219,6 +221,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 - **Constant:** `EventType.BUDGET_CREATED`
 - **Publishers:** _none in tree — declared but unused_
 - **Subscribers:** —
+
+### `budget.created_for_plan`
+
+- **Constant:** `EventType.BUDGET_CREATED_FOR_PLAN`
+- **Publishers:**
+  - `budget` — `backend/app/modules/budget/plan_quotes.py`
+- **Subscribers:**
+  - `treatment_plan`
 
 ### `budget.expired`
 
@@ -749,6 +759,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 - **Publishers:**
   - `treatment_plan` — `backend/app/modules/treatment_plan/service.py`
 - **Subscribers:**
+  - `budget`
   - `patient_timeline`
 
 ### `treatment_plan.created`
@@ -758,6 +769,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
   - `treatment_plan` — `backend/app/modules/treatment_plan/service.py`
 - **Subscribers:**
   - `patient_timeline`
+
+### `treatment_plan.deleted`
+
+- **Constant:** `EventType.TREATMENT_PLAN_DELETED`
+- **Publishers:**
+  - `treatment_plan` — `backend/app/modules/treatment_plan/service.py`
+- **Subscribers:**
+  - `budget`
 
 ### `treatment_plan.item_completed_without_note`
 
@@ -803,7 +822,8 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 - **Constant:** `EventType.TREATMENT_PLAN_STATUS_CHANGED`
 - **Publishers:**
   - `treatment_plan` — `backend/app/modules/treatment_plan/service.py`
-- **Subscribers:** —
+- **Subscribers:**
+  - `budget`
 
 ### `treatment_plan.treatment_added`
 

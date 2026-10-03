@@ -14,7 +14,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/patients/router.py
   - backend/app/modules/patients/frontend/pages/patients/[id].vue
-last_verified_commit: 75cd119
+last_verified_commit: 1facfd7
 ---
 
 # Ficha del paciente
@@ -49,6 +49,22 @@ también deep-links — un click llega al detalle.
     odontograma en modo diagnóstico.
   - **Historial médico** *(patients_clinical)* — alergias,
     enfermedades sistémicas, medicación. Click → editar historial.
+
+> **Los antecedentes ya no se borran.** Quitar una alergia, una medicación,
+> una enfermedad o una cirugía —sea desde su propia fila o quitando la línea
+> del formulario— la **retracta**: deja de verse, deja de disparar avisos y
+> deja de salir en lo que se entrega a un tercero, pero la ficha sigue ahí,
+> con la fecha en que se registró y quién la retiró. Un expediente tiene que
+> poder responder qué decía la historia el día del acto médico.
+>
+> Antes desaparecía sin rastro, y no solo al quitarla a mano: **cada guardado
+> del formulario borraba las filas e insertaba otras nuevas**, así que una
+> alergia perdía la fecha en que se anotó por primera vez y nadie podía decir
+> desde cuándo constaba. Ahora el guardado compara: lo que sigue, se mantiene;
+> lo que cambia, se actualiza; lo que falta, se retracta.
+>
+> Los contactos de urgencia y los tutores legales todavía no funcionan así —
+> ver `docs/features/expediente-clinico.md`.
   - **Acciones rápidas** *(patients)* — Cita, Documento
     y el slot `patient.summary.actions` para módulos hermanos
     (recalls *Set recall*, notificaciones, etc.).

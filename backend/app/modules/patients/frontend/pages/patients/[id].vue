@@ -22,6 +22,7 @@ import { isMinorPatient } from '../../utils/medicalSnapshot'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const { book } = useAppointmentBooking()
 const api = useApi()
 const toast = useToast()
 const { can } = usePermissions()
@@ -100,6 +101,16 @@ watch(
   { immediate: true }
 )
 
+// Registrations into ``patient.detail.tabs``, already filtered by
+// permission and ordered. Empty during SSR: registrations run in
+// ``slots.client.ts`` plugins, which is why the strip below is
+// client-only.
+const moduleTabs = computed(() =>
+  patient.value
+    ? resolve('patient.detail.tabs', { patient: patient.value }).filter(entry => entry.tab)
+    : []
+)
+
 const tabs = computed(() => {
   const items: Array<{ value: string, label: string, icon: string, slot: string }> = [
     {
@@ -116,30 +127,14 @@ const tabs = computed(() => {
     }
   ]
 
-  if (can(PERMISSIONS.odontogram.read) || can(PERMISSIONS.treatmentPlans.read)) {
+  // Tabs other Apps contribute — Clínico, Administración, Galería. Each
+  // comes with its module and goes with it; this page names none of them.
+  for (const entry of moduleTabs.value) {
     items.push({
-      value: 'clinical',
-      label: t('patientDetail.tabs.clinical'),
-      icon: 'i-lucide-stethoscope',
-      slot: 'clinical'
-    })
-  }
-
-  if (can(PERMISSIONS.budget.read) || can(PERMISSIONS.billing.read)) {
-    items.push({
-      value: 'administration',
-      label: t('patientDetail.tabs.administration'),
-      icon: 'i-lucide-briefcase',
-      slot: 'administration'
-    })
-  }
-
-  if (can(PERMISSIONS.documents.read)) {
-    items.push({
-      value: 'gallery',
-      label: t('patientDetail.tabs.gallery'),
-      icon: 'i-lucide-images',
-      slot: 'gallery'
+      value: entry.tab!.value,
+      label: entry.labelKey ? t(entry.labelKey) : entry.tab!.value,
+      icon: entry.tab!.icon,
+      slot: entry.tab!.value
     })
   }
 
@@ -152,6 +147,22 @@ const tabs = computed(() => {
 
   return items
 })
+
+// A link to a tab that is not there — its App is off, or the reader may
+// not see it — opens the summary instead of an empty panel. Client-only:
+// on the server the contributed tabs do not exist yet, and every deep
+// link would be reset.
+if (import.meta.client) {
+  watch(
+    [tabs, activeTab],
+    ([items, current]) => {
+      if (patient.value && !items.some(item => item.value === current)) {
+        activeTab.value = 'summary'
+      }
+    },
+    { immediate: true }
+  )
+}
 
 // Permissions used by Datos tab + edit modals.
 const canEditMedicalHistory = computed(() => can(PERMISSIONS.medicalHistory.write))
@@ -262,7 +273,7 @@ function newAppointment() {
   // reads it into `initialPatientId` and forwards it to the create modal
   // when the user picks a slot. No auto-open — the slot decides the
   // date / time / cabinet.
-  router.push(`/appointments?patient_id=${patientId}`)
+  book({ patient_id: patientId })
 }
 
 function newNote() {
@@ -333,166 +344,162 @@ function collect() {
              ellipsis ("Res…", "Admini…", "G…"), which is worse than
              having to swipe. Only the list scrolls — the panels below
              keep `overflow-visible`, which sticky children rely on. -->
-        <UTabs
-          v-model="activeTab"
-          :items="tabs"
-          default-value="summary"
-          class="w-full"
-          :ui="{
-            content: 'overflow-visible',
-            list: 'overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-            trigger: 'shrink-0'
-          }"
-        >
-          <!-- Resumen — smart-card grid + clinical-notes feed.
+        <!-- Client-only: half the tabs are slot registrations, which do
+             not exist during SSR. Rendered on the server the strip came
+             out short, and hydration then had to add tabs and move the
+             selection — a mismatch on every load of a deep link. -->
+        <ClientOnly>
+          <UTabs
+            v-model="activeTab"
+            :items="tabs"
+            default-value="summary"
+            class="w-full"
+            :ui="{
+              content: 'overflow-visible',
+              list: 'overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+              trigger: 'shrink-0'
+            }"
+          >
+            <!-- Resumen — smart-card grid + clinical-notes feed.
                The whole Resumen body is slot-driven; modules register
                their cards via `.client.ts` plugins that only run after
                hydration. Wrapping in <ClientOnly> keeps the SSR tree
                aligned with the client tree (an identically-shaped
                skeleton grid) so Vue doesn't hit hydration mismatches
                that re-layout the page after refresh. -->
-          <template #summary>
-            <ClientOnly>
-              <div class="mt-4 space-y-4 overflow-visible">
-                <div
-                  v-if="summaryCards.length === 0"
-                  class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-4"
-                >
+            <template #summary>
+              <ClientOnly>
+                <div class="mt-4 space-y-4 overflow-visible">
                   <div
-                    class="md:col-span-2 xl:col-span-3 rounded-token-md border border-dashed border-default px-4 py-8 text-center text-muted"
+                    v-if="summaryCards.length === 0"
+                    class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-4"
                   >
-                    {{ t('patientDetail.noSummaryCards', 'No hay módulos registrados en el resumen.') }}
+                    <div
+                      class="md:col-span-2 xl:col-span-3 rounded-token-md border border-dashed border-default px-4 py-8 text-center text-muted"
+                    >
+                      {{ t('patientDetail.noSummaryCards', 'No hay módulos registrados en el resumen.') }}
+                    </div>
                   </div>
-                </div>
-                <div
-                  v-else
-                  class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-4"
-                >
-                  <component
-                    :is="entry.component"
-                    v-for="entry in summaryCards"
-                    :key="entry.id"
-                    :ctx="{ patient }"
-                  />
-                </div>
-
-                <section id="new-note">
-                  <ModuleSlot
-                    name="patient.summary.feed"
-                    :ctx="{ patient }"
-                  />
-                </section>
-
-                <ModuleSlot
-                  name="patient.detail.sidebar"
-                  :ctx="{ patient }"
-                />
-              </div>
-
-              <template #fallback>
-                <div class="mt-4 space-y-4">
-                  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-4">
-                    <USkeleton
-                      v-for="i in 6"
-                      :key="i"
-                      class="h-36 w-full rounded-token-lg"
+                  <div
+                    v-else
+                    class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-4"
+                  >
+                    <component
+                      :is="entry.component"
+                      v-for="entry in summaryCards"
+                      :key="entry.id"
+                      :ctx="{ patient }"
                     />
                   </div>
-                  <USkeleton class="h-40 w-full rounded-token-lg" />
+
+                  <section id="new-note">
+                    <ModuleSlot
+                      name="patient.summary.feed"
+                      :ctx="{ patient }"
+                    />
+                  </section>
+
+                  <ModuleSlot
+                    name="patient.detail.sidebar"
+                    :ctx="{ patient }"
+                  />
                 </div>
-              </template>
-            </ClientOnly>
-          </template>
 
-          <!-- Datos tab content -->
-          <template #info>
-            <div class="mt-4 space-y-3 lg:space-y-4 overflow-visible">
-              <MedicalSnapshotCard
-                :medical-history="medicalHistory"
-                :active-alerts="patient.active_alerts"
-                :can-edit="canEditMedicalHistory"
-                @edit="openSectionModal('medical')"
-                @complete-history="openSectionModal('medical')"
-              />
-
-              <PersonalInfoCard
-                :patient="patient"
-                :can-edit="canEditPatient"
-                @edit="openSectionModal('demographics')"
-              />
-
-              <ContactInfoCard
-                :patient="patient"
-                :is-minor="isMinor"
-                :can-edit="canEditPatient"
-                @edit-contact="openSectionModal('demographics')"
-                @edit-emergency="openSectionModal('emergency')"
-                @edit-guardian="openSectionModal('guardian')"
-              />
-
-              <AdministrativeCard
-                :patient="patient"
-                :can-edit="canEditPatient"
-                @edit="openSectionModal('billing')"
-              />
-
-              <!-- Danger zone -->
-              <div class="alert-surface-danger rounded-token-lg px-4 py-3 flex items-center justify-between gap-4">
-                <div class="min-w-0">
-                  <div class="text-ui">
-                    {{ t('patients.dangerZone.title') }}
+                <template #fallback>
+                  <div class="mt-4 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-4">
+                      <USkeleton
+                        v-for="i in 6"
+                        :key="i"
+                        class="h-36 w-full rounded-token-lg"
+                      />
+                    </div>
+                    <USkeleton class="h-40 w-full rounded-token-lg" />
                   </div>
-                  <div class="text-caption">
-                    {{ t('patients.dangerZone.archiveHelp') }}
+                </template>
+              </ClientOnly>
+            </template>
+
+            <!-- Datos tab content -->
+            <template #info>
+              <div class="mt-4 space-y-3 lg:space-y-4 overflow-visible">
+                <MedicalSnapshotCard
+                  :medical-history="medicalHistory"
+                  :active-alerts="patient.active_alerts"
+                  :can-edit="canEditMedicalHistory"
+                  @edit="openSectionModal('medical')"
+                  @complete-history="openSectionModal('medical')"
+                />
+
+                <PersonalInfoCard
+                  :patient="patient"
+                  :can-edit="canEditPatient"
+                  @edit="openSectionModal('demographics')"
+                />
+
+                <ContactInfoCard
+                  :patient="patient"
+                  :is-minor="isMinor"
+                  :can-edit="canEditPatient"
+                  @edit-contact="openSectionModal('demographics')"
+                  @edit-emergency="openSectionModal('emergency')"
+                  @edit-guardian="openSectionModal('guardian')"
+                />
+
+                <AdministrativeCard
+                  :patient="patient"
+                  :can-edit="canEditPatient"
+                  @edit="openSectionModal('billing')"
+                />
+
+                <!-- Danger zone -->
+                <div class="alert-surface-danger rounded-token-lg px-4 py-3 flex items-center justify-between gap-4">
+                  <div class="min-w-0">
+                    <div class="text-ui">
+                      {{ t('patients.dangerZone.title') }}
+                    </div>
+                    <div class="text-caption">
+                      {{ t('patients.dangerZone.archiveHelp') }}
+                    </div>
                   </div>
+                  <UButton
+                    variant="outline"
+                    color="error"
+                    icon="i-lucide-archive"
+                    size="sm"
+                    @click="isArchiveModalOpen = true"
+                  >
+                    {{ t('patients.archive') }}
+                  </UButton>
                 </div>
-                <UButton
-                  variant="outline"
-                  color="error"
-                  icon="i-lucide-archive"
-                  size="sm"
-                  @click="isArchiveModalOpen = true"
-                >
-                  {{ t('patients.archive') }}
-                </UButton>
               </div>
-            </div>
-          </template>
+            </template>
 
-          <!-- Clinical tab content (Odontogram + Treatment Plans) -->
-          <template #clinical>
-            <div class="mt-4">
-              <ClinicalTab
-                :patient-id="patientId"
-                :readonly="!can(PERMISSIONS.odontogram.write)"
+            <!-- Tabs contributed by other Apps (``patient.detail.tabs``). -->
+            <template
+              v-for="entry in moduleTabs"
+              :key="entry.id"
+              #[entry.tab!.value]
+            >
+              <component
+                :is="entry.component"
+                :ctx="{ patient }"
               />
-            </div>
-          </template>
+            </template>
 
-          <!-- Administration tab content (Budgets + Billing + Payments) -->
-          <template #administration>
-            <div class="mt-4">
-              <AdministrationTab
-                :patient-id="patientId"
-                :patient="patient"
-              />
-            </div>
-          </template>
+            <!-- Timeline tab content -->
+            <template #timeline>
+              <UCard class="mt-4">
+                <PatientTimeline :patient-id="patientId" />
+              </UCard>
+            </template>
+          </UTabs>
 
-          <!-- Gallery tab content -->
-          <template #gallery>
-            <UCard class="mt-4">
-              <PhotoGallery :patient-id="patientId" />
-            </UCard>
+          <template #fallback>
+            <USkeleton class="h-10 w-full rounded-md" />
+            <USkeleton class="mt-4 h-96 w-full rounded-token-lg" />
           </template>
-
-          <!-- Timeline tab content -->
-          <template #timeline>
-            <UCard class="mt-4">
-              <PatientTimeline :patient-id="patientId" />
-            </UCard>
-          </template>
-        </UTabs>
+        </ClientOnly>
       </div>
 
       <!-- Mobile bottom action bar -->

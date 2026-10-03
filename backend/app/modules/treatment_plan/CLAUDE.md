@@ -90,10 +90,44 @@ Routes mounted at `/api/v1/treatment-plans/`.
 
 ## Dependencies
 
-`manifest.depends = ["patients", "agenda", "odontogram", "catalog", "budget", "media", "professionals", "payments"]`.
-Eight dependencies. `payments` is read-only and has one use: asking whether
-the patient paid into a plan before it is deleted or cancelled. Anything not on this list is off-limits — no imports,
-no FKs.
+`manifest.depends = ["patients", "odontogram", "catalog"]`,
+`manifest.integrates = ["budget", "payments", "professionals", "agenda", "media"]`.
+Anything not on these lists is off-limits — no imports, no FKs.
+
+**Only `patients` is imported from outside the Treatments App** (ADR 0039,
+ADR 0042; `tests/test_treatments_app_isolation.py`). The five integrations
+are reached without importing them:
+
+- `professionals`: assignments are validated and labelled, and a
+  prescription's signer is read, through `ProfessionalDirectory`. With it
+  off nobody can be assigned and no prescription can be issued.
+- `agenda`: `appointment.completed` carries `planned_items` (what the
+  visit covered); `events.on_appointment_completed` works from that alone.
+- `media`: the `plan_item` attachment owner is registered in
+  `app.core.attachments`, where `media` reads it.
+
+Seams left (raw SQL on another App's table, fine while the database is
+shared): `stewards_of` joins `professionals`; `next_action` and the
+pipeline join `appointments`; the pipeline and `tasks.py` join `budgets`.
+
+For `budget` and `payments`:
+
+- A plan **asks** `budget` questions through the read-only `PlanBudgets`
+  contract — the brief on `plan.budget` (put there by `_attach_budgets`,
+  not a relationship), what is priced, the plan's other live budgets.
+- A plan **never writes** a budget. It publishes `treatment_plan.confirmed`,
+  `status_changed` and `deleted`; `budget` mints, cancels and deletes in
+  its own transaction and answers with `budget.created_for_plan`, which
+  `events.on_budget_created_for_plan` turns into the link. So the confirm
+  response does not carry the budget — re-read the plan.
+- `payments` is asked one thing, through `Collections`: whether the patient
+  paid into a plan about to be deleted or cancelled.
+
+With Budgets off a confirmed plan goes straight to `active`, nothing is
+locked or "unbudgeted", and the next step skips the budget. With Payments
+off the collections guard lets the plan go. Generating a budget and pricing
+additions are `budget` endpoints (`POST /api/v1/budget/plans/{id}/budget`,
+`/addendum`).
 
 `assigned_professional_id` (on `TreatmentPlan` and `PlannedTreatmentItem`)
 FKs to `professionals.id`, not `users.id` — the assigned doctor is a
@@ -129,13 +163,13 @@ request. The plan's budgets are the ones carrying its number plus the
 current link, the rule `delete_for_plan` and `_guard_collections` already
 use.
 
-`budget_the_addendum` then calls `BudgetService.create_addendum_for_plan`
-(the documented plan→budget carve-out). **Gotcha:** while the plan's budget
-is a draft, `budget`'s own `_on_treatment_added_to_plan` already mirrors
-every addition into it and stops at anything that is not a draft — so the
-addendum only ever has work to do past that point, and the draft branch in
-`budget_the_addendum` is a repair path for a handler that raised (ADR 0020
-records, never retries), not the usual one.
+Pricing them is `budget`'s `plan_quotes.price_additions`
+(`POST /api/v1/budget/plans/{id}/addendum`), which reads the plan through
+`PlanQuotes`. **Gotcha:** while the plan's budget is a draft, `budget`'s own
+`_on_treatment_added_to_plan` already mirrors every addition into it and
+stops at anything that is not a draft — so the addendum only ever has work
+to do past that point, and its draft branch is a repair path for a handler
+that raised (ADR 0020 records, never retries), not the usual one.
 
 `plan.budget_id` keeps meaning "the budget this plan was agreed on". An
 addendum is beside it, not instead of it; `other_live_budgets` is what

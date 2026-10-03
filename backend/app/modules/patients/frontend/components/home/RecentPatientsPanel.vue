@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Patient, ApiResponse } from '~~/app/types'
+import { sampleRecentPatients } from '../../utils/previewSamples'
 
 defineProps<{ ctx?: unknown }>()
 
@@ -8,8 +9,16 @@ const api = useApi()
 
 const patients = ref<Patient[]>([])
 const pending = ref(true)
+// Inside a widget example (Settings → Widgets) the list is made up and
+// nothing is fetched (ADR 0040).
+const preview = useWidgetPreview()
 
 async function load() {
+  if (preview) {
+    patients.value = sampleRecentPatients()
+    pending.value = false
+    return
+  }
   try {
     const res = await api.get<ApiResponse<Patient[]>>('/api/v1/patients/recent?limit=6')
     patients.value = res.data

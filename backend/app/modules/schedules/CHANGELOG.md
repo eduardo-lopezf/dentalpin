@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- refactor(schedules): el módulo ya no importa `professionals` (ADR
+  0039). Valida y lista profesionales a través del contrato del core
+  `ProfessionalDirectory`, y se eliminan las relaciones ORM
+  `professional` de los horarios y excepciones, que nadie usaba. Con la
+  app Profesionales apagada, los horarios por profesional responden que
+  no existe y el informe de utilización sale vacío; los horarios de la
+  clínica no cambian. El único módulo que sigue importando es `agenda`,
+  su dependencia obligatoria.
+  - `seed_schedules_demo` recibe el directorio por parámetro
+    (`directory=`) cuando se ejecuta desde un script, donde no hay nada
+    montado. `scripts/seed_demo.py` se lo pasa.
+- feat(schedules): el módulo ofrece el contrato del core `WorkingHours`
+  desde `providers.py` (ADR 0039): qué profesionales están en descanso
+  o fuera de horario. La agenda lo consulta sin importar este módulo.
+- chore(schedules): `professionals` pasa de `depends` a `integrates`
+  (ADR 0037). Los horarios de la clínica no necesitan el directorio;
+  los horarios por profesional sí, y quedan sin nadie que listar
+  mientras la app Profesionales está apagada.
 - fix(schedules): el sembrado demo creaba una **segunda ficha de
   profesional** para la misma persona. `_ensure_demo_professional` derivaba
   un id de la cuenta y solo buscaba por ese id, sin ver la ficha que

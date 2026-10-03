@@ -1,5 +1,6 @@
 import type { Appointment, PaginatedResponse } from '~~/app/types'
 import { toWallClockIso } from '../utils/date'
+import { sampleTodayAppointments, sampleTomorrowUnconfirmed } from '../utils/previewSamples'
 
 /**
  * Shared state for agenda widgets on the home dashboard. Today's and
@@ -7,6 +8,11 @@ import { toWallClockIso } from '../utils/date'
  * the KPI tiles, timeline strip and unconfirmed panel.
  */
 export function useHomeAgenda() {
+  // Inside a widget example (Settings → Apps) the day is made up, and
+  // lives in refs of its own: the state below is shared with the real
+  // dashboard, which must never be handed fiction.
+  if (useWidgetPreview()) return previewHomeAgenda()
+
   const api = useApi()
   const { clinicTimezone } = useAuth()
 
@@ -106,5 +112,21 @@ export function useHomeAgenda() {
     fetchTomorrowUnconfirmed,
     replaceTodayAppointment,
     removeTomorrowUnconfirmed
+  }
+}
+
+function previewHomeAgenda() {
+  const todayAppointments = ref<Appointment[]>(sampleTodayAppointments())
+  const tomorrowUnconfirmed = ref<Appointment[]>(sampleTomorrowUnconfirmed())
+  const loaded = ref(true)
+  return {
+    todayAppointments: readonly(todayAppointments),
+    tomorrowUnconfirmed: readonly(tomorrowUnconfirmed),
+    todayLoaded: readonly(loaded),
+    tomorrowLoaded: readonly(loaded),
+    fetchToday: async () => todayAppointments.value,
+    fetchTomorrowUnconfirmed: async () => tomorrowUnconfirmed.value,
+    replaceTodayAppointment: (_updated: Appointment): void => {},
+    removeTomorrowUnconfirmed: (_id: string): void => {}
   }
 }

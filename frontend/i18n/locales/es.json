@@ -1039,6 +1039,13 @@
   },
   "appointments": {
     "title": "Agenda",
+    "unavailable": "No se pueden crear citas",
+    "patientsUnavailable": "No se pueden asignar pacientes",
+    "professionalsUnavailable": "No se pueden asignar profesionales",
+    "noProfessional": "Sin profesional",
+    "titleLabel": "Título",
+    "titlePlaceholder": "Motivo de la cita",
+    "treatmentsUnavailable": "No se pueden asignar tratamientos",
     "create": "Nueva cita",
     "edit": "Editar cita",
     "today": "Hoy",
@@ -1261,7 +1268,7 @@
         "description": "Datos de la clínica, marca y zona horaria."
       },
       "workspace": {
-        "label": "Espacio de trabajo",
+        "label": "Clínica y horarios",
         "description": "Gabinetes, horarios y disponibilidad."
       },
       "people": {
@@ -1285,8 +1292,8 @@
         "description": "Servicios externos y proveedores."
       },
       "modules": {
-        "label": "Módulos",
-        "description": "Instala, actualiza y desinstala módulos."
+        "label": "Apps",
+        "description": "Las apps habilitadas en tu clínica."
       },
       "account": {
         "label": "Cuenta",
@@ -1410,19 +1417,192 @@
       "userUpdated": "Usuario actualizado correctamente",
       "userRemoved": "Usuario quitado de la clínica"
     },
+    "home": {
+      "title": "Inicio",
+      "workspaceCard": "La app principal. Personaliza qué widgets se ven en Inicio y en qué orden.",
+      "intro": "Lo que elijas aquí lo ve toda la clínica. Cada widget se queda en su zona de la página; el orden es dentro de esa zona.",
+      "reset": "Restablecer",
+      "saved": "Inicio actualizado",
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "labels": {
+        "recallsDue": "Recordatorios pendientes",
+        "overdueHero": "Pagos vencidos · resumen",
+        "overduePanel": "Pagos vencidos · lista",
+        "weekGlance": "La semana en un vistazo"
+      }
+    },
+    "widgets": {
+      "title": "Widgets",
+      "description": "Tarjetas que cada app aporta a otras pantallas, con un ejemplo de cada una.",
+      "intro": "Piezas que una app aporta a otras pantallas. Los ejemplos usan datos ficticios, no los de tu clínica.",
+      "appearsIn": "Aparece en",
+      "example": "Ejemplo",
+      "empty": "No hay widgets que mostrar.",
+      "slots": {
+        "dashboard": {
+          "hero": "Inicio · franja superior",
+          "timeline": "Inicio · línea de tiempo",
+          "attention": "Inicio · panel de atención",
+          "activity": "Inicio · actividad",
+          "widgets": "Inicio · otros"
+        },
+        "patient": {
+          "summary": {
+            "cards": "Ficha del paciente · Resumen"
+          },
+          "header": {
+            "alerts": "Ficha del paciente · cabecera"
+          }
+        }
+      },
+      "catalog": {
+        "agenda": {
+          "todayAppointments": {
+            "title": "Citas de hoy",
+            "summary": "Cuántas citas hay hoy y cómo se reparten."
+          },
+          "inClinicNow": {
+            "title": "En clínica ahora",
+            "summary": "Pacientes que están en sala o en tratamiento en este momento."
+          },
+          "todayTimeline": {
+            "title": "Línea de tiempo de hoy",
+            "summary": "Las citas del día por profesional, con acceso directo a cada una."
+          },
+          "unconfirmed": {
+            "title": "Sin confirmar",
+            "summary": "Citas próximas que aún no se han confirmado."
+          },
+          "nextAppointment": {
+            "title": "Próxima cita",
+            "summary": "La siguiente cita del paciente, en su ficha."
+          }
+        },
+        "patients": {
+          "recent": {
+            "title": "Pacientes recientes",
+            "summary": "Los últimos pacientes dados de alta, con su contacto."
+          },
+          "medicalHistory": {
+            "title": "Historial médico",
+            "summary": "Alergias, enfermedades y medicación del paciente, con su nivel de riesgo."
+          },
+          "alerts": {
+            "title": "Alertas médicas",
+            "summary": "Las alertas críticas y altas del paciente, siempre a la vista en la cabecera."
+          },
+          "quickActions": {
+            "title": "Acciones rápidas",
+            "summary": "Atajos para dar cita o subir un documento desde el resumen del paciente."
+          }
+        }
+      }
+    },
+    "apis": {
+      "title": "APIs",
+      "description": "Servicios externos con los que cada app puede conectarse.",
+      "intro": "Servicios externos con los que una app puede conectarse.",
+      "empty": "No hay APIs que mostrar.",
+      "status": {
+        "planned": "Próximamente",
+        "enabled": "Habilitada",
+        "disabled": "Deshabilitada"
+      },
+      "catalog": {
+        "google_calendar": {
+          "title": "Google Calendar",
+          "summary": "Sincroniza las citas de la agenda con Google Calendar."
+        },
+        "whatsapp": {
+          "title": "WhatsApp",
+          "summary": "Envía mensajes a los pacientes por WhatsApp (vía Kapso)."
+        }
+      }
+    },
+    "apps": {
+      "includes": "Incluye",
+      "requires": "Requiere",
+      "integrates": "Se integra con",
+      "alwaysOn": "Siempre habilitada",
+      "configure": "Configurar",
+      "pendingEnable": "Se habilitará al reiniciar",
+      "pendingDisable": "Se deshabilitará al reiniciar",
+      "tier": {
+        "base": "App principal",
+        "core": "App core",
+        "optional": "App opcional"
+      },
+      "notEnabled": "La app {name} no está habilitada",
+      "modulesHeading": "Módulos",
+      "catalog": {
+          "budgets_payments": {
+            "title": "Presupuestos y cobros",
+            "summary": "Presupuestos, cobros, facturación y, en España, Veri*Factu y la exportación para la gestoría."
+          },
+          "cash": {
+            "title": "Caja",
+            "summary": "Movimientos de efectivo, arqueo diario, cortes y liquidación a profesionales asociados."
+          },
+          "clinical_record": {
+            "title": "Expediente clínico",
+            "summary": "El expediente clínico del paciente como documento."
+          },
+          "reports": {
+            "title": "Informes",
+            "summary": "Informes de facturación, presupuestos y agenda."
+          },
+          "ai": {
+            "title": "IA",
+            "summary": "El asistente de IA de la clínica."
+          },
+          "data_migration": {
+            "title": "Migración de datos",
+            "summary": "Importa pacientes, citas, presupuestos, pagos y documentos desde otro programa."
+          },
+          "communications": {
+            "title": "Comunicaciones",
+            "summary": "Notificaciones a pacientes por email y, más adelante, por WhatsApp."
+          },
+          "workspace": {
+            "title": "Espacio de trabajo",
+            "summary": "La app principal: la clínica, sus usuarios y permisos, el inicio con sus widgets y la configuración. Las demás apps se montan sobre ella."
+          },
+        "agenda": {
+          "title": "Agenda",
+          "summary": "Citas, gabinetes y horarios de la clínica y de los profesionales."
+        },
+        "recalls": {
+          "title": "Recordatorios",
+          "summary": "Revisiones periódicas y lista de llamadas a pacientes."
+        },
+        "treatments": {
+          "title": "Tratamientos",
+          "summary": "Catálogo de tratamientos, odontograma, periodontograma, planes de tratamiento y notas clínicas."
+        },
+        "patients": {
+          "title": "Pacientes",
+          "summary": "Fichas de pacientes, sus datos de contacto, historial médico, documentos y fotos."
+        },
+        "professionals": {
+          "title": "Profesionales",
+          "summary": "Directorio de profesionales de la clínica."
+        }
+      }
+    },
     "modules": {
-      "title": "Módulos",
-      "subtitle": "Instala, desinstala y actualiza los módulos de la clínica.",
-      "description": "Gestiona qué módulos están activos en tu clínica.",
+      "title": "Apps",
+      "subtitle": "Las apps que tiene tu clínica y cuáles están habilitadas.",
+      "description": "Consulta qué apps están habilitadas en tu clínica.",
       "deps": "Dependencias",
       "noDeps": "Sin dependencias",
       "state": {
-        "installed": "Instalado",
-        "uninstalled": "No instalado",
-        "toInstall": "Pendiente de instalar",
+        "installed": "Habilitada",
+        "uninstalled": "Desinstalada",
+        "toInstall": "Pendiente de habilitar",
         "toUpgrade": "Pendiente de actualizar",
         "toRemove": "Pendiente de eliminar",
-        "disabled": "Desactivado",
+        "disabled": "Deshabilitada",
         "error": "Error"
       },
       "category": {
@@ -1430,46 +1610,22 @@
         "community": "Comunidad"
       },
       "actions": {
-        "install": "Instalar",
-        "uninstall": "Desinstalar",
-        "upgrade": "Actualizar",
-        "apply": "Aplicar cambios",
-        "viewDetails": "Detalles",
-        "force": "Forzar desinstalación"
-      },
-      "confirmInstall": {
-        "title": "¿Instalar {name}?",
-        "message": "El módulo se marcará para instalar y quedará activo tras aplicar los cambios.",
-        "scheduled": "Se instalarán también estas dependencias:"
-      },
-      "confirmUninstall": {
-        "title": "¿Desinstalar {name}?",
-        "warning": "Se eliminarán las tablas del módulo. Antes se creará un backup pg_dump automático para poder recuperar los datos.",
-        "forceHint": "Ignora los módulos dependientes. Úsalo solo si sabes lo que haces."
-      },
-      "confirmUpgrade": {
-        "title": "¿Actualizar {name}?",
-        "message": "El módulo se actualizará a la versión declarada en disco al aplicar los cambios."
-      },
-      "confirmApply": {
-        "title": "Aplicar cambios",
-        "message": "El backend se reiniciará. La sesión puede interrumpirse unos segundos mientras se procesan las operaciones pendientes."
+        "viewDetails": "Detalles"
       },
       "pending": {
-        "banner": "Cambios pendientes:",
-        "apply": "Aplicar cambios"
+        "banner": "Cambios que se aplicarán al reiniciar el servidor:"
       },
       "doctor": {
-        "banner": "Se han detectado problemas en el sistema de módulos.",
-        "orphans": "módulos huérfanos",
+        "banner": "Se han detectado problemas en el sistema de apps.",
+        "orphans": "apps huérfanas",
         "missingDeps": "dependencias faltantes",
         "manifestErrors": "errores de manifiesto",
-        "errored": "módulos con error"
+        "errored": "apps con error"
       },
       "detail": {
         "state": "Estado",
         "category": "Categoría",
-        "installedAt": "Instalado el",
+        "installedAt": "Habilitada el",
         "lastChange": "Último cambio",
         "baseRevision": "Revisión base",
         "appliedRevision": "Revisión aplicada",
@@ -1477,16 +1633,6 @@
         "errorMessage": "Mensaje de error",
         "operationLog": "Log de operaciones",
         "noOperations": "Sin operaciones registradas."
-      },
-      "restart": {
-        "inProgress": "Reiniciando backend…",
-        "done": "Cambios aplicados",
-        "failed": "Error al aplicar cambios",
-        "timeout": "Timeout esperando al backend"
-      },
-      "toasts": {
-        "scheduled": "Operación programada. Aplica los cambios para completarla.",
-        "applied": "Cambios aplicados correctamente."
       }
     }
   },
@@ -1519,6 +1665,12 @@
       "cancel": "Cancelar",
       "errorGeneric": "No se pudo crear el paciente. Reintentar."
     }
+  },
+  "errors": {
+    "loadFailed": "Error al cargar los datos",
+    "createFailed": "Error al crear",
+    "updateFailed": "Error al guardar los cambios",
+    "deleteFailed": "Error al eliminar"
   },
   "common": {
     "default": "Predeterminado",
@@ -2173,7 +2325,10 @@
         "reactivated": "Reactivado",
         "item_added": "Tratamiento añadido",
         "item_removed": "Tratamiento eliminado",
-        "item_reopened": "Tratamiento reabierto"
+        "item_reopened": "Tratamiento reabierto",
+        "budget_created": "Presupuesto generado",
+        "budget_addendum": "Adenda de presupuesto",
+        "budget_extended": "Presupuesto ampliado"
       }
     }
   },
@@ -2951,6 +3106,15 @@
     "totalDiscount": "Descuento total",
     "totalPaid": "Total cobrado"
   },
+  "record": {
+    "section": {
+      "allergies": "Alergias",
+      "medications": "Medicación",
+      "systemic_diseases": "Enfermedades sistémicas",
+      "surgical_history": "Antecedentes quirúrgicos",
+      "consents": "Consentimientos"
+    }
+  },
   "reports": {
     "title": "Informes",
     "subtitle": "Análisis y estadísticas de la clínica",
@@ -3460,5 +3624,75 @@
       "emptyHint": "Tu perfil puede trabajar las listas pero no leer los informes de dinero."
     },
     "empty": "Ningún módulo financiero está instalado."
+  },
+  "consents": {
+    "title": "Consentimientos",
+    "new": "Nuevo consentimiento",
+    "view": "Ver",
+    "discard": "Descartar",
+    "signAction": "Firmar",
+    "revoke": "Revocar",
+    "revokePrompt": "Motivo de la revocación (queda registrado en el expediente):",
+    "signedBy": "Firmado por {name}",
+    "signatureAlt": "Firma",
+    "kinds": {
+      "informed": "Consentimiento informado",
+      "data_use": "Uso de datos personales"
+    },
+    "status": {
+      "draft": "Borrador",
+      "signed": "Firmado",
+      "declined": "No aceptado",
+      "revoked": "Revocado",
+      "discarded": "Descartado"
+    },
+    "capacity": {
+      "patient": "El paciente",
+      "guardian": "Tutor legal",
+      "representative": "Representante"
+    },
+    "empty": {
+      "title": "Sin consentimientos",
+      "description": "Aquí aparecen las cartas de consentimiento del paciente: las pendientes de firma y las ya firmadas."
+    },
+    "form": {
+      "newTitle": "Nuevo consentimiento",
+      "editTitle": "Editar borrador",
+      "kind": "Tipo",
+      "template": "Plantilla",
+      "templatePlaceholder": "Elige una plantilla",
+      "noTemplates": "No hay plantillas de este tipo",
+      "title": "Título",
+      "procedure": "Procedimiento",
+      "procedureHint": "A qué se refiere: «Extracción del 48», «Plan de ortodoncia»…",
+      "body": "Texto",
+      "bodyHintInformed": "Qué se va a hacer, sus riesgos y las alternativas, en palabras que el paciente entienda.",
+      "bodyHintData": "El aviso de privacidad: quién trata los datos, cuáles, para qué y cómo ejercer sus derechos.",
+      "explainedBy": "Quién lo explicó",
+      "explainedByHint": "El profesional que informó al paciente. Es obligatorio para firmar.",
+      "explainedByPlaceholder": "Elige un profesional",
+      "professionalsUnavailable": "No se pueden asignar profesionales: la app Profesionales no está habilitada.",
+      "saveDraft": "Guardar borrador"
+    },
+    "sign": {
+      "explainedBy": "Explicado por {name}",
+      "missingProfessional": "Falta indicar qué profesional lo explicó. Edita el borrador antes de firmar.",
+      "signerName": "Nombre de quien firma",
+      "capacity": "Firma como",
+      "signHere": "Firma aquí",
+      "decline": "El paciente no acepta",
+      "confirm": "Firmar"
+    },
+    "templates": {
+      "title": "Plantillas de consentimiento",
+      "description": "Los textos de consentimiento informado y el aviso de privacidad de la clínica.",
+      "intro": "Los textos que usa la clínica para sus cartas de consentimiento. Su redacción es de la clínica y de su asesor legal. Editar una plantilla crea una versión nueva y no cambia las cartas ya escritas con ella.",
+      "new": "Nueva plantilla",
+      "editTitle": "Editar plantilla",
+      "retire": "Retirar",
+      "restore": "Recuperar",
+      "emptyTitle": "Sin plantillas",
+      "emptyDescription": "Crea una plantilla por procedimiento, y una para el aviso de privacidad."
+    }
   }
 }

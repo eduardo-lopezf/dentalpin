@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- feat(apps): forma parte de la App **Comunicaciones**, que declara
+  WhatsApp como API `planned` (Configuración → Apps → APIs). El módulo
+  sigue sin instalar por defecto.
+
 - feat(privacy): declara su egress en el manifest
   ([ADR 0027](../../../../docs/adr/0027-egress-is-declared-in-the-manifest.md)):
   `kapso` — api.kapso.ai y Meta por detrás. Salen el número del

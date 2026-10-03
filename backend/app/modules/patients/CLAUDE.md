@@ -82,8 +82,19 @@ None.
     (recalls "Set recall", etc.). Rendered in both the sticky header
     and the Quick-Actions card. Ctx `{ patient }`. Kept under its
     legacy name so existing registrations keep working.
-  - `patient.detail.administracion.payments` — owned by ``payments``,
-    drives the Cobros sub-mode in the Administración tab.
+  - `patient.detail.tabs` — the tabs of the patient record that are
+    not this App's (ADR 0041). Entry: `tab: { value, icon }`,
+    `labelKey`, `order`; component receives `ctx: { patient }`.
+    `value` is what `?tab=` carries. Today: Clínico (`treatment_plan`,
+    30), Administración (`budget`, 40), Galería (`media`, 50). Resumen,
+    Info and Actividad are built in.
+  - `patient.detail.administracion.{billing,payments,documents}` —
+    modes of the Administración tab, which `budget` owns. Each is
+    filled by its module (`billing`, `payments`, `media`).
+  - `patients.list.row.financial` / `patients.list.filter` — the entry's
+    `loader(api, input)` supplies the data: per-row values for a page of
+    patient ids, and the ids a filter selects. This module calls no
+    other module's API.
   - `patient.detail.sidebar` — deprecated, kept registered for
     community modules. Renders as a section at the bottom of Resumen.
   - `patient.diagnosis.subtabs` — optional sub-tabs rendered inside
@@ -103,3 +114,11 @@ None.
 ## CHANGELOG
 
 See `./CHANGELOG.md`.
+
+## Frontend isolation
+
+The Patients App (`patients`, `patients_clinical`, `patient_timeline`)
+uses no component and calls no API of a module outside it (ADR 0041);
+`frontend/tests/app-frontend-isolation.test.ts` enforces it. To show
+another App's part of a patient, offer a slot and let that App register
+— do not import its component here.

@@ -14,7 +14,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/patients/router.py
   - backend/app/modules/patients/frontend/pages/patients/[id].vue
-last_verified_commit: 75cd119
+last_verified_commit: 1facfd7
 ---
 
 # Patient detail
@@ -50,6 +50,23 @@ one click reaches the detail.
     Click → dental chart in diagnosis mode.
   - **Medical history** *(patients_clinical)* — allergies, systemic
     diseases, medication. Click → edit history.
+
+> **The medical history is no longer deletable.** Removing an allergy, a
+> medication, a condition or a surgery — from its own row or by dropping the
+> line from the form — **retracts** it: it leaves the list, stops driving
+> alerts and stops appearing in anything handed to a third party, but the
+> record stays, with the date it was first entered and who took it back. A
+> clinical record has to be able to answer what the history said on the day of
+> the medical act.
+>
+> It used to vanish without trace, and not only when removed by hand: **every
+> save of the form deleted the rows and inserted new ones**, so an allergy lost
+> the date it was first written down and nobody could say since when it had
+> been known. The save now reconciles: what stays is kept, what changed is
+> updated, what is missing is retracted.
+>
+> Emergency contacts and legal guardians do not work this way yet — see
+> `docs/features/expediente-clinico.md`.
   - **Quick actions** *(patients)* — Appointment, Document
     and the `patient.summary.actions` slot for sibling modules
     (recalls *Set recall*, notifications, etc.).

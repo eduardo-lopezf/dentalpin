@@ -13,7 +13,7 @@ related_permissions:
 related_paths:
   - backend/app/modules/professionals/frontend/pages/professionals/index.vue
   - backend/app/modules/professionals/router.py
-last_verified_commit: e2b7328
+last_verified_commit: 0d60d45
 ---
 
 # Directorio
@@ -56,6 +56,28 @@ propia ficha.
 Los perfiles son registros del directorio; no crean cuentas de acceso ni
 otorgan permisos. El indicador "Usuario con acceso" solo informa si ya
 existe una cuenta con ese correo — no la crea ni la vincula.
+
+## Cuenta vinculada
+
+El desplegable **Cuenta vinculada** del formulario dice con qué cuenta entra
+esta persona al sistema. Es lo que permite que una anotación clínica diga
+**quién responde por ella**: cuando alguien registra una alergia o escribe una
+nota, el expediente guarda la cuenta que operó el sistema y, a través de este
+vínculo, el profesional y su número de colegiado.
+
+Déjalo en **Sin cuenta** si esa persona no usa el sistema — un colaborador
+externo, alguien que aún no tiene acceso. El directorio no exige cuenta, y esa
+es la razón por la que el campo puede quedar vacío.
+
+**No se deduce del correo.** El indicador «Usuario con acceso» compara correos
+y sirve de pista, nada más: dos personas pueden compartir una dirección
+familiar, alguien cambia de correo, una clínica reutiliza uno. La autoría de un
+documento clínico no puede apoyarse en una coincidencia, así que el vínculo lo
+declaras tú.
+
+La lista solo ofrece cuentas **con acceso a esta clínica**, y no ofrece las que
+ya están vinculadas a otro profesional: una cuenta es una persona, y dos fichas
+compartiéndola dejarían sin respuesta quién firma cada anotación.
 
 ## Especialidad
 

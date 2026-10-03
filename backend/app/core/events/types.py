@@ -53,6 +53,11 @@ class EventType:
 
     # Budget events
     BUDGET_CREATED = "budget.created"
+    # A budget now prices a plan. Payload: (clinic_id, plan_id, budget_id,
+    # budget_number, kind, item_count, user_id). ``kind`` is ``primary``
+    # (the plan's own budget — the plan links to it), ``addendum`` or
+    # ``extended`` (lines joined the plan's draft).
+    BUDGET_CREATED_FOR_PLAN = "budget.created_for_plan"
     BUDGET_SENT = "budget.sent"
     BUDGET_ACCEPTED = "budget.accepted"
     BUDGET_REJECTED = "budget.rejected"
@@ -163,6 +168,10 @@ class EventType:
     # (plan_id, clinic_id, patient_id, closure_reason, closure_note,
     # closed_at, closed_by_user_id, previous_status).
     TREATMENT_PLAN_CLOSED = "treatment_plan.closed"
+    # Plan soft-deleted. Payload: (plan_id, clinic_id, patient_id,
+    # plan_number, budget_id, deleted_by_user_id). ``budget`` deletes the
+    # budgets the plan produced (ADR 0042).
+    TREATMENT_PLAN_DELETED = "treatment_plan.deleted"
     # Plan revived from ``closed`` back to ``draft``. Payload:
     # (plan_id, clinic_id, patient_id, previous_closure_reason,
     # reactivated_at, reactivated_by_user_id).

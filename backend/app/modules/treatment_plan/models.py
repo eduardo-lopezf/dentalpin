@@ -30,11 +30,9 @@ from app.database import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.core.auth.models import Clinic, User
-    from app.modules.budget.models import Budget
     from app.modules.catalog.models import TreatmentCatalogItem
     from app.modules.odontogram.models import Treatment
     from app.modules.patients.models import Patient
-    from app.modules.professionals.models import Professional
 
 
 class TreatmentPlan(Base, TimestampMixin):
@@ -90,10 +88,11 @@ class TreatmentPlan(Base, TimestampMixin):
     # Relationships
     clinic: Mapped["Clinic"] = relationship(foreign_keys=[clinic_id])
     patient: Mapped["Patient"] = relationship()
-    budget: Mapped["Budget | None"] = relationship()
-    assigned_professional: Mapped["Professional | None"] = relationship(
-        foreign_keys=[assigned_professional_id]
-    )
+    # Not a relationship: the plan does not load another App's rows. A
+    # ``contracts.BudgetBrief`` put here per request by
+    # ``TreatmentPlanService`` from the ``PlanBudgets`` contract (ADR 0039),
+    # or None when there is no budget or the Budgets App is off.
+    budget = None
     creator: Mapped["User"] = relationship(foreign_keys=[created_by])
     items: Mapped[list["PlannedTreatmentItem"]] = relationship(
         back_populates="treatment_plan",
@@ -168,9 +167,6 @@ class PlannedTreatmentItem(Base, TimestampMixin):
     treatment_plan: Mapped["TreatmentPlan"] = relationship(back_populates="items")
     treatment: Mapped["Treatment"] = relationship()
     completer: Mapped["User | None"] = relationship(foreign_keys=[completed_by])
-    assigned_professional: Mapped["Professional | None"] = relationship(
-        foreign_keys=[assigned_professional_id]
-    )
     sessions: Mapped[list["PlannedTreatmentItemSession"]] = relationship(
         back_populates="plan_item",
         cascade="all, delete-orphan",

@@ -87,6 +87,24 @@ flujo (programada → confirmada → en sala → completada → cobrada).
 3. **Guardar**. Se publica el evento `appointment.scheduled` para que
    módulos como notificaciones puedan enviar la confirmación.
 
+### Si alguna app no está habilitada
+
+La agenda funciona aunque la clínica no tenga Pacientes, Profesionales
+o Tratamientos. En el formulario, en lugar del selector, verás el
+aviso correspondiente:
+
+- **«No se pueden asignar pacientes»** — la cita se guarda sin
+  paciente. Escribe un **título** para reconocerla en el calendario.
+- **«No se pueden asignar profesionales»** — la cita se guarda sin
+  profesional y aparece en la columna **Sin profesional** de la vista
+  de día.
+- **«No se pueden asignar tratamientos»** — la cita se guarda sin
+  tratamientos.
+
+Las citas que ya tenían paciente, profesional o tratamientos no los
+pierden: dejan de mostrarse mientras la app está apagada y vuelven a
+verse cuando se habilita.
+
 ## Mover o redimensionar
 
 > Requiere `agenda.appointments.write`.

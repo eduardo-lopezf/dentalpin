@@ -36,6 +36,9 @@ class ProfessionalCreate(BaseModel):
     photo_url: str | None = Field(default=None, max_length=500)
     notes: str | None = None
     is_active: bool = True
+    #: The account this person signs in with. Optional — a collaborator can be
+    #: in the directory without one — and never inferred from the email.
+    user_id: UUID | None = None
 
 
 class ProfessionalUpdate(BaseModel):
@@ -50,6 +53,7 @@ class ProfessionalUpdate(BaseModel):
     photo_url: str | None = Field(default=None, max_length=500)
     notes: str | None = None
     is_active: bool | None = None
+    user_id: UUID | None = None
 
 
 class ProfessionalResponse(BaseModel):
@@ -68,6 +72,10 @@ class ProfessionalResponse(BaseModel):
     photo_url: str | None
     notes: str | None
     is_active: bool
+    # The linked account, if an admin has stated one. This is what makes a
+    # clinical entry attributable to a professional; `has_system_access` below
+    # is only a hint that a link is probably wanted.
+    user_id: UUID | None = None
     # True when `email` matches a user account with a membership in this
     # clinic — computed at response time, not a column on the model.
     has_system_access: bool = False

@@ -16,7 +16,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.agenda.models import Appointment
+from app.core.contracts import AppointmentBook, provider
 from app.modules.media.attachment_registry import OwnerSpec, attachment_registry
 from app.modules.odontogram.models import Treatment
 from app.modules.patients.models import Patient
@@ -58,14 +58,10 @@ async def _resolve_plan(db: AsyncSession, clinic_id: UUID, owner_id: UUID) -> UU
 
 
 async def _resolve_appointment(db: AsyncSession, clinic_id: UUID, owner_id: UUID) -> UUID | None:
-    result = await db.execute(
-        select(Appointment.patient_id).where(
-            Appointment.id == owner_id,
-            Appointment.clinic_id == clinic_id,
-        )
-    )
-    row = result.first()
-    return row[0] if row else None
+    book = provider(AppointmentBook)
+    if book is None:
+        return None
+    return (await book.patients_of(db, clinic_id, [owner_id])).get(owner_id)
 
 
 async def _resolve_clinical_note(db: AsyncSession, clinic_id: UUID, owner_id: UUID) -> UUID | None:

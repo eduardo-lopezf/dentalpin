@@ -114,7 +114,7 @@ export default defineNuxtPlugin(() => {
     order: 10
   })
 
-  // ---- Modules (link to existing /settings/modules) -----------------
+  // ---- Apps (links to the /settings/apps, /widgets and /apis pages) ---
   registerSettingsPage({
     path: 'manage',
     category: 'modules',
@@ -122,9 +122,47 @@ export default defineNuxtPlugin(() => {
     descriptionKey: 'settings.modules.description',
     icon: 'i-lucide-blocks',
     permission: 'admin.clinic.read',
-    to: '/settings/modules',
-    searchKeywords: ['modulo', 'module', 'plugin', 'instalar', 'install'],
+    to: '/settings/apps',
+    searchKeywords: ['app', 'apps', 'aplicacion', 'modulo', 'module', 'plugin', 'habilitar', 'enable'],
     order: 10
+  })
+
+  // The workspace App's own settings, starting with the home page (ADR 0043).
+  registerSettingsPage({
+    path: 'workspace-app',
+    category: 'modules',
+    labelKey: 'settings.apps.catalog.workspace.title',
+    descriptionKey: 'settings.home.workspaceCard',
+    icon: 'i-lucide-house',
+    permission: 'admin.clinic.read',
+    to: '/settings/apps/workspace',
+    searchKeywords: ['espacio de trabajo', 'workspace', 'inicio', 'home', 'dashboard', 'widget', 'personalizar', 'customize', 'orden', 'order', 'ocultar', 'hide'],
+    order: 15
+  })
+
+  // Siblings of Apps over the same catalog (ADR 0040), each its own page.
+  registerSettingsPage({
+    path: 'widgets',
+    category: 'modules',
+    labelKey: 'settings.widgets.title',
+    descriptionKey: 'settings.widgets.description',
+    icon: 'i-lucide-layout-dashboard',
+    permission: 'admin.clinic.read',
+    to: '/settings/widgets',
+    searchKeywords: ['widget', 'widgets', 'tarjeta', 'card', 'ejemplo', 'example'],
+    order: 20
+  })
+
+  registerSettingsPage({
+    path: 'apis',
+    category: 'modules',
+    labelKey: 'settings.apis.title',
+    descriptionKey: 'settings.apis.description',
+    icon: 'i-lucide-plug',
+    permission: 'admin.clinic.read',
+    to: '/settings/apis',
+    searchKeywords: ['api', 'apis', 'integracion', 'integration', 'google', 'calendar', 'conectar', 'connect'],
+    order: 30
   })
 
   // ---- Account -------------------------------------------------------

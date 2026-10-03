@@ -29,6 +29,20 @@ can view them by default.
   filter.
 - Profiles intentionally do not require a `users` account. This supports
   external collaborators and staff who have not been given product access.
+- **`user_id` is the account this person signs in with, and it is stated, never
+  inferred.** It is what lets a clinical entry name who is responsible for it
+  ([ADR 0032](../../../../docs/adr/0032-clinical-record-is-append-only.md)):
+  `ProfessionalService.for_user(db, clinic_id, user_id)` is the lookup the
+  clinical modules call. Do not backfill it from `email` and do not let
+  `has_system_access` stand in for it — that flag is an email comparison, and a
+  coincidence cannot decide who authored a clinical record. The service refuses
+  an account with no membership here (400) and one already linked to another
+  profile in the same clinic (409).
+- **Modules that FK to `professionals.id` from another Alembic branch must
+  declare `depends_on = ("professionals",)`** — see `liq_0001`, `pc_0003`,
+  `cn_0006`. Without it the constraint refers to a table an empty database has
+  not built yet and boot fails; the label names `pro_0001`, the revision that
+  creates the table, not the branch head.
 - Deactivation is represented by `is_active`; retain history rather than
   deleting an operational profile.
 

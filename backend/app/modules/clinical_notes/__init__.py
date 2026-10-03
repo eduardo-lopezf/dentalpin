@@ -26,7 +26,7 @@ from fastapi import APIRouter
 
 from app.core.plugins import BaseModule
 
-from .models import ClinicalNote
+from .models import ClinicalNote, ClinicalNoteVersion
 from .owner_resolvers import register as _register_attachment_owners
 from .router import router
 
@@ -47,7 +47,13 @@ class ClinicalNotesModule(BaseModule):
         "author": "DentalPin Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": ["patients", "odontogram", "treatment_plan", "media", "agenda"],
+        "depends": ["patients", "odontogram", "treatment_plan", "media"],
+        # `professionals` owns the directory a note is attributed to (ADR 0032);
+        # the cross-branch FK is ordered with `depends_on` in `cn_0006`.
+        # Optional (ADR 0037): with it off, a note names no professional.
+        # `agenda` is reached through `AppointmentBook` only (ADR 0039): with
+        # it off, appointment notes are neither written nor listed.
+        "integrates": ["professionals", "agenda"],
         "installable": True,
         "auto_install": True,
         "removable": False,
@@ -65,7 +71,7 @@ class ClinicalNotesModule(BaseModule):
     }
 
     def get_models(self) -> list:
-        return [ClinicalNote]
+        return [ClinicalNote, ClinicalNoteVersion]
 
     def get_router(self) -> APIRouter:
         return router

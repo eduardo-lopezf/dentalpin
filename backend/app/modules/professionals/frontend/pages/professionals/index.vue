@@ -19,6 +19,8 @@ interface ProfessionalForm {
   photo_url: string
   notes: string
   is_active: boolean
+  /** Empty string = no account linked; the payload sends null. */
+  user_id: string
 }
 
 definePageMeta({ middleware: ['auth'] })
@@ -46,6 +48,45 @@ const isSaving = ref(false)
 const isUploadingPhoto = ref(false)
 const editingId = ref<string | null>(null)
 const editingHasSystemAccess = ref(false)
+
+/**
+ * Accounts an admin can link a professional to.
+ *
+ * Only those with a role in this clinic: the API refuses any other, because a
+ * clinic naming an outsider as the author of its clinical records is not a
+ * thing to allow. An account is offered once — linking two professionals to
+ * the same one would make "who is responsible for this entry" unanswerable.
+ *
+ * Listing accounts needs `admin.users.write`, a different grant from the one
+ * that opens this page. If it is refused the field simply does not appear,
+ * rather than the form breaking around it.
+ */
+interface ClinicAccount { id: string, email: string, first_name: string, last_name: string, role: string | null }
+const accounts = ref<ClinicAccount[]>([])
+const canLinkAccounts = ref(true)
+
+async function loadAccounts() {
+  try {
+    const response = await api.get<PaginatedResponse<ClinicAccount>>('/api/v1/auth/users')
+    accounts.value = response.data.filter(u => u.role)
+  } catch {
+    canLinkAccounts.value = false
+    accounts.value = []
+  }
+}
+
+const takenUserIds = computed(
+  () => new Set(
+    professionals.value.filter(p => p.user_id && p.id !== editingId.value).map(p => p.user_id)
+  )
+)
+
+const accountOptions = computed(() => [
+  { value: '', label: t('professionals.account.none') },
+  ...accounts.value
+    .filter(u => !takenUserIds.value.has(u.id))
+    .map(u => ({ value: u.id, label: `${u.first_name} ${u.last_name} · ${u.email}` }))
+])
 const photoFileInputRef = ref<HTMLInputElement | null>(null)
 // The /photo endpoint requires Bearer auth and returns a relative path —
 // a plain <img src> can't load it (no auth header, wrong origin). We
@@ -73,7 +114,8 @@ const form = reactive<ProfessionalForm>({
   phone: '',
   photo_url: '',
   notes: '',
-  is_active: true
+  is_active: true,
+  user_id: ''
 })
 
 // Clinical types first, then the non-clinical one — the order the backend's
@@ -137,7 +179,8 @@ function resetForm() {
     phone: '',
     photo_url: '',
     notes: '',
-    is_active: true
+    is_active: true,
+    user_id: ''
   })
   editingId.value = null
   editingHasSystemAccess.value = false
@@ -162,7 +205,8 @@ function formPayload() {
     phone: nullable(form.phone),
     photo_url: nullable(form.photo_url),
     notes: nullable(form.notes),
-    is_active: form.is_active
+    is_active: form.is_active,
+    user_id: form.user_id || null
   }
 }
 
@@ -249,7 +293,8 @@ function openEdit(professional: Professional) {
     phone: professional.phone ?? '',
     photo_url: professional.photo_url ?? '',
     notes: professional.notes ?? '',
-    is_active: professional.is_active
+    is_active: professional.is_active,
+    user_id: professional.user_id ?? ''
   })
   isModalOpen.value = true
   refreshModalPhotoSrc()
@@ -366,7 +411,7 @@ watch([typeFilter, showInactive], () => {
 
 watch(page, load)
 onMounted(async () => {
-  await Promise.all([load(), specialtiesApi.fetchSpecialties()])
+  await Promise.all([load(), specialtiesApi.fetchSpecialties(), loadAccounts()])
 })
 </script>
 
@@ -631,6 +676,24 @@ onMounted(async () => {
           </UFormField>
           <UFormField :label="t('professionals.licenseNumber')">
             <UInput v-model="form.license_number" />
+          </UFormField>
+
+          <!-- What ties a clinical entry to a person with a licence. Stated
+               here rather than guessed from a matching email: the record has
+               to name who is responsible, and a coincidence would name the
+               wrong one. -->
+          <UFormField
+            v-if="canLinkAccounts"
+            :label="t('professionals.account.label')"
+            :help="t('professionals.account.help')"
+          >
+            <USelect
+              v-model="form.user_id"
+              :items="accountOptions"
+              value-key="value"
+              label-key="label"
+              class="w-full"
+            />
           </UFormField>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

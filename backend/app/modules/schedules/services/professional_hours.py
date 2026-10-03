@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.modules.professionals.models import Professional
+from app.core.contracts import ProfessionalDirectory, provider
 
 from ..models import (
     ProfessionalOverride,
@@ -22,15 +22,13 @@ from ..models import (
 class ProfessionalHoursService:
     @staticmethod
     async def is_professional(db: AsyncSession, clinic_id: UUID, professional_id: UUID) -> bool:
-        result = await db.execute(
-            select(Professional.id).where(
-                Professional.clinic_id == clinic_id,
-                Professional.id == professional_id,
-                Professional.is_active.is_(True),
-                Professional.professional_type.in_(["dentist", "hygienist"]),
-            )
-        )
-        return result.scalar_one_or_none() is not None
+        # Asked of whoever supplies the directory (ADR 0039). Nobody
+        # does while the Professionals App is off, and then there is no
+        # professional to keep hours for.
+        directory = provider(ProfessionalDirectory)
+        if directory is None:
+            return False
+        return await directory.is_bookable(db, clinic_id, professional_id)
 
     @staticmethod
     async def get_or_create_weekly(

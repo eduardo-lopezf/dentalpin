@@ -1,6 +1,34 @@
 # Changelog — budget module
 
 ## Unreleased
+
+- refactor(budget): **los presupuestos de un plan los escribe este módulo,
+  no el plan** ([ADR 0042](../../../../docs/adr/0042-core-apps-must-stay-separable.md)).
+  `plan_quotes.py` reacciona a `treatment_plan.confirmed` (crea el
+  borrador), `status_changed` a borrador (cancela) y `deleted` (borra
+  todos), y anuncia `budget.created_for_plan` para que el plan se enlace.
+  `create_from_plan_snapshot` ya no consulta la tabla de planes: usa el
+  `budget_id` del payload.
+- feat(budget): `POST /plans/{plan_id}/budget` y
+  `POST /plans/{plan_id}/addendum` (`budget.write`). Sustituyen a
+  `generate-budget` y `budget-addendum` de `treatment_plan`; leen el plan
+  por el contrato `PlanQuotes`.
+- feat(budget): `providers.py` ofrece el contrato de solo lectura
+  `PlanBudgets` (ADR 0039).
+
+- fix(budget): con Presupuestos apagado (`backend/apps.json`), la pestaña
+  Administración de la ficha seguía ofreciendo el modo «Presupuestos» y
+  lo abría vacío: el archivo se compila en el frontend aunque el módulo
+  no corra, y la pestaña sigue siendo alcanzable a través de
+  Facturación. El modo se ofrece ahora solo a quien puede leer
+  presupuestos, y la pestaña abre el primer modo disponible.
+- feat(budget): la pestaña «Administración» de la ficha del paciente es
+  ahora de este módulo (ADR 0041). `AdministrationTab` y su selector de
+  modo llegan desde `patients` y la pestaña se registra en
+  `patient.detail.tabs`. Presupuestos es su único modo propio;
+  Facturación, Cobros y Documentos son slots
+  (`patient.detail.administracion.<modo>`) y cada uno aparece solo si su
+  módulo lo registra y el usuario tiene su permiso.
 - feat(budget): `BudgetService.create_addendum_for_plan` — valora el trabajo añadido a un plan cuyo presupuesto ya está enviado o firmado, sin tocarlo. Es el hermano de `create_from_plan_snapshot`, que se niega precisamente cuando ya hay uno vivo. No es una versión del anterior (`parent_budget_id`/`version` son la cadena de renegociación, donde uno sustituye al otro): estos dos conviven, ambos vivos, unidos al plan por `plan_number_snapshot`. Mientras el presupuesto es borrador no hace falta, porque `_on_treatment_added_to_plan` ya refleja cada alta en él.
 
 - feat(budget): **se quita crear un presupuesto suelto.** Un presupuesto se genera al confirmar un plan de tratamiento, así que desaparecen el botón *Nuevo presupuesto* de la pestaña Presupuestos y su acción del estado vacío, que ahora lleva a los planes. Se elimina también la pantalla `/budgets/new` con su manual y el caso que la usaba en `forms-keyboard-room.spec.ts`. `POST /budgets` sigue existiendo (y con él `useBudgets().createBudget`, ya sin llamantes).

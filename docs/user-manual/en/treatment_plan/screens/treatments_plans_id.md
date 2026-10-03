@@ -14,14 +14,14 @@ related_endpoints:
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/items/{item_id}/reopen
   - PATCH /api/v1/treatment_plan/treatment-plans/{plan_id}/status
   - POST /api/v1/treatment_plan/treatment-plans
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/budget-addendum
+  - POST /api/v1/budget/plans/{plan_id}/addendum
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/close
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/apply-template
   - GET /api/v1/treatment_plan/treatment-plans/{plan_id}/proposals
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/proposals
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/confirm
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/contact-log
-  - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/generate-budget
+  - POST /api/v1/budget/plans/{plan_id}/budget
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/items
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/link-budget
   - POST /api/v1/treatment_plan/treatment-plans/{plan_id}/reactivate
@@ -204,10 +204,14 @@ green or grey, nothing to do.
 > Requires `treatment_plan.plans.confirm`.
 
 1. On a `draft` plan, click **Confirm**.
-2. `treatment_plan.confirmed` is published. The plan moves to
-   `pending`.
-3. If no budget was linked, **Generate budget** creates a new one
-   on the `budget` module.
+2. The plan moves to `pending` and the Budgets app creates its draft
+   budget right away.
+3. If the budget did not get created, the plan's next step is
+   **Generate budget**, which creates it.
+
+**If the Budgets app is not enabled**, a confirmed plan goes straight to
+*In treatment*: there is no budget to accept and the budget actions are
+not offered. Once the app is enabled the plan offers **Generate budget**.
 
 ## What a treatment offers, by plan status
 

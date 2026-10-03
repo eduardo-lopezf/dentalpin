@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- fix(copilot): con la App IA apagada, entrar a `/copilot` por URL
+  mostraba una página «403 Forbidden» en vez de volver a Inicio con el
+  aviso. La página lanzaba el 403 al no encontrar el permiso —que nadie
+  tiene con la App apagada— y eso sustituía el layout, y con él la guarda
+  de rutas (ADR 0038). Ahora solo es 403 una denegación real.
+
 - feat(privacy): declara su egress en el manifest
   ([ADR 0027](../../../../docs/adr/0027-egress-is-declared-in-the-manifest.md)):
   `openai` — OpenAI, L.L.C., datos de identidad, clínicos y operativos.

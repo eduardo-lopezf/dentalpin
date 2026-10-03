@@ -104,10 +104,16 @@ export function useModules() {
       .map(item => ({ ...item, label: t(item.label) }))
   })
 
+  /** True when the module is running in this deployment. */
+  function isActive(name: string): boolean {
+    return active.value?.some(m => m.name === name) ?? false
+  }
+
   return {
     modules,
     navigationItems,
     active,
+    isActive,
     loading,
     error,
     ensureLoaded

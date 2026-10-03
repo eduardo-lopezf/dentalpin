@@ -131,23 +131,40 @@ export default defineNuxtPlugin(() => {
 
   // /patients list — per-row debt badge. Host (`patients`) renders
   // <ModuleSlot name="patients.list.row.financial" :ctx="{ patient_id, summary }" />.
+  // `loader` is how the host gets the summaries for a page of rows in
+  // one request without knowing this module's endpoint: it is called
+  // with the page's patient ids and returns `{ [patient_id]: summary }`.
   registerSlot('patients.list.row.financial', {
     id: 'payments.patients.list.row.debt',
     component: defineAsyncComponent(
       () => import('../components/PatientListDebtCell.vue')
     ),
     permission: 'payments.record.read',
-    order: 10
+    order: 10,
+    loader: async (api, patientIds) => {
+      const res = await api.post<{ data: { summaries: Record<string, unknown> } }>(
+        '/api/v1/payments/summary/by-patients',
+        { patient_ids: patientIds }
+      )
+      return res.data.summaries
+    }
   })
 
-  // /patients list — "Con deuda" filter chip in the toolbar.
+  // /patients list — "Con deuda" filter chip in the toolbar. `loader`
+  // resolves the filter to the ids it selects: `{ patient_ids, truncated }`.
   registerSlot('patients.list.filter', {
     id: 'payments.patients.list.filter.withDebt',
     component: defineAsyncComponent(
       () => import('../components/PatientListDebtFilter.vue')
     ),
     permission: 'payments.record.read',
-    order: 10
+    order: 10,
+    loader: async (api) => {
+      const res = await api.get<{ data: { patient_ids: string[], truncated: boolean } }>(
+        '/api/v1/payments/filters/patients-with-debt?min_debt=0.01'
+      )
+      return res.data
+    }
   })
 
   // /budgets list — per-row collected/pending mini-progress + status chip.

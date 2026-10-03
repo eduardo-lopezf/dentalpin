@@ -60,6 +60,9 @@ AUTHENTICATED_ONLY: dict[str, str] = {
     "GET /api/v1/auth/clinics": "returns the caller's own clinic, taken from the context",
     "GET /api/v1/auth/clinics/{clinic_id}": "403s when the id is not the caller's clinic",
     "GET /api/v1/modules/-/active": "sidebar inventory; nav entries filtered by permission",
+    "GET /api/v1/auth/clinic/settings/home": (
+        "the caller's own clinic's home layout; every member's home page reads it"
+    ),
 }
 
 ALLOWLISTED = UNAUTHENTICATED | AUTHENTICATED_ONLY
