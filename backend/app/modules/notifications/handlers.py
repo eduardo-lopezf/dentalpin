@@ -4,13 +4,13 @@ These handlers listen to events from other modules and trigger
 notification emails when appropriate.
 """
 
-import asyncio
 import logging
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
 
+from app.core.background import spawn
 from app.database import async_session_maker
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class NotificationHandlers:
 
         Sends appointment confirmation email to patient.
         """
-        asyncio.create_task(NotificationHandlers._handle_appointment_scheduled(data))
+        spawn(NotificationHandlers._handle_appointment_scheduled(data))
 
     @staticmethod
     async def _handle_appointment_scheduled(data: dict[str, Any]) -> None:
@@ -108,7 +108,7 @@ class NotificationHandlers:
 
         Sends appointment cancellation email to patient.
         """
-        asyncio.create_task(NotificationHandlers._handle_appointment_cancelled(data))
+        spawn(NotificationHandlers._handle_appointment_cancelled(data))
 
     @staticmethod
     async def _handle_appointment_cancelled(data: dict[str, Any]) -> None:
@@ -187,7 +187,7 @@ class NotificationHandlers:
 
         Sends welcome email to new patient (if auto_send is enabled).
         """
-        asyncio.create_task(NotificationHandlers._handle_patient_created(data))
+        spawn(NotificationHandlers._handle_patient_created(data))
 
     @staticmethod
     async def _handle_patient_created(data: dict[str, Any]) -> None:
@@ -239,7 +239,7 @@ class NotificationHandlers:
 
         Sends budget email to patient.
         """
-        asyncio.create_task(NotificationHandlers._handle_budget_sent(data))
+        spawn(NotificationHandlers._handle_budget_sent(data))
 
     @staticmethod
     async def _handle_budget_sent(data: dict[str, Any]) -> None:
@@ -348,7 +348,7 @@ class NotificationHandlers:
 
         Sends invoice email to patient.
         """
-        asyncio.create_task(NotificationHandlers._handle_invoice_sent(data))
+        spawn(NotificationHandlers._handle_invoice_sent(data))
 
     @staticmethod
     async def _handle_invoice_sent(data: dict[str, Any]) -> None:
@@ -452,7 +452,7 @@ class NotificationHandlers:
 
         Sends budget acceptance confirmation to patient.
         """
-        asyncio.create_task(NotificationHandlers._handle_budget_accepted(data))
+        spawn(NotificationHandlers._handle_budget_accepted(data))
 
     @staticmethod
     async def _handle_budget_accepted(data: dict[str, Any]) -> None:

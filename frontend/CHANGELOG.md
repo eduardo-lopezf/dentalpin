@@ -1,6 +1,32 @@
 # Changelog — frontend
 
 ## Unreleased
+
+- fix(security): **el endpoint de islas de Nuxt ya no responde.**
+  `server/middleware/no-island-endpoint.ts` devuelve 404 en
+  `/__nuxt_island/**`. Tres de los avisos altos abiertos contra Nuxt 4.4
+  se alcanzan solo por ahí: ejecución remota por inyección de plantilla en
+  las props de una isla, caída por falta de memoria sin autenticar y
+  consumo de CPU al procesar el cuerpo antes de validar su hash. La razón
+  que teníamos para no preocuparnos —«no renderizamos islas»— era falsa:
+  la ruta se monta en toda compilación y, medido el 2026-10-03, el
+  servidor compilado respondía **204** a
+  `/__nuxt_island/Foo:1234.json` antes de este middleware, y 404 después.
+- chore(deps): Nuxt pasa a `~4.4.8` —fijado, para que `npm audit fix` no
+  salte solo a 4.5— y `undici` y `devalue` suben por `overrides` a sus
+  versiones corregidas. 4.5 es donde se arreglan los avisos de islas, pero
+  exige `@nuxtjs/i18n` v10: medido, 4.5.2 con i18n v9 no compila (32
+  errores `builtin:vite-json`) y con v10 compila pero deja la suite
+  unitaria sin arrancar, porque su entorno de test necesita
+  `@nuxt/test-utils` v4 → vitest 4, que choca con los plugins de Nuxt.
+  Esa migración queda como trabajo aparte.
+- chore(ci): la puerta de `npm audit` ya no necesita una excepción por
+  paquete. Diez de los doce avisos altos lo son solo a través de `braces`
+  o `node-forge` —ninguno de los dos tiene versión corregida publicada—,
+  así que `scripts/audit-gate.mjs` propaga la razón por la cadena de
+  dependencias en vez de pedir diez copias de la misma frase. Se calcula
+  por eliminación, porque el grafo tiene ciclos (`nuxt` es alto a través
+  de `@nuxt/vite-builder`, que lo es a través de `nuxt`).
 - feat(finance): **Finanzas abre con un Resumen, no con una lista.** Nueva primera pestaña, la de por defecto, con lo que entró hoy y este mes, lo que está por cobrar y los días de caja sin arquear. La pregunta con la que se entra a esa sección —*¿cómo voy?*— solo se respondía en **Informes**, que es otra entrada del menú, mientras Finanzas ofrecía seis registros. La página es del anfitrión y las cifras de los módulos: cada uno rellena el hueco `finance.summary` con lo suyo, así que una clínica sin `cashbox` no ve la ficha de caja y nadie importa nada de nadie (ADR 0001 / 0018). El estado vacío dice por qué está vacío: hay perfiles que pueden trabajar las listas y no leer los informes de dinero.
 
 - feat(treatment_plan): claves `clinical.plans.draft.unpriced*` y `treatmentPlans.modals.confirm.unpriced` para los avisos de tratamientos sin precio.

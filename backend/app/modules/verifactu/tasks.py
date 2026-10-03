@@ -216,11 +216,14 @@ def _on_rejected_event(payload: dict) -> None:
     """Bus adapter — forwards to the async handler."""
     import asyncio
 
+    from app.core.background import spawn
+
     try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(_notify_rejected(payload))
+        asyncio.get_running_loop()
     except RuntimeError:
         asyncio.run(_notify_rejected(payload))
+    else:
+        spawn(_notify_rejected(payload))
 
 
 def register_event_handlers() -> None:

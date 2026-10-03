@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- fix(tasks): el aviso de registro rechazado usa
+  `app.core.background.spawn`, por el mismo motivo que `notifications`:
+  la tarea quedaba sin dueño y sin forma de esperarla.
+
 - feat(privacy): declara su egress en el manifest
   ([ADR 0027](../../../../docs/adr/0027-egress-is-declared-in-the-manifest.md)):
   `aeat` — Agencia Tributaria española. Salen el nombre fiscal y el NIF

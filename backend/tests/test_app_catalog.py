@@ -83,7 +83,17 @@ def test_shipped_agenda_groups_agenda_and_schedules_and_is_enabled() -> None:
     assert agenda.version == "0.1"
     assert agenda.modules == ("agenda", "schedules")
     assert agenda.enabled is True
-    assert modules_disabled_by_app() == frozenset()
+
+
+def test_the_shipped_catalog_holds_back_only_the_ai_app() -> None:
+    """`ai` ships disabled, so `copilot` is not mounted.
+
+    It is the App that proves the switch works on a real deployment —
+    `docs/apps/ai/README.md` records what goes with it. This assertion
+    used to read `frozenset()`, which was true of the catalog as drafted
+    and not of the one that shipped.
+    """
+    assert modules_disabled_by_app() == frozenset({"copilot"})
 
 
 def test_agenda_requires_nothing_and_integrates_with_the_rest() -> None:

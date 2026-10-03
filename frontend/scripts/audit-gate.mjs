@@ -11,22 +11,52 @@
 import { spawnSync } from 'node:child_process'
 
 const ALLOWED = {
-  // Fixed in nuxt 4.5.x, which this project cannot take yet: 4.5
-  // requires @nuxtjs/i18n v10, and the project is on v9 — bisected, the
-  // build fails with two `builtin:vite-json` errors and succeeds with
-  // the i18n module removed. That upgrade is a major-version migration
-  // and is tracked on its own.
+  // No fixed release exists: the advisory covers every published
+  // version (<=3.0.3, and 3.0.3 is the latest). It is a stack-exhaustion
+  // DoS on deeply nested brace patterns, reached by expanding a glob —
+  // and nothing here expands a glob from user input: `braces` arrives
+  // under `micromatch` → `fast-glob`, which the i18n and router plugins
+  // use at build time to find files on disk.
   //
-  // Exposure meanwhile is nil rather than merely low: the advisory is
-  // that route middleware is skipped when rendering `.server.vue` pages
-  // through `/__nuxt_island/page_*`, and this codebase has no
-  // `.server.vue` component and no island anywhere. Re-check that claim
-  // before extending this entry — it is the whole reason it exists.
-  // Only `nuxt` is listed: the same advisory surfaces on
-  // `@nuxt/nitro-server` too, but at moderate, so it never reaches this
-  // gate — and listing it anyway trips the stale-entry check below,
-  // which is how this comment came to exist.
-  nuxt: 'needs @nuxtjs/i18n v10; no .server.vue or island in the codebase'
+  // Verified on 2026-10-03: `npm run build` ships none of that chain —
+  // `braces`, `micromatch`, `fast-glob` and `globby` are all absent from
+  // `.output/server/node_modules`. ("braces" does appear inside
+  // `.output/server/chunks/_/icons.mjs`: that is the orthodontic icon.)
+  'braces': 'no published fix (<=3.0.3 is every version); build-time glob matching, absent from .output',
+
+  // Same shape: the advisory covers every published version (<=1.4.0,
+  // the latest). `node-forge` arrives under `listhen`, the dev-server
+  // listener that mints a self-signed certificate for `nuxi dev --https`;
+  // the weakness is RSA PKCS#1 v1.5 signature verification, which this
+  // project never asks it to do. Verified the same way: `listhen`,
+  // `nitropack` and `node-forge` are absent from `.output/server`.
+  'node-forge': 'no published fix (<=1.4.0 is every version); dev-server TLS only, absent from .output',
+
+  // Nuxt is pinned to `~4.4.8` in package.json, so `npm audit fix` cannot
+  // walk it forward on its own. 4.5 is where these are fixed, and 4.5
+  // requires `@nuxtjs/i18n` v10 — measured on 2026-10-03: 4.5.2 with i18n
+  // v9 fails to build (32 `builtin:vite-json` errors), 4.5.2 with i18n v10
+  // builds but takes the whole unit suite down, because its test
+  // environment needs `@nuxt/test-utils` v4, which needs vitest 4, which
+  // fails on Nuxt's own plugins (`Missing field moduleType`, rolldown).
+  // That migration is its own piece of work.
+  //
+  // What is left at 4.4.8, and why each one is survivable here:
+  //
+  // - Three island advisories (RCE via island props, unauthenticated OOM,
+  //   CPU exhaustion before hash validation). `server/middleware/
+  //   no-island-endpoint.ts` answers 404 on `/__nuxt_island/**`. This is
+  //   not the old "we render no islands" claim, which was wrong: the
+  //   route is mounted in every build, and before that middleware the
+  //   built server answered 204 to `/__nuxt_island/Foo:1234.json`.
+  // - Payload cache discloses another user's SSR data: only for pages
+  //   covered by a `routeRules` `cache`/`swr`/`isr` directive. This app's
+  //   `routeRules` set response headers and nothing else.
+  // - Route rules dropped for mixed-case paths: it bypasses
+  //   `appMiddleware` gates, which this app does not put in `routeRules`.
+  //   The headers on `/p/**` are what a mixed-case URL would skip —
+  //   narrow, and tracked rather than hidden.
+  'nuxt': 'pinned to ~4.4.8 (4.5 needs an i18n v10 + vitest 4 migration); island endpoint closed by server middleware, no cached routeRules'
 }
 
 const FAIL_AT = new Set(['high', 'critical'])
@@ -75,12 +105,86 @@ if (!report) {
 }
 
 const entries = Object.entries(report.vulnerabilities ?? {})
+const byName = new Map(entries)
 const gating = entries.filter(([, v]) => FAIL_AT.has(v.severity))
-const unlisted = gating.filter(([name]) => !(name in ALLOWED))
+
+/** The advisories a package carries itself, rather than through a dependency. */
+function ownAdvisories(name) {
+  return (byName.get(name)?.via ?? []).filter(
+    entry => typeof entry === 'object' && FAIL_AT.has(entry.severity)
+  )
+}
+
+/** The packages a package is high *through*, itself excluded. */
+function parentsOf(name) {
+  return (byName.get(name)?.via ?? []).filter(
+    entry => typeof entry === 'string' && entry !== name
+  )
+}
+
+/**
+ * Which packages inherit an allowlisted reason.
+ *
+ * A package with a high advisory of its own needs its own entry. A
+ * package that is only high *because* something it depends on is — ten of
+ * the twelve here, the whole `fast-glob` → `micromatch` → `braces` chain
+ * and `nitropack` → `listhen` → `node-forge` — inherits the reason from
+ * the package that carries the advisory. Writing those out by hand would
+ * be ten copies of one sentence, each going stale on its own; this keeps
+ * the gate asking about the two packages that are actually unfixable.
+ *
+ * Computed by elimination rather than by walking up, because the graph
+ * has cycles: `nuxt` is high through `@nuxt/vite-builder`, which is high
+ * through `nuxt`. Start by assuming every package without an advisory of
+ * its own is covered, then drop any whose parent is not — repeat until
+ * nothing moves. A cycle whose way out is allowlisted survives; one that
+ * reaches an unexplained advisory is dropped along with it.
+ */
+function inheritedlyAllowed() {
+  const covered = new Set(
+    gating.filter(([name]) => !ownAdvisories(name).length).map(([name]) => name)
+  )
+  for (let changed = true; changed;) {
+    changed = false
+    for (const name of [...covered]) {
+      const parents = parentsOf(name)
+      const explained = parents.length > 0 && parents.every(
+        parent => parent in ALLOWED || covered.has(parent) || !FAIL_AT.has(byName.get(parent)?.severity)
+      )
+      if (!explained) {
+        covered.delete(name)
+        changed = true
+      }
+    }
+  }
+  return covered
+}
+
+const inherited = inheritedlyAllowed()
+
+/** The allowlisted packages a package's advisories actually come from. */
+function rootsFor(name, seen = new Set()) {
+  const roots = new Set()
+  for (const parent of parentsOf(name)) {
+    if (seen.has(parent)) continue
+    seen.add(parent)
+    if (parent in ALLOWED) roots.add(parent)
+    else for (const root of rootsFor(parent, seen)) roots.add(root)
+  }
+  return roots
+}
+
+function allowedBecause(name) {
+  if (name in ALLOWED) return `allowed — ${ALLOWED[name]}`
+  if (!inherited.has(name)) return null
+  const roots = [...rootsFor(name)]
+  return `allowed — only high through ${roots.length ? roots.join(', ') : 'allowlisted dependencies'}`
+}
+
+const unlisted = gating.filter(([name]) => !allowedBecause(name))
 
 for (const [name, v] of gating) {
-  const note = name in ALLOWED ? `allowed — ${ALLOWED[name]}` : 'NOT ALLOWED'
-  console.log(`${v.severity.padEnd(8)} ${name.padEnd(28)} ${note}`)
+  console.log(`${v.severity.padEnd(8)} ${name.padEnd(28)} ${allowedBecause(name) ?? 'NOT ALLOWED'}`)
 }
 
 // An exception that outlives its advisory is an exception nobody

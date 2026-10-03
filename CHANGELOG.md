@@ -13,6 +13,15 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Added
 
+- **Fire-and-forget work is tracked** — `app/core/background.py`. `spawn`
+  keeps a reference to the task until it finishes (the loop keeps only a
+  weak one, so detached work could be collected mid-write) and `drain`
+  waits for what is still running. The test suite drains before dropping
+  the schema: a straggler writing through its own session deadlocked
+  against `DROP TABLE`, which took out four odontogram tests on CI — two
+  of them only because the failed teardown left the previous test's rows
+  behind. Pinned by `tests/test_background_tasks.py`.
+
 - **A session can now be ended** — invariant 3 of
   [ADR 0029](docs/adr/0029-security-invariants-with-chokepoints.md),
   backend half. `auth_sessions` holds one row per refresh token keyed by

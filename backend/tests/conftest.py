@@ -21,6 +21,7 @@ from sqlalchemy.pool import NullPool
 
 from app import database as app_database
 from app.config import settings
+from app.core import background
 
 # Import all models so SQLAlchemy can configure relationships
 from app.core.auth.models import Clinic, ClinicMembership, User  # noqa: F401
@@ -395,6 +396,15 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
     async with test_session_maker() as session:
         yield session
+
+    # A handler that must not hold up the request schedules its own task,
+    # and that task writes through a session of its own. Dropping the
+    # schema while one is still writing deadlocks: the DROP waits for its
+    # table, it waits for the rows the DROP already holds. Four odontogram
+    # tests died that way on CI — two of them only because the failed
+    # teardown left the previous test's rows for the next one to collide
+    # with.
+    await background.drain()
 
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

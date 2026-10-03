@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- fix(tasks): los seis handlers que se desentienden de la petición
+  (bienvenida, cita confirmada o cancelada, presupuesto enviado o
+  aceptado, factura enviada) lanzan ahora su tarea con
+  `app.core.background.spawn` en vez de `asyncio.create_task`. Nadie
+  guardaba la referencia —el bucle solo tiene una débil, así que el
+  envío podía recolectarse a medio escribir— y nada podía esperarlas: la
+  suite suelta las tablas entre tests y una tarea rezagada escribía
+  contra el `DROP TABLE`, que es como murieron cuatro tests de
+  odontograma en CI.
+
 - feat(apps): `notifications` forma parte de la App **Comunicaciones**
   (`backend/apps.json`, nivel opcional), junto con `whatsapp_kapso`.
 
