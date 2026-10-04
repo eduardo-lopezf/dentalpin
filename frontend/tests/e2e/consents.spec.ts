@@ -6,8 +6,9 @@ import { API_BASE, expect, test, tokenFor } from './_fixtures'
  * signed until it names who explained it; once signed it is a record —
  * revoked, never edited.
  *
- * A consent is never deleted, so each run leaves one revoked letter on
- * the seeded patient and one retired template.
+ * A consent is never deleted, so each run leaves one revoked letter, one
+ * letter signed on paper with its scan, and one retired template on the
+ * seeded patient.
  */
 test.describe('consent letters', () => {
   test.use({ role: 'admin' })
@@ -87,5 +88,59 @@ test.describe('consent letters', () => {
         data: { is_active: false }
       })
     }
+  })
+
+  test('a consent is printed, signed on paper and filed with its scan', async ({ loggedIn: page }) => {
+    const auth = { authorization: `Bearer ${await tokenFor(page)}` }
+    const api = `${API_BASE}/api/v1`
+
+    const active = ((await (await page.request.get(`${api}/modules/-/active`, { headers: auth })).json()) as {
+      data: { name: string }[]
+    }).data.map(m => m.name)
+    test.skip(
+      !['consents', 'media', 'professionals'].every(name => active.includes(name)),
+      'consents, media and professionals are not all enabled in this environment'
+    )
+
+    const patient = ((await (await page.request.get(`${api}/patients?page_size=1`, { headers: auth })).json()) as {
+      data: { id: string }[]
+    }).data[0]!
+    const professional = ((await (await page.request.get(`${api}/professionals`, { headers: auth })).json()) as {
+      data: { id: string }[]
+    }).data[0]!
+    const title = `E2E papel ${Date.now()}`
+    const consent = ((await (await page.request.post(`${api}/consents/patients/${patient.id}`, {
+      headers: auth,
+      data: {
+        kind: 'informed',
+        title,
+        body: 'Riesgos: dolor e inflamación. Alternativa: conservar la pieza.',
+        explained_by_professional_id: professional.id
+      }
+    })).json()) as { data: { id: string } }).data
+
+    // The sheet to print and sign by hand.
+    const sheet = await page.request.get(`${api}/consents/${consent.id}/pdf`, { headers: auth })
+    expect(sheet.headers()['content-type']).toBe('application/pdf')
+
+    await page.goto(`/patients/${patient.id}?tab=consents`)
+    const draft = page.getByTestId('consent-row-draft').filter({ hasText: title })
+    await draft.getByTestId('consent-sign-open').click({ timeout: 60_000 })
+
+    await page.getByTestId('consent-sign-method').getByText(/En papel|On paper/).click()
+    await expect(page.getByTestId('consent-print')).toBeVisible()
+    // On paper the scan is the signature: nothing to save without it.
+    await expect(page.getByTestId('consent-sign-confirm')).toBeDisabled()
+    await page.getByTestId('consent-scan-input').setInputFiles({
+      name: 'carta-firmada.pdf',
+      mimeType: 'application/pdf',
+      buffer: await sheet.body()
+    })
+    await page.getByTestId('consent-sign-confirm').click()
+
+    const signed = page.getByTestId('consent-row-signed').filter({ hasText: title })
+    await expect(signed).toBeVisible({ timeout: 30_000 })
+    await expect(signed).toContainText(/Firmado en papel|Signed on paper/)
+    await expect(signed.getByTestId('consent-scan-open')).toBeVisible()
   })
 })

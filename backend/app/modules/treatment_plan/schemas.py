@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -83,6 +84,9 @@ class TreatmentBrief(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+Prognosis = Literal["favorable", "reserved", "unfavorable"]
+
+
 class TreatmentPlanCreate(BaseModel):
     """Create a treatment plan."""
 
@@ -90,6 +94,8 @@ class TreatmentPlanCreate(BaseModel):
     title: str | None = Field(default=None, max_length=200)
     assigned_professional_id: UUID | None = None
     diagnosis_notes: str | None = None
+    prognosis: Prognosis | None = None
+    prognosis_notes: str | None = None
     internal_notes: str | None = None
 
 
@@ -99,6 +105,8 @@ class TreatmentPlanUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=200)
     assigned_professional_id: UUID | None = None
     diagnosis_notes: str | None = None
+    prognosis: Prognosis | None = None
+    prognosis_notes: str | None = None
     internal_notes: str | None = None
     # Write-only directive. When ``True`` and the doctor of the plan changes,
     # pending items still pointing at the previous doctor are reassigned in
@@ -215,6 +223,8 @@ class TreatmentPlanDetailResponse(TreatmentPlanResponse):
     """Detailed response with nested items."""
 
     diagnosis_notes: str | None = None
+    prognosis: Prognosis | None = None
+    prognosis_notes: str | None = None
     internal_notes: str | None = None
     items: list["PlannedTreatmentItemResponse"] = []
     #: Computed per request — never stored. ``None`` once the plan is over.

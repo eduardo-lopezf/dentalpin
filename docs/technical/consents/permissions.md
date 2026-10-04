@@ -10,8 +10,9 @@ Returned by `ConsentsModule.get_permissions()`
 
 | Permission | Allows | Required by |
 |------------|--------|-------------|
-| `consents.read` | See a patient's consent letters and the clinic's templates. | `GET /patients/{patient_id}`, `GET /{consent_id}`, `GET /templates` |
+| `consents.read` | See a patient's consent letters and the clinic's templates. | `GET /patients/{patient_id}`, `GET /{consent_id}`, `GET /{consent_id}/pdf`, `GET /templates` |
 | `consents.write` | Write and edit a draft, capture the signature, record that the patient declined, revoke a signed consent, discard a draft. | `POST /patients/{patient_id}`, `PUT /{consent_id}`, `POST /{consent_id}/sign`, `/decline`, `/revoke`, `/discard` |
+| `media.documents.write` (Media's) | File the scan of a letter signed on paper. Without it the sign screen offers the on-screen signature only. | `POST /api/v1/media/patients/{patient_id}/documents` |
 | `consents.templates.write` | Create, reword and retire the clinic's consent texts. Granted to admin and dentist: the wording is a clinical and legal responsibility. | `POST /templates`, `PUT /templates/{template_id}` |
 
 ## Role assignment

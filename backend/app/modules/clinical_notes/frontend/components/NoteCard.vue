@@ -12,13 +12,16 @@ import type {
   ClinicalNoteLinked,
   Document,
   NoteAttachment,
-  NoteType
+  NoteType,
+  NoteVitals
 } from '~~/app/types'
 
 const props = defineProps<{
   noteId: string
   noteType: NoteType
   body: string
+  /** Vital signs taken at the visit, when they were. */
+  vitals?: NoteVitals | null
   createdAt: string
   author: ClinicalNoteAuthor | { id: string, full_name?: string | null }
   linked?: ClinicalNoteLinked | null
@@ -39,6 +42,18 @@ const { t } = useI18n()
 const { metaFor } = useNoteTypeMeta()
 
 const meta = computed(() => metaFor(props.noteType))
+// "TA 120/80 · FC 72 · FR 16 · 36.5 °C" — only what was taken.
+const vitalsLine = computed(() => {
+  const v = props.vitals
+  if (!v) return ''
+  return [
+    (v.systolic || v.diastolic) && `${t('clinicalNotes.vitals.bp')} ${v.systolic ?? '—'}/${v.diastolic ?? '—'}`,
+    v.heart_rate && `${t('clinicalNotes.vitals.hr')} ${v.heart_rate}`,
+    v.respiratory_rate && `${t('clinicalNotes.vitals.rr')} ${v.respiratory_rate}`,
+    v.temperature_c && `${v.temperature_c} °C`
+  ].filter(Boolean).join(' · ')
+})
+
 const expanded = ref(false)
 const TRUNCATE_AT = 280
 
@@ -264,6 +279,17 @@ const linkedLabel = computed(() => {
       </div>
     </header>
 
+    <p
+      v-if="vitalsLine"
+      class="mt-2 inline-flex items-center gap-1.5 text-caption text-muted"
+      data-testid="note-vitals-line"
+    >
+      <UIcon
+        name="i-lucide-heart-pulse"
+        class="h-3.5 w-3.5"
+      />
+      {{ vitalsLine }}
+    </p>
     <div class="mt-2 text-sm whitespace-pre-wrap break-words">
       {{ visibleBody }}
     </div>

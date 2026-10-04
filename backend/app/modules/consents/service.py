@@ -8,7 +8,12 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.contracts import PatientDirectory, ProfessionalDirectory, provider
+from app.core.contracts import (
+    PatientDirectory,
+    PatientDocuments,
+    ProfessionalDirectory,
+    provider,
+)
 
 from .models import Consent, ConsentTemplate
 
@@ -191,11 +196,28 @@ class ConsentService:
         if consent.kind == "informed" and consent.explained_by_professional_id is None:
             raise ConsentError("An informed consent must name the professional who explained it")
 
+        method = data.get("method", "screen")
+        signature = data.get("signature_data")
+        if method == "paper":
+            # The signature is on the sheet; what the record holds is the
+            # scan. It has to be a file of this same patient — asked of the
+            # documents' contract (ADR 0039), which is absent while the
+            # Media module is off.
+            documents = provider(PatientDocuments)
+            if documents is None:
+                raise ConsentError("Documents are not available — a scan cannot be filed")
+            if not await documents.belongs_to(
+                db, consent.clinic_id, consent.patient_id, data["document_id"]
+            ):
+                raise ConsentError("The scanned document is not one of this patient's files")
+            signature = {"document_id": str(data["document_id"])}
+
         consent.status = "signed"
         consent.signed_at = datetime.now(UTC)
         consent.signed_by_name = data["signed_by_name"]
         consent.signer_capacity = data["signer_capacity"]
-        consent.signature_data = data.get("signature_data")
+        consent.signature_method = method
+        consent.signature_data = signature
         consent.recorded_by_user_id = user_id
         await db.flush()
         return consent

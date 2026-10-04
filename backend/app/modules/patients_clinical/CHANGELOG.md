@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+- feat(patients_clinical): el cuestionario de salud en blanco lleva el
+  **membrete del profesional que lo imprime** o, si no tiene uno propio,
+  el de la clínica (`app.core.letterhead`, ADR 0046).
+
+- feat(patients_clinical): **cuestionario de salud**. Lo que el paciente
+  declara en su consulta, como en la historia clínica en papel: motivo de
+  consulta, grupo sanguíneo, alergias, 12 preguntas de sí/no con su causa
+  y 67 padecimientos para marcar.
+  - Tabla `patients_clinical_health_questionnaire` (migración `pc_0005`).
+    Es una declaración fechada: no se edita; una visita nueva es un
+    cuestionario nuevo y uno equivocado se anula (ADR 0032).
+  - Pestaña *Cuestionario de salud* en la ficha del paciente: se contesta
+    en pantalla, o se imprime en blanco, se llena a mano y se sube
+    escaneado (el archivo queda en los documentos del paciente).
+  - `GET/POST /patients/{id}/questionnaires`, `POST …/{qid}/retract` y
+    `GET /patients/{id}/questionnaire-form` (la hoja en blanco, en PDF).
+  - Las preguntas y los padecimientos están fijos en `questionnaire.py`,
+    con versión. Su redacción vive en las traducciones del frontend
+    (`healthQuestionnaire`) y se copia al PDF con
+    `backend/scripts/generate_record_labels.py`.
+  - Aporta la sección *Cuestionarios de salud* al expediente clínico, y
+    entra en la exportación y anonimización de derechos del paciente.
+
+- feat(patients_clinical): **antecedentes heredo-familiares**. Tabla nueva
+  `patients_clinical_family_history` (migración `pc_0004`): padecimiento,
+  familiar (madre, padre, hermano/a, abuelo/a, hijo/a, otro) y notas. Se
+  capturan en el formulario de historial médico, en una sección propia, y
+  viajan con el resto del historial (`family_history` en
+  `GET/PUT /patients/{id}/medical-history`). Nacen con las reglas del
+  resto de antecedentes (ADR 0032): lo que se quita del formulario se
+  anula, no se borra. Aportan su sección al expediente clínico y entran en
+  la exportación y la anonimización de derechos del paciente.
+
+- feat(patients_clinical): aporta al expediente clínico la sección **Contexto médico** (embarazo, anticoagulantes, hábitos, reacciones a la anestesia), además de los antecedentes.
+
 - feat(widgets): «Historial médico» (Resumen de la ficha) y «Alertas
   médicas» (cabecera de la ficha) se listan en Configuración → Widgets,
   con datos ficticios (ADR 0040). `useMedicalHistory` y

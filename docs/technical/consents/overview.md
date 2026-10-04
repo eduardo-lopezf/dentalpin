@@ -26,12 +26,23 @@ clinic maintains (Settings → Clínica → Plantillas de consentimiento) and
 keeps its own copy, plus the template version — which is what answers
 "which privacy notice did they accept". Nothing here ships legal wording.
 
+**Two ways to sign.** On screen (`signature_method = "screen"`, the
+drawing kept on the row), or on paper (`"paper"`): `GET /{id}/pdf` prints
+the letter as a form — the patient's data and the text already on it;
+diagnosis, plan, names, dates and signatures as ruled lines — which is
+filled in and signed by hand, scanned, uploaded to the patient's documents
+(Media) and passed to `POST /{id}/sign` as `document_id`. The consent
+checks through the `PatientDocuments` contract that the file belongs to
+the same patient, and keeps its id — no foreign key (ADR 0042). With
+Media off, a letter can be printed and signed on screen, not filed as a
+scan.
+
 **Where it shows.** The patient record's *Consentimientos* tab (slot
 `patient.detail.tabs`), and the composed clinical record, under the
 `consents` section, for signed, declined and revoked letters.
 
 **What it does not do yet.** No remote signing by link, no automatic
-"this plan needs a consent", no PDF, and nothing *requires* a data-use
+"this plan needs a consent", and nothing *requires* a data-use
 consent before the clinic messages a patient.
 
 ## API surface
@@ -39,6 +50,7 @@ consent before the clinic messages a patient.
 - `GET /api/v1/consents/patients/{patient_id}`
 - `GET /api/v1/consents/templates`
 - `GET /api/v1/consents/{consent_id}`
+- `GET /api/v1/consents/{consent_id}/pdf`
 - `POST /api/v1/consents/patients/{patient_id}`
 - `POST /api/v1/consents/templates`
 - `POST /api/v1/consents/{consent_id}/decline`

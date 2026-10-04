@@ -12,6 +12,8 @@ Returned by `PatientsClinicalModule.get_permissions()`
 
 | Permission | Allows | Required by |
 |------------|--------|-------------|
+| `patients_clinical.medical.read` | See a patient's health questionnaires and print the blank form. | `GET /patients/{id}/questionnaires`, `GET /patients/{id}/questionnaire-form` |
+| `patients_clinical.medical.write` | Record a health questionnaire, or take one back. | `POST /patients/{id}/questionnaires`, `POST /patients/{id}/questionnaires/{qid}/retract` |
 | `patients_clinical.medical.read` | _Describe what this allows._ | _List the endpoints._ |
 | `patients_clinical.medical.write` | _Describe what this allows._ | _List the endpoints._ |
 | `patients_clinical.emergency.read` | _Describe what this allows._ | _List the endpoints._ |

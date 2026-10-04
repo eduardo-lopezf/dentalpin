@@ -1,6 +1,7 @@
 """Pydantic schemas for the patients_clinical module."""
 
 from datetime import date, datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -141,6 +142,69 @@ class SurgicalHistoryResponse(SurgicalHistoryCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+# --- Family history -----------------------------------------------------
+
+Relative = Literal["mother", "father", "sibling", "grandparent", "child", "other"]
+
+
+class FamilyHistoryCreate(BaseModel):
+    condition: str = Field(min_length=1, max_length=200)
+    relative: Relative = "other"
+    notes: str | None = None
+
+
+class FamilyHistoryResponse(FamilyHistoryCreate):
+    id: UUID
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# --- Health questionnaire ----------------------------------------------
+
+
+class QuestionAnswer(BaseModel):
+    answer: bool
+    detail: str | None = Field(default=None, max_length=500)
+
+
+class HealthQuestionnaireCreate(BaseModel):
+    """What the patient declared, or the scan of the sheet they filled in."""
+
+    taken_at: datetime | None = None
+    chief_complaint: str | None = Field(default=None, max_length=2000)
+    blood_type: str | None = Field(default=None, max_length=10)
+    declared_allergies: str | None = Field(default=None, max_length=2000)
+    answers: dict[str, QuestionAnswer] = {}
+    conditions: list[str] = []
+    drugs_detail: str | None = Field(default=None, max_length=300)
+    other_conditions: str | None = Field(default=None, max_length=2000)
+    scan_document_id: UUID | None = None
+
+
+class HealthQuestionnaireResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    patient_id: UUID
+    taken_at: datetime
+    form_version: str
+    chief_complaint: str | None
+    blood_type: str | None
+    declared_allergies: str | None
+    answers: dict[str, QuestionAnswer]
+    conditions: list[str]
+    drugs_detail: str | None
+    other_conditions: str | None
+    scan_document_id: UUID | None
+    retracted_at: datetime | None
+    recorded_by_professional_id: UUID | None
+    created_at: datetime
+
+
+class RetractRequest(BaseModel):
+    reason: str | None = Field(default=None, max_length=2000)
+
+
 # --- Emergency contact --------------------------------------------------
 
 
@@ -210,6 +274,10 @@ class SurgicalHistorySubmit(SurgicalHistoryCreate):
     id: UUID | None = None
 
 
+class FamilyHistorySubmit(FamilyHistoryCreate):
+    id: UUID | None = None
+
+
 class MedicalHistoryUpdate(BaseModel):
     """Bulk update payload mirroring the legacy JSONB shape.
 
@@ -223,6 +291,7 @@ class MedicalHistoryUpdate(BaseModel):
     medications: list[MedicationSubmit] = []
     systemic_diseases: list[SystemicDiseaseSubmit] = []
     surgical_history: list[SurgicalHistorySubmit] = []
+    family_history: list[FamilyHistorySubmit] = []
 
     is_pregnant: bool = False
     pregnancy_week: int | None = Field(default=None, ge=1, le=42)
@@ -248,6 +317,7 @@ class MedicalHistoryResponse(BaseModel):
     medications: list[MedicationResponse] = []
     systemic_diseases: list[SystemicDiseaseResponse] = []
     surgical_history: list[SurgicalHistoryResponse] = []
+    family_history: list[FamilyHistoryResponse] = []
 
     is_pregnant: bool = False
     pregnancy_week: int | None = None

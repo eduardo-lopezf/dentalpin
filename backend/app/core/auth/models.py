@@ -4,9 +4,17 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Final
 from uuid import uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    LargeBinary,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, deferred, mapped_column, relationship
 
 from app.core.privacy import AccountTier, DataClass, PiiKind, pii
 from app.database import Base, TimestampMixin
@@ -163,6 +171,54 @@ class User(Base, TimestampMixin):
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
+
+class ClinicBrandLogo(Base, TimestampMixin):
+    """The logo the workspace shows next to its name, in the sidebar. One
+    per clinic (ADR 0043).
+
+    A table of its own rather than a key in ``Clinic.settings``: the
+    settings travel with every request, and an image has no business
+    there. The name it sits next to does live in the settings (``brand``).
+    """
+
+    __tablename__ = "clinic_brand_logos"
+
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), primary_key=True)
+    image: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class ClinicLetterhead(Base, TimestampMixin):
+    """A letterhead for what the clinic prints: the clinic's own, or one
+    professional's.
+
+    ``owner_key`` says whose it is — ``"clinic"`` or a professional's id —
+    and is unique per clinic: one letterhead each. The professional is an
+    id without a foreign key, because the directory is a module and the
+    core chain cannot point into a module's branch. See
+    ``app.core.letterhead``.
+    """
+
+    __tablename__ = "clinic_letterheads"
+    __table_args__ = (
+        UniqueConstraint("clinic_id", "owner_key", name="uq_clinic_letterhead_owner"),
+    )
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), nullable=False, index=True)
+    owner_key: Mapped[str] = mapped_column(String(36), nullable=False)
+
+    #: Replaces the clinic's name when set.
+    heading: Mapped[str | None] = mapped_column(String(120), info=pii(PiiKind.NAME))
+    #: A line of its owner's: the professional and their licence, a speciality.
+    subheading: Mapped[str | None] = mapped_column(String(200))
+    show_address: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    show_contact: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    #: The logo. On the row, loaded only when a document is printed.
+    logo: Mapped[bytes | None] = deferred(mapped_column(LargeBinary))
+    logo_mime_type: Mapped[str | None] = mapped_column(String(40))
 
 
 class ClinicMembership(Base, TimestampMixin):

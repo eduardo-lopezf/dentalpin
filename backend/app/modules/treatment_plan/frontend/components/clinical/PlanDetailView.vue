@@ -22,6 +22,7 @@ import ReactivatePlanModal from './modals/ReactivatePlanModal.vue'
 import ContactLogModal from './modals/ContactLogModal.vue'
 import PlanItemDetailModal from './modals/PlanItemDetailModal.vue'
 import PlanItemCollectPrompt from './modals/PlanItemCollectPrompt.vue'
+import PlanDiagnosisCard from './PlanDiagnosisCard.vue'
 import PlanNextActionBar from './PlanNextActionBar.vue'
 import { planItemName } from './planItemName'
 
@@ -1247,6 +1248,14 @@ const moreMenuItems = computed<DropdownMenuItem[]>(() => {
       @generate-budget="handleGenerateBudget"
       @budget-addendum="handleBudgetAddendum"
       @schedule="emit('schedule')"
+    />
+
+    <!-- What was found and how it is expected to go: the diagnosis and
+         prognosis a clinical record asks a plan for. -->
+    <PlanDiagnosisCard
+      :plan="plan"
+      :readonly="readonly"
+      @updated="emit('updated')"
     />
 
     <!-- The plan's shape is settled. A statement of the rule, not an alarm:

@@ -77,7 +77,7 @@ Triggers (any one):
 | 0030 | [A session ends after an hour without interaction, and login resumes it](0030-sessions-end-after-an-hour-idle.md) | accepted | 2026-09-16 |
 | 0031 | [A request's writes are committed before its response is sent](0031-writes-commit-before-the-response.md) | accepted | 2026-09-22 |
 | 0032 | [The clinical record is append-only, and every entry names a licensed author](0032-clinical-record-is-append-only.md) | proposed | 2026-09-22 |
-| 0033 | [Disclosure requires a recorded authorisation, and the authorisation is part of the record](0033-disclosure-requires-a-recorded-authorisation.md) | proposed | 2026-09-22 |
+| 0033 | [Disclosure requires a recorded authorisation, and the authorisation is part of the record](0033-disclosure-requires-a-recorded-authorisation.md) | accepted | 2026-09-22 |
 | 0035 | [Apps are disabled, not uninstalled, and every database carries the whole schema](0035-apps-are-disabled-not-uninstalled.md) | accepted | 2026-09-30 |
 | 0036 | [An App is a declared group of modules](0036-an-app-is-a-declared-group-of-modules.md) | accepted | 2026-09-30 |
 | 0037 | [A module integrates with what it can live without](0037-a-module-integrates-with-what-it-can-live-without.md) | accepted | 2026-10-01 |
@@ -89,3 +89,4 @@ Triggers (any one):
 | 0043 | [The workspace is the base App, and every App has a tier](0043-the-workspace-is-the-base-app.md) | accepted | 2026-10-03 |
 | 0044 | [The App organises; the module holds the code](0044-the-app-organises-the-module-holds-the-code.md) | accepted | 2026-10-03 |
 | 0045 | [A consent is a record entry, written from the clinic's own text](0045-a-consent-is-a-record-entry.md) | accepted | 2026-10-03 |
+| 0046 | [Letterheads belong to the clinic, and a document carries its own professional's](0046-the-letterhead-belongs-to-the-clinic.md) | accepted | 2026-10-04 |

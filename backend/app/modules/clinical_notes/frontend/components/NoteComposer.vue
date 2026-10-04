@@ -7,7 +7,7 @@
  * ``submit`` payload. The parent decides where to write (note_type / owner).
  */
 
-import type { Document, NoteTemplate, NoteType } from '~~/app/types'
+import type { Document, NoteTemplate, NoteType, NoteVitals } from '~~/app/types'
 
 const props = defineProps<{
   /** Initial body — pre-fills the textarea (use for edit, or clear with ''). */
@@ -27,7 +27,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [{ body: string, toothNumber: number | null, attachmentDocumentIds: string[] }]
+  submit: [{ body: string, toothNumber: number | null, attachmentDocumentIds: string[], vitals: NoteVitals | null }]
   cancel: []
 }>()
 
@@ -90,6 +90,32 @@ const bindToTooth = ref(props.toothNumber !== null && props.toothNumber !== unde
 const templates = ref<NoteTemplate[]>([])
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
+// Vital signs: on a new clinical note only. An administrative note is not
+// a clinical act, and an edit rewords the text, not the readings.
+const VITALS = ['systolic', 'diastolic', 'heart_rate', 'respiratory_rate', 'temperature_c'] as const
+const offersVitals = computed(() =>
+  !props.initialBody
+  && props.noteType !== 'administrative'
+  && props.noteType !== 'appointment_administrative'
+)
+const vitalsOpen = ref(false)
+const vitals = ref<Record<typeof VITALS[number], number | undefined>>({
+  systolic: undefined, diastolic: undefined, heart_rate: undefined, respiratory_rate: undefined, temperature_c: undefined
+})
+
+function takenVitals(): NoteVitals | null {
+  if (!offersVitals.value) return null
+  const taken = Object.fromEntries(
+    VITALS.filter(key => typeof vitals.value[key] === 'number').map(key => [key, vitals.value[key]])
+  )
+  return Object.keys(taken).length ? taken : null
+}
+
+function resetVitals() {
+  for (const key of VITALS) vitals.value[key] = undefined
+  vitalsOpen.value = false
+}
+
 const category = computed(() => props.templateCategory || meta.value.templateCategory)
 
 watch(
@@ -126,14 +152,17 @@ function handleSubmit() {
       props.noteType === 'diagnosis' && bindToTooth.value && props.toothNumber
         ? props.toothNumber
         : null,
-    attachmentDocumentIds: attachedDocs.value.map(d => d.id)
+    attachmentDocumentIds: attachedDocs.value.map(d => d.id),
+    vitals: takenVitals()
   })
   attachedDocs.value = []
+  resetVitals()
 }
 
 function handleCancel() {
   body.value = props.initialBody ?? ''
   attachedDocs.value = []
+  resetVitals()
   emit('cancel')
 }
 
@@ -175,6 +204,45 @@ watch(category, refreshTemplates)
       class="composer-textarea"
       :disabled="busy"
     />
+
+    <!-- Vital signs taken at this visit. Optional, and folded away until asked for. -->
+    <div v-if="offersVitals">
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium text-muted hover:bg-elevated hover:text-default"
+        data-testid="note-vitals-toggle"
+        @click="vitalsOpen = !vitalsOpen"
+      >
+        <UIcon
+          name="i-lucide-heart-pulse"
+          class="h-3.5 w-3.5"
+        />
+        <span>{{ t('clinicalNotes.vitals.title') }}</span>
+      </button>
+      <div
+        v-if="vitalsOpen"
+        class="mt-1 grid grid-cols-2 sm:grid-cols-5 gap-2"
+        data-testid="note-vitals"
+      >
+        <UFormField
+          v-for="key in VITALS"
+          :key="key"
+          :label="t(`clinicalNotes.vitals.${key}`)"
+          size="xs"
+        >
+          <UInput
+            v-model.number="vitals[key]"
+            type="number"
+            inputmode="decimal"
+            :step="key === 'temperature_c' ? 0.1 : 1"
+            size="sm"
+            class="w-full"
+            :disabled="busy"
+            :data-testid="`note-vitals-${key}`"
+          />
+        </UFormField>
+      </div>
+    </div>
 
     <!-- Inline attachments (photos + documents). Only when patientId is provided. -->
     <div

@@ -130,7 +130,8 @@ del odontograma: quien mira la boca sabe más que una regla sobre ella.
    y puedes cambiarlo. Si lo tocas, deja de reescribirse.
 4. Asigna el profesional. Viene preseleccionado si tu usuario es un
    profesional de la clínica.
-5. Las notas de diagnóstico e internas están en **Más opciones**.
+5. Las notas de diagnóstico, el **pronóstico** (favorable, reservado o
+   desfavorable, con su motivo) y las notas internas están en **Más opciones**.
 6. **Crear**. Se publica `treatment_plan.created`, se añaden todas las
    líneas y entras al detalle con el plan montado.
 

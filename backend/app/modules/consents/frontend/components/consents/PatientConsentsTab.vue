@@ -60,8 +60,31 @@ function summary(consent: Consent): string {
     when(consent),
     consent.procedure_label,
     consent.explained_by_name && t('consents.sign.explainedBy', { name: consent.explained_by_name }),
-    consent.signed_by_name && t('consents.signedBy', { name: consent.signed_by_name })
+    consent.signed_by_name && t('consents.signedBy', { name: consent.signed_by_name }),
+    consent.signature_method === 'paper' && t('consents.onPaper')
   ].filter(Boolean).join(' · ')
+}
+
+async function show(action: (tab: Window | null) => Promise<void>) {
+  const tab = consents.reserveTab()
+  try {
+    await action(tab)
+  } catch {
+    toast.add({ title: t('errors.loadFailed'), color: 'error' })
+  }
+}
+
+function print(consent: Consent) {
+  show(tab => consents.openPdf(consent.id, locale.value, tab))
+}
+
+function scanOf(consent: Consent): string | null {
+  return consent.signature_method === 'paper' ? consent.signature_data?.document_id ?? null : null
+}
+
+function openScan(consent: Consent) {
+  const documentId = scanOf(consent)
+  if (documentId) show(tab => consents.openScan(documentId, tab))
 }
 
 function open(kind: 'new' | 'edit' | 'sign' | 'view', consent: Consent | null = null) {
@@ -169,6 +192,27 @@ async function act(consent: Consent, action: 'revoke' | 'discard') {
           >
             {{ t('consents.view') }}
           </UButton>
+          <UButton
+            v-if="scanOf(consent)"
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            icon="i-lucide-file-check"
+            data-testid="consent-scan-open"
+            @click="openScan(consent)"
+          >
+            {{ t('consents.scan') }}
+          </UButton>
+          <UButton
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            icon="i-lucide-printer"
+            data-testid="consent-print-row"
+            @click="print(consent)"
+          >
+            {{ t('consents.print') }}
+          </UButton>
           <template v-if="canWrite && consent.status === 'draft'">
             <UButton
               size="xs"
@@ -255,6 +299,16 @@ async function act(consent: Consent, action: 'revoke' | 'discard') {
                 :alt="t('consents.signatureAlt')"
                 class="h-24 rounded-md border border-default bg-white"
               >
+              <UButton
+                v-if="scanOf(selected)"
+                size="sm"
+                color="neutral"
+                variant="soft"
+                icon="i-lucide-file-check"
+                @click="openScan(selected)"
+              >
+                {{ t('consents.scanView') }}
+              </UButton>
             </template>
             <p
               v-if="selected.status_note"

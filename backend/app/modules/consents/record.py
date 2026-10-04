@@ -40,6 +40,8 @@ async def _collect(db: AsyncSession, clinic_id: UUID, patient_id: UUID) -> list[
                 "explained_by_license": row.explained_by_license,
                 "signed_by_name": row.signed_by_name,
                 "signer_capacity": row.signer_capacity,
+                "signature_method": row.signature_method,
+                "scan_document_id": (row.signature_data or {}).get("document_id"),
                 "signed_at": row.signed_at,
                 "declined_at": row.declined_at,
                 "revoked_at": row.revoked_at,

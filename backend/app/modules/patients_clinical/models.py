@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.privacy import PiiKind, pii
@@ -204,6 +204,75 @@ class SurgicalHistory(Base, TimestampMixin, ClinicalEntryMixin):
     surgery_date: Mapped[date | None] = mapped_column(Date)
     complications: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
+
+
+FAMILY_RELATIVES = ("mother", "father", "sibling", "grandparent", "child", "other")
+
+
+class FamilyHistory(Base, TimestampMixin, ClinicalEntryMixin):
+    """A condition that runs in the patient's family (N:1).
+
+    The *antecedentes heredo-familiares* of a clinical history: what a
+    relative has or had, and which relative.
+    """
+
+    __tablename__ = "patients_clinical_family_history"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    patient_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("patients.id", ondelete="CASCADE"),
+        index=True,
+    )
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+
+    condition: Mapped[str] = mapped_column(String(200))
+    #: Which relative, as a kind — never a name.
+    relative: Mapped[str] = mapped_column(String(20), default="other")
+    notes: Mapped[str | None] = mapped_column(Text)
+
+
+class HealthQuestionnaire(Base, TimestampMixin, ClinicalEntryMixin):
+    """What the patient declared at a visit, as they declared it (N:1).
+
+    A dated statement, not the curated history: the allergies, medications
+    and diseases a clinician keeps live in their own tables and move on.
+    This says what the patient answered *that day* and never changes — a
+    new visit is a new questionnaire, and a mistaken one is retracted.
+
+    Filled in on screen (``answers`` and ``conditions`` hold it) or on the
+    printed form, in which case ``scan_document_id`` is the sheet and the
+    answers are on it.
+    """
+
+    __tablename__ = "patients_clinical_health_questionnaire"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    patient_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("patients.id", ondelete="CASCADE"),
+        index=True,
+    )
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+
+    taken_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    form_version: Mapped[str] = mapped_column(String(10))
+    #: Why the patient came, in their words.
+    chief_complaint: Mapped[str | None] = mapped_column(Text)
+    blood_type: Mapped[str | None] = mapped_column(String(10))
+    declared_allergies: Mapped[str | None] = mapped_column(Text)
+
+    #: ``{question_key: {"answer": bool, "detail": str | None}}``. A question
+    #: left unanswered is absent — "not asked" is not "no".
+    answers: Mapped[dict] = mapped_column(JSONB, default=dict)
+    #: Keys of the conditions ticked.
+    conditions: Mapped[list] = mapped_column(JSONB, default=list)
+    drugs_detail: Mapped[str | None] = mapped_column(String(300))
+    other_conditions: Mapped[str | None] = mapped_column(Text)
+
+    #: The scanned sheet, when it was filled in by hand. An id among the
+    #: patient's documents, checked through ``PatientDocuments``.
+    scan_document_id: Mapped[UUID | None] = mapped_column(UUID(as_uuid=True))
 
 
 class EmergencyContact(Base, TimestampMixin):

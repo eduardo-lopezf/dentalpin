@@ -11,17 +11,21 @@ Routes mounted at `/api/v1/consents`. See
 
 - Templates: `GET/POST /templates`, `PUT /templates/{id}`.
 - Consents: `GET/POST /patients/{patient_id}`, `GET/PUT /{id}`,
-  `POST /{id}/sign`, `/decline`, `/revoke`, `/discard`.
+  `GET /{id}/pdf`, `POST /{id}/sign`, `/decline`, `/revoke`, `/discard`.
 
 ## Dependencies
 
-`manifest.depends = ["patients"]`, `manifest.integrates = ["professionals"]`.
+`manifest.depends = ["patients"]`,
+`manifest.integrates = ["professionals", "media"]`.
 
-Neither is imported. The patient is validated through `PatientDirectory`
-and the professional who explained a consent is read through
-`ProfessionalDirectory` and stored as a **snapshot** — id, name, licence —
-with no foreign key (ADR 0039, ADR 0042). `plan_id` is likewise an id
-without a foreign key.
+The patient is validated through `PatientDirectory`; the professional who
+explained a consent is read through `ProfessionalDirectory` and stored as
+a **snapshot** — id, name, licence — with no foreign key (ADR 0039,
+ADR 0042). `plan_id` is likewise an id without a foreign key, and so is
+the scan of a letter signed on paper (`signature_data.document_id`),
+checked through `PatientDocuments`. `professionals` and `media` are not
+imported. The one import is `patients.models.Patient`, in `pdf.py`, to
+print the patient's data on the sheet.
 
 ## Permissions
 
@@ -54,8 +58,24 @@ page (`consent-templates`, category `clinical`). No pages of its own.
   it** — Art. 51 Bis 1 puts the duty on a person. With the Professionals
   App off, drafts and data-use consents still work; naming a professional
   is refused, so informed consents wait.
+- **Two ways to sign, one record.** `signature_method` is `screen` (the
+  drawing is in `signature_data.png`) or `paper` (`signature_data.document_id`
+  is the scan, a document of the same patient in Media). On paper the
+  scan *is* the signature: `sign` refuses `paper` without one. The frontend
+  uploads the file to Media's own endpoint first, then signs.
+- **The PDF is a form, not the record.** `pdf.py` prints the letter with
+  ruled lines for what is written by hand. The lines around the text —
+  who informs, who accepts, two witnesses, place and date — follow
+  NOM-004 §10.1.1; the text itself stays the clinic's. A letter signed on
+  paper still prints as the blank form: the signed sheet is the scan.
+- **Media can archive the scan.** Nothing stops a user with
+  `media.documents.write` from archiving the document a paper consent
+  points at. Known gap.
 - **No legal text ships with the module.** Templates are the clinic's.
   Do not seed wording that reads as legal advice.
+- **`conformity` is a third kind**: agreement with a concluded treatment.
+  Same mechanism, no professional required, satisfies neither consent, and
+  says nothing about money — it does not look at the patient's balance.
 - **Two consents, not one.** `informed` and `data_use` share a mechanism
   and nothing else; neither substitutes for the other, and a signed budget
   substitutes for neither.
@@ -64,7 +84,7 @@ page (`consent-templates`, category `clinical`). No pages of its own.
 
 ## Not built yet
 
-Remote signing by expiring link; a PDF of the letter; "this plan needs a
+Remote signing by expiring link; "this plan needs a
 consent" from Treatments; enforcement of a data-use consent before
 messaging a patient; guardians read from `patients_clinical`.
 

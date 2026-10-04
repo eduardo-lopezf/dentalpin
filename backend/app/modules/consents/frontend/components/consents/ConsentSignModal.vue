@@ -3,8 +3,13 @@
  * The patient reads the letter and signs it — or declines, which is
  * recorded too. Once signed it cannot be edited: this is the last screen
  * on which the text can still be anything but a record.
+ *
+ * Two ways to sign. On screen, on the pad. Or on paper: the letter is
+ * printed, filled in and signed by hand, and its scan is filed with the
+ * patient's documents — the scan is then the signature.
  */
-import type { Consent, SignerCapacity } from '../../composables/useConsents'
+import { PERMISSIONS } from '~~/app/config/permissions'
+import type { Consent, SignatureMethod, SignerCapacity } from '../../composables/useConsents'
 
 const props = defineProps<{
   open: boolean
@@ -17,9 +22,21 @@ const emit = defineEmits<{
   'done': [consent: Consent]
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
+const { can } = usePermissions()
+const { isActive } = useModules()
 const consents = useConsents()
+
+const method = ref<SignatureMethod>('screen')
+const scan = ref<File | null>(null)
+// The scan is a document of the patient: the Media module has to be
+// running, and whoever is at the screen allowed to file one.
+const canFileScan = computed(() => isActive('media') && can(PERMISSIONS.documents.write))
+const methodOptions = computed(() => (['screen', 'paper'] as const).map(value => ({
+  label: t(`consents.sign.method.${value}`), value
+})))
+const SCAN_TYPES = 'application/pdf,image/jpeg,image/png'
 
 const signerName = ref('')
 const capacity = ref<SignerCapacity>('patient')
@@ -36,7 +53,9 @@ const missingProfessional = computed(() =>
   props.consent?.kind === 'informed' && !props.consent.explained_by_professional_id
 )
 const canSign = computed(() =>
-  signerName.value.trim().length > 0 && signature.value !== null && !missingProfessional.value
+  signerName.value.trim().length > 0
+  && !missingProfessional.value
+  && (method.value === 'paper' ? scan.value !== null : signature.value !== null)
 )
 
 watch(() => props.open, (opened) => {
@@ -44,7 +63,23 @@ watch(() => props.open, (opened) => {
   signerName.value = props.patientName
   capacity.value = 'patient'
   signature.value = null
+  method.value = 'screen'
+  scan.value = null
 })
+
+function pickScan(event: Event) {
+  scan.value = (event.target as HTMLInputElement).files?.[0] ?? null
+}
+
+async function print() {
+  if (!props.consent) return
+  const tab = consents.reserveTab()
+  try {
+    await consents.openPdf(props.consent.id, locale.value, tab)
+  } catch {
+    toast.add({ title: t('errors.loadFailed'), color: 'error' })
+  }
+}
 
 async function run(action: () => Promise<Consent>) {
   if (busy.value) return
@@ -62,12 +97,18 @@ async function run(action: () => Promise<Consent>) {
 
 function sign() {
   if (!props.consent || !canSign.value) return
-  const id = props.consent.id
-  run(() => consents.sign(id, {
-    signed_by_name: signerName.value.trim(),
-    signer_capacity: capacity.value,
-    signature_data: { png: signature.value! }
-  }))
+  const { id, patient_id: patientId, title } = props.consent
+  const who = { signed_by_name: signerName.value.trim(), signer_capacity: capacity.value }
+  if (method.value === 'paper') {
+    const file = scan.value!
+    run(async () => consents.sign(id, {
+      ...who,
+      method: 'paper',
+      document_id: await consents.uploadScan(patientId, file, title)
+    }))
+    return
+  }
+  run(() => consents.sign(id, { ...who, method: 'screen', signature_data: { png: signature.value! } }))
 }
 
 function decline() {
@@ -138,11 +179,55 @@ function decline() {
             </UFormField>
           </div>
 
-          <div>
+          <UFormField
+            v-if="canFileScan"
+            :label="t('consents.sign.method.label')"
+          >
+            <URadioGroup
+              v-model="method"
+              :items="methodOptions"
+              value-key="value"
+              orientation="horizontal"
+              data-testid="consent-sign-method"
+            />
+          </UFormField>
+
+          <div v-if="method === 'screen'">
             <p class="text-xs text-muted mb-2">
               {{ t('consents.sign.signHere') }}
             </p>
             <SignaturePad v-model="signature" />
+          </div>
+
+          <div
+            v-else
+            class="space-y-3 rounded-md border border-default p-3"
+          >
+            <p class="text-sm text-muted">
+              {{ t('consents.sign.paperSteps') }}
+            </p>
+            <UButton
+              color="neutral"
+              variant="soft"
+              icon="i-lucide-printer"
+              data-testid="consent-print"
+              @click="print"
+            >
+              {{ t('consents.print') }}
+            </UButton>
+            <UFormField
+              :label="t('consents.sign.scan')"
+              :hint="t('consents.sign.scanHint')"
+              required
+            >
+              <input
+                type="file"
+                :accept="SCAN_TYPES"
+                class="block w-full text-sm text-default file:mr-3 file:rounded-md file:border-0 file:bg-elevated file:px-3 file:py-2 file:text-sm file:text-default"
+                data-testid="consent-scan-input"
+                @change="pickScan"
+              >
+            </UFormField>
           </div>
         </div>
 
@@ -168,11 +253,11 @@ function decline() {
               <UButton
                 :disabled="!canSign"
                 :loading="busy"
-                icon="i-lucide-pen-line"
+                :icon="method === 'paper' ? 'i-lucide-file-up' : 'i-lucide-pen-line'"
                 data-testid="consent-sign-confirm"
                 @click="sign"
               >
-                {{ t('consents.sign.confirm') }}
+                {{ method === 'paper' ? t('consents.sign.confirmPaper') : t('consents.sign.confirm') }}
               </UButton>
             </div>
           </div>

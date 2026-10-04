@@ -8,6 +8,24 @@ gated by clinical roles.
 
 Routes mounted at `/api/v1/patients-clinical/`.
 
+### Health questionnaire
+
+`GET/POST /patients/{id}/questionnaires`, `POST …/{qid}/retract`,
+`GET /patients/{id}/questionnaire-form` (blank PDF). A questionnaire is a
+**dated declaration** — what the patient said that day — not the curated
+history: allergies, medications and diseases keep living in their own
+tables. It is never edited; a mistaken one is retracted. On paper, the
+scan (`scan_document_id`, checked through `PatientDocuments`) is the
+questionnaire and `answers` may be empty.
+
+The form is fixed in `questionnaire.py` (`FORM_VERSION`): a changed
+question is a new key, never a reworded one, or old answers change
+meaning. The frontend mirrors the keys in `useHealthQuestionnaires.ts`
+and holds the wording (`healthQuestionnaire.*`); after touching either,
+run `python backend/scripts/generate_record_labels.py` from the host.
+The blank PDF prints nothing clinical — a filled-in questionnaire leaves
+the clinic only through a record disclosure.
+
 ## Dependencies
 
 `manifest.depends = ["patients"]`, `manifest.integrates = ["professionals"]`.

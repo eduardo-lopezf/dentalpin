@@ -75,6 +75,16 @@ _TYPE_OWNER_MATRIX: dict[str, str] = {
 }
 
 
+class Vitals(BaseModel):
+    """Vital signs taken at a visit. Every reading is optional."""
+
+    systolic: int | None = Field(default=None, ge=40, le=300)
+    diastolic: int | None = Field(default=None, ge=20, le=200)
+    heart_rate: int | None = Field(default=None, ge=20, le=250)
+    respiratory_rate: int | None = Field(default=None, ge=4, le=80)
+    temperature_c: float | None = Field(default=None, ge=30, le=45)
+
+
 class ClinicalNoteCreate(BaseModel):
     """Create a clinical note.
 
@@ -88,6 +98,8 @@ class ClinicalNoteCreate(BaseModel):
     owner_id: UUID
     tooth_number: int | None = Field(default=None, ge=11, le=85)
     body: str = Field(..., min_length=1)
+    #: Clinical notes only; dropped from an administrative one.
+    vitals: Vitals | None = None
     attachment_document_ids: list[UUID] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -141,6 +153,7 @@ class ClinicalNoteResponse(BaseModel):
     owner_id: UUID
     tooth_number: int | None
     body: str
+    vitals: Vitals | None = None
     author_id: UUID
     #: Who answers for the note clinically. NULL when the account that wrote it
     #: has no directory profile.
@@ -195,6 +208,7 @@ class RecentNoteEntry(BaseModel):
     owner_id: UUID
     tooth_number: int | None
     body: str
+    vitals: Vitals | None = None
     created_at: datetime
     updated_at: datetime
     author: AuthorBrief
@@ -215,6 +229,7 @@ class ClinicalNoteEntry(BaseModel):
     owner_id: UUID
     plan_item_id: UUID | None = None
     body: str
+    vitals: Vitals | None = None
     author_id: UUID | None
     author: AuthorBrief | None = None
     created_at: datetime

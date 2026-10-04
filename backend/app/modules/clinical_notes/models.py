@@ -41,7 +41,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base, TimestampMixin
@@ -103,6 +103,11 @@ class ClinicalNote(Base, TimestampMixin):
     tooth_number: Mapped[int | None] = mapped_column(Integer)
 
     body: Mapped[str] = mapped_column(Text)
+    #: Vital signs taken at the visit the note is about, when they were:
+    #: ``systolic``/``diastolic`` (mmHg), ``heart_rate`` and
+    #: ``respiratory_rate`` (per minute), ``temperature_c``. Part of the
+    #: note as written — an amendment rewords the text, not the readings.
+    vitals: Mapped[dict | None] = mapped_column(JSONB)
     #: The account that operated the software. The audit trail, unchanged.
     author_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
     #: Who answers for the note clinically, and through whom an exported record

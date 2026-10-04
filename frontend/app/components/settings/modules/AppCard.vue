@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AppInfo } from '~/types'
+import { appPresentation } from '~/config/appCatalog'
 
 interface Props {
   app: AppInfo
@@ -14,6 +15,11 @@ const title = computed(() => {
   const key = `settings.apps.catalog.${props.app.name}.title`
   return te(key) ? t(key) : props.app.name
 })
+// The icon that stands for the App, and its own settings page when it has
+// one. A disabled App offers no page: its routes are turned away.
+const presentation = computed(() => appPresentation(props.app.name))
+const settingsPath = computed(() => props.app.enabled ? presentation.value.settingsPath : undefined)
+
 const summary = computed(() => {
   const key = `settings.apps.catalog.${props.app.name}.summary`
   return te(key) ? t(key) : ''
@@ -23,6 +29,17 @@ const summary = computed(() => {
 <template>
   <UCard :data-testid="`app-card-${app.name}`">
     <div class="flex items-center gap-2 flex-wrap">
+      <span
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+        :class="app.enabled ? 'bg-[var(--ui-primary)]/10 text-[var(--ui-primary)]' : 'bg-elevated text-subtle'"
+        aria-hidden="true"
+      >
+        <UIcon
+          :name="presentation.icon"
+          class="h-5 w-5"
+          :data-testid="`app-icon-${app.name}`"
+        />
+      </span>
       <h3 class="font-semibold text-default">
         {{ title }}
       </h3>
@@ -36,8 +53,8 @@ const summary = computed(() => {
         {{ t(`settings.apps.tier.${app.tier}`) }}
       </UBadge>
       <UButton
-        v-if="app.tier === 'base'"
-        to="/settings/apps/workspace"
+        v-if="settingsPath"
+        :to="settingsPath"
         size="xs"
         variant="soft"
         icon="i-lucide-settings-2"

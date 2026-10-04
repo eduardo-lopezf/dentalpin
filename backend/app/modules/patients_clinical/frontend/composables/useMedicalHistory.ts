@@ -13,6 +13,7 @@ const DEFAULT_MEDICAL_HISTORY: MedicalHistory = {
   medications: [],
   systemic_diseases: [],
   surgical_history: [],
+  family_history: [],
   is_pregnant: false,
   pregnancy_week: undefined,
   is_lactating: false,

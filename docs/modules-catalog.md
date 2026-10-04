@@ -17,7 +17,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `cashbox` | 0.1.0 | official | payments | — | auto | no | 5 | 0 | 0 | yes |
 | `catalog` | 0.1.0 | official | — | — | auto | no | 3 | 0 | 1 | yes |
 | `clinical_notes` | 0.2.0 | official | patients, odontogram, treatment_plan, media | professionals, agenda | auto | no | 2 | 6 | 0 | yes |
-| `consents` | 0.1.0 | official | patients | professionals | manual | no | 3 | 0 | 0 | yes |
+| `consents` | 0.1.0 | official | patients | professionals, media | manual | no | 3 | 0 | 0 | yes |
 | `copilot` | 0.1.0 | official | — | — | auto | yes | 5 | 3 | 1 | yes |
 | `liquidations` | 0.1.0 | official | payments, professionals, cashbox | — | manual | no | 3 | 0 | 0 | yes |
 | `media` | 0.2.0 | official | patients | — | auto | no | 4 | 7 | 1 | yes |
@@ -31,7 +31,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `periodontogram` | 0.1.0 | official | patients, odontogram | — | manual | yes | 2 | 1 | 2 | yes |
 | `professionals` | 0.1.0 | official | media, catalog | — | auto | yes | 2 | 0 | 0 | yes |
 | `recalls` | 0.1.0 | official | patients, agenda | professionals | auto | yes | 3 | 4 | 5 | yes |
-| `record` | 0.1.0 | official | patients, professionals | — | manual | yes | 1 | 0 | 0 | yes |
+| `record` | 0.1.0 | official | patients, professionals | — | manual | no | 3 | 0 | 0 | yes |
 | `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments, professionals | — | auto | no | 3 | 0 | 0 | yes |
 | `schedules` | 0.1.0 | official | agenda | professionals | auto | yes | 8 | 0 | 3 | yes |
 | `treatment_plan` | 0.1.0 | official | patients, odontogram, catalog | budget, payments, professionals, agenda, media | auto | no | 8 | 15 | 7 | yes |
@@ -222,7 +222,7 @@ Consent letters: informed consent to treat and consent to data use.
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=False
 - **Depends:** `patients`
-- **Integrates:** `professionals`
+- **Integrates:** `professionals`, `media`
 - **Frontend layer:** `frontend`
 - **Permissions:**
   - `consents.read`
@@ -587,11 +587,13 @@ The clinical record: composes the installed modules' clinical data into a patien
 - **Author:** DentalPin Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=True
+- **Install policy:** installable=True · auto_install=False · removable=False
 - **Depends:** `patients`, `professionals`
 - **Integrates:** —
 - **Frontend layer:** `frontend`
 - **Permissions:**
+  - `record.configure`
+  - `record.disclose`
   - `record.read`
 - **Events emitted:** —
 - **Events consumed:** —

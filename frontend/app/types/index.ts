@@ -1997,6 +1997,14 @@ export interface SurgicalHistoryEntry {
   notes?: string
 }
 
+export type FamilyRelative = 'mother' | 'father' | 'sibling' | 'grandparent' | 'child' | 'other'
+
+export interface FamilyHistoryEntry {
+  condition: string
+  relative: FamilyRelative
+  notes?: string
+}
+
 // Full Medical History
 export interface MedicalHistory {
   // Lists
@@ -2004,6 +2012,8 @@ export interface MedicalHistory {
   medications: MedicationEntry[]
   systemic_diseases: SystemicDiseaseEntry[]
   surgical_history: SurgicalHistoryEntry[]
+  /** Conditions that run in the family (antecedentes heredo-familiares). */
+  family_history?: FamilyHistoryEntry[]
 
   // Special conditions
   is_pregnant: boolean
@@ -2333,6 +2343,15 @@ export interface NoteAttachment {
   full_url?: string | null
 }
 
+/** Vital signs taken at a visit; every reading is optional. */
+export interface NoteVitals {
+  systolic?: number | null
+  diastolic?: number | null
+  heart_rate?: number | null
+  respiratory_rate?: number | null
+  temperature_c?: number | null
+}
+
 export interface ClinicalNote {
   id: string
   clinic_id: string
@@ -2341,6 +2360,7 @@ export interface ClinicalNote {
   owner_id: string
   tooth_number: number | null
   body: string
+  vitals?: NoteVitals | null
   author_id: string
   author?: ClinicalNoteAuthor | null
   created_at: string
@@ -2354,6 +2374,7 @@ export interface ClinicalNoteCreate {
   owner_id: string
   tooth_number?: number | null
   body: string
+  vitals?: NoteVitals | null
   attachment_document_ids?: string[]
 }
 
@@ -2389,6 +2410,7 @@ export interface RecentNoteEntry {
   owner_id: string
   tooth_number: number | null
   body: string
+  vitals?: NoteVitals | null
   created_at: string
   updated_at: string
   author: ClinicalNoteAuthor
@@ -2402,6 +2424,7 @@ export interface ClinicalNoteEntry {
   owner_id: string
   plan_item_id: string | null
   body: string
+  vitals?: NoteVitals | null
   author_id: string | null
   author: ClinicalNoteAuthor | null
   created_at: string
@@ -2506,8 +2529,12 @@ export interface PlanNextAction {
   unbudgeted_count?: number | null
 }
 
+export type PlanPrognosis = 'favorable' | 'reserved' | 'unfavorable'
+
 export interface TreatmentPlanDetail extends TreatmentPlan {
   diagnosis_notes?: string
+  prognosis?: PlanPrognosis | null
+  prognosis_notes?: string
   internal_notes?: string
   items: PlannedTreatmentItem[]
   patient?: PatientBrief
@@ -2524,6 +2551,8 @@ export interface TreatmentPlanCreate {
   title?: string
   assigned_professional_id?: string
   diagnosis_notes?: string
+  prognosis?: PlanPrognosis | null
+  prognosis_notes?: string
   internal_notes?: string
 }
 
@@ -2531,6 +2560,8 @@ export interface TreatmentPlanUpdate {
   title?: string
   assigned_professional_id?: string
   diagnosis_notes?: string
+  prognosis?: PlanPrognosis | null
+  prognosis_notes?: string
   internal_notes?: string
   /**
    * When true and the plan's `assigned_professional_id` changes, the backend

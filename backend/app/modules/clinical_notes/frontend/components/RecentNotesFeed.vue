@@ -8,7 +8,7 @@
  * receives ``ctx.patient`` from the slot host.
  */
 
-import type { NoteType, RecentNoteEntry, ClinicalNoteLinked } from '~~/app/types'
+import type { NoteType, RecentNoteEntry, ClinicalNoteLinked, NoteVitals } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
 const props = defineProps<{
@@ -127,7 +127,7 @@ function startEdit(entry: RecentNoteEntry) {
 }
 
 async function handleSubmit(
-  payload: { body: string, toothNumber: number | null, attachmentDocumentIds: string[] }
+  payload: { body: string, toothNumber: number | null, attachmentDocumentIds: string[], vitals?: NoteVitals | null }
 ) {
   if (!patientId.value) return
   saving.value = true
@@ -142,7 +142,8 @@ async function handleSubmit(
           owner_type: 'patient',
           owner_id: patientId.value,
           body: payload.body,
-          attachment_document_ids: payload.attachmentDocumentIds
+          attachment_document_ids: payload.attachmentDocumentIds,
+          vitals: payload.vitals
         })
     // A failed save returns null — the composable has already toasted.
     // Keep the composer open with the text still in it: a clinical note
@@ -311,6 +312,7 @@ watch(patientId, refresh, { immediate: true })
           :note-id="entry.id"
           :note-type="entry.note_type"
           :body="entry.body"
+          :vitals="entry.vitals"
           :created-at="entry.created_at"
           :author="entry.author"
           :linked="entry.linked"

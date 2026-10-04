@@ -37,6 +37,7 @@ export const APP_ROUTES: AppRoute[] = [
   { prefix: '/accounting-export', module: 'accounting_export', app: 'budgets_payments' },
   // Before `/reports`: this report belongs to `payments`.
   { prefix: '/reports/payments', module: 'payments', app: 'budgets_payments' },
+  { prefix: '/settings/apps/clinical-record', module: 'record', app: 'clinical_record' },
   { prefix: '/reports', module: 'reports', app: 'reports' },
   { prefix: '/copilot', module: 'copilot', app: 'ai' }
 ]

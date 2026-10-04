@@ -22,6 +22,18 @@ export default defineNuxtPlugin(() => {
     permission: 'patients_clinical.medical.read'
   })
 
+  // The health questionnaire the patient answers at a visit.
+  registerSlot('patient.detail.tabs', {
+    id: 'patients_clinical.patient.detail.tabs.questionnaire',
+    component: defineAsyncComponent(
+      () => import('../components/questionnaire/PatientQuestionnairesTab.vue')
+    ),
+    tab: { value: 'questionnaire', icon: 'i-lucide-clipboard-list' },
+    labelKey: 'healthQuestionnaire.title',
+    permission: 'patients_clinical.medical.read',
+    order: 40
+  })
+
   registerSlot('patient.header.alerts', {
     id: 'patients_clinical.patient.header.alerts',
     labelKey: 'settings.widgets.catalog.patients.alerts.title',

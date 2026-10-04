@@ -20,13 +20,29 @@ clínico**.
 
 - **Ficha del paciente → Consentimientos.** Lista las cartas del paciente.
   *Nuevo consentimiento* crea un borrador a partir de una plantilla;
-  *Firmar* muestra el texto al paciente y recoge su firma en pantalla (o
-  registra que no acepta).
+  *Firmar* muestra el texto al paciente y recoge su firma (o registra que
+  no acepta). *Imprimir* abre la carta en PDF.
 - **Configuración → Clínica → Plantillas de consentimiento.** Los textos de la
   clínica: uno por procedimiento, y el aviso de privacidad. Editar una
   plantilla crea una versión nueva; las cartas ya escritas no cambian.
 
+## Dos formas de firmar
+
+- **En pantalla.** El paciente firma con el dedo, el lápiz o el ratón.
+- **En papel.** En *Firmar* elige *En papel* y pulsa *Imprimir*: la carta
+  sale con los datos del paciente y el texto ya escritos, y con líneas
+  para llenar a mano el diagnóstico, el plan de tratamiento, el lugar y la
+  fecha, y las firmas del paciente o responsable, de quien informó y de
+  dos testigos. Una vez firmada, escanéala o fotografíala, súbela en
+  *Carta firmada escaneada* (PDF, JPG o PNG) y pulsa *Guardar carta
+  firmada*. El archivo queda en los documentos del paciente y la carta
+  pasa a **Firmado**, marcada como *Firmado en papel*; el botón *Escaneo*
+  la abre.
+
 ## Lo que conviene saber
+
+- Sin el escaneo, una carta en papel no se puede marcar como firmada: el
+  escaneo es la firma que guarda el expediente.
 
 - Un borrador se puede editar o descartar. **Una carta firmada no se edita
   ni se borra**: si el paciente retira su consentimiento, se **revoca**, y

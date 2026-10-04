@@ -1,10 +1,10 @@
 """Authentication router with rate limiting."""
 
 import logging
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError
 from slowapi import Limiter
@@ -25,12 +25,19 @@ from app.database import get_db
 from . import sessions
 from .dependencies import (
     ClinicContext,
+    declares_permissions,
     get_clinic_context,
     get_current_user,
     require_permission,
 )
-from .models import Clinic, ClinicMembership, User
-from .permissions import CORE_PERMISSIONS, ROLES, expand_permissions, get_role_permissions
+from .models import Clinic, ClinicBrandLogo, ClinicLetterhead, ClinicMembership, User
+from .permissions import (
+    CORE_PERMISSIONS,
+    ROLES,
+    expand_permissions,
+    get_role_permissions,
+    has_permission,
+)
 from .schemas import (
     AuthResponse,
     ClinicMetadataResponse,
@@ -903,6 +910,15 @@ async def update_clinic_metadata(
 
 from pydantic import BaseModel, Field  # noqa: E402
 
+from app.core.contracts import ProfessionalDirectory, provider  # noqa: E402
+from app.core.letterhead import CLINIC as LETTERHEAD_CLINIC  # noqa: E402
+from app.core.letterhead import (  # noqa: E402
+    LOGO_MAX_BYTES,
+    LetterheadWords,
+    get_letterhead,
+    logo_mime_type,
+)
+
 
 class _BudgetSettingsPatch(BaseModel):
     """Subset of clinic.settings keys owned by the budget module."""
@@ -1025,6 +1041,368 @@ async def update_home_layout(
     await db.commit()
     await db.refresh(clinic)
     return ApiResponse(data=_read_home_layout(clinic.settings))
+
+
+# ---------------------------------------------------------------------------
+# Brand (clinic-wide). The name and the logo the workspace shows in its
+# sidebar, in place of the product's own (ADR 0043).
+# ---------------------------------------------------------------------------
+
+
+#: The accents and typefaces a clinic chooses from. A closed list each:
+#: every accent ships with shades checked in light and dark, and every
+#: typeface is served by the app itself — none is fetched from a third
+#: party. The frontend holds what each key looks like
+#: (`frontend/app/config/workspaceTheme.ts`); the first of each is the
+#: product's own and is what ``None`` means.
+BRAND_ACCENTS = ("sky", "teal", "emerald", "indigo", "violet", "rose", "orange", "slate")
+BRAND_FONTS = ("inter", "source-sans", "nunito-sans", "plex-sans", "atkinson")
+
+_Accent = Literal["sky", "teal", "emerald", "indigo", "violet", "rose", "orange", "slate"]
+_Font = Literal["inter", "source-sans", "nunito-sans", "plex-sans", "atkinson"]
+#: How round the corners are, and how tightly the interface is packed.
+#: ``rounded`` and ``comfortable`` are the product's own.
+BRAND_CORNERS = ("sharp", "rounded", "round")
+BRAND_DENSITIES = ("comfortable", "compact")
+_Corners = Literal["sharp", "rounded", "round"]
+_Density = Literal["comfortable", "compact"]
+#: The colour mode the workspace opens in for whoever has not chosen their
+#: own. ``system`` follows the device. ``light`` is the product's own.
+BRAND_COLOR_MODES = ("light", "dark", "system")
+_ColorMode = Literal["light", "dark", "system"]
+
+
+class _BrandWords(BaseModel):
+    #: Shown next to the logo. Empty: the product's name.
+    display_name: str | None = Field(default=None, max_length=60)
+    #: The colour of buttons, links and highlights. ``None``: the product's.
+    accent: _Accent | None = None
+    #: The typeface of the whole interface. ``None``: the product's.
+    font: _Font | None = None
+    #: Corner roundness of cards, buttons and fields. ``None``: the product's.
+    corners: _Corners | None = None
+    #: ``compact`` packs the interface tighter — with a mouse only: on a
+    #: touch screen the tap targets keep their size (ADR 0022).
+    density: _Density | None = None
+    #: A default, not a rule: each person keeps their own light/dark switch.
+    color_mode: _ColorMode | None = None
+
+
+class _BrandResponse(_BrandWords):
+    #: Whether the clinic uploaded a logo. The image is fetched apart.
+    has_logo: bool = False
+
+
+async def _brand_response(db: AsyncSession, clinic: Clinic) -> _BrandResponse:
+    stored = (clinic.settings or {}).get("brand") or {}
+    name = stored.get("display_name")
+    accent, font = stored.get("accent"), stored.get("font")
+    return _BrandResponse(
+        display_name=name if isinstance(name, str) and name.strip() else None,
+        # A stored key the product no longer offers falls back to its own.
+        accent=accent if accent in BRAND_ACCENTS else None,
+        font=font if font in BRAND_FONTS else None,
+        corners=stored.get("corners") if stored.get("corners") in BRAND_CORNERS else None,
+        density=stored.get("density") if stored.get("density") in BRAND_DENSITIES else None,
+        color_mode=(
+            stored.get("color_mode") if stored.get("color_mode") in BRAND_COLOR_MODES else None
+        ),
+        has_logo=await db.get(ClinicBrandLogo, clinic.id) is not None,
+    )
+
+
+@router.get("/clinic/settings/brand", response_model=ApiResponse[_BrandResponse])
+async def get_brand(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[_BrandResponse]:
+    """The workspace's name and whether it has a logo. Every member's
+    sidebar reads it, so it asks for no permission beyond belonging to the
+    clinic."""
+    return ApiResponse(data=await _brand_response(db, ctx.clinic))
+
+
+@router.put("/clinic/settings/brand", response_model=ApiResponse[_BrandResponse])
+async def update_brand(
+    data: _BrandWords,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("admin.clinic.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[_BrandResponse]:
+    """Set the workspace's name, accent and typeface. An empty value
+    restores the product's."""
+    clinic = ctx.clinic
+    name = (data.display_name or "").strip() or None
+    clinic.settings = {
+        **(clinic.settings or {}),
+        "brand": {**data.model_dump(), "display_name": name},
+    }
+    await db.commit()
+    await db.refresh(clinic)
+    return ApiResponse(data=await _brand_response(db, clinic))
+
+
+@router.get("/clinic/settings/brand/logo")
+async def get_brand_logo(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """The workspace's logo, for every member's sidebar."""
+    logo = await db.get(ClinicBrandLogo, ctx.clinic_id)
+    if logo is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No logo")
+    return Response(content=logo.image, media_type=logo.mime_type)
+
+
+@router.put("/clinic/settings/brand/logo", status_code=status.HTTP_204_NO_CONTENT)
+async def put_brand_logo(
+    file: Annotated[UploadFile, File()],
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("admin.clinic.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """Set the workspace's logo: a PNG or JPEG of at most 512 KB. The type
+    is read from the file's own first bytes."""
+    image = await file.read(LOGO_MAX_BYTES + 1)
+    if len(image) > LOGO_MAX_BYTES:
+        raise HTTPException(status_code=400, detail="The logo must be 512 KB or smaller")
+    mime_type = logo_mime_type(image)
+    if mime_type is None:
+        raise HTTPException(status_code=400, detail="The logo must be a PNG or JPEG image")
+
+    logo = await db.get(ClinicBrandLogo, ctx.clinic_id)
+    if logo is None:
+        db.add(ClinicBrandLogo(clinic_id=ctx.clinic_id, image=image, mime_type=mime_type))
+    else:
+        logo.image, logo.mime_type = image, mime_type
+    await db.commit()
+
+
+@router.delete("/clinic/settings/brand/logo", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_brand_logo(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("admin.clinic.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """Go back to the product's own mark."""
+    logo = await db.get(ClinicBrandLogo, ctx.clinic_id)
+    if logo is not None:
+        await db.delete(logo)
+        await db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Letterheads. What heads every printed clinical document: the clinic's
+# own, and one per professional who wants theirs (ADR 0046).
+# ---------------------------------------------------------------------------
+
+
+class _LetterheadResponse(LetterheadWords):
+    #: Whose it is: ``None`` is the clinic's own.
+    professional_id: UUID | None = None
+    #: Whether a logo is on file. The image itself is fetched apart.
+    has_logo: bool = False
+
+
+def _letterhead_response(row: ClinicLetterhead) -> _LetterheadResponse:
+    return _LetterheadResponse(
+        **LetterheadWords.model_validate(row, from_attributes=True).model_dump(),
+        professional_id=None if row.owner_key == LETTERHEAD_CLINIC else UUID(row.owner_key),
+        has_logo=row.logo_mime_type is not None,
+    )
+
+
+async def _letterhead_owner(db: AsyncSession, clinic_id: UUID, owner: str) -> str:
+    """``clinic``, or a professional of this clinic's directory.
+
+    A letterhead for somebody who is not one of the clinic's professionals
+    would be a head no document could ever carry.
+    """
+    if owner == LETTERHEAD_CLINIC:
+        return owner
+    try:
+        professional_id = UUID(owner)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail="Letterhead not found") from error
+    directory = provider(ProfessionalDirectory)
+    if directory is None or professional_id not in await directory.briefs(
+        db, clinic_id, [professional_id]
+    ):
+        raise HTTPException(status_code=404, detail="Professional not found in this clinic")
+    return str(professional_id)
+
+
+async def _own_professional(db: AsyncSession, ctx: ClinicContext) -> UUID | None:
+    """The directory profile the acting account *is*, if it has one."""
+    directory = provider(ProfessionalDirectory)
+    return await directory.for_account(db, ctx.clinic_id, ctx.user_id) if directory else None
+
+
+async def _may_touch_letterhead(
+    db: AsyncSession, ctx: ClinicContext, owner: str, *, write: bool
+) -> None:
+    """Whoever runs the clinic's settings, or the professional it belongs to.
+
+    A doctor keeps their own letterhead — theirs and nobody else's: not the
+    clinic's, not a colleague's.
+    """
+    if has_permission(ctx.role, "admin.clinic.write" if write else "admin.clinic.read"):
+        return
+    mine = await _own_professional(db, ctx)
+    if mine is None or owner != str(mine):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the clinic's administrators or the professional it belongs to",
+        )
+
+
+class _OwnLetterheadResponse(BaseModel):
+    """What the acting account may set up for itself."""
+
+    #: ``None``: this account is not one of the clinic's professionals.
+    professional_id: UUID | None = None
+    #: Offered as the extra line of a letterhead being created.
+    suggested_subheading: str | None = None
+    letterhead: _LetterheadResponse | None = None
+
+
+@router.get("/clinic/settings/letterheads/mine", response_model=ApiResponse[_OwnLetterheadResponse])
+async def get_own_letterhead(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[_OwnLetterheadResponse]:
+    """The acting professional's own letterhead, if they are one and have one."""
+    mine = await _own_professional(db, ctx)
+    if mine is None:
+        return ApiResponse(data=_OwnLetterheadResponse())
+    directory = provider(ProfessionalDirectory)
+    brief = (await directory.briefs(db, ctx.clinic_id, [mine])).get(mine) if directory else None
+    suggested = None
+    if brief is not None:
+        suggested = " · ".join(
+            filter(None, [f"{brief.first_name} {brief.last_name}".strip(), brief.license_number])
+        )
+    row = await get_letterhead(db, ctx.clinic_id, str(mine))
+    return ApiResponse(
+        data=_OwnLetterheadResponse(
+            professional_id=mine,
+            suggested_subheading=suggested,
+            letterhead=_letterhead_response(row) if row is not None else None,
+        )
+    )
+
+
+async def _letterhead_row(
+    db: AsyncSession, clinic_id: UUID, owner: str, *, create: bool, with_logo: bool = False
+) -> ClinicLetterhead:
+    key = await _letterhead_owner(db, clinic_id, owner)
+    row = await get_letterhead(db, clinic_id, key, with_logo=with_logo)
+    if row is None:
+        if not create:
+            raise HTTPException(status_code=404, detail="Letterhead not found")
+        row = ClinicLetterhead(clinic_id=clinic_id, owner_key=key)
+        db.add(row)
+    return row
+
+
+@router.get("/clinic/settings/letterheads", response_model=ApiResponse[list[_LetterheadResponse]])
+async def list_letterheads(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("admin.clinic.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[_LetterheadResponse]]:
+    """The clinic's letterhead and each professional's, clinic first."""
+    rows = (
+        await db.execute(
+            select(ClinicLetterhead).where(ClinicLetterhead.clinic_id == ctx.clinic_id)
+        )
+    ).scalars()
+    ordered = sorted(rows, key=lambda row: (row.owner_key != LETTERHEAD_CLINIC, row.created_at))
+    return ApiResponse(data=[_letterhead_response(row) for row in ordered])
+
+
+@router.put("/clinic/settings/letterheads/{owner}", response_model=ApiResponse[_LetterheadResponse])
+@declares_permissions("admin.clinic.write")
+async def save_letterhead(
+    owner: str,
+    data: LetterheadWords,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[_LetterheadResponse]:
+    """Write the words of a letterhead: ``clinic``, or a professional's id.
+    Created on first save."""
+    await _may_touch_letterhead(db, ctx, owner, write=True)
+    row = await _letterhead_row(db, ctx.clinic_id, owner, create=True)
+    for key, value in data.model_dump().items():
+        setattr(row, key, value)
+    await db.commit()
+    await db.refresh(row)
+    return ApiResponse(data=_letterhead_response(row))
+
+
+@router.delete("/clinic/settings/letterheads/{owner}", status_code=status.HTTP_204_NO_CONTENT)
+@declares_permissions("admin.clinic.write")
+async def delete_letterhead(
+    owner: str,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """Remove a letterhead. That professional's documents go back to the
+    clinic's; removing the clinic's leaves its bare name."""
+    await _may_touch_letterhead(db, ctx, owner, write=True)
+    row = await _letterhead_row(db, ctx.clinic_id, owner, create=False)
+    await db.delete(row)
+    await db.commit()
+
+
+@router.get("/clinic/settings/letterheads/{owner}/logo")
+@declares_permissions("admin.clinic.read")
+async def get_letterhead_logo(
+    owner: str,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    await _may_touch_letterhead(db, ctx, owner, write=False)
+    row = await _letterhead_row(db, ctx.clinic_id, owner, create=False, with_logo=True)
+    if not row.logo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No logo")
+    return Response(content=row.logo, media_type=row.logo_mime_type)
+
+
+@router.put("/clinic/settings/letterheads/{owner}/logo", status_code=status.HTTP_204_NO_CONTENT)
+@declares_permissions("admin.clinic.write")
+async def put_letterhead_logo(
+    owner: str,
+    file: Annotated[UploadFile, File()],
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """Set a letterhead's logo: a PNG or JPEG of at most 512 KB."""
+    await _may_touch_letterhead(db, ctx, owner, write=True)
+    image = await file.read(LOGO_MAX_BYTES + 1)
+    if len(image) > LOGO_MAX_BYTES:
+        raise HTTPException(status_code=400, detail="The logo must be 512 KB or smaller")
+    mime_type = logo_mime_type(image)
+    if mime_type is None:
+        raise HTTPException(status_code=400, detail="The logo must be a PNG or JPEG image")
+
+    row = await _letterhead_row(db, ctx.clinic_id, owner, create=True)
+    row.logo, row.logo_mime_type = image, mime_type
+    await db.commit()
+
+
+@router.delete("/clinic/settings/letterheads/{owner}/logo", status_code=status.HTTP_204_NO_CONTENT)
+@declares_permissions("admin.clinic.write")
+async def delete_letterhead_logo(
+    owner: str,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """Print that letterhead without a logo again."""
+    await _may_touch_letterhead(db, ctx, owner, write=True)
+    row = await _letterhead_row(db, ctx.clinic_id, owner, create=False)
+    row.logo, row.logo_mime_type = None, None
+    await db.commit()
 
 
 # ---------------------------------------------------------------------------

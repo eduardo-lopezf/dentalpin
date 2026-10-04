@@ -298,11 +298,6 @@ class TestCoverage:
         # test_liquidations_stays_free_of_patient_data.
         "liquidations",
         "professionals",
-        # Composes a clinical record out of the modules that own the data; it
-        # holds none of its own (no models, no tables — ADR 0034). What it
-        # will own in phase 2, the disclosures, *will* contribute: a record
-        # of what left the clinic about a patient is their data.
-        "record",
         "reports",
         "schedules",
         "whatsapp_kapso",

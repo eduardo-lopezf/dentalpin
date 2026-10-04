@@ -71,8 +71,9 @@ clinic owns.**
   is an engineering one, pending legal review.
 - **With Professionals off, informed consents cannot be signed.** That
   App is optional today; a clinic that wants this needs it on.
-- The signature is an image on the row. No second factor, no remote
-  signing yet.
+- The signature is an image on the row, or — for a letter printed and
+  signed by hand — the scan filed among the patient's documents, which the
+  consent points at by id. No second factor, no remote signing yet.
 
 ## Alternatives considered
 

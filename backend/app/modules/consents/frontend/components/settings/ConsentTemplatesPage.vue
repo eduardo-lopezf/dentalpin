@@ -28,7 +28,8 @@ const saving = ref(false)
 
 const kindOptions = computed(() => [
   { label: t('consents.kinds.informed'), value: 'informed' },
-  { label: t('consents.kinds.data_use'), value: 'data_use' }
+  { label: t('consents.kinds.data_use'), value: 'data_use' },
+  { label: t('consents.kinds.conformity'), value: 'conformity' }
 ])
 
 async function load() {
@@ -193,7 +194,7 @@ async function toggle(template: ConsentTemplate) {
             </UFormField>
             <UFormField
               :label="t('consents.form.body')"
-              :hint="t(kind === 'informed' ? 'consents.form.bodyHintInformed' : 'consents.form.bodyHintData')"
+              :hint="t({ informed: 'consents.form.bodyHintInformed', data_use: 'consents.form.bodyHintData', conformity: 'consents.form.bodyHintConformity' }[kind])"
               required
             >
               <UTextarea

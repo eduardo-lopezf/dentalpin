@@ -171,6 +171,7 @@ async def create_note(
             owner_id=data.owner_id,
             body=data.body,
             tooth_number=data.tooth_number,
+            vitals=data.vitals.model_dump() if data.vitals else None,
             attachment_document_ids=data.attachment_document_ids,
         )
     except NoteOwnerError as e:

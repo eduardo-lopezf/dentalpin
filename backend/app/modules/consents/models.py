@@ -5,6 +5,8 @@ Two kinds of consent live here, and the clinic calls both *consentimiento*:
 - ``informed`` — the patient understood the procedure, its risks and its
   alternatives, and accepts (Ley General de Salud Art. 51 Bis 1; the
   *cartas de consentimiento informado* of NOM-004-SSA3-2012).
+- ``conformity`` — the patient states they are satisfied with a treatment
+  that has been concluded (the *firma de conformidad* of a paper chart).
 - ``data_use`` — the patient consents to the clinic processing their
   personal data, against the privacy notice shown to them.
 
@@ -30,7 +32,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.privacy import PiiKind, pii
 from app.database import Base, TimestampMixin
 
-KINDS = ("informed", "data_use")
+KINDS = ("informed", "data_use", "conformity")
 
 #: ``draft`` is being written and binds nobody. ``signed``, ``declined`` and
 #: ``revoked`` are facts about the patient and stay. ``discarded`` is a draft
@@ -38,6 +40,10 @@ KINDS = ("informed", "data_use")
 STATUSES = ("draft", "signed", "declined", "revoked", "discarded")
 
 SIGNER_CAPACITIES = ("patient", "guardian", "representative")
+
+#: ``screen`` — drawn on the tablet. ``paper`` — the printed letter, filled
+#: in and signed by hand, scanned and filed with the patient's documents.
+SIGNATURE_METHODS = ("screen", "paper")
 
 
 class ConsentTemplate(Base, TimestampMixin):
@@ -95,7 +101,10 @@ class Consent(Base, TimestampMixin):
     signed_by_name: Mapped[str | None] = mapped_column(String(200), info=pii(PiiKind.NAME))
     #: In what capacity they signed: the patient, or someone for them.
     signer_capacity: Mapped[str | None] = mapped_column(String(20))
-    #: Method-specific: ``{"png": "data:image/png;base64,…"}`` for a tablet.
+    signature_method: Mapped[str | None] = mapped_column(String(20))
+    #: Method-specific: ``{"png": "data:image/png;base64,…"}`` for a tablet,
+    #: ``{"document_id": "…"}`` for a scan. The scan is a row of the Media
+    #: module — an id, not a foreign key (ADR 0042).
     signature_data: Mapped[dict | None] = mapped_column(JSONB)
 
     declined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

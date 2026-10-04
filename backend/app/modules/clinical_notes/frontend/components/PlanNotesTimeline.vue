@@ -12,7 +12,7 @@
  * imports (`<PlanNotesTimeline />`) keep resolving via Nuxt layer auto-discovery.
  */
 
-import type { ClinicalNoteEntry, PlannedTreatmentItem, NoteType } from '~~/app/types'
+import type { ClinicalNoteEntry, PlannedTreatmentItem, NoteType, NoteVitals } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
 const props = defineProps<{
@@ -131,6 +131,7 @@ async function handleSubmit(payload: {
   body: string
   toothNumber: number | null
   attachmentDocumentIds: string[]
+  vitals?: NoteVitals | null
 }) {
   saving.value = true
   try {
@@ -141,7 +142,8 @@ async function handleSubmit(payload: {
           owner_type: 'plan',
           owner_id: props.planId,
           body: payload.body,
-          attachment_document_ids: payload.attachmentDocumentIds
+          attachment_document_ids: payload.attachmentDocumentIds,
+          vitals: payload.vitals
         })
     // A failed save returns null — the composable has already toasted.
     // Keep the composer open with the text still in it: a clinical note

@@ -32,7 +32,11 @@ class ConsentsModule(BaseModule):
         # as a snapshot (ADR 0039). With the directory off, drafts and
         # data-use consents still work; an informed consent cannot be
         # signed, because it has to name a professional.
-        "integrates": ["professionals"],
+        #
+        # A letter signed on paper is filed as a scan among the patient's
+        # documents, checked through `PatientDocuments`. With Media off a
+        # consent can still be printed and signed on screen.
+        "integrates": ["professionals", "media"],
         "installable": True,
         # Off by default, like the rest of the Clinical record App.
         "auto_install": False,

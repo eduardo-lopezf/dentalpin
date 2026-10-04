@@ -6,10 +6,11 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-Kind = Literal["informed", "data_use"]
+Kind = Literal["informed", "data_use", "conformity"]
 SignerCapacity = Literal["patient", "guardian", "representative"]
+SignatureMethod = Literal["screen", "paper"]
 
 
 class TemplateCreate(BaseModel):
@@ -58,8 +59,18 @@ class ConsentUpdate(BaseModel):
 class ConsentSign(BaseModel):
     signed_by_name: str = Field(min_length=1, max_length=200)
     signer_capacity: SignerCapacity = "patient"
+    method: SignatureMethod = "screen"
     #: ``{"png": "data:image/png;base64,…"}`` from the tablet canvas.
     signature_data: dict | None = None
+    #: ``paper``: the scan of the signed letter, already uploaded to the
+    #: patient's documents.
+    document_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def _paper_needs_its_scan(self) -> ConsentSign:
+        if self.method == "paper" and self.document_id is None:
+            raise ValueError("A consent signed on paper needs the scanned document")
+        return self
 
 
 class ConsentNote(BaseModel):
@@ -87,6 +98,7 @@ class ConsentResponse(BaseModel):
     signed_at: datetime | None
     signed_by_name: str | None
     signer_capacity: str | None
+    signature_method: str | None
     signature_data: dict | None
     declined_at: datetime | None
     revoked_at: datetime | None

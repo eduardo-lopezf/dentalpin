@@ -40,6 +40,12 @@ Routes mounted at `/api/v1/media/`.
 - `DELETE /attachments/{id}`               — unlink (Document stays).
 - `GET    /attachments?owner_type&owner_id` — list for an owner.
 
+## Contracts offered
+
+`PatientDocuments` (`providers.py`, ADR 0039): whether a document is a live
+file of a given patient. `consents` uses it to file the scan of a letter
+signed on paper.
+
 ## Dependencies
 
 `manifest.depends = ["patients"]`. No outbound coupling to consumer

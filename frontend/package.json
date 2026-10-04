@@ -17,7 +17,11 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@fontsource-variable/atkinson-hyperlegible-next": "^5.3.0",
+    "@fontsource-variable/ibm-plex-sans": "^5.3.0",
     "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource-variable/nunito-sans": "^5.3.0",
+    "@fontsource-variable/source-sans-3": "^5.3.0",
     "@iconify-json/lucide": "^1.2.98",
     "@nuxt/ui": "^4.5.1",
     "@nuxtjs/i18n": "^9.5.0",
@@ -25,7 +29,7 @@
     "isomorphic-dompurify": "^3.16.0",
     "marked": "^18.0.5",
     "nprogress": "^0.2.0",
-    "nuxt": "~4.4.8",
+    "nuxt": "4.4.5",
     "tailwindcss": "^4.2.1",
     "vue-draggable-plus": "^0.6.1"
   },
@@ -47,6 +51,9 @@
     "nanoid": "^3.3.18",
     "svgo": "^4.1.0",
     "undici": "^7.29.1",
-    "devalue": "^5.9.3"
+    "devalue": "^5.9.3",
+    "cssnano": "^7.1.9",
+    "cssnano-preset-default": "^7.0.17",
+    "postcss-merge-longhand": "^7.0.7"
   }
 }

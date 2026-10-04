@@ -97,7 +97,7 @@ No modules: the core (`backend/app/core/`) and the host frontend (`frontend/app/
 | Module | Version | Install | Depends | Integrates |
 |--------|---------|---------|---------|------------|
 | `record` | 0.1.0 | manual | patients, professionals | — |
-| `consents` | 0.1.0 | manual | patients | professionals |
+| `consents` | 0.1.0 | manual | patients | professionals, media |
 
 ### `reports`
 

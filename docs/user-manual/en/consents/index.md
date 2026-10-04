@@ -19,12 +19,29 @@ The patient's consent letters. Part of the **Clinical record** App.
 
 - **Patient record → Consents.** Lists the patient's letters. *New consent*
   writes a draft from a template; *Sign* shows the text to the patient and
-  captures their signature on screen (or records that they decline).
+  captures their signature (or records that they decline). *Print* opens
+  the letter as a PDF.
 - **Settings → Clinic → Consent templates.** The clinic's texts: one per
   procedure, and the privacy notice. Editing a template creates a new
   version; letters already written do not change.
 
+## Two ways to sign
+
+- **On screen.** The patient signs with a finger, a stylus or the mouse.
+- **On paper.** In *Sign* choose *On paper* and press *Print*: the letter
+  comes out with the patient's data and the text already written, and
+  ruled lines to fill in by hand — diagnosis, treatment plan, place and
+  date, and the signatures of the patient or person responsible, of who
+  informed and of two witnesses. Once signed, scan or photograph it,
+  upload it under *Scanned signed letter* (PDF, JPG or PNG) and press
+  *Save signed letter*. The file is kept in the patient's documents and
+  the letter becomes **Signed**, marked *Signed on paper*; the *Scan*
+  button opens it.
+
 ## Worth knowing
+
+- Without the scan a paper letter cannot be marked as signed: the scan is
+  the signature the record keeps.
 
 - A draft can be edited or discarded. **A signed letter is never edited or
   deleted**: if the patient takes their consent back it is **revoked**, and

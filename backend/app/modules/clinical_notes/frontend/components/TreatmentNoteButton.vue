@@ -8,7 +8,7 @@
  * popover with the latest treatment notes + an inline composer.
  */
 
-import type { ClinicalNote, RecentNoteEntry } from '~~/app/types'
+import type { ClinicalNote, RecentNoteEntry, NoteVitals } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
 const props = defineProps<{
@@ -99,6 +99,7 @@ async function handleSubmit(payload: {
   body: string
   toothNumber: number | null
   attachmentDocumentIds: string[]
+  vitals?: NoteVitals | null
 }) {
   saving.value = true
   try {
@@ -109,7 +110,8 @@ async function handleSubmit(payload: {
           owner_type: 'treatment',
           owner_id: props.ctx.treatmentId,
           body: payload.body,
-          attachment_document_ids: payload.attachmentDocumentIds
+          attachment_document_ids: payload.attachmentDocumentIds,
+          vitals: payload.vitals
         })
     // A failed save returns null — the composable has already toasted.
     // Keep the composer open with the text still in it: a clinical note
@@ -232,6 +234,7 @@ watch(() => props.ctx?.treatmentId, loadCount, { immediate: true })
             :note-id="note.id"
             :note-type="note.note_type"
             :body="note.body"
+            :vitals="note.vitals"
             :created-at="note.created_at"
             :author="asEntry(note).author"
             :linked="asEntry(note).linked"

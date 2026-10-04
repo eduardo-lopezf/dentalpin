@@ -60,6 +60,15 @@ AUTHENTICATED_ONLY: dict[str, str] = {
     "GET /api/v1/auth/clinics": "returns the caller's own clinic, taken from the context",
     "GET /api/v1/auth/clinics/{clinic_id}": "403s when the id is not the caller's clinic",
     "GET /api/v1/modules/-/active": "sidebar inventory; nav entries filtered by permission",
+    "GET /api/v1/auth/clinic/settings/letterheads/mine": (
+        "the caller's own letterhead, resolved from their own professional profile"
+    ),
+    "GET /api/v1/auth/clinic/settings/brand": (
+        "the caller's own clinic's name for the sidebar; every member's shell reads it"
+    ),
+    "GET /api/v1/auth/clinic/settings/brand/logo": (
+        "the caller's own clinic's logo for the sidebar; every member's shell reads it"
+    ),
     "GET /api/v1/auth/clinic/settings/home": (
         "the caller's own clinic's home layout; every member's home page reads it"
     ),

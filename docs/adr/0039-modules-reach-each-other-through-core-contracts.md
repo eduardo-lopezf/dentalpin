@@ -51,6 +51,7 @@ Four contracts exist, each as wide as the agenda's actual use:
 | `PlanBudgets` | `budget` | where a plan's quote stands, what is priced — read-only |
 | `Collections` | `payments` | whether a patient paid into a plan |
 | `PlanQuotes` | `treatment_plan` | the plan as a snapshot, for `budget` to price |
+| `PatientDocuments` | `media` | whether a file is one of a patient's documents |
 | `WorkingHours` | `schedules` | who is on a break or off right now |
 
 `schedules` uses `ProfessionalDirectory` too, to validate and list

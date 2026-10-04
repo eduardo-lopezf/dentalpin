@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(odontogram): aporta al expediente clínico la sección **Odontograma** (`record.py`): cada hallazgo y tratamiento registrado, con sus dientes y superficies. Los retirados quedan como anulados.
+
 - fix(odontogram): `TreatmentService.update` limpia `performed_at` y
   `performed_by` cuando un tratamiento pasa de `performed` a otro estado.
   Antes un tratamiento devuelto a `planned` seguía con fecha de realizado.

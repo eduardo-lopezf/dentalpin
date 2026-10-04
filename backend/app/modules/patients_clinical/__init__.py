@@ -16,6 +16,8 @@ from app.core.plugins import BaseModule
 from .models import (
     Allergy,
     EmergencyContact,
+    FamilyHistory,
+    HealthQuestionnaire,
     LegalGuardian,
     MedicalContext,
     Medication,
@@ -63,6 +65,8 @@ class PatientsClinicalModule(BaseModule):
             Medication,
             SystemicDisease,
             SurgicalHistory,
+            FamilyHistory,
+            HealthQuestionnaire,
             EmergencyContact,
             LegalGuardian,
         ]

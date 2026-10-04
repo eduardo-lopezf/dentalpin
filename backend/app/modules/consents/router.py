@@ -3,13 +3,14 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
 from app.core.schemas import ApiResponse
 from app.database import get_db
 
+from .pdf import render_pdf
 from .schemas import (
     ConsentCreate,
     ConsentNote,
@@ -110,6 +111,30 @@ async def get_consent(
     consent_id: UUID, ctx: Ctx, _: CanRead, db: Db
 ) -> ApiResponse[ConsentResponse]:
     return ApiResponse(data=ConsentResponse.model_validate(await _consent(db, ctx, consent_id)))
+
+
+@router.get("/{consent_id}/pdf")
+async def consent_pdf(
+    consent_id: UUID,
+    ctx: Ctx,
+    _: CanRead,
+    db: Db,
+    locale: str = Query(default="es", pattern="^(es|en)$"),
+) -> Response:
+    """The letter as a print-ready sheet (served inline).
+
+    A draft prints as a form to fill in and sign by hand; a letter signed
+    on screen prints with its signature.
+    """
+    consent = await _consent(db, ctx, consent_id)
+    pdf = await render_pdf(db, consent, locale)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="consentimiento_{consent.id.hex[:8]}.pdf"'
+        },
+    )
 
 
 @router.put("/{consent_id}", response_model=ApiResponse[ConsentResponse])

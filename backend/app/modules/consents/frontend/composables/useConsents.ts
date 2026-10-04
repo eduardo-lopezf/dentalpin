@@ -6,9 +6,10 @@ import type { ApiResponse } from '~~/app/types'
  * The types live here, with the module that owns them, and not in the
  * host's `types/index.ts` (ADR 0044).
  */
-export type ConsentKind = 'informed' | 'data_use'
+export type ConsentKind = 'informed' | 'data_use' | 'conformity'
 export type ConsentStatus = 'draft' | 'signed' | 'declined' | 'revoked' | 'discarded'
 export type SignerCapacity = 'patient' | 'guardian' | 'representative'
+export type SignatureMethod = 'screen' | 'paper'
 
 export interface ConsentTemplate {
   id: string
@@ -37,7 +38,9 @@ export interface Consent {
   signed_at: string | null
   signed_by_name: string | null
   signer_capacity: SignerCapacity | null
-  signature_data: { png?: string } | null
+  signature_method: SignatureMethod | null
+  /** `png` when drawn on screen; `document_id` — the scan — when signed on paper. */
+  signature_data: { png?: string, document_id?: string } | null
   declined_at: string | null
   revoked_at: string | null
   status_note: string | null
@@ -57,6 +60,8 @@ const BASE = '/api/v1/consents'
 
 export function useConsents() {
   const api = useApi()
+  const auth = useAuth()
+  const config = useRuntimeConfig()
 
   async function listTemplates(opts: { kind?: ConsentKind, includeInactive?: boolean } = {}): Promise<ConsentTemplate[]> {
     const params = new URLSearchParams()
@@ -86,13 +91,80 @@ export function useConsents() {
     return (await api.put<ApiResponse<Consent>>(`${BASE}/${id}`, data)).data
   }
 
-  async function sign(id: string, data: { signed_by_name: string, signer_capacity: SignerCapacity, signature_data?: { png: string } }): Promise<Consent> {
+  async function sign(id: string, data: {
+    signed_by_name: string
+    signer_capacity: SignerCapacity
+    method?: SignatureMethod
+    signature_data?: { png: string }
+    document_id?: string
+  }): Promise<Consent> {
     return (await api.post<ApiResponse<Consent>>(`${BASE}/${id}/sign`, data)).data
+  }
+
+  function authHeaders() {
+    return { Authorization: `Bearer ${auth.accessToken.value}` }
+  }
+
+  /**
+   * File the scan of a letter signed on paper among the patient's
+   * documents (the Media module's API) and return its id.
+   */
+  async function uploadScan(patientId: string, file: File, title: string): Promise<string> {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('document_type', 'consent')
+    form.append('title', title.slice(0, 255))
+    const response = await $fetch<ApiResponse<{ id: string }>>(
+      `/api/v1/media/patients/${patientId}/documents`,
+      { baseURL: config.public.apiBaseUrl, method: 'POST', body: form, headers: authHeaders() }
+    )
+    return response.data.id
+  }
+
+  /**
+   * A tab opened *before* any await, so the popup blocker counts it as
+   * part of the tap. Safari (iPad) drops a `window.open` made after a
+   * network round-trip.
+   */
+  function reserveTab(): Window | null {
+    return window.open('', '_blank')
+  }
+
+  /** Show a file in the reserved tab, or download it when there is none. */
+  async function openFile(path: string, filename: string, tab: Window | null): Promise<void> {
+    const response = await fetch(`${config.public.apiBaseUrl}${path}`, { headers: authHeaders() })
+    if (!response.ok) {
+      tab?.close()
+      throw new Error(`Failed to load ${path}`)
+    }
+    const url = URL.createObjectURL(await response.blob())
+    if (tab && !tab.closed) {
+      tab.location.href = url
+    } else {
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    }
+    // The tab needs the URL until it has read it.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+
+  /** The letter as a sheet to print: a form to sign by hand while a draft. */
+  function openPdf(id: string, locale: string, tab: Window | null): Promise<void> {
+    return openFile(`${BASE}/${id}/pdf?locale=${locale === 'en' ? 'en' : 'es'}`, `consentimiento_${id.slice(0, 8)}.pdf`, tab)
+  }
+
+  /** The scan filed when the letter was signed on paper. */
+  function openScan(documentId: string, tab: Window | null): Promise<void> {
+    return openFile(`/api/v1/media/documents/${documentId}/download`, `consentimiento_${documentId.slice(0, 8)}`, tab)
   }
 
   async function act(id: string, action: 'decline' | 'revoke' | 'discard', note?: string): Promise<Consent> {
     return (await api.post<ApiResponse<Consent>>(`${BASE}/${id}/${action}`, action === 'discard' ? undefined : { note: note || null })).data
   }
 
-  return { listTemplates, createTemplate, updateTemplate, listForPatient, create, update, sign, act }
+  return { listTemplates, createTemplate, updateTemplate, listForPatient, create, update, sign, act, uploadScan, reserveTab, openPdf, openScan }
 }

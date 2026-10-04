@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(periodontogram): aporta al expediente clínico la sección **Periodontogramas** (`record.py`): un registro por sondaje, con sus índices.
+
 - feat(privacy): `get_subject_contributors()` — este módulo ya responde
   cuando un paciente ejerce portabilidad o supresión
   ([ADR 0026](../../../../docs/adr/0026-subject-rights-are-a-module-contract.md)).

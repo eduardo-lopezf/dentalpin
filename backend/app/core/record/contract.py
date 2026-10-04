@@ -29,6 +29,7 @@ class SectionCategory(StrEnum):
     THERAPEUTIC_PLAN = "therapeutic_plan"
     IMAGING = "imaging"
     CONSENTS = "consents"
+    DISCLOSURES = "disclosures"
 
 
 class EntryStatus(StrEnum):

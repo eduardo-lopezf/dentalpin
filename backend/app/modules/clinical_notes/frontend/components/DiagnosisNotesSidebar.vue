@@ -10,7 +10,7 @@
  * Mounted via the ``odontogram.diagnosis.sidebar`` slot.
  */
 
-import type { RecentNoteEntry } from '~~/app/types'
+import type { RecentNoteEntry, NoteVitals } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
 const props = defineProps<{
@@ -101,6 +101,7 @@ async function handleSubmit(payload: {
   body: string
   toothNumber: number | null
   attachmentDocumentIds: string[]
+  vitals?: NoteVitals | null
 }) {
   if (!props.ctx?.patientId) return
   saving.value = true
@@ -113,7 +114,8 @@ async function handleSubmit(payload: {
           owner_id: props.ctx.patientId,
           tooth_number: payload.toothNumber,
           body: payload.body,
-          attachment_document_ids: payload.attachmentDocumentIds
+          attachment_document_ids: payload.attachmentDocumentIds,
+          vitals: payload.vitals
         })
     // A failed save returns null — the composable has already toasted.
     // Keep the composer open with the text still in it: a clinical note
@@ -229,6 +231,7 @@ watch(
         :note-id="entry.id"
         :note-type="entry.note_type"
         :body="entry.body"
+        :vitals="entry.vitals"
         :created-at="entry.created_at"
         :author="entry.author"
         :linked="entry.linked"

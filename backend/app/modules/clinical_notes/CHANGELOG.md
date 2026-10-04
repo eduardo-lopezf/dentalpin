@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- feat(clinical_notes): **signos vitales** en las notas clínicas: tensión
+  arterial, frecuencia cardiaca y respiratoria, y temperatura (columna
+  `vitals`, migración `cn_0007`). Se capturan al escribir la nota, en un
+  apartado plegado del editor; todos son opcionales. Las notas
+  administrativas no los llevan, y corregir el texto de una nota no cambia
+  las lecturas. Se muestran en la tarjeta de la nota y en el expediente.
+
+- feat(clinical_notes): aporta al expediente clínico la sección **Notas de evolución** (`record.py`): las notas clínicas del paciente y de sus tratamientos, planes y visitas. Las administrativas quedan fuera. `patient_owner_filter` reúne en un solo sitio el filtro de «notas de este paciente».
+
 - refactor(clinical_notes): `agenda` pasa de `depends` a `integrates` y
   deja de importarse (ADR 0039). El paciente de una cita, las citas de un
   paciente y las notas de visita se piden a `AppointmentBook`. Con la App

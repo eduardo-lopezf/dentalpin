@@ -1,5 +1,16 @@
 {
   "clinicalNotes": {
+    "vitals": {
+      "title": "Signos vitales",
+      "systolic": "TA sistólica",
+      "diastolic": "TA diastólica",
+      "heart_rate": "FC (lpm)",
+      "respiratory_rate": "FR (rpm)",
+      "temperature_c": "Temp. (°C)",
+      "bp": "TA",
+      "hr": "FC",
+      "rr": "FR"
+    },
     "types": {
       "administrative": "Administrativa",
       "diagnosis": "Diagnóstico",

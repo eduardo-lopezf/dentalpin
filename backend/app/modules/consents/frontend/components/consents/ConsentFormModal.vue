@@ -38,7 +38,8 @@ const saving = ref(false)
 
 const kindOptions = computed(() => [
   { label: t('consents.kinds.informed'), value: 'informed' },
-  { label: t('consents.kinds.data_use'), value: 'data_use' }
+  { label: t('consents.kinds.data_use'), value: 'data_use' },
+  { label: t('consents.kinds.conformity'), value: 'conformity' }
 ])
 const templateOptions = computed(() =>
   templates.value.filter(tpl => tpl.kind === kind.value).map(tpl => ({ label: tpl.title, value: tpl.id }))
@@ -147,7 +148,7 @@ async function save() {
           </UFormField>
 
           <UFormField
-            v-if="kind === 'informed'"
+            v-if="kind !== 'data_use'"
             :label="t('consents.form.procedure')"
             :hint="t('consents.form.procedureHint')"
           >
@@ -159,7 +160,7 @@ async function save() {
 
           <UFormField
             :label="t('consents.form.body')"
-            :hint="t(kind === 'informed' ? 'consents.form.bodyHintInformed' : 'consents.form.bodyHintData')"
+            :hint="t({ informed: 'consents.form.bodyHintInformed', data_use: 'consents.form.bodyHintData', conformity: 'consents.form.bodyHintConformity' }[kind])"
             required
           >
             <UTextarea

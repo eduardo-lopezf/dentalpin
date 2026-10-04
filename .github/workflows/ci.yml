@@ -335,6 +335,9 @@ jobs:
           # consents.spec.ts needs it running.
           curl -sf -X POST http://localhost:8000/api/v1/modules/consents/enable \
             -H "Authorization: Bearer $TOKEN"
+          # And `record`, for record.spec.ts (the Expediente tab).
+          curl -sf -X POST http://localhost:8000/api/v1/modules/record/enable \
+            -H "Authorization: Bearer $TOKEN"
           docker compose restart backend
           for i in $(seq 1 60); do
             if curl -sf http://localhost:8000/health > /dev/null; then

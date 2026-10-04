@@ -30,6 +30,7 @@ import type {
   ApiResponse,
   Patient,
   PlanDraftLine,
+  PlanPrognosis,
   PlanProposal,
   PlanTemplate,
   Surface,
@@ -353,10 +354,16 @@ const selectedPatient = ref<Patient | null>(null)
 const showNewPatient = ref(false)
 const newPatient = ref({ first_name: '', last_name: '', phone: '' })
 
+const prognosisOptions = computed(() => (['favorable', 'reserved', 'unfavorable'] as const).map(value => ({
+  label: t(`treatmentPlans.prognosis.${value}`), value
+})))
+
 const form = ref({
   title: '',
   assigned_professional_id: undefined as string | undefined,
   diagnosis_notes: '',
+  prognosis: undefined as PlanPrognosis | undefined,
+  prognosis_notes: '',
   internal_notes: ''
 })
 const showMore = ref(false)
@@ -588,6 +595,8 @@ async function handleSubmit() {
       title: form.value.title || undefined,
       assigned_professional_id: form.value.assigned_professional_id || undefined,
       diagnosis_notes: form.value.diagnosis_notes || undefined,
+      prognosis: form.value.prognosis,
+      prognosis_notes: form.value.prognosis_notes || undefined,
       internal_notes: form.value.internal_notes || undefined
     })
     if (!plan) return
@@ -966,6 +975,22 @@ function goBack() {
                 :rows="3"
                 :placeholder="t('treatmentPlans.fields.diagnosisNotesPlaceholder')"
               />
+            </UFormField>
+
+            <UFormField :label="t('treatmentPlans.fields.prognosis')">
+              <div class="grid grid-cols-1 sm:grid-cols-[12rem_1fr] gap-2">
+                <USelect
+                  v-model="form.prognosis"
+                  :items="prognosisOptions"
+                  value-key="value"
+                  :placeholder="t('treatmentPlans.fields.prognosisPlaceholder')"
+                  data-testid="plan-prognosis"
+                />
+                <UInput
+                  v-model="form.prognosis_notes"
+                  :placeholder="t('treatmentPlans.fields.prognosisNotesPlaceholder')"
+                />
+              </div>
             </UFormField>
 
             <UFormField :label="t('treatmentPlans.fields.internalNotes')">

@@ -18,22 +18,25 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.contracts import ProfessionalDirectory, provider
+from app.core.contracts import PatientDocuments, ProfessionalDirectory, provider
 
 from .models import (
     Allergy,
     EmergencyContact,
+    FamilyHistory,
+    HealthQuestionnaire,
     LegalGuardian,
     MedicalContext,
     Medication,
     SurgicalHistory,
     SystemicDisease,
 )
+from .questionnaire import CONDITION_GROUPS, CONDITIONS, FORM_VERSION, QUESTIONS
 
 #: The four history tables that are append-only per ADR 0032. Emergency
 #: contacts and legal guardians are 1:1 rows keyed by ``patient_id`` and are
 #: not in this set — making them append-only means re-keying them.
-_HISTORY_ENTRY_MODELS = (Allergy, Medication, SystemicDisease, SurgicalHistory)
+_HISTORY_ENTRY_MODELS = (Allergy, Medication, SystemicDisease, SurgicalHistory, FamilyHistory)
 
 #: Written into ``retraction_reason`` when a line disappears from the medical
 #: history form. The form has no field for "when did this stop being true", so
@@ -297,6 +300,98 @@ class PatientsClinicalService:
     ) -> None:
         await PatientsClinicalService.retract_entry(db, disease, user_id=user_id)
 
+    # --- Health questionnaire -------------------------------------------
+
+    @staticmethod
+    async def list_questionnaires(
+        db: AsyncSession, clinic_id: UUID, patient_id: UUID
+    ) -> list[HealthQuestionnaire]:
+        """Newest first, retracted ones left out."""
+        result = await db.execute(
+            select(HealthQuestionnaire)
+            .where(
+                HealthQuestionnaire.clinic_id == clinic_id,
+                HealthQuestionnaire.patient_id == patient_id,
+                _live(HealthQuestionnaire),
+            )
+            .order_by(HealthQuestionnaire.taken_at.desc())
+        )
+        return list(result.scalars())
+
+    @staticmethod
+    async def get_questionnaire(
+        db: AsyncSession, clinic_id: UUID, patient_id: UUID, questionnaire_id: UUID
+    ) -> HealthQuestionnaire | None:
+        result = await db.execute(
+            select(HealthQuestionnaire).where(
+                HealthQuestionnaire.id == questionnaire_id,
+                HealthQuestionnaire.clinic_id == clinic_id,
+                HealthQuestionnaire.patient_id == patient_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def create_questionnaire(
+        db: AsyncSession, clinic_id: UUID, patient_id: UUID, data: dict, user_id: UUID | None
+    ) -> HealthQuestionnaire:
+        """Record what the patient declared. It is never edited afterwards.
+
+        Raises ``ValueError`` for an answer to a question the form does not
+        ask, a condition it does not list, an empty questionnaire, or a
+        scan that is not one of this patient's documents.
+        """
+        unknown = sorted(set(data["answers"]) - set(QUESTIONS)) + sorted(
+            set(data["conditions"]) - CONDITIONS
+        )
+        if unknown:
+            raise ValueError(f"Not part of the questionnaire: {', '.join(unknown)}")
+
+        scan = data.get("scan_document_id")
+        if scan is not None:
+            documents = provider(PatientDocuments)
+            if documents is None or not await documents.belongs_to(db, clinic_id, patient_id, scan):
+                raise ValueError("The scan is not one of this patient's documents")
+        elif not (data["answers"] or data["conditions"] or data.get("chief_complaint")):
+            raise ValueError("An empty questionnaire says nothing")
+
+        questionnaire = HealthQuestionnaire(
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            taken_at=data.get("taken_at") or datetime.now(UTC),
+            form_version=FORM_VERSION,
+            chief_complaint=data.get("chief_complaint") or None,
+            blood_type=data.get("blood_type") or None,
+            declared_allergies=data.get("declared_allergies") or None,
+            answers=data["answers"],
+            # In the form's own order, whatever order they were ticked in.
+            conditions=[
+                key
+                for group in CONDITION_GROUPS.values()
+                for key in group
+                if key in set(data["conditions"])
+            ],
+            drugs_detail=data.get("drugs_detail") or None,
+            other_conditions=data.get("other_conditions") or None,
+            scan_document_id=scan,
+            **await _attribution(db, clinic_id, user_id),
+        )
+        db.add(questionnaire)
+        await db.flush()
+        return questionnaire
+
+    # --- Family history ------------------------------------------------
+
+    @staticmethod
+    async def list_family_history(db: AsyncSession, patient_id: UUID) -> list[FamilyHistory]:
+        """Live entries. Written through the medical-history form."""
+        result = await db.execute(
+            select(FamilyHistory)
+            .where(FamilyHistory.patient_id == patient_id, _live(FamilyHistory))
+            .order_by(FamilyHistory.created_at)
+        )
+        return list(result.scalars())
+
     # --- Surgical history ----------------------------------------------
 
     @staticmethod
@@ -438,6 +533,7 @@ class PatientsClinicalService:
             "medications": medications,
             "systemic_diseases": diseases,
             "surgical_history": surgeries,
+            "family_history": await PatientsClinicalService.list_family_history(db, patient_id),
             **ctx,
         }
 
@@ -564,6 +660,7 @@ class PatientsClinicalService:
             (Medication, "medications"),
             (SystemicDisease, "systemic_diseases"),
             (SurgicalHistory, "surgical_history"),
+            (FamilyHistory, "family_history"),
         ):
             result = await db.execute(
                 select(table_cls).where(

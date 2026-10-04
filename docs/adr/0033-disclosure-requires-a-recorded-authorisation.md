@@ -1,6 +1,6 @@
 # 0033 — Disclosure requires a recorded authorisation, and the authorisation is part of the record
 
-- **Status:** proposed
+- **Status:** accepted (2026-10-03) — partly implemented, see *What is built*
 - **Date:** 2026-09-22
 - **Deciders:** Eduardo
 - **Tags:** clinical, privacy, compliance, security
@@ -150,6 +150,26 @@ Six clarifications:
 - **A separate consent module.** A disclosure is meaningless without the
   record it discloses, and the chokepoint must sit where payloads are
   assembled. It belongs with the record, not beside it.
+
+## What is built
+
+As of 2026-10-03 (`record` module, `disclosure.py`):
+
+- The chokepoint: a printable record exists only through
+  `DisclosureService.disclose`, which takes purpose, recipient, evidence
+  and scope, and refuses without the evidence the purpose asks for.
+- Four purposes: continuity of care, the patient's own copy, a third
+  party the patient authorised, a legal requirement.
+- Scope by section, enforced; retracted entries never included.
+- The document stored as it left, with its SHA-256 and a manifest of the
+  entries it carried; re-opening serves the stored bytes.
+- The disclosure as an entry of the record.
+
+Not built: the purpose→basis table read from `PrivacyPolicy.jurisdictions`
+(the four purposes and their evidence are fixed in code); authorisations
+as structured, time-boxed, revocable records (the evidence is the clinic's
+free text); the guardian as authoriser (clarification 5); scope by date
+range or single document; digest chaining; research and teaching.
 
 ## How to verify the rule still holds
 

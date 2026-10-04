@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 @import "@fontsource-variable/inter";
+/* The typefaces a clinic may choose for its workspace (ADR 0043). Bundled
+   with the app, never fetched from a third party; a browser downloads a
+   face only when something on the page uses it. */
+@import "@fontsource-variable/source-sans-3";
+@import "@fontsource-variable/nunito-sans";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource-variable/atkinson-hyperlegible-next";
 @import "./typography.css";
 
 @theme static {

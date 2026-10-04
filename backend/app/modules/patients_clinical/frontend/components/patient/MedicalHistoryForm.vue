@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AllergyEntry, MedicationEntry, MedicalHistory, SurgicalHistoryEntry, SystemicDiseaseEntry } from '~~/app/types'
+import type { AllergyEntry, FamilyHistoryEntry, FamilyRelative, MedicationEntry, MedicalHistory, SurgicalHistoryEntry, SystemicDiseaseEntry } from '~~/app/types'
 
 interface Props {
   modelValue: MedicalHistory
@@ -123,6 +123,24 @@ function addSurgery() {
 
 function removeSurgery(index: number) {
   localData.value.surgical_history.splice(index, 1)
+}
+
+// Family history form state
+const RELATIVES: FamilyRelative[] = ['mother', 'father', 'sibling', 'grandparent', 'child', 'other']
+const relativeOptions = computed(() => RELATIVES.map(value => ({
+  label: t(`patients.medicalHistory.relatives.${value}`), value
+})))
+const newFamily = ref<FamilyHistoryEntry>({ condition: '', relative: 'mother' })
+
+function addFamily() {
+  if (!newFamily.value.condition.trim()) return
+  // A history loaded before this section existed carries no list yet.
+  localData.value.family_history = [...(localData.value.family_history ?? []), { ...newFamily.value }]
+  newFamily.value = { condition: '', relative: 'mother' }
+}
+
+function removeFamily(index: number) {
+  localData.value.family_history?.splice(index, 1)
 }
 
 // Alcohol options
@@ -502,6 +520,58 @@ function handleSave() {
             <UButton
               icon="i-lucide-plus"
               @click="addSurgery"
+            >
+              {{ t('common.add') }}
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </UAccordion>
+
+    <!-- Family History Section -->
+    <UAccordion
+      :items="[{ label: t('patients.medicalHistory.familyHistory'), icon: 'i-lucide-users', defaultOpen: false, slot: 'family' }]"
+    >
+      <template #family>
+        <div
+          class="p-4 space-y-4"
+          data-testid="family-history"
+        >
+          <div
+            v-for="(entry, index) in localData.family_history ?? []"
+            :key="index"
+            class="flex items-center gap-2 p-2 bg-surface-muted rounded"
+          >
+            <span class="flex-1 font-medium">{{ entry.condition }}</span>
+            <span class="text-caption text-subtle">{{ t(`patients.medicalHistory.relatives.${entry.relative}`) }}</span>
+            <UButton
+              v-if="!readonly"
+              variant="ghost"
+              color="error"
+              icon="i-lucide-trash-2"
+              size="xs"
+              @click="removeFamily(index)"
+            />
+          </div>
+
+          <div
+            v-if="!readonly"
+            class="grid grid-cols-1 md:grid-cols-3 gap-2"
+          >
+            <UInput
+              v-model="newFamily.condition"
+              :placeholder="t('patients.medicalHistory.familyCondition')"
+              data-testid="family-history-condition"
+            />
+            <USelect
+              v-model="newFamily.relative"
+              :items="relativeOptions"
+              value-key="value"
+            />
+            <UButton
+              icon="i-lucide-plus"
+              data-testid="family-history-add"
+              @click="addFamily"
             >
               {{ t('common.add') }}
             </UButton>

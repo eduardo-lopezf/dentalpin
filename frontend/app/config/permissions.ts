@@ -126,7 +126,11 @@ export const PERMISSIONS = {
     // The clinical record is read-only for now. `export`, `disclose` and
     // `authorise` arrive with the endpoints that use them — a permission with
     // nothing behind it is a promise the UI starts making on its own.
-    read: 'record.read'
+    read: 'record.read',
+    // Printing or handing the record over (ADR 0033).
+    disclose: 'record.disclose',
+    // How the clinic lays its record out. Admin only.
+    configure: 'record.configure'
   },
   liquidations: {
     settlementRead: 'liquidations.settlement.read',

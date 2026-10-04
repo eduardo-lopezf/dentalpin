@@ -32,16 +32,17 @@ const ALLOWED = {
   // `nitropack` and `node-forge` are absent from `.output/server`.
   'node-forge': 'no published fix (<=1.4.0 is every version); dev-server TLS only, absent from .output',
 
-  // Nuxt is pinned to `~4.4.8` in package.json, so `npm audit fix` cannot
-  // walk it forward on its own. 4.5 is where these are fixed, and 4.5
-  // requires `@nuxtjs/i18n` v10 — measured on 2026-10-03: 4.5.2 with i18n
-  // v9 fails to build (32 `builtin:vite-json` errors), 4.5.2 with i18n v10
-  // builds but takes the whole unit suite down, because its test
-  // environment needs `@nuxt/test-utils` v4, which needs vitest 4, which
-  // fails on Nuxt's own plugins (`Missing field moduleType`, rolldown).
-  // That migration is its own piece of work.
+  // Nuxt is pinned to exactly `4.4.5` in package.json, and the reason is
+  // Node, not Nuxt: `frontend/Dockerfile` builds on `node:20-alpine`, and
+  // 4.4.5 is the last release that supports Node 20 (`^20.19.0 ||
+  // >=22.12.0`). Every later one — 4.4.6 through 4.5.x — requires
+  // `^22.12.0 || ^24.11.0 || >=26.0.0`. The pin is also what stops CI's
+  // `npm install` walking the dependency forward on its own, which is how
+  // `cssnano` 8 (Node 22+) got in and took the test job down with
+  // `trustedFunctions.difference is not a function`.
   //
-  // What is left at 4.4.8, and why each one is survivable here:
+  // So the fixes for these live behind a Node upgrade. What is left at
+  // 4.4.5, and why each one is survivable meanwhile:
   //
   // - Three island advisories (RCE via island props, unauthenticated OOM,
   //   CPU exhaustion before hash validation). `server/middleware/
@@ -56,7 +57,7 @@ const ALLOWED = {
   //   `appMiddleware` gates, which this app does not put in `routeRules`.
   //   The headers on `/p/**` are what a mixed-case URL would skip —
   //   narrow, and tracked rather than hidden.
-  'nuxt': 'pinned to ~4.4.8 (4.5 needs an i18n v10 + vitest 4 migration); island endpoint closed by server middleware, no cached routeRules'
+  'nuxt': 'pinned to 4.4.5, the last release supporting the node:20 base image; island endpoint closed by server middleware, no cached routeRules'
 }
 
 const FAIL_AT = new Set(['high', 'critical'])

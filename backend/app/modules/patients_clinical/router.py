@@ -11,21 +11,25 @@ submits the whole blob — but it now writes normalized rows atomically.
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
+from app.core.contracts import ProfessionalDirectory, provider
 from app.core.events import EventType, event_bus
 from app.core.schemas import ApiResponse
 from app.database import get_db
 from app.modules.patients.service import PatientService
 
+from .questionnaire_pdf import render_blank_pdf
 from .schemas import (
     AllergyCreate,
     AllergyResponse,
     AllergyUpdate,
     EmergencyContactResponse,
     EmergencyContactUpsert,
+    HealthQuestionnaireCreate,
+    HealthQuestionnaireResponse,
     LegalGuardianResponse,
     LegalGuardianUpsert,
     MedicalContextResponse,
@@ -36,6 +40,7 @@ from .schemas import (
     MedicationResponse,
     MedicationUpdate,
     PatientAlertsResponse,
+    RetractRequest,
     SurgicalHistoryCreate,
     SurgicalHistoryResponse,
     SurgicalHistoryUpdate,
@@ -619,3 +624,93 @@ async def get_patient_alerts(
     await _ensure_patient(db, ctx.clinic_id, patient_id)
     alerts = await PatientsClinicalService.compute_alerts(db, patient_id)
     return ApiResponse(data=PatientAlertsResponse(alerts=alerts))
+
+
+# --- Health questionnaire ------------------------------------------------
+
+
+@router.get(
+    "/patients/{patient_id}/questionnaires",
+    response_model=ApiResponse[list[HealthQuestionnaireResponse]],
+)
+async def list_questionnaires(
+    patient_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("patients_clinical.medical.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[HealthQuestionnaireResponse]]:
+    """The questionnaires the patient answered, newest first."""
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    rows = await PatientsClinicalService.list_questionnaires(db, ctx.clinic_id, patient_id)
+    return ApiResponse(data=[HealthQuestionnaireResponse.model_validate(r) for r in rows])
+
+
+@router.post(
+    "/patients/{patient_id}/questionnaires",
+    response_model=ApiResponse[HealthQuestionnaireResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_questionnaire(
+    patient_id: UUID,
+    data: HealthQuestionnaireCreate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("patients_clinical.medical.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[HealthQuestionnaireResponse]:
+    """Record what the patient declared, or file the sheet they filled in."""
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    try:
+        questionnaire = await PatientsClinicalService.create_questionnaire(
+            db, ctx.clinic_id, patient_id, data.model_dump(), ctx.user_id
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return ApiResponse(data=HealthQuestionnaireResponse.model_validate(questionnaire))
+
+
+@router.post(
+    "/patients/{patient_id}/questionnaires/{questionnaire_id}/retract",
+    response_model=ApiResponse[HealthQuestionnaireResponse],
+)
+async def retract_questionnaire(
+    patient_id: UUID,
+    questionnaire_id: UUID,
+    data: RetractRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("patients_clinical.medical.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[HealthQuestionnaireResponse]:
+    """Take back a questionnaire recorded by mistake. It is not deleted."""
+    questionnaire = await PatientsClinicalService.get_questionnaire(
+        db, ctx.clinic_id, patient_id, questionnaire_id
+    )
+    if questionnaire is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Questionnaire not found")
+    await PatientsClinicalService.retract_entry(
+        db, questionnaire, reason=data.reason, user_id=ctx.user_id
+    )
+    return ApiResponse(data=HealthQuestionnaireResponse.model_validate(questionnaire))
+
+
+@router.get("/patients/{patient_id}/questionnaire-form")
+async def blank_questionnaire_form(
+    patient_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("patients_clinical.medical.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    locale: str = Query(default="es", pattern="^(es|en)$"),
+) -> Response:
+    """The questionnaire as a blank sheet, to fill in by hand and scan."""
+    patient = await PatientService.get_patient(db, ctx.clinic_id, patient_id)
+    if patient is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+    directory = provider(ProfessionalDirectory)
+    professional_id = (
+        await directory.for_account(db, ctx.clinic_id, ctx.user_id) if directory else None
+    )
+    pdf = await render_blank_pdf(db, patient, professional_id, locale)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'inline; filename="cuestionario_de_salud.pdf"'},
+    )

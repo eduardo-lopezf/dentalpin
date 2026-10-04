@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- feat(media): aporta al expediente clínico la sección **Radiografías y fotografías** (`record.py`). Los documentos administrativos quedan fuera.
+
+- feat(media): ofrece el contrato `PatientDocuments` (ADR 0039): si un
+  documento es un archivo vivo de un paciente. Lo usa `consents` para
+  archivar el escaneo de una carta firmada en papel, sin importar `media`.
+
 - refactor(media): el registro de dueños de adjuntos pasa a
   `app/core/attachments.py`; `media/attachment_registry.py` lo reexporta.
   Así un módulo registra su `owner_type` sin importar `media` (ADR 0039).

@@ -78,6 +78,12 @@ onMounted(() => {
   initDensity()
 })
 
+// The workspace's own name and logo, in place of the product's (ADR 0043).
+const brand = useWorkspaceBrand()
+onMounted(() => brand.load())
+// The clinic's accent and typeface, as the variables the design tokens read.
+useHead({ style: [{ id: 'workspace-theme', innerHTML: () => brand.css.value }] })
+
 function toggleSidebar() {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
   if (import.meta.client) {
@@ -136,20 +142,21 @@ function isActive(to: string): boolean {
         <NuxtLink
           to="/"
           class="flex items-center gap-2 overflow-hidden"
-          aria-label="Dental Demo"
+          :aria-label="brand.name.value"
         >
           <img
-            src="/logo-icon.svg"
+            :src="brand.logo.value"
             alt=""
             width="32"
             height="32"
-            class="shrink-0"
+            class="shrink-0 h-8 w-8 object-contain"
           >
           <span
             v-if="!isSidebarCollapsed"
             class="text-h2 text-default truncate"
+            data-testid="sidebar-brand-name"
           >
-            Dental Demo
+            {{ brand.name.value }}
           </span>
         </NuxtLink>
       </div>
@@ -239,17 +246,17 @@ function isActive(to: string): boolean {
             <NuxtLink
               to="/"
               class="flex items-center gap-2 overflow-hidden"
-              aria-label="Dental Demo"
+              :aria-label="brand.name.value"
               @click="mobileNavOpen = false"
             >
               <img
-                src="/logo-icon.svg"
+                :src="brand.logo.value"
                 alt=""
                 width="32"
                 height="32"
-                class="shrink-0"
+                class="shrink-0 h-8 w-8 object-contain"
               >
-              <span class="text-h2 text-default truncate">Dental Demo</span>
+              <span class="text-h2 text-default truncate">{{ brand.name.value }}</span>
             </NuxtLink>
             <UButton
               variant="ghost"
@@ -376,7 +383,15 @@ function isActive(to: string): boolean {
           <div class="flex items-center gap-1">
             <HelpButton />
             <DensityToggle />
-            <UColorModeButton />
+            <!-- Using the switch makes the mode this person's own: the
+                 clinic's default stops applying to them. -->
+            <span
+              class="contents"
+              data-testid="color-mode-switch"
+              @click="brand.rememberOwnMode()"
+            >
+              <UColorModeButton />
+            </span>
             <UButton
               variant="ghost"
               color="neutral"

@@ -1,5 +1,16 @@
 {
   "clinicalNotes": {
+    "vitals": {
+      "title": "Vital signs",
+      "systolic": "Systolic BP",
+      "diastolic": "Diastolic BP",
+      "heart_rate": "HR (bpm)",
+      "respiratory_rate": "RR (/min)",
+      "temperature_c": "Temp. (°C)",
+      "bp": "BP",
+      "hr": "HR",
+      "rr": "RR"
+    },
     "types": {
       "administrative": "Administrative",
       "diagnosis": "Diagnosis",

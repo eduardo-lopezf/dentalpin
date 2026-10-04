@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(patients): aporta al expediente clínico la sección **Identificación** (`record.py`): quién es el paciente. Sin datos de facturación.
+
 - refactor(patients): el buscador y el selector de pacientes
   (`PatientSearch`, `PatientVisualSelector`, `patientSelectorUtils`) viven
   ahora en esta capa (`frontend/components/shared/`) y no en la app base

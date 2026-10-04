@@ -51,10 +51,12 @@ class RecordModule(BaseModule):
         # Off by default: a clinic that never discloses a record does not need
         # it, and phase 0's clinical guarantees do not depend on it being here.
         "auto_install": False,
-        "removable": True,
+        # It holds evidence now — the disclosures. Disabled, never
+        # uninstalled (ADR 0035).
+        "removable": False,
         "role_permissions": {
             "admin": ["*"],
-            "dentist": ["read"],
+            "dentist": ["read", "disclose"],
             "hygienist": ["read"],
         },
         "frontend": {
@@ -64,9 +66,11 @@ class RecordModule(BaseModule):
     }
 
     def get_models(self) -> list:
-        # None, on purpose. The record is a projection; the only tables it will
-        # ever own are the disclosures and artifacts of phase 2.
-        return []
+        # No clinical data, on purpose: the record is a projection. What it
+        # owns is the act of handing it over.
+        from .models import Disclosure
+
+        return [Disclosure]
 
     def get_router(self) -> APIRouter:
         return router
@@ -75,7 +79,19 @@ class RecordModule(BaseModule):
         # `export`, `disclose` and `authorise` arrive with the endpoints that
         # use them. A permission with nothing behind it is a promise the UI
         # would start making on its own.
-        return ["read"]
+        # `configure`: how the clinic lays its record out. Admin only —
+        # nobody else is granted it.
+        return ["read", "disclose", "configure"]
+
+    def get_record_sections(self) -> list:
+        from . import record
+
+        return record.get_record_sections()
+
+    def get_subject_contributors(self) -> list:
+        from . import privacy
+
+        return privacy.get_subject_contributors()
 
     def get_tools(self) -> list:
         # Mandatory even when empty. An agent-exposed "read this patient's

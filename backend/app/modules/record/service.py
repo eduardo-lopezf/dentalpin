@@ -10,8 +10,13 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth.models import Clinic
+from app.core.contracts import PersonBrief, ProfessionalDirectory, provider
 from app.core.record import EntryStatus, RecordEntry, RecordSection, SectionCategory
 from app.modules.patients.models import Patient
+
+from .coverage import Requirement, check
+from .format import RecordFormat, arrange, read_format
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +32,7 @@ CATEGORY_ORDER: tuple[SectionCategory, ...] = (
     SectionCategory.THERAPEUTIC_PLAN,
     SectionCategory.IMAGING,
     SectionCategory.CONSENTS,
+    SectionCategory.DISCLOSURES,
 )
 
 
@@ -51,6 +57,13 @@ class ComposedRecord:
     clinic_id: UUID
     composed_at: datetime
     sections: list[ComposedSection] = field(default_factory=list)
+    #: The professionals the entries name as clinically responsible — name
+    #: and licence, which is what an entry's bare id cannot say to a reader.
+    professionals: list[PersonBrief] = field(default_factory=list)
+    #: What a dental record is expected to hold, and whether this one does.
+    #: Always computed without the retracted entries: a fact taken back does
+    #: not satisfy anything.
+    coverage: list[Requirement] = field(default_factory=list)
 
 
 class RecordService:
@@ -138,9 +151,54 @@ class RecordService:
                 )
             )
 
+        authors = {
+            entry.authored_by_professional_id
+            for section in sections
+            for entry in section.entries
+            if entry.authored_by_professional_id is not None
+        }
+        directory = provider(ProfessionalDirectory)
+        professionals = (
+            list((await directory.briefs(db, clinic_id, authors)).values())
+            if directory is not None and authors
+            else []
+        )
+
+        fmt = await cls.format_of(db, clinic_id)
+        skipped = set(fmt.disabled_requirements)
+
         return ComposedRecord(
             patient_id=patient_id,
             clinic_id=clinic_id,
             composed_at=datetime.now(tz=None).astimezone(),
-            sections=sections,
+            # The clinic's layout: what it does not use is left out, and
+            # the rest reads in its order. Coverage looks at everything —
+            # a consent on file counts whether or not its section shows.
+            sections=arrange(sections, fmt),
+            professionals=professionals,
+            coverage=[
+                requirement
+                for requirement in check(
+                    {
+                        section.qualified_name: [
+                            entry
+                            for entry in section.entries
+                            if entry.status is not EntryStatus.RETRACTED
+                        ]
+                        for section in sections
+                    }
+                )
+                if requirement.key not in skipped
+            ],
         )
+
+    @staticmethod
+    async def format_of(db: AsyncSession, clinic_id: UUID) -> RecordFormat:
+        clinic = await db.get(Clinic, clinic_id)
+        return read_format(clinic.settings if clinic else None)
+
+    @classmethod
+    def catalogue(cls) -> list[tuple[str, RecordSection]]:
+        """Every section the installed modules offer, in default order —
+        what a clinic chooses from when it lays its record out."""
+        return cls._sections()

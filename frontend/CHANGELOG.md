@@ -2,6 +2,50 @@
 
 ## Unreleased
 
+- feat(workspace): **tema por defecto de la clínica** — claro, oscuro o
+  según el dispositivo — en el lienzo de *Espacio de trabajo*. Se aplica a
+  quien no haya elegido el suyo; usar el botón de sol y luna marca el
+  tema como propio (en ese navegador) y el de la clínica deja de
+  aplicarle. El lienzo previsualiza el oscuro sin cambiar el resto de la
+  página.
+
+- feat(workspace): **esquinas y densidad por clínica**, en el lienzo de
+  *Espacio de trabajo*. Esquinas rectas, suaves o redondas (reescalan los
+  tokens de radio y el radio base de Nuxt UI); densidad cómoda o compacta
+  (reduce la unidad de espaciado de Tailwind). La compacta solo se aplica
+  con ratón: en pantalla táctil los botones conservan su tamaño.
+
+- feat(workspace): **color de acento y fuente por clínica.** En el lienzo
+  de *Espacio de trabajo* se elige entre ocho colores de acento y cinco
+  fuentes; el lienzo los muestra al instante y el resto de la app al
+  guardar. Listas cerradas (`app/config/workspaceTheme.ts`): cada acento
+  es una escala completa para claro y oscuro, y cada fuente va incluida en
+  la app — ninguna se descarga de un tercero.
+  - Dependencias nuevas, todas `@fontsource-variable`: `source-sans-3`,
+    `nunito-sans`, `ibm-plex-sans`, `atkinson-hyperlegible-next`.
+  - Se aplican con las variables CSS que ya leen los tokens de diseño y
+    Nuxt UI, en un `<style>` que escribe el layout. La última marca vista
+    se guarda en el navegador para pintar con ella desde el primer
+    instante al recargar.
+
+- feat(workspace): **marca del espacio de trabajo y página en lienzo.**
+  *Configuración → Apps → Espacio de trabajo* se dibuja ahora como una
+  miniatura de la app que se edita en el sitio: el menú lateral del lienzo
+  es la marca (nombre y logotipo) y su cuerpo es el Inicio (qué widgets se
+  ven y en qué orden).
+  - El menú lateral real deja de mostrar «Dental Demo» y el icono del
+    producto fijos: usa el nombre y el logotipo de la clínica cuando los
+    tiene (`useWorkspaceBrand`).
+  - API en el núcleo: `GET/PUT /api/v1/auth/clinic/settings/brand` y
+    `GET/PUT/DELETE …/brand/logo` (PNG o JPG, hasta 512 KB). Leerla solo
+    exige pertenecer a la clínica; cambiarla, `admin.clinic.write`.
+  - Migración del núcleo `0014` (`clinic_brand_logos`).
+
+- feat(settings): en *Configuración → Apps* cada App lleva su **icono**, y
+  el botón *Configurar* aparece en toda App que tenga página propia — hoy
+  Espacio de trabajo y Expediente clínico. Ambas cosas salen de
+  `app/config/appCatalog.ts`.
+
 - fix(security): **el endpoint de islas de Nuxt ya no responde.**
   `server/middleware/no-island-endpoint.ts` devuelve 404 en
   `/__nuxt_island/**`. Tres de los avisos altos abiertos contra Nuxt 4.4
@@ -12,14 +56,18 @@
   la ruta se monta en toda compilación y, medido el 2026-10-03, el
   servidor compilado respondía **204** a
   `/__nuxt_island/Foo:1234.json` antes de este middleware, y 404 después.
-- chore(deps): Nuxt pasa a `~4.4.8` —fijado, para que `npm audit fix` no
-  salte solo a 4.5— y `undici` y `devalue` suben por `overrides` a sus
-  versiones corregidas. 4.5 es donde se arreglan los avisos de islas, pero
-  exige `@nuxtjs/i18n` v10: medido, 4.5.2 con i18n v9 no compila (32
-  errores `builtin:vite-json`) y con v10 compila pero deja la suite
-  unitaria sin arrancar, porque su entorno de test necesita
-  `@nuxt/test-utils` v4 → vitest 4, que choca con los plugins de Nuxt.
-  Esa migración queda como trabajo aparte.
+- fix(ci): **el job de tests volvió a fallar al arrancar** con
+  `trustedFunctions.difference is not a function`. CI instala con `npm
+  install`, que vuelve a resolver el lockfile en cada ejecución, y así
+  entró `cssnano` 8 —exige Node `^22.11 || ^24.11 || >=26`— en un job que
+  corre Node 20. `overrides` fija ahora `cssnano`, `cssnano-preset-default`
+  y `postcss-merge-longhand` en la línea 7, que admite Node 20.
+- chore(deps): Nuxt queda fijado en **4.4.5 exacta**, y el motivo es Node,
+  no Nuxt: la imagen es `node:20-alpine` y 4.4.5 es la última que admite
+  Node 20 (`^20.19.0 || >=22.12.0`); de 4.4.6 en adelante piden
+  `^22.12.0 || ^24.11.0 || >=26.0.0`. Sin fijarla, el `npm install` de CI
+  la movería sola y rompería igual. `undici` y `devalue` suben por
+  `overrides` a sus versiones corregidas, ambas compatibles con Node 20.
 - chore(ci): la puerta de `npm audit` ya no necesita una excepción por
   paquete. Diez de los doce avisos altos lo son solo a través de `braces`
   o `node-forge` —ninguno de los dos tiene versión corregida publicada—,

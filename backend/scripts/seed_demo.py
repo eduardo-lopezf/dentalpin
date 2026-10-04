@@ -247,6 +247,11 @@ async def seed_users(db: AsyncSession, password_hash: str) -> list[User]:
                     license_number=user_data.get("professional_id"),
                     email=user_data["email"],
                     is_active=True,
+                    # The account *is* this professional. Stated, not
+                    # inferred from the matching email: it is what makes
+                    # their notes carry their authorship (ADR 0032) and
+                    # their documents their own letterhead (ADR 0046).
+                    user_id=user_data["id"],
                 )
             )
 

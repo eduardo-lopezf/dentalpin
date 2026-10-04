@@ -202,6 +202,16 @@ async def resolve_owner_patient(
 # ---------------------------------------------------------------------------
 
 
+def _clinical_vitals(note_type: str, vitals: dict | None) -> dict | None:
+    """The readings actually taken, on a clinical note. ``None`` otherwise:
+    an administrative note is not a clinical act, and an empty set of
+    readings is not a reading."""
+    if note_type in (NOTE_TYPE_ADMINISTRATIVE, NOTE_TYPE_APPOINTMENT_ADMINISTRATIVE):
+        return None
+    taken = {key: value for key, value in (vitals or {}).items() if value is not None}
+    return taken or None
+
+
 class NoteService:
     """CRUD for clinical notes."""
 
@@ -250,6 +260,7 @@ class NoteService:
         owner_id: UUID,
         body: str,
         tooth_number: int | None = None,
+        vitals: dict | None = None,
         attachment_document_ids: Iterable[UUID] | None = None,
     ) -> ClinicalNote:
         patient_id = await resolve_owner_patient(db, clinic_id, owner_type, owner_id)
@@ -261,6 +272,7 @@ class NoteService:
             owner_id=owner_id,
             tooth_number=tooth_number if note_type == NOTE_TYPE_DIAGNOSIS else None,
             body=body,
+            vitals=_clinical_vitals(note_type, vitals),
             author_id=user_id,
             authored_by_professional_id=await _professional_for(db, clinic_id, user_id),
         )
@@ -542,6 +554,34 @@ async def _resolve_treatments_for_patient(
     return {t.id: t for t in result.scalars().all()}
 
 
+def patient_owner_filter(
+    patient_id: UUID,
+    treatment_ids: list[UUID],
+    plan_ids: list[UUID],
+    appointment_ids: list[UUID],
+):
+    """Notes that hang from a patient, or from one of their treatments,
+    plans or appointments."""
+    return or_(
+        and_(
+            ClinicalNote.owner_type == NOTE_OWNER_PATIENT,
+            ClinicalNote.owner_id == patient_id,
+        ),
+        and_(
+            ClinicalNote.owner_type == NOTE_OWNER_TREATMENT,
+            ClinicalNote.owner_id.in_(treatment_ids) if treatment_ids else false(),
+        ),
+        and_(
+            ClinicalNote.owner_type == NOTE_OWNER_PLAN,
+            ClinicalNote.owner_id.in_(plan_ids) if plan_ids else false(),
+        ),
+        and_(
+            ClinicalNote.owner_type == NOTE_OWNER_APPOINTMENT,
+            ClinicalNote.owner_id.in_(appointment_ids) if appointment_ids else false(),
+        ),
+    )
+
+
 async def list_recent_for_patient(
     db: AsyncSession,
     *,
@@ -573,23 +613,7 @@ async def list_recent_for_patient(
     book = provider(AppointmentBook)
     appointment_ids = await book.ids_for_patient(db, clinic_id, patient_id) if book else []
 
-    treatment_clause = and_(
-        ClinicalNote.owner_type == NOTE_OWNER_TREATMENT,
-        ClinicalNote.owner_id.in_(treatment_ids) if treatment_ids else false(),
-    )
-    plan_clause = and_(
-        ClinicalNote.owner_type == NOTE_OWNER_PLAN,
-        ClinicalNote.owner_id.in_(plan_ids) if plan_ids else false(),
-    )
-    patient_clause = and_(
-        ClinicalNote.owner_type == NOTE_OWNER_PATIENT,
-        ClinicalNote.owner_id == patient_id,
-    )
-    appointment_clause = and_(
-        ClinicalNote.owner_type == NOTE_OWNER_APPOINTMENT,
-        ClinicalNote.owner_id.in_(appointment_ids) if appointment_ids else false(),
-    )
-    owner_filter = or_(patient_clause, treatment_clause, plan_clause, appointment_clause)
+    owner_filter = patient_owner_filter(patient_id, treatment_ids, plan_ids, appointment_ids)
 
     stmt = (
         select(ClinicalNote)
@@ -622,6 +646,7 @@ async def list_recent_for_patient(
                 "owner_id": note.owner_id,
                 "tooth_number": note.tooth_number,
                 "body": note.body,
+                "vitals": note.vitals,
                 "created_at": note.created_at,
                 "updated_at": note.updated_at,
                 "author": _author_brief(note.author) if note.author else {"id": note.author_id},
@@ -763,6 +788,7 @@ async def list_merged_for_plan(db: AsyncSession, clinic_id: UUID, plan_id: UUID)
                 "owner_id": note.owner_id,
                 "plan_item_id": plan_item_id,
                 "body": note.body,
+                "vitals": note.vitals,
                 "author_id": note.author_id,
                 "author": _author_brief(note.author) if note.author else None,
                 "created_at": note.created_at,

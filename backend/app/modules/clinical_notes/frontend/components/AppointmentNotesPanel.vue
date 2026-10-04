@@ -12,7 +12,7 @@
  * the slot context is the only contract.
  */
 
-import type { ClinicalNote, NoteType } from '~~/app/types'
+import type { ClinicalNote, NoteType, NoteVitals } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
 const props = defineProps<{
@@ -69,7 +69,7 @@ function startEdit(entry: ClinicalNote) {
 }
 
 async function handleSubmit(
-  payload: { body: string, toothNumber: number | null, attachmentDocumentIds: string[] }
+  payload: { body: string, toothNumber: number | null, attachmentDocumentIds: string[], vitals?: NoteVitals | null }
 ) {
   if (!appointmentId.value) return
   saving.value = true
@@ -81,7 +81,8 @@ async function handleSubmit(
           owner_type: 'appointment',
           owner_id: appointmentId.value,
           body: payload.body,
-          attachment_document_ids: payload.attachmentDocumentIds
+          attachment_document_ids: payload.attachmentDocumentIds,
+          vitals: payload.vitals
         })
     // A failed save returns null — the composable has already toasted.
     // Keep the composer open with the text still in it: a clinical note
@@ -180,6 +181,7 @@ watch(appointmentId, refresh, { immediate: true })
           :note-id="entry.id"
           :note-type="entry.note_type"
           :body="entry.body"
+          :vitals="entry.vitals"
           :created-at="entry.created_at"
           :author="entry.author ?? { id: entry.author_id }"
           :attachments="entry.attachments"

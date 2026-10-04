@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- feat(treatment_plan): el detalle del plan muestra el **diagnóstico y el
+  pronóstico** y permite editarlos después de crear el plan
+  (`PlanDiagnosisCard`). Antes solo se podían escribir al crearlo y el
+  detalle no los mostraba.
+
+- feat(treatment_plan): **pronóstico** del plan, junto al diagnóstico:
+  `prognosis` (`favorable` | `reserved` | `unfavorable`) y
+  `prognosis_notes` (migración `tp_0014`). Se indica al crear el plan, en
+  *Más opciones*, se muestra en el detalle y forma parte de la sección
+  *Planes de tratamiento* del expediente clínico.
+
+- feat(treatment_plan): aporta al expediente clínico las secciones **Planes de tratamiento** (diagnóstico y tratamientos, sin precios ni notas internas) y **Recetas** (`record.py`).
+
 - refactor(treatment_plan): `PlannedTreatmentSelector` vive ahora en esta
   capa y no en la app base (ADR 0044).
 

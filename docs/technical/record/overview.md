@@ -24,6 +24,82 @@ rather than a rewrite.
 
 So the module has no models and no migrations, like `reports`.
 
+## Who contributes
+
+| Category | Section | Module |
+|---|---|---|
+| Identification | `identification` | `patients` |
+| Antecedents | `health_questionnaires`, `family_history`, `medical_context`, `allergies`, `medications`, `systemic_diseases`, `surgical_history` | `patients_clinical` |
+| Odontogram | `chart` — findings and treatments, with teeth and surfaces | `odontogram` |
+| Periodontal | `chartings` — one per probing, with its indices | `periodontogram` |
+| Evolution | `notes` — clinical notes only, administrative ones left out | `clinical_notes` |
+| Therapeutic plan | `plans` (no prices, no internal notes), `prescriptions` | `treatment_plan` |
+| Imaging | `imaging` — radiographs and photographs, not administrative documents | `media` |
+| Consents | `consents` | `consents` |
+
+The composition also returns `professionals`: name and licence of whoever
+the entries name as clinically responsible.
+
+## What a record should hold
+
+`coverage` in the response: ten requirements of a dental record and
+whether this patient's meets each — complete identification (date of
+birth, sex, address), the reason for the visit (a health questionnaire
+with its chief complaint), family history, personal history, dental chart,
+diagnosis (on a plan, or as a diagnosis note), prognosis, treatment plan,
+evolution notes, a signed informed consent. Computed in `coverage.py` from
+the composed sections, retracted entries excluded.
+
+It is this product's reading of NOM-004-SSA3-2012 for a dental practice —
+**an engineering reading, pending legal review** — and a check of
+presence, not of quality. "Not met" also means "never asked": the record
+cannot tell a patient with no family history from one nobody asked.
+
+## Where it shows
+
+The *Expediente* tab of the patient record (`patient.detail.tabs`,
+permission `record.read`). It is a screen for someone already entitled to
+the chart.
+
+## The clinic's format
+
+`GET/PUT /api/v1/record/format`, edited at *Settings → Apps → Clinical
+record*. Three lists stored in `clinic.settings["record_format"]`:
+`hidden_sections`, `section_order`, `disabled_requirements`. Applied in
+`RecordService.compose`, so the tab, the PDF and the scope a disclosure
+accepts all follow it. Hiding deletes nothing.
+
+The head of the printed record is a **letterhead**
+(`app.core.letterhead`, [ADR 0046](../../adr/0046-the-letterhead-belongs-to-the-clinic.md)):
+that of the professional who hands the record over, or the clinic's when
+they have none — never another professional's. The settings page edits
+the clinic's letterhead and each professional's; they are not part of the
+record's format.
+
+## Handing it over
+
+Printing or giving a copy is a **disclosure**
+([ADR 0033](../../adr/0033-disclosure-requires-a-recorded-authorisation.md)),
+and the only way a printable record comes to exist:
+`POST /patients/{id}/disclosures` (`record.disclose`).
+
+| Purpose | Evidence required |
+|---|---|
+| `continuity_of_care` | The clinical justification |
+| `patient_copy` | `identity_verified` |
+| `authorised_third_party` | What the patient signed, described |
+| `legal_requirement` | The authority and its order |
+
+The request names the sections to include; an unknown one, or a scope
+with nothing in it, is refused. Retracted entries are never included. The
+PDF is stored in `record_disclosure` as it left, with its SHA-256 and a
+manifest of the entries it carried, and `GET /disclosures/{id}/document`
+serves those bytes — nothing is regenerated. Each disclosure is an entry
+of the record (`record.disclosures`, last in reading order).
+
+The PDF's wording is `labels.json`, generated from the frontend locales
+by `backend/scripts/generate_record_labels.py`.
+
 ## The contract
 
 A contributing module returns `RecordSection` objects from

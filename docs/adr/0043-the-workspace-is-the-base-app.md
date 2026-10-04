@@ -103,6 +103,58 @@ clinic membership, since every member's home page reads it; writing needs
   widget never flashes in. `useHomeLayout()` holds it; `arrangeEntries`
   is the rule.
 
+## Second customisation: the brand, on a canvas
+
+Added 2026-10-04. The workspace has its own **brand** — the name and the
+logo its sidebar shows, in place of the product's. The name is
+`Clinic.settings["brand"]["display_name"]`; the logo is a file in
+`clinic_brand_logos` (core migration `0014`), not in the settings, which
+travel with every request. Reading it asks only for membership — every
+member's shell draws it; changing it asks for `admin.clinic.write`. A
+PNG or JPEG of at most 512 KB, its type read from the file's own bytes.
+
+The settings page became a **canvas**: a miniature of the app, edited
+where things show — the brand in its sidebar, the home page in its body.
+The rule it sets for what comes next: a workspace option is added to the
+canvas where its effect is seen, not to a form beside it.
+
+**Accent colour and typeface** (same day) are part of the brand:
+`brand.accent` and `brand.font`, each a key from a **closed list** — eight
+accents, five typefaces — validated by the backend and described in
+`frontend/app/config/workspaceTheme.ts`. Per clinic, not per user: they
+are identity, like the logo; light or dark stays each user's own switch.
+
+- *Closed, not free.* An accent is a whole scale of shades, so buttons,
+  soft backgrounds and their text keep their contrast in light and dark.
+  A colour picker cannot promise that.
+- *Bundled, not fetched.* The typefaces ship with the app
+  (`@fontsource-variable/*`). A web-font service would hand every user's
+  address to a third party on each page; an uploaded font file is a
+  licence and an unvalidated binary.
+- They come down to the CSS variables the design tokens and Nuxt UI
+  already read, written into one `<style>` by the layout. The canvas sets
+  the same variables on itself, so it wears a choice before it is saved.
+
+**Corners and density** (same day) complete the look: `brand.corners`
+(`sharp` | `rounded` | `round`) rescales the radius tokens and Nuxt UI's
+base radius; `brand.density` (`comfortable` | `compact`) shrinks the
+spacing unit every padding, gap and control height is a multiple of.
+Compact is applied **with a mouse only** (`@media (pointer: fine)`): on a
+touch screen it would fight the 44 px tap targets of
+[ADR 0022](0022-touch-adaptation-is-capability-driven.md), so a tablet in
+the same clinic simply stays comfortable.
+
+**Default colour mode** (same day): `brand.color_mode` — `light`, `dark`
+or `system` — is the mode the workspace opens in **for whoever has not
+chosen their own**. It is a default, not a rule: using the light/dark
+switch marks the mode as that person's (a flag in their browser), and
+from then on the clinic's default no longer applies to them there. The
+choice is per browser, as the switch always was.
+
+Not the same thing as a letterhead (ADR 0046): the brand is what the
+people working in the clinic see on screen; a letterhead is what a
+patient receives on paper.
+
 ## How to verify the rule still holds
 
 - `backend/tests/test_app_catalog.py` — the base App cannot be disabled,
@@ -111,6 +163,9 @@ clinic membership, since every member's home page reads it; writing needs
 - `frontend/tests/e2e/settings-apps.spec.ts` — the workspace card comes
   first, marked as the main App and always enabled.
 - `backend/tests/test_home_layout.py`, `frontend/tests/home-layout.test.ts`,
+  `frontend/tests/e2e/settings-workspace-brand.spec.ts` and
+  `backend/tests/test_workspace_brand.py` — the brand set on the canvas is
+  what the sidebar shows, and only an admin changes it.
   `frontend/tests/e2e/settings-home.spec.ts` — the home layout is saved,
   read by everyone, written only by an admin, and drawn as chosen.
 

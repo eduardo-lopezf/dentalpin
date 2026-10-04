@@ -650,6 +650,8 @@ class TreatmentPlanService:
             title=data.get("title"),
             assigned_professional_id=data.get("assigned_professional_id"),
             diagnosis_notes=data.get("diagnosis_notes"),
+            prognosis=data.get("prognosis"),
+            prognosis_notes=data.get("prognosis_notes"),
             internal_notes=data.get("internal_notes"),
             created_by=user_id,
         )

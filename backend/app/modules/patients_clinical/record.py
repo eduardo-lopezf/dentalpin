@@ -20,7 +20,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.record import EntryStatus, RecordEntry, RecordSection, SectionCategory
 
-from .models import Allergy, Medication, SurgicalHistory, SystemicDisease
+from .models import (
+    Allergy,
+    FamilyHistory,
+    HealthQuestionnaire,
+    MedicalContext,
+    Medication,
+    SurgicalHistory,
+    SystemicDisease,
+)
 
 
 def _status(row) -> EntryStatus:
@@ -163,8 +171,124 @@ async def _collect_surgeries(
     ]
 
 
+async def _collect_family(db: AsyncSession, clinic_id: UUID, patient_id: UUID) -> list[RecordEntry]:
+    return [
+        RecordEntry(
+            occurred_at=_occurred_at(row),
+            summary=row.condition,
+            detail={"condition": row.condition, "relative": row.relative, "notes": row.notes},
+            status=_status(row),
+            source_table="patients_clinical_family_history",
+            source_id=row.id,
+            **_attribution(row),
+        )
+        for row in await _rows(db, FamilyHistory, clinic_id, patient_id)
+    ]
+
+
+async def _collect_questionnaires(
+    db: AsyncSession, clinic_id: UUID, patient_id: UUID
+) -> list[RecordEntry]:
+    """What the patient declared at each visit, as they declared it."""
+    return [
+        RecordEntry(
+            occurred_at=row.taken_at,
+            summary=row.chief_complaint or "",
+            detail={
+                "chief_complaint": row.chief_complaint,
+                "blood_type": row.blood_type,
+                "declared_allergies": row.declared_allergies,
+                # Only what was answered "yes": that is what a reader scans for.
+                "affirmative_answers": [
+                    {"question": key, "detail": answer.get("detail")}
+                    for key, answer in (row.answers or {}).items()
+                    if answer.get("answer")
+                ],
+                "declared_conditions": row.conditions,
+                "drugs_detail": row.drugs_detail,
+                "other_conditions": row.other_conditions,
+                "scan_document_id": row.scan_document_id,
+                "on_paper": True if row.scan_document_id else None,
+            },
+            status=_status(row),
+            source_table="patients_clinical_health_questionnaire",
+            source_id=row.id,
+            **_attribution(row),
+        )
+        for row in await _rows(db, HealthQuestionnaire, clinic_id, patient_id)
+    ]
+
+
+_CONTEXT_FIELDS = (
+    "is_pregnant",
+    "pregnancy_week",
+    "is_lactating",
+    "is_on_anticoagulants",
+    "anticoagulant_medication",
+    "inr_value",
+    "last_inr_date",
+    "is_smoker",
+    "smoking_frequency",
+    "alcohol_consumption",
+    "bruxism",
+    "adverse_reactions_to_anesthesia",
+    "anesthesia_reaction_details",
+)
+
+
+async def _collect_context(
+    db: AsyncSession, clinic_id: UUID, patient_id: UUID
+) -> list[RecordEntry]:
+    """Pregnancy, anticoagulants, habits and reactions to anaesthesia.
+
+    One row per patient, overwritten in place: the record can say what it
+    holds today and when it was last touched, not what it said before.
+    """
+    row = (
+        await db.execute(
+            select(MedicalContext).where(
+                MedicalContext.clinic_id == clinic_id,
+                MedicalContext.patient_id == patient_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return []
+    return [
+        RecordEntry(
+            occurred_at=row.last_updated_at or row.updated_at or row.created_at,
+            summary="",
+            detail={name: getattr(row, name) for name in _CONTEXT_FIELDS},
+            recorded_by_user_id=row.last_updated_by,
+            source_table="patients_clinical_medical_context",
+            source_id=row.patient_id,
+        )
+    ]
+
+
 def get_record_sections() -> list[RecordSection]:
     return [
+        RecordSection(
+            name="health_questionnaires",
+            title_key="record.section.health_questionnaires",
+            category=SectionCategory.ANTECEDENTS,
+            collect=_collect_questionnaires,
+            order=1,
+        ),
+        RecordSection(
+            name="family_history",
+            title_key="record.section.family_history",
+            category=SectionCategory.ANTECEDENTS,
+            collect=_collect_family,
+            order=3,
+        ),
+        RecordSection(
+            name="medical_context",
+            title_key="record.section.medical_context",
+            category=SectionCategory.ANTECEDENTS,
+            collect=_collect_context,
+            order=5,
+        ),
         RecordSection(
             name="allergies",
             title_key="record.section.allergies",

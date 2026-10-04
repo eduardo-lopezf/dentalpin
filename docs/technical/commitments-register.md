@@ -65,8 +65,22 @@ entries carry an authoring professional (`pro_0003`, `pc_0003`,
 
 **Remaining.** Emergency contacts and legal guardians are still 1:1 rows
 and still deleted; the contract test that keeps `db.delete()` out of
-clinical tables is not written; and phases 1–4 (composition, disclosure,
-coding, interchange) have not started. The blocking open question is who
+clinical tables is not written; and phases 3–4 (coding, interchange)
+have not started.
+
+**Composition (phase 1) is done as of 2026-10-03.** The `record` module
+composes thirteen sections from eight modules — identification,
+antecedents and medical context, dental chart, periodontal chartings,
+evolution notes, plans and prescriptions, imaging, consents — and the
+patient record has an *Expediente* tab that reads them in order.
+
+**Disclosure (phase 2) is partly done as of 2026-10-03.** The record can
+be printed or handed over, and only by recording to whom, why, on what
+evidence and with which sections; the PDF is kept as it left, with its
+digest, and the disclosure is an entry of the record (ADR 0033, now
+accepted). Still to build: authorisations as structured, time-boxed,
+revocable records (the evidence is free text today), the guardian as
+authoriser, digest chaining, and remote delivery. The blocking open question is who
 supplies clinical authorship when the acting account has no professional
 profile — the column exists, nothing asks for it.
 
@@ -84,8 +98,9 @@ through the existing `retention_reason` contract.
 **Remaining.** The *content* requirements split cleanly: everything a
 dental practice records natively is present (identification, personal
 pathological history, therapeutic indication, evolution notes);
-everything a general medical history carries is absent (family history,
-systems review, prognosis, laboratory results).
+of what a general medical history carries, family history and prognosis
+were added on 2026-10-03; the systems review and laboratory results are
+out of scope by decision.
 
 **Informed consent is no longer missing** (2026-10-03): the `consents`
 module of the Clinical record App holds the *cartas de consentimiento
@@ -95,9 +110,27 @@ the composed record ([ADR 0045](../adr/0045-a-consent-is-a-record-entry.md)).
 
 **Scope decided, 2026-10-03:** the product answers NOM-004 for the
 *dental* record, plus family history and prognosis. The systems review and
-laboratory results of a general *expediente* are out. Family history and
-prognosis are not built yet, and neither is a per-patient check of what
-the norm asks for.
+laboratory results of a general *expediente* are out.
+
+**Built, 2026-10-03:** family history (in the medical history form),
+prognosis (on the treatment plan, editable there), the health
+questionnaire with its chief complaint, vital signs on evolution notes,
+and a per-patient check — ten requirements, shown at the top of the *Expediente* tab — of what the
+record holds and lacks.
+
+**Still open.**
+
+- The check is an engineering reading of the norm, and one of presence
+  only. It needs legal review before a clinic relies on it.
+- "No family history" cannot be recorded as an answer, so a patient with
+  none reads the same as one nobody asked.
+- The health questionnaire is one fixed form (12 questions, 67
+  conditions); a clinic cannot change it. Filled in on paper, its answers
+  stay on the scan — they are not transcribed.
+- A questionnaire and the curated medical history are separate: an allergy
+  the patient declares is not added to their allergies.
+- The patient's signature when a treatment changes is not captured as
+  such; a new consent letter is the way to record it.
 
 ## 3. ASA classification on the patient profile — **Not started**
 
@@ -141,7 +174,10 @@ edited or deleted — only revoked — and appear in the composed record.
 - **The wording is not supplied.** What a letter must say per procedure is
   the clinic's, and needs clinical and legal authorship.
 - **Remote signing** (expiring link with second factor, as budgets have)
-  and a printable PDF are not built.
+  is not built. A letter can be printed, signed by hand and filed as a
+  scan; the printed sheet carries the lines of NOM-004 §10.1.1 (who
+  informs, who accepts, two witnesses, place and date) — an engineering
+  reading, pending legal review.
 - **Guardians** are typed in as the signer; they are not read from
   `patients_clinical_legal_guardian`.
 - The reading of the article is an engineering one, pending legal review.

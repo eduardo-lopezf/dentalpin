@@ -80,6 +80,10 @@ class TreatmentPlan(Base, TimestampMixin):
 
     # Clinical notes
     diagnosis_notes: Mapped[str | None] = mapped_column(Text)
+    #: How the professional expects it to go: ``favorable``, ``reserved``
+    #: or ``unfavorable``, and why. Sits with the diagnosis it follows from.
+    prognosis: Mapped[str | None] = mapped_column(String(20))
+    prognosis_notes: Mapped[str | None] = mapped_column(Text)
     internal_notes: Mapped[str | None] = mapped_column(Text)
 
     # Soft delete

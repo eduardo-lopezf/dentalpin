@@ -44,6 +44,11 @@ class OdontogramModule(BaseModule):
     def get_router(self) -> APIRouter:
         return router
 
+    def get_record_sections(self) -> list:
+        from . import record
+
+        return record.get_record_sections()
+
     def get_subject_contributors(self) -> list:
         from . import privacy
 

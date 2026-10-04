@@ -215,6 +215,13 @@ class PlanQuotes(Protocol):
         ``plan_status`` and ``budget_id``. ``None`` if there is no such plan."""
 
 
+class PatientDocuments(Protocol):
+    async def belongs_to(
+        self, db: AsyncSession, clinic_id: UUID, patient_id: UUID, document_id: UUID
+    ) -> bool:
+        """The document is a live file of this patient in this clinic."""
+
+
 class WorkingHours(Protocol):
     async def professional_states(
         self,

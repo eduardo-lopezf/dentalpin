@@ -129,7 +129,8 @@ whoever looked in the mouth knows more than a rule about it.
    editable. Once you touch it, it stops rewriting itself.
 4. Assign the professional. It is pre-selected when your user is a clinic
    professional.
-5. Diagnosis and internal notes live under **More options**.
+5. Diagnosis notes, the **prognosis** (favourable, guarded or unfavourable,
+   with its reason) and internal notes live under **More options**.
 6. **Create**. `treatment_plan.created` is published, every line is added
    and you land on the detail with the plan built.
 
