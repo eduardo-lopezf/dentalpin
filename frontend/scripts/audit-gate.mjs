@@ -32,6 +32,22 @@ const ALLOWED = {
   // `nitropack` and `node-forge` are absent from `.output/server`.
   'node-forge': 'no published fix (<=1.4.0 is every version); dev-server TLS only, absent from .output',
 
+  // Both arrive under `@nuxt/devtools`, which runs with `nuxi dev` and
+  // nowhere else: verified on 2026-10-06 that `npm run build` ships
+  // neither — `simple-git` is absent from `.output/server/node_modules`.
+  // The advisories are about git executing what its own configuration or
+  // `VISUAL` tells it to, so reaching them means running the dev server
+  // against a repository or environment an attacker already controls.
+  //
+  // The fix is `@nuxt/devtools` 4, which comes with nuxt 4.5.2 — the
+  // upgrade Node 20 blocks (see the `nuxt` entry below). Pinning
+  // `simple-git` forward instead does not work, and that is measured, not
+  // assumed: v4 dropped its default export, `@nuxt/devtools` imports
+  // `Git from 'simple-git'`, and `nuxt prepare` dies with "does not
+  // provide an export named 'default'" — taking dev and build with it.
+  'simple-git': 'dev-only, under @nuxt/devtools; absent from .output; v4 drops the default export devtools imports',
+  '@simple-git/argv-parser': 'same chain: dev-only under @nuxt/devtools, absent from .output',
+
   // Nuxt is pinned to exactly `4.4.5` in package.json, and the reason is
   // Node, not Nuxt: `frontend/Dockerfile` builds on `node:20-alpine`, and
   // 4.4.5 is the last release that supports Node 20 (`^20.19.0 ||

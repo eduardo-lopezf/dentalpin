@@ -49,10 +49,24 @@ jobs:
       # HS256 — decode passes `algorithms=[settings.ALGORITHM]`, so a
       # token cannot talk us onto an EC path — and upstream has published
       # no fixed version, so there is nothing to upgrade to.
+      #
+      # CVE-2026-85394 (python-jose): algorithm confusion — given the
+      # service's *public* key, an attacker can forge an HS256 token by
+      # feeding that key to the HMAC verifier. It needs two things we do
+      # not have. `ALGORITHM` is HS256 with a symmetric `SECRET_KEY`, so
+      # there is no public key to steal; and a verifier only picks the
+      # algorithm from the token header when the caller leaves it free,
+      # while both decode sites pass `algorithms=[settings.ALGORITHM]`.
+      # 3.5.0 is the latest release and is affected — the advisory is the
+      # incomplete fix for CVE-2024-33663 — so there is nothing to
+      # upgrade to. `tests/test_jwt_algorithm_pinning.py` fails if either
+      # condition stops holding, which is what keeps this entry honest.
       - name: Audit Python dependencies
         working-directory: backend
         run: |
-          pip-audit --progress-spinner off --ignore-vuln PYSEC-2026-1325
+          pip-audit --progress-spinner off \
+            --ignore-vuln PYSEC-2026-1325 \
+            --ignore-vuln CVE-2026-85394
 
   npm-advisories:
     runs-on: ubuntu-latest

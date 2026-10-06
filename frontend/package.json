@@ -54,6 +54,10 @@
     "devalue": "^5.9.3",
     "cssnano": "^7.1.9",
     "cssnano-preset-default": "^7.0.17",
-    "postcss-merge-longhand": "^7.0.7"
+    "postcss-merge-longhand": "^7.0.7",
+    "vue": "^3.5.43",
+    "@vue/server-renderer": "^3.5.43",
+    "source-map-js": "^1.2.2",
+    "tinypool": "^2.1.2"
   }
 }

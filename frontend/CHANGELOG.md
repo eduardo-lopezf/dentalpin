@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- fix(security): cuatro avisos nuevos **arreglados**, no justificados.
+  `@vue/server-renderer` sube a 3.5.43 (XSS por un retorno de carro que
+  faltaba en la lista negra de nombres de atributo — es el único de los
+  cuatro que corre en producción), `source-map-js` a 1.2.2, y `tinypool`
+  a 2.2.0, que cierra dos *prototype pollution* con ejecución remota y de
+  paso quita a `vitest` de la lista. El salto de `tinypool` es de versión
+  mayor bajo vitest 3: comprobado con la suite entera, 237 tests en verde.
+- chore(ci): `simple-git` y `@simple-git/argv-parser` pasan a la lista de
+  excepciones de `scripts/audit-gate.mjs`, y `@nuxt/devtools` la hereda.
+  Son de desarrollo —comprobado: `simple-git` no aparece en
+  `.output/server/node_modules`— y su arreglo es `@nuxt/devtools` 4, que
+  llega con nuxt 4.5.2, el salto que Node 20 bloquea. Forzar `simple-git`
+  4 no es alternativa: quitó la exportación por defecto que
+  `@nuxt/devtools` importa, así que `nuxt prepare` muere y se lleva por
+  delante dev y build.
+
 - feat(brand): **logo nuevo** — el diente facetado y el bind-rune dibujados
   con el mismo trazo. El logo anterior tenía un chiste muerto: el punto era
   «el *Pin* de DentalPin», y con el nombre nuevo no significaba nada. La

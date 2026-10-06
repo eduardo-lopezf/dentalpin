@@ -458,7 +458,20 @@ test.describe('touch adaptation', () => {
     // One query, both groups: a template to start from and the loose lines.
     await search.fill('endodoncia')
     await expect(page.getByText('Empezar el plan')).toBeVisible({ timeout: 30_000 })
-    await expect(page.getByText('Tratamientos sueltos')).toBeVisible()
+
+    // The loose treatments come grouped by category, so "Tratamientos
+    // sueltos" is a prefix repeated once per category — three of them for
+    // this query — and matching it as bare text is ambiguous. The heading
+    // carries a testid precisely so a test does not have to guess how many
+    // there will be.
+    const looseGroups = page.getByTestId('search-treatment-group')
+    await expect(looseGroups.first()).toBeVisible()
+    for (const heading of await looseGroups.allInnerTexts()) {
+      // Case-insensitive: `.group-title` is uppercased in CSS, and
+      // `allInnerTexts` reads what is rendered, not what is written.
+      expect(heading).toMatch(/^Tratamientos sueltos · /i)
+    }
+
     expect(await page.locator('.treatment-row').count()).toBeGreaterThan(1)
 
     expect(

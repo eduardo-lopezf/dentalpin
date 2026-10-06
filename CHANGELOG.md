@@ -165,6 +165,17 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Changed
 
+- **`python-jose` CVE-2026-85394 queda documentado y acotado.** Es
+  confusión de algoritmo: con la clave *pública* del servicio se puede
+  falsificar un token HS256 si el verificador elige el algoritmo que dice
+  la cabecera. Ninguna de las dos condiciones se da — `ALGORITHM` es HS256
+  con `SECRET_KEY` simétrica, así que no hay clave pública, y los dos
+  `jwt.decode` pasan `algorithms=[settings.ALGORITHM]` —, y 3.5.0 es la
+  última publicada y está afectada, así que no hay a dónde subir. La
+  auditoría lo ignora con esa razón y
+  `tests/test_jwt_algorithm_pinning.py` falla el día que una de las dos
+  deje de ser cierta.
+
 - **New logo.** The old mark's idea was a pun that died with the rename —
   its dot was "the *Pin* in DentalPin". The new one draws a faceted tooth
   and the Hagall+Bjarkan bind-rune in a single uniform stroke, so they read
