@@ -29,7 +29,7 @@ nav are generated from the `/docs` filesystem at build time
 
 The `Dockerfile` is a multi-stage build:
 
-1. **Builder** — Node 20 Alpine, runs `npm ci` and `npm run build` from the
+1. **Builder** — Node 24 Alpine, runs `npm ci` and `npm run build` from the
    repository root context (so it can see `/docs` content).
 2. **Runtime** — `nginx:alpine` serving `/usr/share/nginx/html` over `:80`,
    with `nginx.conf` configured for clean URLs and CORS for the in-app help

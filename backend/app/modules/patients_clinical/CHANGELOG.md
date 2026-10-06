@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- fix(types): la tarjeta de antecedentes del Resumen usaba `a.id` como
+  `key` de las alergias, y `AllergyEntry` no tiene `id`: todas las filas
+  compartían una clave `undefined`. Pasa a usar el índice, como el
+  formulario. Estaba en la base del typecheck.
+
 - feat(patients_clinical): el cuestionario de salud en blanco lleva el
   **membrete del profesional que lo imprime** o, si no tiene uno propio,
   el de la clínica (`app.core.letterhead`, ADR 0046).

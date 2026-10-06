@@ -1,6 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { Plugin } from 'vite'
 
 /**
  * Load Nuxt Layer paths from `modules.json`.
@@ -32,6 +33,24 @@ function loadModuleLayers(): string[] {
 
 const moduleLayers = loadModuleLayers()
 const modulesJsonPath = resolve(__dirname, process.env.DIENTEAZUL_MODULES_JSON ?? 'modules.json')
+
+// Nuxt 4.6 hands Vite's dependency scanner the components that modules
+// register from `node_modules`. `@nuxtjs/i18n`'s `NuxtLinkLocale` imports
+// `#components`, a Nuxt alias its own package.json does not declare, and
+// Vite 8's scanner gives up on the whole scan: "Missing "#components"
+// specifier in "@nuxtjs/i18n" package … Skipping dependency pre-bundling".
+// Nothing behind that alias is a dependency to pre-bundle, so the scan
+// steps over it. Vite passes `scan: true` to `resolveId` only while
+// scanning; the hook's public type leaves the flag out, hence the cast.
+const scanSkipsNuxtComponentsAlias: Plugin = {
+  name: 'dienteazul:scan-skips-nuxt-components-alias',
+  enforce: 'pre',
+  resolveId(id, _importer, options) {
+    if ((options as { scan?: boolean }).scan && id === '#components') {
+      return { id, external: true }
+    }
+  }
+}
 
 export default defineNuxtConfig({
 
@@ -136,6 +155,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-15',
 
   vite: {
+    plugins: [scanSkipsNuxtComponentsAlias],
     optimizeDeps: {
       // Pre-bundle deps that Vite otherwise discovers at runtime. Runtime
       // discovery triggers a full page reload, which in CI races Playwright's
@@ -165,7 +185,6 @@ export default defineNuxtConfig({
       { code: 'es', name: 'Español', file: 'es.json' }
     ],
     defaultLocale: 'es',
-    lazy: true,
     langDir: 'locales',
     strategy: 'no_prefix',
     detectBrowserLanguage: false

@@ -14,9 +14,25 @@ mockNuxtImport('useRouter', () => {
     push: routerPush.mockResolvedValue(undefined),
     // An ended session carries the page it ended on to the login screen,
     // so the stub needs somewhere to have been.
-    currentRoute: { value: { fullPath: '/patients?page=2' } }
+    currentRoute: { value: { fullPath: '/patients?page=2' } },
+    // Nuxt's own plugins and `@nuxt/test-utils` 4 register guards on
+    // whatever `useRouter()` returns while the test app boots, so a stub
+    // without them fails the whole file before any test runs.
+    afterEach: vi.fn(),
+    beforeResolve: vi.fn()
   })
 })
+
+// Nuxt 4.6 auto-imports `$fetch` from a generated module instead of reading
+// it off the global, so `vi.stubGlobal('$fetch', …)` replaces something the
+// composable no longer calls — the request went to the real network and the
+// "backend unreachable" case passed for the wrong reason. Wrapping the
+// import keeps the real one as the default; `mockReset()` returns to it.
+mockNuxtImport('$fetch', original => vi.fn(original))
+
+async function mockedFetch() {
+  return vi.mocked((await import('#imports')).$fetch)
+}
 
 describe('useAuth composable', () => {
   describe('initialization', () => {
@@ -97,14 +113,15 @@ describe('useAuth composable', () => {
 
       // A DNS or connection failure carries no statusCode — exactly what SSR
       // saw when it could not resolve the API host.
-      vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(new Error('fetch failed')))
+      const fetchMock = await mockedFetch()
+      fetchMock.mockRejectedValue(new Error('fetch failed'))
 
       const auth = useAuth()
       await auth.init()
 
       expect(auth.accessToken.value).toBe('access-token')
 
-      vi.unstubAllGlobals()
+      fetchMock.mockReset()
     })
 
     it('init() ends the session when the backend rejects it with 401', async () => {
@@ -113,7 +130,8 @@ describe('useAuth composable', () => {
       document.cookie = 'refresh_token=refresh-token'
 
       const unauthorized = Object.assign(new Error('Unauthorized'), { statusCode: 401 })
-      vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(unauthorized))
+      const fetchMock = await mockedFetch()
+      fetchMock.mockRejectedValue(unauthorized)
 
       const auth = useAuth()
       await auth.init()
@@ -125,7 +143,7 @@ describe('useAuth composable', () => {
         query: { redirect: '/patients?page=2', reason: 'expired' }
       })
 
-      vi.unstubAllGlobals()
+      fetchMock.mockReset()
     })
 
     // The token that failed to reach the server may well be unspent. Refusing
@@ -137,7 +155,8 @@ describe('useAuth composable', () => {
       document.cookie = 'refresh_token=unspent-refresh'
 
       const user = { id: 'u1', email: 'a@b.c', first_name: 'A', last_name: 'B' }
-      const fetchMock = vi.fn()
+      const fetchMock = await mockedFetch()
+      fetchMock
         .mockRejectedValueOnce(new Error('fetch failed'))
         .mockResolvedValueOnce({
           access_token: 'new-access',
@@ -146,7 +165,6 @@ describe('useAuth composable', () => {
           clinics: []
         })
         .mockResolvedValueOnce({ data: { user, permissions: [], clinics: [] } })
-      vi.stubGlobal('$fetch', fetchMock)
 
       const auth = useAuth()
       await expect(auth.refresh()).rejects.toThrow('fetch failed')
@@ -156,7 +174,7 @@ describe('useAuth composable', () => {
       const refreshCalls = fetchMock.mock.calls.filter(([url]) => url === '/api/v1/auth/refresh')
       expect(refreshCalls).toHaveLength(2)
 
-      vi.unstubAllGlobals()
+      fetchMock.mockReset()
     })
   })
 })

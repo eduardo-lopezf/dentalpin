@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- fix(types): `ToothTooltip.vue` usaba un tipo `Treatment` que nunca
+  importó; lo que agrupa y emite son `ToothTreatmentView`. Estaba en la
+  base del typecheck como «Cannot find name 'Treatment'» y con Nuxt 4.6
+  pasó a resolverse contra el `Treatment` del host, que es otro tipo.
+
 - feat(odontogram): aporta al expediente clínico la sección **Odontograma** (`record.py`): cada hallazgo y tratamiento registrado, con sus dientes y superficies. Los retirados quedan como anulados.
 
 - fix(odontogram): `TreatmentService.update` limpia `performed_at` y

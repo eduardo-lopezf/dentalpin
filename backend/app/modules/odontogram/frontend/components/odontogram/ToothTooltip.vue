@@ -42,7 +42,7 @@ function getToothName(toothNumber: number): string {
 
 // Group treatments by status
 const groupedTreatments = computed(() => {
-  const groups: Record<TreatmentStatus, Treatment[]> = {
+  const groups: Record<TreatmentStatus, ToothTreatmentView[]> = {
     planned: [],
     existing: []
   }
@@ -70,7 +70,7 @@ function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString()
 }
 
-function handleEditClick(event: Event, treatment: Treatment) {
+function handleEditClick(event: Event, treatment: ToothTreatmentView) {
   event.stopPropagation()
   event.preventDefault()
   emit('editTreatment', treatment)

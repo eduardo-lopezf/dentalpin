@@ -1,0 +1,13 @@
+# `frontend/Dockerfile` is built with this directory as its context and
+# ends in `COPY . .`. Without this file a host `node_modules` lands on top
+# of the one the image has just installed: the two merge, and when their
+# versions differ the build dies on a half-old tree (seen moving Nuxt
+# 4.4.5 → 4.6.0: "@jridgewell/sourcemap-codec does not provide an export
+# named 'encodeRangeMappings'"). The build directories are the dev
+# server's and the gates' own, never the image's.
+node_modules
+.nuxt
+.nuxt-test
+.nuxt-typecheck
+.output
+test-results

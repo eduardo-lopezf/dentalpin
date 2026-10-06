@@ -4,13 +4,13 @@
  * `/__nuxt_island/**` is registered by Nuxt in every build — the route is
  * in `.output/server/chunks/nitro/nitro.mjs` even though this codebase
  * has no `.server.vue` component and renders no island. Three of the
- * advisories open against Nuxt 4.4 are reached through that endpoint
+ * advisories opened against Nuxt 4.4 were reached through that endpoint
  * alone: remote code execution via runtime template injection in island
  * props, an unauthenticated out-of-memory crash through unbounded `v-for`
  * expansion, and CPU exhaustion hashing the request body before the hash
- * is validated. All three are fixed in 4.5.1, which this project cannot
- * take yet (4.5 needs `@nuxtjs/i18n` v10, whose test tooling needs
- * vitest 4, which does not build here — see `scripts/audit-gate.mjs`).
+ * is validated. All three are fixed in 4.5.1 and this project is on 4.6.0,
+ * so this is no longer what stands between a request and those bugs. It
+ * stays because the endpoint is still mounted and still not ours.
  *
  * "We render no islands" was the old reason for not worrying, and it was
  * not enough: the handler is mounted regardless of what the app renders.

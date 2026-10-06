@@ -2,6 +2,81 @@
 
 ## Unreleased
 
+- chore(deps): `allowScripts` en `package.json`. npm 11 avisa de cada
+  dependencia que ejecuta un script al instalarse sin estar aprobada, y
+  su documentación ya anuncia que pasará a bloquearlas. Quedan aprobadas,
+  fijadas por versión, las siete que lo hacen aquí: `esbuild` (0.25.12,
+  0.27.7, 0.28.2), `unrs-resolver`, `vue-demi` y `fsevents` (2.3.2, 2.3.3;
+  solo se instala en macOS). Al estar fijadas, una versión nueva de
+  cualquiera vuelve a avisar hasta que se apruebe con `npm approve-scripts
+  <paquete>` desde `frontend/`. No correr `prune` desde un contenedor:
+  quitaría las de `fsevents`, que en Linux no están instaladas.
+- chore(deps): fuera cuatro `overrides` que ya no hacían su trabajo.
+  `cssnano`, `cssnano-preset-default` y `postcss-merge-longhand` estaban
+  fijados en la línea 7 porque la 8 no corría en Node 20; con Node 24 esa
+  razón desapareció y el pin había pasado a estorbar — el builder de Nuxt
+  4.6 pide `cssnano` `^9.2.2` y recibía la 7.1.9, dos mayores por debajo.
+  Ahora resuelve a 9.3.2. `tinypool` no fijaba nada: vitest 4 ya no lo
+  usa y no queda en el árbol. Comprobado con la batería entera y con
+  `npm run build`: el CSS generado pesa lo mismo (345 134 bytes en 36
+  archivos, frente a 345 416).
+- chore(deps): **Nuxt 4.6.0** (sigue fijada exacta, para que el `npm
+  install` de CI no la mueva sola). Cierra los avisos propios de Nuxt
+  —los tres de islands, el de la caché de payload y el de `routeRules`
+  con mayúsculas— y `nuxt` sale de la lista de `scripts/audit-gate.mjs`.
+  **No** cierra los de `simple-git`: la lista decía que su arreglo,
+  `@nuxt/devtools` 4, llegaba con nuxt 4.5.2, y no es así — 4.6.0 sigue
+  dependiendo de `@nuxt/devtools` `^3.4.2` y la 4 solo existe como beta.
+  El salto arrastra Vite 8, y con él tres mayores que no se pueden dejar
+  atrás: `@nuxtjs/i18n` 10 (la 9 no compila con Vite 8: es el bisect ya
+  anotado en el CHANGELOG raíz, no se repitió aquí), `vitest` 4 y
+  `@nuxt/test-utils` 4 (vitest 3 solo admite hasta Vite 7 y dejaba dos
+  Vite en el árbol). Lo que hubo que tocar por ello:
+  - `nuxt.config.ts`: fuera `i18n.lazy`, que i18n 10 retira (carga
+    perezosa siempre). Y un plugin de Vite de seis líneas: Nuxt 4.6 pasa
+    al escáner de dependencias los componentes que los módulos registran
+    desde `node_modules`, el `NuxtLinkLocale` de i18n importa
+    `#components`, y el escáner de Vite 8 aborta entero — el servidor de
+    desarrollo arrancaba con 4 dependencias preempaquetadas en vez de 48.
+  - `vitest.config.ts`: `@nuxt/test-utils` 4 arranca la app en el
+    `beforeAll` de cada archivo. `hookTimeout` sube a 120 s (con los 10 s
+    por defecto fallaban los 23 archivos sin correr un test) y
+    `testTimeout` a 30 s (el primer montaje de un archivo llegó a 6,5 s).
+    `tests/setup.ts` sustituye `nprogress`, cuyo temporizador saltaba con
+    el DOM ya desmontado y tumbaba la ejecución con todo en verde.
+  - `tests/composables/useAuth.test.ts`: Nuxt 4.6 autoimporta `$fetch`
+    desde un módulo generado en vez de leer la global, así que
+    `vi.stubGlobal('$fetch', …)` ya no interceptaba nada y la petición
+    salía a la red — el caso «backend inalcanzable» pasaba por el motivo
+    equivocado. Ahora envuelve el import con `mockNuxtImport`.
+  - Tres errores de tipos que la base ya conocía cambian de forma con el
+    toolchain nuevo y se **arreglan** en vez de volver a congelarse:
+    `locale.client.ts` acota el idioma guardado a los soportados, y los
+    otros dos están en `odontogram` y `patients_clinical`. La base baja de
+    164 a 159.
+  - `frontend/.dockerignore`, que no existía: `COPY . .` metía el
+    `node_modules` del host encima del recién instalado. Con las dos
+    versiones iguales no se notaba; al diferir, el build de la imagen
+    moría a los 4 s. De paso la imagen baja de 1,87 GB a 1,21 GB.
+  - `server/middleware/no-island-endpoint.ts` se queda: ya no es lo que
+    separa una petición de esos fallos, pero el endpoint sigue montado y
+    sigue sin ser nuestro.
+
+  Comprobado sobre `node:24-alpine`: lint sin errores, typecheck sin
+  errores nuevos, 237 tests en verde sin errores sueltos, `npm run build`
+  y la puerta de `npm audit`.
+- chore(node): **Node 24** en las imágenes y en CI. Node 20 dejó de
+  recibir parches en abril de 2026. `frontend/Dockerfile`,
+  `frontend/Dockerfile.prod` y `docs/portal/Dockerfile` pasan de
+  `node:20-alpine` a `node:24-alpine`, y los jobs de `ci.yml` y
+  `security-audit.yml`, que mezclaban 20 y 22, a 24. Nuxt **sigue en
+  4.4.5**, que admite Node 24: su salto va aparte, para poder distinguir
+  una regresión suya de una del cambio de Node. Comprobado sobre
+  `node:24-alpine` con la misma copia de `HEAD` que en `node:20-alpine`:
+  typecheck sin errores nuevos y 237 tests en verde en las dos, y el
+  portal de docs construye. El lint solo pasa en 24 — en Node 20 ESLint 10
+  muere con `Object.groupBy is not a function`, que es por lo que ese job
+  ya vivía en 22.
 - fix(security): cuatro avisos nuevos **arreglados**, no justificados.
   `@vue/server-renderer` sube a 3.5.43 (XSS por un retorno de carro que
   faltaba en la lista negra de nombres de atributo — es el único de los

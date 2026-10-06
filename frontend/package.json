@@ -24,25 +24,25 @@
     "@fontsource-variable/source-sans-3": "^5.3.0",
     "@iconify-json/lucide": "^1.2.98",
     "@nuxt/ui": "^4.5.1",
-    "@nuxtjs/i18n": "^9.5.0",
+    "@nuxtjs/i18n": "^10.6.0",
     "@types/nprogress": "^0.2.3",
     "isomorphic-dompurify": "^3.16.0",
     "marked": "^18.0.5",
     "nprogress": "^0.2.0",
-    "nuxt": "4.4.5",
+    "nuxt": "4.6.0",
     "tailwindcss": "^4.2.1",
     "vue-draggable-plus": "^0.6.1"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.15.2",
-    "@nuxt/test-utils": "^3.17.0",
+    "@nuxt/test-utils": "^4.3.3",
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.5.0",
     "@vue/test-utils": "^2.4.6",
     "eslint": "^10.0.3",
     "happy-dom": "^20.8.9",
     "typescript": "^5.9.3",
-    "vitest": "^3.1.0",
+    "vitest": "^4.1.11",
     "vue-tsc": "^3.2.5"
   },
   "overrides": {
@@ -52,12 +52,17 @@
     "svgo": "^4.1.0",
     "undici": "^7.29.1",
     "devalue": "^5.9.3",
-    "cssnano": "^7.1.9",
-    "cssnano-preset-default": "^7.0.17",
-    "postcss-merge-longhand": "^7.0.7",
     "vue": "^3.5.43",
     "@vue/server-renderer": "^3.5.43",
-    "source-map-js": "^1.2.2",
-    "tinypool": "^2.1.2"
+    "source-map-js": "^1.2.2"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true,
+    "esbuild@0.27.7": true,
+    "unrs-resolver@1.12.2": true,
+    "vue-demi@0.14.10": true,
+    "fsevents@2.3.2": true,
+    "fsevents@2.3.3": true
   }
 }

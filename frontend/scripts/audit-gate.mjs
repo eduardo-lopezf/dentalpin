@@ -39,41 +39,19 @@ const ALLOWED = {
   // `VISUAL` tells it to, so reaching them means running the dev server
   // against a repository or environment an attacker already controls.
   //
-  // The fix is `@nuxt/devtools` 4, which comes with nuxt 4.5.2 — the
-  // upgrade Node 20 blocks (see the `nuxt` entry below). Pinning
-  // `simple-git` forward instead does not work, and that is measured, not
-  // assumed: v4 dropped its default export, `@nuxt/devtools` imports
-  // `Git from 'simple-git'`, and `nuxt prepare` dies with "does not
-  // provide an export named 'default'" — taking dev and build with it.
+  // The fix is `@nuxt/devtools` 4, and it is not reachable yet. This
+  // comment used to say it came with nuxt 4.5.2; it does not — nuxt 4.6.0
+  // still depends on `@nuxt/devtools` `^3.4.2`, and 4 is only published as
+  // `4.0.0-beta.4` (checked on 2026-10-06). Pinning `simple-git` forward
+  // instead does not work, and that is measured, not assumed: v4 dropped
+  // its default export, `@nuxt/devtools` imports `Git from 'simple-git'`,
+  // and `nuxt prepare` dies with "does not provide an export named
+  // 'default'" — taking dev and build with it.
+  //
+  // `nuxt` itself needs no entry since 4.6.0: its own advisories are
+  // closed, and it is listed only through this chain and `node-forge`.
   'simple-git': 'dev-only, under @nuxt/devtools; absent from .output; v4 drops the default export devtools imports',
-  '@simple-git/argv-parser': 'same chain: dev-only under @nuxt/devtools, absent from .output',
-
-  // Nuxt is pinned to exactly `4.4.5` in package.json, and the reason is
-  // Node, not Nuxt: `frontend/Dockerfile` builds on `node:20-alpine`, and
-  // 4.4.5 is the last release that supports Node 20 (`^20.19.0 ||
-  // >=22.12.0`). Every later one — 4.4.6 through 4.5.x — requires
-  // `^22.12.0 || ^24.11.0 || >=26.0.0`. The pin is also what stops CI's
-  // `npm install` walking the dependency forward on its own, which is how
-  // `cssnano` 8 (Node 22+) got in and took the test job down with
-  // `trustedFunctions.difference is not a function`.
-  //
-  // So the fixes for these live behind a Node upgrade. What is left at
-  // 4.4.5, and why each one is survivable meanwhile:
-  //
-  // - Three island advisories (RCE via island props, unauthenticated OOM,
-  //   CPU exhaustion before hash validation). `server/middleware/
-  //   no-island-endpoint.ts` answers 404 on `/__nuxt_island/**`. This is
-  //   not the old "we render no islands" claim, which was wrong: the
-  //   route is mounted in every build, and before that middleware the
-  //   built server answered 204 to `/__nuxt_island/Foo:1234.json`.
-  // - Payload cache discloses another user's SSR data: only for pages
-  //   covered by a `routeRules` `cache`/`swr`/`isr` directive. This app's
-  //   `routeRules` set response headers and nothing else.
-  // - Route rules dropped for mixed-case paths: it bypasses
-  //   `appMiddleware` gates, which this app does not put in `routeRules`.
-  //   The headers on `/p/**` are what a mixed-case URL would skip —
-  //   narrow, and tracked rather than hidden.
-  'nuxt': 'pinned to 4.4.5, the last release supporting the node:20 base image; island endpoint closed by server middleware, no cached routeRules'
+  '@simple-git/argv-parser': 'same chain: dev-only under @nuxt/devtools, absent from .output'
 }
 
 const FAIL_AT = new Set(['high', 'critical'])

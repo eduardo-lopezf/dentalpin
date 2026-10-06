@@ -88,8 +88,8 @@ const isEmpty = computed(() =>
         </div>
         <ul class="pl-5 text-muted">
           <li
-            v-for="a in topAllergies"
-            :key="a.id"
+            v-for="(a, index) in topAllergies"
+            :key="index"
             class="truncate"
           >
             · {{ a.name }}

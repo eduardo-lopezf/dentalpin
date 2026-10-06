@@ -16,7 +16,7 @@
 #   - TLS:               Coolify (Let's Encrypt)
 
 # ---- Builder ----------------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /build
 
 # Copy the entire docs tree so VitePress can read it.
