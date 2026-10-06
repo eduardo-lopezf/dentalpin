@@ -1,0 +1,983 @@
+{
+  "key": "general",
+  "names": {
+    "es": "Odontología General",
+    "en": "General Dentistry"
+  },
+  "baseline": true,
+  "subareas": [
+    {
+      "key": "diagnostico",
+      "names": {
+        "es": "Diagnóstico",
+        "en": "Diagnosis"
+      }
+    },
+    {
+      "key": "urgencias",
+      "names": {
+        "es": "Urgencias",
+        "en": "Emergencies"
+      }
+    },
+    {
+      "key": "operatoria",
+      "names": {
+        "es": "Operatoria dental",
+        "en": "Operative dentistry"
+      }
+    },
+    {
+      "key": "oclusion",
+      "names": {
+        "es": "Oclusión",
+        "en": "Occlusion"
+      }
+    },
+    {
+      "key": "anestesia",
+      "names": {
+        "es": "Anestesia y sedación",
+        "en": "Anaesthesia and sedation"
+      }
+    },
+    {
+      "key": "documentos",
+      "names": {
+        "es": "Informes y certificados",
+        "en": "Reports and certificates"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "DX-VISIT",
+      "names": {
+        "es": "Primera Visita",
+        "en": "First Visit"
+      },
+      "descriptions": {
+        "es": "Consulta inicial con exploración y diagnóstico",
+        "en": "Initial consultation with examination and diagnosis"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 30,
+      "is_diagnostic": false,
+      "requires_surfaces": false,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-REVIEW",
+      "names": {
+        "es": "Revisión",
+        "en": "Follow-up"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-RXPA",
+      "names": {
+        "es": "Radiografía Periapical",
+        "en": "Periapical X-Ray"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general",
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "tooth",
+      "price": "15.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-RXPAN",
+      "names": {
+        "es": "Radiografía Panorámica",
+        "en": "Panoramic X-Ray"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general",
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-CBCT",
+      "names": {
+        "es": "CBCT (TAC 3D)",
+        "en": "CBCT (3D Scan)"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general",
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-STUDY",
+      "names": {
+        "es": "Estudio Ortodóncico",
+        "en": "Orthodontic Study"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-PHOTO",
+      "names": {
+        "es": "Fotografías intraorales",
+        "en": "Intraoral Photos"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-2ND-OPINION",
+      "names": {
+        "es": "Segunda opinión",
+        "en": "Second opinion"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-TELE",
+      "names": {
+        "es": "Telerradiografía lateral",
+        "en": "Lateral cephalogram"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-CONS",
+      "names": {
+        "es": "Consulta de valoración",
+        "en": "Assessment consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-CARIES-RISK",
+      "names": {
+        "es": "Evaluación de riesgo de caries",
+        "en": "Caries risk assessment"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-PLAN",
+      "names": {
+        "es": "Presentación del plan de tratamiento",
+        "en": "Treatment plan presentation"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-TELECONS",
+      "names": {
+        "es": "Teleconsulta",
+        "en": "Teleconsultation"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-URGENT",
+      "names": {
+        "es": "Visita de urgencia",
+        "en": "Emergency visit"
+      },
+      "category": "diagnostico",
+      "subarea": "urgencias",
+      "specialties": [
+        "general"
+      ],
+      "phase": "urgencia",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GEN-TRAUMA-SPLINT",
+      "names": {
+        "es": "Ferulización por traumatismo dental",
+        "en": "Splinting after dental trauma"
+      },
+      "category": "restauradora",
+      "subarea": "urgencias",
+      "specialties": [
+        "general"
+      ],
+      "phase": "urgencia",
+      "scope": "multi_tooth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GEN-REIMPLANT",
+      "names": {
+        "es": "Reimplante de diente avulsionado",
+        "en": "Replantation of an avulsed tooth"
+      },
+      "category": "cirugia",
+      "subarea": "urgencias",
+      "specialties": [
+        "general"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "150.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GEN-FRACT-BOND",
+      "names": {
+        "es": "Adhesión de fragmento dentario",
+        "en": "Reattachment of a tooth fragment"
+      },
+      "category": "restauradora",
+      "subarea": "urgencias",
+      "specialties": [
+        "general"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GEN-PERICOR",
+      "names": {
+        "es": "Tratamiento de pericoronaritis",
+        "en": "Pericoronitis treatment"
+      },
+      "category": "cirugia",
+      "subarea": "urgencias",
+      "specialties": [
+        "general"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GEN-PAIN",
+      "names": {
+        "es": "Tratamiento paliativo del dolor dental",
+        "en": "Palliative treatment of dental pain"
+      },
+      "category": "restauradora",
+      "subarea": "urgencias",
+      "specialties": [
+        "general"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "45.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-COMP",
+      "names": {
+        "es": "Obturación composite",
+        "en": "Composite filling"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 45,
+      "requires_surfaces": true,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_surface",
+      "surface_prices": {
+        "1": "60.00",
+        "2": "85.00",
+        "3": "110.00",
+        "4": "125.00",
+        "5": "135.00"
+      },
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#3B82F6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#3B82F6"
+      }
+    },
+    {
+      "code": "REST-AMAL",
+      "names": {
+        "es": "Obturación amalgama",
+        "en": "Amalgam filling"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "55.00",
+      "minutes": 45,
+      "requires_surfaces": true,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_surface",
+      "surface_prices": {
+        "1": "55.00",
+        "2": "75.00",
+        "3": "95.00",
+        "4": "110.00",
+        "5": "120.00"
+      },
+      "odontogram_treatment_type": "filling_amalgam",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#6B7280",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#6B7280"
+      }
+    },
+    {
+      "code": "REST-TEMP",
+      "names": {
+        "es": "Obturación temporal",
+        "en": "Temporary filling"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "40.00",
+      "minutes": 20,
+      "requires_surfaces": true,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_temporary",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#FBBF24",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FBBF24"
+      }
+    },
+    {
+      "code": "REST-RECONSTR",
+      "names": {
+        "es": "Reconstrucción amplia con composite",
+        "en": "Large composite reconstruction"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "160.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "REST-FILL-REPAIR",
+      "names": {
+        "es": "Reparación de obturación",
+        "en": "Filling repair"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "55.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#3B82F6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#3B82F6"
+      }
+    },
+    {
+      "code": "REST-GIC",
+      "names": {
+        "es": "Obturación de ionómero de vidrio",
+        "en": "Glass ionomer filling"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "REST-CERV",
+      "names": {
+        "es": "Restauración cervical (clase V)",
+        "en": "Cervical restoration (class V)"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "65.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "REST-CORE",
+      "names": {
+        "es": "Reconstrucción de muñón",
+        "en": "Core build-up"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "REST-PIN",
+      "names": {
+        "es": "Reconstrucción con pines",
+        "en": "Pin-retained restoration"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "110.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "REST-AMAL-REMOVE",
+      "names": {
+        "es": "Retirada de amalgama con aislamiento",
+        "en": "Amalgam removal under isolation"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "70.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "REST-INDIRECT-CAP",
+      "names": {
+        "es": "Recubrimiento pulpar indirecto",
+        "en": "Indirect pulp cap"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "35.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-DIRECT-CAP",
+      "names": {
+        "es": "Recubrimiento pulpar directo",
+        "en": "Direct pulp cap"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "45.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-POLISH",
+      "names": {
+        "es": "Pulido de restauraciones",
+        "en": "Polishing of restorations"
+      },
+      "category": "restauradora",
+      "subarea": "operatoria",
+      "specialties": [
+        "general"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-SPLINT-OCC",
+      "names": {
+        "es": "Férula de descarga",
+        "en": "Occlusal splint"
+      },
+      "category": "restauradora",
+      "subarea": "oclusion",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_arch",
+      "price": "220.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "splint",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "splint",
+          "color": "#3B82F6"
+        }
+      ],
+      "visualization_config": {
+        "color": "#3B82F6"
+      }
+    },
+    {
+      "code": "REST-OCC-ANALYSIS",
+      "names": {
+        "es": "Análisis oclusal",
+        "en": "Occlusal analysis"
+      },
+      "category": "diagnostico",
+      "subarea": "oclusion",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-SELECT-GRIND",
+      "names": {
+        "es": "Tallado selectivo",
+        "en": "Selective grinding"
+      },
+      "category": "restauradora",
+      "subarea": "oclusion",
+      "specialties": [
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-SPLINT-OCC-ADJ",
+      "names": {
+        "es": "Ajuste de férula de descarga",
+        "en": "Occlusal splint adjustment"
+      },
+      "category": "restauradora",
+      "subarea": "oclusion",
+      "specialties": [
+        "general"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GEN-SED-N2O",
+      "names": {
+        "es": "Sedación consciente con óxido nitroso",
+        "en": "Conscious sedation with nitrous oxide"
+      },
+      "category": "cirugia",
+      "subarea": "anestesia",
+      "specialties": [
+        "general",
+        "cirugia",
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GEN-SED-ORAL",
+      "names": {
+        "es": "Sedación oral",
+        "en": "Oral sedation"
+      },
+      "category": "cirugia",
+      "subarea": "anestesia",
+      "specialties": [
+        "general",
+        "cirugia",
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GEN-SED-IV",
+      "names": {
+        "es": "Sedación intravenosa (con anestesista)",
+        "en": "Intravenous sedation (with an anaesthetist)"
+      },
+      "category": "cirugia",
+      "subarea": "anestesia",
+      "specialties": [
+        "general",
+        "cirugia",
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "350.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GEN-GA",
+      "names": {
+        "es": "Tratamiento bajo anestesia general",
+        "en": "Treatment under general anaesthesia"
+      },
+      "category": "cirugia",
+      "subarea": "anestesia",
+      "specialties": [
+        "general",
+        "cirugia",
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "900.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-REPORT",
+      "names": {
+        "es": "Informe clínico",
+        "en": "Clinical report"
+      },
+      "category": "diagnostico",
+      "subarea": "documentos",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-CERT",
+      "names": {
+        "es": "Certificado odontológico",
+        "en": "Dental certificate"
+      },
+      "category": "diagnostico",
+      "subarea": "documentos",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DX-REFERRAL",
+      "names": {
+        "es": "Informe de derivación a especialista",
+        "en": "Referral letter to a specialist"
+      },
+      "category": "diagnostico",
+      "subarea": "documentos",
+      "specialties": [
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

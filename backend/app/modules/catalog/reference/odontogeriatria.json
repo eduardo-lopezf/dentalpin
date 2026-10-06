@@ -1,0 +1,782 @@
+{
+  "key": "odontogeriatria",
+  "names": {
+    "es": "Odontogeriatría",
+    "en": "Geriatric Dentistry"
+  },
+  "baseline": false,
+  "subareas": [
+    {
+      "key": "valoracion",
+      "names": {
+        "es": "Valoración y seguimiento",
+        "en": "Assessment and follow-up"
+      }
+    },
+    {
+      "key": "prevencion",
+      "names": {
+        "es": "Prevención",
+        "en": "Prevention"
+      }
+    },
+    {
+      "key": "restauradora",
+      "names": {
+        "es": "Restauradora",
+        "en": "Restorative"
+      }
+    },
+    {
+      "key": "cirugia",
+      "names": {
+        "es": "Cirugía menor",
+        "en": "Minor surgery"
+      }
+    },
+    {
+      "key": "protesis",
+      "names": {
+        "es": "Cuidado de prótesis",
+        "en": "Denture care"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "GER-ASSESS",
+      "names": {
+        "es": "Valoración oral geriátrica integral",
+        "en": "Comprehensive geriatric oral assessment"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-HOME",
+      "names": {
+        "es": "Atención odontológica a domicilio",
+        "en": "Domiciliary dental care"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-FOLLOW",
+      "names": {
+        "es": "Revisión periódica geriátrica",
+        "en": "Periodic geriatric review"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-CARE-PLAN",
+      "names": {
+        "es": "Plan de cuidados orales individualizado",
+        "en": "Individual oral care plan"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-SELF-CARE",
+      "names": {
+        "es": "Valoración de capacidad de autocuidado",
+        "en": "Self-care capacity assessment"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-POLYPHARM",
+      "names": {
+        "es": "Revisión de medicación con efecto oral",
+        "en": "Review of medication with oral effects"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-NUTRITION",
+      "names": {
+        "es": "Valoración de masticación y nutrición",
+        "en": "Chewing and nutrition assessment"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-DYSPHAGIA",
+      "names": {
+        "es": "Cribado de disfagia",
+        "en": "Dysphagia screening"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-LESION-SCREEN",
+      "names": {
+        "es": "Cribado de lesiones orales en el mayor",
+        "en": "Oral lesion screening in older adults"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-RESIDENCE",
+      "names": {
+        "es": "Atención odontológica en residencia",
+        "en": "Dental care in a care home"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-FAMILY",
+      "names": {
+        "es": "Coordinación con familia o tutor legal",
+        "en": "Coordination with family or legal guardian"
+      },
+      "category": "diagnostico",
+      "subarea": "valoracion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-DENTURE-HYG",
+      "names": {
+        "es": "Higiene profesional de prótesis",
+        "en": "Professional denture cleaning"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-FLUOR",
+      "names": {
+        "es": "Barniz de flúor de alta concentración",
+        "en": "High-concentration fluoride varnish"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "35.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-SDF",
+      "names": {
+        "es": "Fluoruro diamino de plata",
+        "en": "Silver diamine fluoride"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-XEROST",
+      "names": {
+        "es": "Manejo de boca seca",
+        "en": "Dry mouth management"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-CAREGIVER",
+      "names": {
+        "es": "Instrucción a cuidadores",
+        "en": "Caregiver instruction"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-CLEAN",
+      "names": {
+        "es": "Profilaxis adaptada al paciente mayor",
+        "en": "Prophylaxis adapted to the older patient"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-CHX",
+      "names": {
+        "es": "Barniz de clorhexidina en el mayor",
+        "en": "Chlorhexidine varnish for older adults"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-HYG-AIDS",
+      "names": {
+        "es": "Adaptación de ayudas de higiene",
+        "en": "Adaptation of hygiene aids"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-STOMATITIS",
+      "names": {
+        "es": "Tratamiento de estomatitis protésica",
+        "en": "Denture stomatitis treatment"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-ASPIRATION",
+      "names": {
+        "es": "Higiene oral para prevenir neumonía por aspiración",
+        "en": "Oral hygiene to prevent aspiration pneumonia"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-PALLIATIVE",
+      "names": {
+        "es": "Cuidados orales paliativos",
+        "en": "Palliative oral care"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-ROOT-CARIES",
+      "names": {
+        "es": "Restauración de caries radicular",
+        "en": "Root caries restoration"
+      },
+      "category": "restauradora",
+      "subarea": "restauradora",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-ART",
+      "names": {
+        "es": "Restauración atraumática (ART)",
+        "en": "Atraumatic restorative treatment (ART)"
+      },
+      "category": "restauradora",
+      "subarea": "restauradora",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-GIC",
+      "names": {
+        "es": "Obturación de ionómero de vidrio en el mayor",
+        "en": "Glass ionomer filling for older adults"
+      },
+      "category": "restauradora",
+      "subarea": "restauradora",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "GER-CERVICAL",
+      "names": {
+        "es": "Restauración de lesiones cervicales no cariosas",
+        "en": "Restoration of non-carious cervical lesions"
+      },
+      "category": "restauradora",
+      "subarea": "restauradora",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "GER-SHARP",
+      "names": {
+        "es": "Regularización de bordes cortantes",
+        "en": "Smoothing of sharp edges"
+      },
+      "category": "restauradora",
+      "subarea": "restauradora",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-ROOT-KEEP",
+      "names": {
+        "es": "Conservación de raíces para sobredentadura",
+        "en": "Root retention for an overdenture"
+      },
+      "category": "restauradora",
+      "subarea": "restauradora",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-EXT-MIN",
+      "names": {
+        "es": "Extracción mínimamente traumática",
+        "en": "Minimally traumatic extraction"
+      },
+      "category": "cirugia",
+      "subarea": "cirugia",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "GER-EXT-ROOTS",
+      "names": {
+        "es": "Extracción de restos radiculares múltiples",
+        "en": "Extraction of multiple root remnants"
+      },
+      "category": "cirugia",
+      "subarea": "cirugia",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "180.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-DENTURE-ADJ",
+      "names": {
+        "es": "Ajuste de prótesis en paciente dependiente",
+        "en": "Denture adjustment for a dependent patient"
+      },
+      "category": "protesis",
+      "subarea": "protesis",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-DENTURE-MARK",
+      "names": {
+        "es": "Identificación de prótesis",
+        "en": "Denture marking"
+      },
+      "category": "protesis",
+      "subarea": "protesis",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-RELINE",
+      "names": {
+        "es": "Rebase de prótesis en paciente mayor",
+        "en": "Denture reline in an older patient"
+      },
+      "category": "protesis",
+      "subarea": "protesis",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "110.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-DENTURE-REPAIR",
+      "names": {
+        "es": "Reparación urgente de prótesis",
+        "en": "Urgent denture repair"
+      },
+      "category": "protesis",
+      "subarea": "protesis",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-DENTURE-DUPL",
+      "names": {
+        "es": "Duplicado de prótesis conocida",
+        "en": "Duplicate of a familiar denture"
+      },
+      "category": "protesis",
+      "subarea": "protesis",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "300.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-DENTURE-SIMPLE",
+      "names": {
+        "es": "Prótesis completa simplificada",
+        "en": "Simplified complete denture"
+      },
+      "category": "protesis",
+      "subarea": "protesis",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "700.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-SORE",
+      "names": {
+        "es": "Tratamiento de úlcera por decúbito",
+        "en": "Denture sore treatment"
+      },
+      "category": "protesis",
+      "subarea": "protesis",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-ADHESIVE",
+      "names": {
+        "es": "Instrucción de uso de adhesivo protésico",
+        "en": "Denture adhesive instruction"
+      },
+      "category": "protesis",
+      "subarea": "protesis",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "GER-OVERDENT-MAINT",
+      "names": {
+        "es": "Mantenimiento de sobredentadura",
+        "en": "Overdenture maintenance"
+      },
+      "category": "protesis",
+      "subarea": "protesis",
+      "specialties": [
+        "odontogeriatria"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_arch",
+      "price": "70.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

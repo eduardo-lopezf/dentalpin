@@ -20,6 +20,14 @@ class EventType:
     # module owns is its own responsibility to install.
     CLINIC_CREATED = "clinic.created"
 
+    # Specialty packs (catalog). A clinic switched a discipline on or off,
+    # or put its reference catalogue back. Consumed by `treatment_plan`,
+    # which keeps the plan templates of each discipline.
+    # Payload: {clinic_id, specialty_key}.
+    CATALOG_SPECIALTY_ENABLED = "catalog.specialty_enabled"
+    CATALOG_SPECIALTY_DISABLED = "catalog.specialty_disabled"
+    CATALOG_SPECIALTY_RESTORED = "catalog.specialty_restored"
+
     # Patient events
     PATIENT_CREATED = "patient.created"
     PATIENT_UPDATED = "patient.updated"

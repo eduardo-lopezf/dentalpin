@@ -10,17 +10,25 @@ from app.core.auth.dependencies import ClinicContext, get_clinic_context, requir
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import get_db
 
+from .packs import SpecialtyPackService, UnknownSpecialtyError
 from .schemas import (
     CatalogItemBrief,
     CatalogItemCreate,
     CatalogItemResponse,
+    CatalogItemSearchResult,
     CatalogItemUpdate,
     CategoryCreate,
     CategoryResponse,
     CategoryUpdate,
     OdontogramTreatmentResponse,
+    PackSharedResponse,
+    PackSubareaResponse,
+    PackTreatmentResponse,
+    SpecialtyBrief,
     SpecialtyCreate,
     SpecialtyItemsUpdate,
+    SpecialtyPackDetailResponse,
+    SpecialtyPackResponse,
     SpecialtyResponse,
     SpecialtySuggestion,
     SpecialtyUpdate,
@@ -317,6 +325,107 @@ async def list_specialties(
     return ApiResponse(data=[SpecialtyResponse.model_validate(s) for s in specialties])
 
 
+# --- Specialty packs ---------------------------------------------------------
+
+
+def _pack_or_404(key: str, error: Exception) -> HTTPException:
+    return HTTPException(status_code=404, detail=f"Unknown specialty: {key}")
+
+
+@router.get("/specialty-packs", response_model=ApiResponse[list[SpecialtyPackResponse]])
+async def list_specialty_packs(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[list[SpecialtyPackResponse]]:
+    """Every recognised discipline, with its reference catalogue and
+    whether this clinic has it enabled."""
+    packs = await SpecialtyPackService.list(db, ctx.clinic_id)
+    return ApiResponse(data=[SpecialtyPackResponse.model_validate(p) for p in packs])
+
+
+@router.get("/specialty-packs/{key}", response_model=ApiResponse[SpecialtyPackDetailResponse])
+async def get_specialty_pack(
+    key: str,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[SpecialtyPackDetailResponse]:
+    """A discipline's reference treatments, grouped by sub-area, each with
+    where the clinic stands on it: active, inactive, missing, customised."""
+    try:
+        detail = await SpecialtyPackService.detail(db, ctx.clinic_id, key)
+    except UnknownSpecialtyError as error:
+        raise _pack_or_404(key, error) from error
+    return ApiResponse(
+        data=SpecialtyPackDetailResponse(
+            **SpecialtyPackResponse.model_validate(detail.status).model_dump(),
+            subareas=[PackSubareaResponse.model_validate(group) for group in detail.subareas],
+            shared=[
+                PackSharedResponse(
+                    specialty_key=group.key,
+                    names=group.names,
+                    treatments=[PackTreatmentResponse.model_validate(t) for t in group.treatments],
+                )
+                for group in detail.shared
+            ],
+        )
+    )
+
+
+@router.post("/specialty-packs/{key}/enable", response_model=ApiResponse[SpecialtyPackResponse])
+async def enable_specialty_pack(
+    key: str,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.admin"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[SpecialtyPackResponse]:
+    """Add the discipline's reference treatments to the clinic's catalogue.
+    Treatments the clinic already has are left as the clinic made them."""
+    try:
+        pack = await SpecialtyPackService.enable(db, ctx.clinic_id, key)
+    except UnknownSpecialtyError as error:
+        raise _pack_or_404(key, error) from error
+    return ApiResponse(data=SpecialtyPackResponse.model_validate(pack))
+
+
+@router.post("/specialty-packs/{key}/disable", response_model=ApiResponse[SpecialtyPackResponse])
+async def disable_specialty_pack(
+    key: str,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.admin"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[SpecialtyPackResponse]:
+    """Take the discipline out of the clinic's catalogue. Nothing is
+    deleted: its treatments are deactivated and come back on enabling."""
+    try:
+        pack = await SpecialtyPackService.disable(db, ctx.clinic_id, key)
+    except UnknownSpecialtyError as error:
+        raise _pack_or_404(key, error) from error
+    return ApiResponse(data=SpecialtyPackResponse.model_validate(pack))
+
+
+@router.post("/specialty-packs/{key}/restore", response_model=ApiResponse[SpecialtyPackResponse])
+async def restore_specialty_pack(
+    key: str,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("catalog.admin"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[SpecialtyPackResponse]:
+    """Put the discipline's reference treatments back to the reference.
+
+    **Overwrites** what the clinic changed on them — names, prices,
+    durations. Treatments the clinic added itself are kept.
+    """
+    try:
+        pack = await SpecialtyPackService.restore(db, ctx.clinic_id, key)
+    except UnknownSpecialtyError as error:
+        raise _pack_or_404(key, error) from error
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return ApiResponse(data=SpecialtyPackResponse.model_validate(pack))
+
+
 @router.get(
     "/specialties/suggestions",
     response_model=ApiResponse[list[SpecialtySuggestion]],
@@ -529,17 +638,26 @@ async def get_recent_items(
     return ApiResponse(data=[CatalogItemBrief.model_validate(i) for i in items])
 
 
-@router.get("/items/search", response_model=ApiResponse[list[CatalogItemBrief]])
+@router.get("/items/search", response_model=ApiResponse[list[CatalogItemSearchResult]])
 async def search_items(
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
     _: Annotated[None, Depends(require_permission("catalog.read"))],
     db: Annotated[AsyncSession, Depends(get_db)],
     q: str = Query(min_length=1, max_length=100),
     limit: int = Query(default=20, ge=1, le=50),
-) -> ApiResponse[list[CatalogItemBrief]]:
-    """Search catalog items by name or code."""
+) -> ApiResponse[list[CatalogItemSearchResult]]:
+    """Search catalog items by name or code. Each hit says which discipline
+    it is shown under, so a picker can group them."""
     items = await CatalogService.search_items(db, ctx.clinic_id, q, limit)
-    return ApiResponse(data=[CatalogItemBrief.model_validate(i) for i in items])
+    primary = await CatalogService.primary_specialties(db, ctx.clinic_id, items)
+    results = []
+    for item in items:
+        result = CatalogItemSearchResult.model_validate(item)
+        specialty = primary.get(item.id)
+        if specialty is not None:
+            result.specialty = SpecialtyBrief.model_validate(specialty)
+        results.append(result)
+    return ApiResponse(data=results)
 
 
 @router.get("/items/{item_id}", response_model=ApiResponse[CatalogItemResponse])

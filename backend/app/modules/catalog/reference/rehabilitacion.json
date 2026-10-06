@@ -1,0 +1,1440 @@
+{
+  "key": "rehabilitacion",
+  "names": {
+    "es": "Rehabilitación Oral",
+    "en": "Oral Rehabilitation"
+  },
+  "baseline": true,
+  "subareas": [
+    {
+      "key": "diagnostico",
+      "names": {
+        "es": "Diagnóstico y planificación",
+        "en": "Diagnosis and planning"
+      }
+    },
+    {
+      "key": "incrustaciones",
+      "names": {
+        "es": "Incrustaciones",
+        "en": "Inlays and onlays"
+      }
+    },
+    {
+      "key": "fija",
+      "names": {
+        "es": "Prótesis fija",
+        "en": "Fixed prosthodontics"
+      }
+    },
+    {
+      "key": "removible",
+      "names": {
+        "es": "Prótesis removible",
+        "en": "Removable prosthodontics"
+      }
+    },
+    {
+      "key": "total",
+      "names": {
+        "es": "Prótesis total",
+        "en": "Complete dentures"
+      }
+    },
+    {
+      "key": "mantenimiento",
+      "names": {
+        "es": "Mantenimiento de prótesis",
+        "en": "Prosthesis maintenance"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "REHAB-CONS",
+      "names": {
+        "es": "Consulta de rehabilitación oral",
+        "en": "Oral rehabilitation consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REHAB-PLAN",
+      "names": {
+        "es": "Planificación de rehabilitación integral",
+        "en": "Full rehabilitation planning"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REHAB-FACEBOW",
+      "names": {
+        "es": "Registro con arco facial",
+        "en": "Facebow record"
+      },
+      "category": "protesis",
+      "subarea": "diagnostico",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REHAB-VDO",
+      "names": {
+        "es": "Registro de dimensión vertical y relación céntrica",
+        "en": "Vertical dimension and centric relation record"
+      },
+      "category": "protesis",
+      "subarea": "diagnostico",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REHAB-DEPROG",
+      "names": {
+        "es": "Desprogramador anterior",
+        "en": "Anterior deprogrammer"
+      },
+      "category": "protesis",
+      "subarea": "diagnostico",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-INLAY-COMP",
+      "names": {
+        "es": "Inlay composite",
+        "en": "Composite inlay"
+      },
+      "category": "restauradora",
+      "subarea": "incrustaciones",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "inlay",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "dots",
+          "color": "#60A5FA"
+        }
+      ],
+      "visualization_config": {
+        "color": "#60A5FA"
+      }
+    },
+    {
+      "code": "REST-INLAY-CER",
+      "names": {
+        "es": "Inlay cerámico",
+        "en": "Ceramic inlay"
+      },
+      "category": "restauradora",
+      "subarea": "incrustaciones",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "350.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "inlay",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "dots",
+          "color": "#38BDF8"
+        }
+      ],
+      "visualization_config": {
+        "color": "#38BDF8"
+      }
+    },
+    {
+      "code": "REST-OVER-COMP",
+      "names": {
+        "es": "Overlay composite",
+        "en": "Composite overlay"
+      },
+      "category": "restauradora",
+      "subarea": "incrustaciones",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "240.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "overlay",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "grid",
+          "color": "#60A5FA"
+        }
+      ],
+      "visualization_config": {
+        "color": "#60A5FA"
+      }
+    },
+    {
+      "code": "REST-OVER-CER",
+      "names": {
+        "es": "Overlay cerámico",
+        "en": "Ceramic overlay"
+      },
+      "category": "restauradora",
+      "subarea": "incrustaciones",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "450.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "overlay",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "grid",
+          "color": "#38BDF8"
+        }
+      ],
+      "visualization_config": {
+        "color": "#38BDF8"
+      }
+    },
+    {
+      "code": "REST-INLAY-GOLD",
+      "names": {
+        "es": "Incrustación de oro",
+        "en": "Gold inlay"
+      },
+      "category": "restauradora",
+      "subarea": "incrustaciones",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "500.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "inlay",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "dots",
+          "color": "#38BDF8"
+        }
+      ],
+      "visualization_config": {
+        "color": "#38BDF8"
+      }
+    },
+    {
+      "code": "REST-ENDOCROWN",
+      "names": {
+        "es": "Endocorona",
+        "en": "Endocrown"
+      },
+      "category": "restauradora",
+      "subarea": "incrustaciones",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "480.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "overlay",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "grid",
+          "color": "#38BDF8"
+        }
+      ],
+      "visualization_config": {
+        "color": "#38BDF8"
+      }
+    },
+    {
+      "code": "REST-TABLETOP",
+      "names": {
+        "es": "Table-top oclusal",
+        "en": "Occlusal table-top"
+      },
+      "category": "restauradora",
+      "subarea": "incrustaciones",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "420.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "overlay",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "grid",
+          "color": "#38BDF8"
+        }
+      ],
+      "visualization_config": {
+        "color": "#38BDF8"
+      }
+    },
+    {
+      "code": "REST-INLAY-PROV",
+      "names": {
+        "es": "Incrustación provisional",
+        "en": "Provisional inlay"
+      },
+      "category": "restauradora",
+      "subarea": "incrustaciones",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "inlay",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "dots",
+          "color": "#60A5FA"
+        }
+      ],
+      "visualization_config": {
+        "color": "#60A5FA"
+      }
+    },
+    {
+      "code": "REST-CROWN-MC",
+      "names": {
+        "es": "Corona metal-cerámica",
+        "en": "Metal-ceramic crown"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "400.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#F59E0B"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F59E0B"
+      },
+      "sessions": [
+        {
+          "labels": {
+            "es": "Toma de medidas",
+            "en": "Impressions"
+          },
+          "default_price": "150.00"
+        },
+        {
+          "labels": {
+            "es": "Colocación",
+            "en": "Placement"
+          },
+          "default_price": "250.00"
+        }
+      ]
+    },
+    {
+      "code": "REST-CROWN-ZIR",
+      "names": {
+        "es": "Corona zirconio",
+        "en": "Zirconia crown"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "550.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#FBBF24"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FBBF24"
+      },
+      "sessions": [
+        {
+          "labels": {
+            "es": "Toma de medidas",
+            "en": "Impressions"
+          },
+          "default_price": "200.00"
+        },
+        {
+          "labels": {
+            "es": "Colocación",
+            "en": "Placement"
+          },
+          "default_price": "350.00"
+        }
+      ]
+    },
+    {
+      "code": "REST-CROWN-DISI",
+      "names": {
+        "es": "Corona disilicato de litio",
+        "en": "Lithium disilicate crown"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "650.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#FDE68A"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FDE68A"
+      },
+      "sessions": [
+        {
+          "labels": {
+            "es": "Toma de medidas",
+            "en": "Impressions"
+          },
+          "default_price": "250.00"
+        },
+        {
+          "labels": {
+            "es": "Colocación",
+            "en": "Placement"
+          },
+          "default_price": "400.00"
+        }
+      ]
+    },
+    {
+      "code": "REST-CROWN-METAL",
+      "names": {
+        "es": "Corona metal",
+        "en": "Metal crown"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "350.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#9CA3AF"
+        }
+      ],
+      "visualization_config": {
+        "color": "#9CA3AF"
+      }
+    },
+    {
+      "code": "REST-CROWN-PROV",
+      "names": {
+        "es": "Corona provisional",
+        "en": "Provisional crown"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "150.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "outline",
+          "color": "#D1D5DB"
+        }
+      ],
+      "visualization_config": {
+        "color": "#D1D5DB"
+      }
+    },
+    {
+      "code": "REST-BRIDGE-MC",
+      "names": {
+        "es": "Puente metal-cerámica",
+        "en": "Metal-ceramic bridge"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "multi_tooth",
+      "price": "400.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_role",
+      "pricing_config": {
+        "pillar": 400,
+        "pontic": 300
+      },
+      "odontogram_treatment_type": "bridge",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "horizontal_stripes",
+          "color": "#F59E0B"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F59E0B"
+      }
+    },
+    {
+      "code": "REST-BRIDGE-ZIR",
+      "names": {
+        "es": "Puente zirconio",
+        "en": "Zirconia bridge"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "multi_tooth",
+      "price": "500.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_role",
+      "pricing_config": {
+        "pillar": 500,
+        "pontic": 400
+      },
+      "odontogram_treatment_type": "bridge",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "horizontal_stripes",
+          "color": "#FBBF24"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FBBF24"
+      }
+    },
+    {
+      "code": "REST-BRIDGE-MARY",
+      "names": {
+        "es": "Puente Maryland",
+        "en": "Maryland bridge"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "multi_tooth",
+      "price": "350.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_role",
+      "pricing_config": {
+        "pillar": 350,
+        "pontic": 300
+      },
+      "odontogram_treatment_type": "bridge",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "horizontal_stripes",
+          "color": "#FDE68A"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FDE68A"
+      }
+    },
+    {
+      "code": "REST-CROWN-RECEMENT",
+      "names": {
+        "es": "Recementado de corona",
+        "en": "Crown recementation"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#94A3B8"
+        }
+      ],
+      "visualization_config": {
+        "color": "#94A3B8"
+      }
+    },
+    {
+      "code": "REST-CROWN-POST-ENDO",
+      "names": {
+        "es": "Corona sobre diente endodonciado",
+        "en": "Crown over endodontically treated tooth"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "450.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#A78BFA"
+        }
+      ],
+      "visualization_config": {
+        "color": "#A78BFA"
+      }
+    },
+    {
+      "code": "REST-CROWN-GOLD",
+      "names": {
+        "es": "Corona de oro",
+        "en": "Gold crown"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "700.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#9CA3AF"
+        }
+      ],
+      "visualization_config": {
+        "color": "#9CA3AF"
+      }
+    },
+    {
+      "code": "REST-CROWN-PFZ",
+      "names": {
+        "es": "Corona de zirconio estratificado",
+        "en": "Layered zirconia crown"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "620.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#FBBF24"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FBBF24"
+      }
+    },
+    {
+      "code": "REST-CROWN-CADCAM",
+      "names": {
+        "es": "Corona CAD/CAM en una sesión",
+        "en": "Same-day CAD/CAM crown"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "600.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#FBBF24"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FBBF24"
+      }
+    },
+    {
+      "code": "REST-CROWN-PROV-LONG",
+      "names": {
+        "es": "Corona provisional de larga duración",
+        "en": "Long-term provisional crown"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "220.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "outline",
+          "color": "#D1D5DB"
+        }
+      ],
+      "visualization_config": {
+        "color": "#D1D5DB"
+      }
+    },
+    {
+      "code": "REST-BRIDGE-DISI",
+      "names": {
+        "es": "Puente de disilicato de litio",
+        "en": "Lithium disilicate bridge"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "multi_tooth",
+      "price": "600.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_role",
+      "pricing_config": {
+        "pillar": 600,
+        "pontic": 500
+      },
+      "odontogram_treatment_type": "bridge",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "horizontal_stripes",
+          "color": "#FBBF24"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FBBF24"
+      }
+    },
+    {
+      "code": "REST-BRIDGE-PROV",
+      "names": {
+        "es": "Puente provisional",
+        "en": "Provisional bridge"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "multi_tooth",
+      "price": "150.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_role",
+      "pricing_config": {
+        "pillar": 150,
+        "pontic": 120
+      },
+      "odontogram_treatment_type": "bridge",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "horizontal_stripes",
+          "color": "#F59E0B"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F59E0B"
+      }
+    },
+    {
+      "code": "REST-BRIDGE-FIBER",
+      "names": {
+        "es": "Puente adhesivo de fibra",
+        "en": "Fibre-reinforced adhesive bridge"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "multi_tooth",
+      "price": "300.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-CROWN-REMOVE",
+      "names": {
+        "es": "Retirada de corona o puente",
+        "en": "Crown or bridge removal"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-BRIDGE-RECEMENT",
+      "names": {
+        "es": "Recementado de puente",
+        "en": "Bridge recementation"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "mantenimiento",
+      "scope": "multi_tooth",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-CER-REPAIR",
+      "names": {
+        "es": "Reparación de cerámica fracturada",
+        "en": "Fractured ceramic repair"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion",
+        "general"
+      ],
+      "phase": "mantenimiento",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-FMR",
+      "names": {
+        "es": "Rehabilitación oral completa (por arcada)",
+        "en": "Full-mouth rehabilitation (per arch)"
+      },
+      "category": "restauradora",
+      "subarea": "fija",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "5500.00",
+      "minutes": 240,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-PART-METAL",
+      "names": {
+        "es": "Prótesis parcial esquelética",
+        "en": "Partial metal denture"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "750.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-PART-ACR",
+      "names": {
+        "es": "Prótesis parcial acrílica",
+        "en": "Partial acrylic denture"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "450.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-PROV-REMOV",
+      "names": {
+        "es": "Prótesis provisional removible",
+        "en": "Provisional removable denture"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "350.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-PART-FLEX",
+      "names": {
+        "es": "Prótesis parcial flexible",
+        "en": "Flexible partial denture"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "550.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-PART-ATTACH",
+      "names": {
+        "es": "Prótesis parcial con ataches de precisión",
+        "en": "Partial denture with precision attachments"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "1100.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-FLIPPER",
+      "names": {
+        "es": "Prótesis removible unitaria provisional (flipper)",
+        "en": "Single-tooth temporary denture (flipper)"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "180.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-TELESC",
+      "names": {
+        "es": "Prótesis telescópica",
+        "en": "Telescopic denture"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "2200.00",
+      "minutes": 150,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-FULL-SUP",
+      "names": {
+        "es": "Prótesis completa superior",
+        "en": "Full upper denture"
+      },
+      "category": "protesis",
+      "subarea": "total",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "900.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-FULL-INF",
+      "names": {
+        "es": "Prótesis completa inferior",
+        "en": "Full lower denture"
+      },
+      "category": "protesis",
+      "subarea": "total",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "900.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-FULL-PAIR",
+      "names": {
+        "es": "Prótesis completa superior e inferior",
+        "en": "Upper and lower complete dentures"
+      },
+      "category": "protesis",
+      "subarea": "total",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "1700.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-FULL-IMMED",
+      "names": {
+        "es": "Prótesis completa inmediata",
+        "en": "Immediate complete denture"
+      },
+      "category": "protesis",
+      "subarea": "total",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "950.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-FULL-CHAR",
+      "names": {
+        "es": "Prótesis completa caracterizada",
+        "en": "Characterised complete denture"
+      },
+      "category": "protesis",
+      "subarea": "total",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "1200.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-FULL-DIGITAL",
+      "names": {
+        "es": "Prótesis completa digital",
+        "en": "Digital complete denture"
+      },
+      "category": "protesis",
+      "subarea": "total",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "1300.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-OBTUR",
+      "names": {
+        "es": "Obturador palatino",
+        "en": "Palatal obturator"
+      },
+      "category": "protesis",
+      "subarea": "total",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "1200.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-REBASE",
+      "names": {
+        "es": "Rebasado de prótesis",
+        "en": "Denture reline"
+      },
+      "category": "protesis",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "mantenimiento",
+      "scope": "tooth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-REPAIR",
+      "names": {
+        "es": "Reparación de prótesis",
+        "en": "Denture repair"
+      },
+      "category": "protesis",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "mantenimiento",
+      "scope": "tooth",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-OCC-ADJ",
+      "names": {
+        "es": "Ajuste oclusal",
+        "en": "Occlusal adjustment"
+      },
+      "category": "protesis",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-RELINE-SOFT",
+      "names": {
+        "es": "Rebase blando (acondicionador de tejidos)",
+        "en": "Soft reline (tissue conditioner)"
+      },
+      "category": "protesis",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_arch",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-RELINE-CHAIR",
+      "names": {
+        "es": "Rebase directo en clínica",
+        "en": "Chairside reline"
+      },
+      "category": "protesis",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_arch",
+      "price": "100.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-CLASP-ADJ",
+      "names": {
+        "es": "Ajuste de retenedores",
+        "en": "Clasp adjustment"
+      },
+      "category": "protesis",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_arch",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-ADJ",
+      "names": {
+        "es": "Ajuste de prótesis removible",
+        "en": "Removable denture adjustment"
+      },
+      "category": "protesis",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_arch",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-REVIEW",
+      "names": {
+        "es": "Revisión de prótesis",
+        "en": "Prosthesis review"
+      },
+      "category": "protesis",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PROT-DUPL",
+      "names": {
+        "es": "Duplicado de prótesis",
+        "en": "Denture duplication"
+      },
+      "category": "protesis",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "rehabilitacion"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_arch",
+      "price": "300.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

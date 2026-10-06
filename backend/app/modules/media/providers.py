@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.contracts import DocumentKindUsage
 
 from .models import Document
 
@@ -23,6 +25,20 @@ class MediaPatientDocuments:
             )
         )
         return result.scalar_one_or_none() is not None
+
+    async def usage_by_kind(self, db: AsyncSession) -> list[DocumentKindUsage]:
+        # Deliberately not filtered by clinic: the figure is the tenant's
+        # (see the contract). Sizes only, no rows.
+        size = func.coalesce(func.sum(Document.file_size), 0)
+        result = await db.execute(
+            select(Document.media_kind, size, func.count())
+            .group_by(Document.media_kind)
+            .order_by(size.desc(), Document.media_kind)
+        )
+        return [
+            DocumentKindUsage(kind=kind, bytes=int(total), count=count)
+            for kind, total, count in result.all()
+        ]
 
 
 documents = MediaPatientDocuments()

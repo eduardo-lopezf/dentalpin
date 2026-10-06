@@ -22,7 +22,7 @@ class ConsentsModule(BaseModule):
         "name": "consents",
         "version": "0.1.0",
         "summary": "Consent letters: informed consent to treat and consent to data use.",
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         # The patient the letter is about: a foreign key, and no consent

@@ -34,7 +34,7 @@ class LiquidationsModule(BaseModule):
             "Liquidación a profesionales asociados: lo devengado, lo cobrado "
             "y el porcentaje acordado sobre uno de los dos."
         ),
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["payments", "professionals", "cashbox"],

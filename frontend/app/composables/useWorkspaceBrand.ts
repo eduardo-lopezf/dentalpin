@@ -29,7 +29,7 @@ export const DEFAULT_COLOR_MODE: ColorModeKey = 'light'
 export type WorkspaceBrandChoice = Omit<WorkspaceBrand, 'has_logo'>
 
 export const PRODUCT_NAME = 'Dental Demo'
-export const PRODUCT_LOGO = '/logo-icon.svg'
+export const PRODUCT_LOGO = '/dienteazul-icon.svg'
 
 const URL_BASE = '/api/v1/auth/clinic/settings/brand'
 /** The last brand seen, so a reload paints in the clinic's colours at once. */

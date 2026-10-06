@@ -43,7 +43,7 @@ class PaymentsModule(BaseModule):
             "Patient-centric collections, allocations to budgets / on-account, "
             "refunds, patient ledger, and dental payment reports."
         ),
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients", "budget"],

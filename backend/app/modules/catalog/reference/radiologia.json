@@ -1,0 +1,757 @@
+{
+  "key": "radiologia",
+  "names": {
+    "es": "Radiología y Diagnóstico por Imagen",
+    "en": "Radiology and Imaging"
+  },
+  "baseline": false,
+  "subareas": [
+    {
+      "key": "intraoral",
+      "names": {
+        "es": "Imagen intraoral",
+        "en": "Intraoral imaging"
+      }
+    },
+    {
+      "key": "extraoral",
+      "names": {
+        "es": "Imagen extraoral",
+        "en": "Extraoral imaging"
+      }
+    },
+    {
+      "key": "tomografia",
+      "names": {
+        "es": "Tomografía (CBCT)",
+        "en": "Cone-beam CT"
+      }
+    },
+    {
+      "key": "otras",
+      "names": {
+        "es": "Otras técnicas de imagen",
+        "en": "Other imaging"
+      }
+    },
+    {
+      "key": "digital",
+      "names": {
+        "es": "Registros digitales",
+        "en": "Digital records"
+      }
+    },
+    {
+      "key": "informe",
+      "names": {
+        "es": "Informe y entrega",
+        "en": "Report and hand-over"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "RX-BITEWING",
+      "names": {
+        "es": "Radiografía de aleta de mordida",
+        "en": "Bitewing radiograph"
+      },
+      "category": "diagnostico",
+      "subarea": "intraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-OCCLUSAL",
+      "names": {
+        "es": "Radiografía oclusal",
+        "en": "Occlusal radiograph"
+      },
+      "category": "diagnostico",
+      "subarea": "intraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-SERIES",
+      "names": {
+        "es": "Serie periapical completa",
+        "en": "Full-mouth periapical series"
+      },
+      "category": "diagnostico",
+      "subarea": "intraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "110.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-BW-SERIES",
+      "names": {
+        "es": "Serie de aletas de mordida (4)",
+        "en": "Bitewing series (4)"
+      },
+      "category": "diagnostico",
+      "subarea": "intraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-PA-ENDO",
+      "names": {
+        "es": "Radiografías de control endodóncico",
+        "en": "Endodontic control radiographs"
+      },
+      "category": "diagnostico",
+      "subarea": "intraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "tooth",
+      "price": "20.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-LOCALIZ",
+      "names": {
+        "es": "Radiografía de localización (técnica de Clark)",
+        "en": "Localisation radiograph (Clark's technique)"
+      },
+      "category": "diagnostico",
+      "subarea": "intraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "tooth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-PED-SERIES",
+      "names": {
+        "es": "Serie radiográfica infantil",
+        "en": "Paediatric radiographic series"
+      },
+      "category": "diagnostico",
+      "subarea": "intraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CEPH-LAT",
+      "names": {
+        "es": "Telerradiografía lateral de cráneo",
+        "en": "Lateral cephalogram"
+      },
+      "category": "diagnostico",
+      "subarea": "extraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CEPH-PA",
+      "names": {
+        "es": "Telerradiografía posteroanterior",
+        "en": "Posteroanterior cephalogram"
+      },
+      "category": "diagnostico",
+      "subarea": "extraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CARPAL",
+      "names": {
+        "es": "Radiografía carpal (edad ósea)",
+        "en": "Hand-wrist radiograph (bone age)"
+      },
+      "category": "diagnostico",
+      "subarea": "extraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-ATM",
+      "names": {
+        "es": "Radiografía de ATM",
+        "en": "TMJ radiograph"
+      },
+      "category": "diagnostico",
+      "subarea": "extraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-PAN-PED",
+      "names": {
+        "es": "Panorámica infantil",
+        "en": "Paediatric panoramic"
+      },
+      "category": "diagnostico",
+      "subarea": "extraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "35.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-PAN-SEGMENT",
+      "names": {
+        "es": "Panorámica segmentada",
+        "en": "Segmented panoramic"
+      },
+      "category": "diagnostico",
+      "subarea": "extraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "35.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-WATERS",
+      "names": {
+        "es": "Proyección de Waters (senos)",
+        "en": "Waters view (sinuses)"
+      },
+      "category": "diagnostico",
+      "subarea": "extraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-SUBMENTO",
+      "names": {
+        "es": "Proyección submentovértex",
+        "en": "Submentovertex view"
+      },
+      "category": "diagnostico",
+      "subarea": "extraoral",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CBCT-SECT",
+      "names": {
+        "es": "CBCT de un sector",
+        "en": "CBCT, single region"
+      },
+      "category": "diagnostico",
+      "subarea": "tomografia",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CBCT-ARCH",
+      "names": {
+        "es": "CBCT de una arcada",
+        "en": "CBCT, single arch"
+      },
+      "category": "diagnostico",
+      "subarea": "tomografia",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_arch",
+      "price": "120.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CBCT-FULL",
+      "names": {
+        "es": "CBCT bimaxilar",
+        "en": "CBCT, both arches"
+      },
+      "category": "diagnostico",
+      "subarea": "tomografia",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "160.00",
+      "minutes": 25,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CBCT-ATM",
+      "names": {
+        "es": "CBCT de ATM",
+        "en": "CBCT of the TMJ"
+      },
+      "category": "diagnostico",
+      "subarea": "tomografia",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 25,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CBCT-TOOTH",
+      "names": {
+        "es": "CBCT de campo reducido (endodoncia)",
+        "en": "Small field-of-view CBCT (endodontics)"
+      },
+      "category": "diagnostico",
+      "subarea": "tomografia",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "tooth",
+      "price": "80.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CBCT-SINUS",
+      "names": {
+        "es": "CBCT de senos maxilares",
+        "en": "Maxillary sinus CBCT"
+      },
+      "category": "diagnostico",
+      "subarea": "tomografia",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "140.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CBCT-AIRWAY",
+      "names": {
+        "es": "CBCT de vía aérea",
+        "en": "Airway CBCT"
+      },
+      "category": "diagnostico",
+      "subarea": "tomografia",
+      "specialties": [
+        "radiologia",
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "160.00",
+      "minutes": 25,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CBCT-IMPL",
+      "names": {
+        "es": "CBCT con planificación de implantes",
+        "en": "CBCT with implant planning"
+      },
+      "category": "diagnostico",
+      "subarea": "tomografia",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "180.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CBCT-FACE",
+      "names": {
+        "es": "CBCT de campo amplio (craneofacial)",
+        "en": "Large field-of-view CBCT (craniofacial)"
+      },
+      "category": "diagnostico",
+      "subarea": "tomografia",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "220.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-SIALO",
+      "names": {
+        "es": "Sialografía",
+        "en": "Sialography"
+      },
+      "category": "diagnostico",
+      "subarea": "otras",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-US",
+      "names": {
+        "es": "Ecografía de glándulas salivales y tejidos blandos",
+        "en": "Ultrasound of salivary glands and soft tissue"
+      },
+      "category": "diagnostico",
+      "subarea": "otras",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-MRI-ATM",
+      "names": {
+        "es": "Resonancia magnética de ATM (derivación)",
+        "en": "TMJ MRI (referral)"
+      },
+      "category": "diagnostico",
+      "subarea": "otras",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "250.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CT",
+      "names": {
+        "es": "Tomografía computarizada (derivación)",
+        "en": "CT scan (referral)"
+      },
+      "category": "diagnostico",
+      "subarea": "otras",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "200.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-SCAN",
+      "names": {
+        "es": "Escaneado intraoral",
+        "en": "Intraoral scan"
+      },
+      "category": "diagnostico",
+      "subarea": "digital",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-PHOTO-SET",
+      "names": {
+        "es": "Serie fotográfica extraoral e intraoral",
+        "en": "Extraoral and intraoral photographic series"
+      },
+      "category": "diagnostico",
+      "subarea": "digital",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-FACE-SCAN",
+      "names": {
+        "es": "Escaneado facial 3D",
+        "en": "3D facial scan"
+      },
+      "category": "diagnostico",
+      "subarea": "digital",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-STL",
+      "names": {
+        "es": "Modelos digitales (STL)",
+        "en": "Digital models (STL)"
+      },
+      "category": "diagnostico",
+      "subarea": "digital",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-CEPH-DIGITAL",
+      "names": {
+        "es": "Cefalometría digital",
+        "en": "Digital cephalometry"
+      },
+      "category": "diagnostico",
+      "subarea": "digital",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-SUPERIMP",
+      "names": {
+        "es": "Superposición de CBCT y escaneado",
+        "en": "CBCT and scan superimposition"
+      },
+      "category": "diagnostico",
+      "subarea": "digital",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-REPORT",
+      "names": {
+        "es": "Informe radiológico",
+        "en": "Radiology report"
+      },
+      "category": "diagnostico",
+      "subarea": "informe",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-COPY",
+      "names": {
+        "es": "Entrega de estudio en formato digital",
+        "en": "Study handed over in digital format"
+      },
+      "category": "diagnostico",
+      "subarea": "informe",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "15.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-REPORT-CBCT",
+      "names": {
+        "es": "Informe de CBCT",
+        "en": "CBCT report"
+      },
+      "category": "diagnostico",
+      "subarea": "informe",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-SECOND-READ",
+      "names": {
+        "es": "Segunda lectura radiológica",
+        "en": "Radiological second opinion"
+      },
+      "category": "diagnostico",
+      "subarea": "informe",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "RX-PRINT",
+      "names": {
+        "es": "Impresión de placas o estudio",
+        "en": "Printing of films or study"
+      },
+      "category": "diagnostico",
+      "subarea": "informe",
+      "specialties": [
+        "radiologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "15.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

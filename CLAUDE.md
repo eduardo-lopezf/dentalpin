@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-Working notes for AI agents on DentalPin.
+Working notes for AI agents on Diente Azul.
 
 ## Project
 
-DentalPin — open-source dental clinic management software with a modular plugin architecture.
+Diente Azul — open-source dental clinic management software with a modular plugin architecture.
 
 | Component | Tech |
 |-----------|------|
@@ -20,7 +20,7 @@ License: BSL 1.1 (converts to Apache 2.0 after 4 years).
 
 ## Modular architecture (read first)
 
-DentalPin is built as independent modules under `backend/app/modules/<name>/` with matching Nuxt layers. Treat the boundary as a contract.
+Diente Azul is built as independent modules under `backend/app/modules/<name>/` with matching Nuxt layers. Treat the boundary as a contract.
 
 **Hard rules:**
 - Respect module isolation. Do **not** create cross-module dependencies that are not declared in the module's `manifest.depends` or `manifest.integrates`.

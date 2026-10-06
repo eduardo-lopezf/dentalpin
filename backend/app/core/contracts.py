@@ -215,11 +215,29 @@ class PlanQuotes(Protocol):
         ``plan_status`` and ``budget_id``. ``None`` if there is no such plan."""
 
 
+@dataclass(frozen=True, slots=True)
+class DocumentKindUsage:
+    """Disk space the files of one clinical kind take up."""
+
+    #: The owner's own vocabulary: ``xray``, ``photo``, ``document``…
+    kind: str
+    bytes: int
+    count: int
+
+
 class PatientDocuments(Protocol):
     async def belongs_to(
         self, db: AsyncSession, clinic_id: UUID, patient_id: UUID, document_id: UUID
     ) -> bool:
         """The document is a live file of this patient in this clinic."""
+
+    async def usage_by_kind(self, db: AsyncSession) -> list[DocumentKindUsage]:
+        """What the patients' files weigh, by clinical kind, largest first.
+
+        Of the whole database, not of one clinic: it answers for the
+        tenant's disk (``app.core.tenancy.usage``), which the clinics
+        share. Archived files count — they are still on the disk.
+        """
 
 
 class WorkingHours(Protocol):

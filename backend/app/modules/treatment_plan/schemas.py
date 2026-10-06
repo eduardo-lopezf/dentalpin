@@ -398,11 +398,21 @@ class PlanTemplateItemResponse(BaseModel):
     catalog_item: CatalogItemBrief | None = None
 
 
+class PlanTemplateSpecialty(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    key: str
+    names: dict[str, str]
+
+
 class PlanTemplateResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     key: str | None = None
+    #: The discipline a reference template belongs to. None on a template
+    #: the clinic saved from one of its own plans.
+    specialty: PlanTemplateSpecialty | None = None
     name: str
     description: str | None = None
     is_active: bool

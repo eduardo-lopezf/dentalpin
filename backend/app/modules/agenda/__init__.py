@@ -21,7 +21,7 @@ class AgendaModule(BaseModule):
         "name": "agenda",
         "version": "0.4.0",
         "summary": "Appointments, scheduling, cabinets.",
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         # Nothing is required: the agenda books an appointment with no

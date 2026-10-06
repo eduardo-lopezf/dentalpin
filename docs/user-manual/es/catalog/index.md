@@ -11,6 +11,7 @@ Página de aterrizaje del módulo `catalog` en el manual de usuario.
 
 ## Pantallas
 
+- [`/settings/apps/treatments`](./screens/settings_apps_treatments.md) — las especialidades de la clínica: habilitar, deshabilitar y restaurar su catálogo de referencia.
 - `/settings/catalog` — _Pendiente de documentar._
 - `/settings/vat-types` — _Pendiente de documentar._
 

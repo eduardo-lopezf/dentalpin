@@ -936,6 +936,8 @@
         "optionalHint": "Optional lines come ticked. Untick the ones your clinic does not offer or this patient does not need.",
         "skipped": "Skipped, not in your catalog: {treatments}.",
         "searchPlaceholder": "Search a treatment or a template",
+        "noSpecialty": "No specialty",
+        "ownGroup": "The clinic's own",
         "searchTemplatesPlaceholder": "Search a template",
         "groupTreatments": "Individual treatments",
         "noResults": "Nothing found for “{query}”.",
@@ -1418,6 +1420,25 @@
     "clinicUpdateError": "Error updating information",
     "cabinets": "Cabinets",
     "language": "Language",
+    "storage": {
+      "title": "Disk space",
+      "description": "Space the account's uploaded files take up.",
+      "total": "Space used by uploaded files",
+      "fileCount": "{count} file | {count} files",
+      "types": {
+        "xray": "Radiographs",
+        "photo": "Photographs",
+        "document": "Documents",
+        "scan": "3D scans",
+        "video": "Videos",
+        "previews": "Reduced copies of images",
+        "other": "Other files"
+      },
+      "measuredAt": "Counted on {when}. The figure is kept for ten minutes.",
+      "refresh": "Count again",
+      "note": "The figure is for the whole account, with every clinic in it. Reduced copies are the small versions the system makes of each image. 'Other files' is what belongs to no patient's record, such as the professionals' portraits.",
+      "error": "The disk space could not be read."
+    },
     "languageDescription": "Select your preferred language",
     "users": "Clinic Users",
     "newUser": "New User",
@@ -1904,6 +1925,41 @@
     "sunday": "Sunday"
   },
   "catalog": {
+    "packs": {
+      "treatments": "Treatments",
+      "sharedWith": "Shared with {name}",
+      "badge": {
+        "customised": "Customised",
+        "inactive": "Inactive",
+        "missing": "New"
+      },
+      "complete": "Add {count} new",
+      "intro": "The specialties the clinic works with. Each brings a reference catalogue — its treatments and its plan templates — which enabling adds to the clinic's catalogue, where it can be customised.",
+      "enabled": "Enabled",
+      "available": "Available",
+      "none": {
+        "enabled": "No specialty enabled.",
+        "available": "Every specialty is enabled."
+      },
+      "installed": "{installed} of {total} treatments in the catalogue",
+      "customised": "{count} customised",
+      "reference": "{total} reference treatments",
+      "restore": "Restore",
+      "restoreTitle": "Restore {name}",
+      "restoreWarning": "The reference values will be restored",
+      "restoreCustomised": "Changes to {count} treatments the clinic customised will be lost: name, price, duration and pricing go back to the reference.",
+      "restoreNothingCustomised": "No reference treatment is customised right now. Missing ones will be put back.",
+      "restoreResets": "The reference treatments of this specialty go back to their original name, price, duration and chart drawing, and deactivated ones are reactivated. So do its plan templates.",
+      "restoreKeeps": "Treatments the clinic created itself are not touched.",
+      "restorePlans": "Plans and budgets already made keep the prices they were created with.",
+      "restoreConfirm": "Restore reference values",
+      "done": {
+        "enable": "{name} enabled",
+        "disable": "{name} disabled",
+        "restore": "{name} restored"
+      },
+      "note": "Disabling a specialty deletes nothing: its treatments are deactivated and come back when it is enabled. Reference prices are a starting point; adjust them to your clinic's."
+    },
     "title": "Treatment Catalog",
     "description": "Manage treatments, pricing, and tax configuration",
     "byTreatmentType": "Treatment Type",

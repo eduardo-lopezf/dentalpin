@@ -48,7 +48,7 @@ class TreatmentPlanModule(BaseModule):
         "name": "treatment_plan",
         "version": "0.1.0",
         "summary": "Patient treatment plans with budget + odontogram sync.",
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients", "odontogram", "catalog"],
@@ -168,11 +168,17 @@ class TreatmentPlanModule(BaseModule):
             on_budget_rejected,
             on_budget_renegotiated,
             on_clinic_created,
+            on_specialty_disabled,
+            on_specialty_enabled,
+            on_specialty_restored,
             on_treatment_performed,
         )
 
         return {
             EventType.CLINIC_CREATED: on_clinic_created,
+            EventType.CATALOG_SPECIALTY_ENABLED: on_specialty_enabled,
+            EventType.CATALOG_SPECIALTY_DISABLED: on_specialty_disabled,
+            EventType.CATALOG_SPECIALTY_RESTORED: on_specialty_restored,
             EventType.APPOINTMENT_COMPLETED: on_appointment_completed,
             EventType.BUDGET_CREATED_FOR_PLAN: on_budget_created_for_plan,
             EventType.BUDGET_ACCEPTED: on_budget_accepted,

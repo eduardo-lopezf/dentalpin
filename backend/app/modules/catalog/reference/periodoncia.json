@@ -1,0 +1,830 @@
+{
+  "key": "periodoncia",
+  "names": {
+    "es": "Periodoncia",
+    "en": "Periodontics"
+  },
+  "baseline": true,
+  "subareas": [
+    {
+      "key": "diagnostico",
+      "names": {
+        "es": "Diagnóstico periodontal",
+        "en": "Periodontal diagnosis"
+      }
+    },
+    {
+      "key": "no_quirurgica",
+      "names": {
+        "es": "Terapia no quirúrgica",
+        "en": "Non-surgical therapy"
+      }
+    },
+    {
+      "key": "resectiva",
+      "names": {
+        "es": "Cirugía resectiva",
+        "en": "Resective surgery"
+      }
+    },
+    {
+      "key": "regenerativa",
+      "names": {
+        "es": "Cirugía regenerativa",
+        "en": "Regenerative surgery"
+      }
+    },
+    {
+      "key": "mucogingival",
+      "names": {
+        "es": "Cirugía mucogingival",
+        "en": "Mucogingival surgery"
+      }
+    },
+    {
+      "key": "periimplantario",
+      "names": {
+        "es": "Tejidos periimplantarios",
+        "en": "Peri-implant tissues"
+      }
+    },
+    {
+      "key": "mantenimiento",
+      "names": {
+        "es": "Mantenimiento",
+        "en": "Maintenance"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "PERIO-STUDY",
+      "names": {
+        "es": "Estudio periodontal (sondaje)",
+        "en": "Periodontal probing study"
+      },
+      "category": "periodoncia",
+      "subarea": "diagnostico",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-CONS",
+      "names": {
+        "es": "Consulta de periodoncia",
+        "en": "Periodontal consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-REEVAL",
+      "names": {
+        "es": "Reevaluación periodontal",
+        "en": "Periodontal re-evaluation"
+      },
+      "category": "periodoncia",
+      "subarea": "diagnostico",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-MICRO",
+      "names": {
+        "es": "Test microbiológico periodontal",
+        "en": "Periodontal microbiological test"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-SPLINT-PERIO",
+      "names": {
+        "es": "Férula periodontal de contención",
+        "en": "Periodontal retention splint"
+      },
+      "category": "restauradora",
+      "subarea": "no_quirurgica",
+      "specialties": [
+        "periodoncia",
+        "general"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "splint",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "splint",
+          "color": "#8B5CF6"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "PERIO-RAR",
+      "names": {
+        "es": "Raspado y alisado radicular (por cuadrante)",
+        "en": "Root scaling and planing (per quadrant)"
+      },
+      "category": "periodoncia",
+      "subarea": "no_quirurgica",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-CURET-SEXT",
+      "names": {
+        "es": "Curetaje por sextante",
+        "en": "Curettage per sextant"
+      },
+      "category": "periodoncia",
+      "subarea": "no_quirurgica",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "90.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-SPLINT-RAR",
+      "names": {
+        "es": "Férula de contención post-RAR",
+        "en": "Post-SRP retention splint"
+      },
+      "category": "periodoncia",
+      "subarea": "no_quirurgica",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "150.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "splint",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "splint",
+          "color": "#8B5CF6"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "PERIO-GINGIVITIS",
+      "names": {
+        "es": "Tratamiento de gingivitis",
+        "en": "Gingivitis treatment"
+      },
+      "category": "periodoncia",
+      "subarea": "no_quirurgica",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-RAR-FULL",
+      "names": {
+        "es": "Desinfección de boca completa",
+        "en": "Full-mouth disinfection"
+      },
+      "category": "periodoncia",
+      "subarea": "no_quirurgica",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "600.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-LOCAL-AB",
+      "names": {
+        "es": "Antimicrobiano local subgingival",
+        "en": "Local subgingival antimicrobial"
+      },
+      "category": "periodoncia",
+      "subarea": "no_quirurgica",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "40.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-LASER",
+      "names": {
+        "es": "Terapia láser periodontal",
+        "en": "Periodontal laser therapy"
+      },
+      "category": "periodoncia",
+      "subarea": "no_quirurgica",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "120.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-ABSCESS",
+      "names": {
+        "es": "Drenaje de absceso periodontal",
+        "en": "Periodontal abscess drainage"
+      },
+      "category": "periodoncia",
+      "subarea": "no_quirurgica",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-OCC-ADJ",
+      "names": {
+        "es": "Ajuste oclusal periodontal",
+        "en": "Periodontal occlusal adjustment"
+      },
+      "category": "periodoncia",
+      "subarea": "no_quirurgica",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-SURG",
+      "names": {
+        "es": "Cirugía periodontal",
+        "en": "Periodontal surgery"
+      },
+      "category": "periodoncia",
+      "subarea": "resectiva",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "450.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-GINGIV",
+      "names": {
+        "es": "Gingivectomía",
+        "en": "Gingivectomy"
+      },
+      "category": "periodoncia",
+      "subarea": "resectiva",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-SURG-RESECT",
+      "names": {
+        "es": "Cirugía periodontal resectiva",
+        "en": "Resective periodontal surgery"
+      },
+      "category": "periodoncia",
+      "subarea": "resectiva",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "480.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-CROWN-LENGTH",
+      "names": {
+        "es": "Alargamiento coronario",
+        "en": "Crown lengthening"
+      },
+      "category": "cirugia",
+      "subarea": "resectiva",
+      "specialties": [
+        "periodoncia",
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "380.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-FLAP",
+      "names": {
+        "es": "Colgajo de acceso",
+        "en": "Access flap surgery"
+      },
+      "category": "periodoncia",
+      "subarea": "resectiva",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "380.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-GINGIVOPLASTY",
+      "names": {
+        "es": "Gingivoplastia",
+        "en": "Gingivoplasty"
+      },
+      "category": "periodoncia",
+      "subarea": "resectiva",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "200.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-OSSEOUS",
+      "names": {
+        "es": "Cirugía ósea resectiva",
+        "en": "Resective osseous surgery"
+      },
+      "category": "periodoncia",
+      "subarea": "resectiva",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "450.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-WEDGE",
+      "names": {
+        "es": "Cuña distal",
+        "en": "Distal wedge"
+      },
+      "category": "periodoncia",
+      "subarea": "resectiva",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-BONE",
+      "names": {
+        "es": "Regeneración ósea guiada",
+        "en": "Guided bone regeneration"
+      },
+      "category": "periodoncia",
+      "subarea": "regenerativa",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "550.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-SURG-REGEN",
+      "names": {
+        "es": "Cirugía periodontal regenerativa",
+        "en": "Regenerative periodontal surgery"
+      },
+      "category": "periodoncia",
+      "subarea": "regenerativa",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "580.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-EMD",
+      "names": {
+        "es": "Regeneración con proteínas derivadas del esmalte",
+        "en": "Regeneration with enamel matrix derivative"
+      },
+      "category": "periodoncia",
+      "subarea": "regenerativa",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "520.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-GTR",
+      "names": {
+        "es": "Regeneración tisular guiada con membrana",
+        "en": "Guided tissue regeneration with a membrane"
+      },
+      "category": "periodoncia",
+      "subarea": "regenerativa",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "600.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-BONE-GRAFT",
+      "names": {
+        "es": "Injerto óseo en defecto periodontal",
+        "en": "Bone graft in a periodontal defect"
+      },
+      "category": "periodoncia",
+      "subarea": "regenerativa",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "450.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-FURC",
+      "names": {
+        "es": "Tratamiento de lesión de furca",
+        "en": "Furcation treatment"
+      },
+      "category": "periodoncia",
+      "subarea": "regenerativa",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "380.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-GRAFT",
+      "names": {
+        "es": "Injerto gingival",
+        "en": "Gingival graft"
+      },
+      "category": "periodoncia",
+      "subarea": "mucogingival",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "380.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-CONN-GRAFT",
+      "names": {
+        "es": "Injerto de tejido conectivo",
+        "en": "Connective tissue graft"
+      },
+      "category": "cirugia",
+      "subarea": "mucogingival",
+      "specialties": [
+        "periodoncia",
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "420.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-FGG",
+      "names": {
+        "es": "Injerto gingival libre",
+        "en": "Free gingival graft"
+      },
+      "category": "periodoncia",
+      "subarea": "mucogingival",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "400.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-COVER",
+      "names": {
+        "es": "Recubrimiento radicular (colgajo de avance coronal)",
+        "en": "Root coverage (coronally advanced flap)"
+      },
+      "category": "periodoncia",
+      "subarea": "mucogingival",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "450.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-TUNNEL",
+      "names": {
+        "es": "Recubrimiento radicular con técnica de túnel",
+        "en": "Root coverage, tunnel technique"
+      },
+      "category": "periodoncia",
+      "subarea": "mucogingival",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "550.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-VESTIB",
+      "names": {
+        "es": "Vestibuloplastia",
+        "en": "Vestibuloplasty"
+      },
+      "category": "periodoncia",
+      "subarea": "mucogingival",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "400.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-DEPIGM",
+      "names": {
+        "es": "Despigmentación gingival",
+        "en": "Gingival depigmentation"
+      },
+      "category": "periodoncia",
+      "subarea": "mucogingival",
+      "specialties": [
+        "periodoncia",
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_arch",
+      "price": "250.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-SMILE",
+      "names": {
+        "es": "Corrección de sonrisa gingival",
+        "en": "Gummy smile correction"
+      },
+      "category": "periodoncia",
+      "subarea": "mucogingival",
+      "specialties": [
+        "periodoncia",
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_arch",
+      "price": "600.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-MUCOSITIS",
+      "names": {
+        "es": "Tratamiento de mucositis periimplantaria",
+        "en": "Peri-implant mucositis treatment"
+      },
+      "category": "periodoncia",
+      "subarea": "periimplantario",
+      "specialties": [
+        "periodoncia",
+        "implantologia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-IMPL-STM",
+      "names": {
+        "es": "Aumento de tejido blando periimplantario",
+        "en": "Peri-implant soft tissue augmentation"
+      },
+      "category": "periodoncia",
+      "subarea": "periimplantario",
+      "specialties": [
+        "periodoncia",
+        "implantologia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "420.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-MAINT",
+      "names": {
+        "es": "Mantenimiento periodontal",
+        "en": "Periodontal maintenance"
+      },
+      "category": "periodoncia",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "periodoncia",
+        "higiene"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-MAINT-ADV",
+      "names": {
+        "es": "Mantenimiento periodontal avanzado",
+        "en": "Advanced periodontal maintenance"
+      },
+      "category": "periodoncia",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "periodoncia",
+        "higiene"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-FOLLOW",
+      "names": {
+        "es": "Revisión posquirúrgica periodontal",
+        "en": "Post-surgical periodontal review"
+      },
+      "category": "periodoncia",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "periodoncia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

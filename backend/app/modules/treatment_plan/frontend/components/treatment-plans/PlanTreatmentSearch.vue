@@ -35,7 +35,7 @@ const emit = defineEmits<{
 const { t, locale } = useI18n()
 const { isTouch } = useDevice()
 const api = useApi()
-const { templates, fetchTemplates } = usePlanTemplates()
+const { templates, fetchTemplates, groupBySpecialty } = usePlanTemplates()
 const { searchResults, isSearching, search, getItemName, formatPrice } = useTreatmentCatalogSearch()
 
 const query = ref('')
@@ -115,9 +115,39 @@ const matchingTemplates = computed<PlanTemplate[]>(() => {
   })
 })
 
+/** The matching templates, under the discipline each belongs to. */
+const templateGroups = computed(() => groupBySpecialty(matchingTemplates.value, locale.value))
+
 const matchingTreatments = computed<TreatmentCatalogItem[]>(() =>
   searchResults.value.filter(i => !i.is_diagnostic)
 )
+
+/**
+ * The matching treatments under the discipline each is shown under, in the
+ * order the search returned them. The ones with no discipline come last.
+ */
+const treatmentGroups = computed(() => {
+  const groups = new Map<string, { id: string, title: string, items: TreatmentCatalogItem[] }>()
+  const loose: TreatmentCatalogItem[] = []
+  for (const item of matchingTreatments.value) {
+    const specialty = item.specialty
+    if (!specialty) {
+      loose.push(item)
+      continue
+    }
+    let group = groups.get(specialty.id)
+    if (!group) {
+      group = { id: specialty.id, title: templateItemName(specialty.names), items: [] }
+      groups.set(specialty.id, group)
+    }
+    group.items.push(item)
+  }
+  const result = [...groups.values()]
+  if (loose.length > 0) {
+    result.push({ id: 'none', title: t('clinical.plans.templates.noSpecialty'), items: loose })
+  }
+  return result
+})
 
 const nothingFound = computed(() =>
   isSearchingAnything.value
@@ -252,13 +282,19 @@ function chooseTemplate(template: PlanTemplate) {
               {{ t('clinical.plans.templates.noResults', { query }) }}
             </p>
 
-            <template v-if="matchingTemplates.length > 0">
-              <p class="group-title">
-                {{ t('clinical.plans.templates.title') }}
+            <template
+              v-for="group in templateGroups"
+              :key="group.id"
+            >
+              <p
+                class="group-title"
+                :data-testid="`search-template-group-${group.id}`"
+              >
+                {{ t('clinical.plans.templates.title') }} · {{ group.title }}
               </p>
               <div class="treatment-list">
                 <button
-                  v-for="template in matchingTemplates"
+                  v-for="template in group.templates"
                   :key="template.id"
                   type="button"
                   class="treatment-row"
@@ -280,13 +316,19 @@ function chooseTemplate(template: PlanTemplate) {
               </div>
             </template>
 
-            <template v-if="matchingTreatments.length > 0">
-              <p class="group-title">
-                {{ t('clinical.plans.templates.groupTreatments') }}
+            <template
+              v-for="group in treatmentGroups"
+              :key="`treatments-${group.id}`"
+            >
+              <p
+                class="group-title"
+                data-testid="search-treatment-group"
+              >
+                {{ t('clinical.plans.templates.groupTreatments') }} · {{ group.title }}
               </p>
               <div class="treatment-list">
                 <button
-                  v-for="item in matchingTreatments"
+                  v-for="item in group.items"
                   :key="item.id"
                   type="button"
                   class="treatment-row"

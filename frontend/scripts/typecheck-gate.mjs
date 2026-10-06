@@ -39,7 +39,7 @@ function run(command, args) {
     encoding: 'utf-8',
     env: {
       ...process.env,
-      DENTALPIN_MODULES_JSON: manifest,
+      DIENTEAZUL_MODULES_JSON: manifest,
       NUXT_BUILD_DIR: buildDir
     },
     maxBuffer: 64 * 1024 * 1024

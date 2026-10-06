@@ -370,3 +370,44 @@ async def on_clinic_created(data: dict[str, Any]) -> None:
             return
 
     logger.info("treatment_plan: seeded %s plan templates for clinic %s", seeded, clinic_id)
+
+
+async def _for_specialty(data: dict[str, Any], action: str) -> None:
+    """React to a discipline changing in the clinic's catalogue.
+
+    The catalogue owns the treatments; the reference plan templates of each
+    discipline are this module's, so it follows: enabling installs and
+    shows them, disabling hides them, restoring puts them back to the
+    reference. Repeatable — every step is idempotent (ADR 0042).
+    """
+    from .templates_service import PlanTemplateService
+
+    key = data.get("specialty_key")
+    try:
+        clinic_id = UUID(str(data.get("clinic_id")))
+    except (ValueError, TypeError):
+        return
+    if not key:
+        return
+
+    async with async_session_maker() as db:
+        if action == "disabled":
+            await PlanTemplateService.set_specialty_active(db, clinic_id, key, False)
+        else:
+            await PlanTemplateService.set_specialty_active(db, clinic_id, key, True)
+            await PlanTemplateService.seed(
+                db, clinic_id, specialty=key, restore=action == "restored"
+            )
+        await db.commit()
+
+
+async def on_specialty_enabled(data: dict[str, Any]) -> None:
+    await _for_specialty(data, "enabled")
+
+
+async def on_specialty_disabled(data: dict[str, Any]) -> None:
+    await _for_specialty(data, "disabled")
+
+
+async def on_specialty_restored(data: dict[str, Any]) -> None:
+    await _for_specialty(data, "restored")

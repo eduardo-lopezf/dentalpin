@@ -29,7 +29,53 @@ JSONB; the tools collapse to `es` → `en` → first value for the agent.
 
 ## Events emitted
 
-None.
+`catalog.specialty_enabled`, `catalog.specialty_disabled`,
+`catalog.specialty_restored` — payload `{clinic_id, specialty_key}`, after
+the commit. `treatment_plan` keeps the plan templates of each discipline
+and follows them (ADR 0047, ADR 0042).
+
+## Specialty packs
+
+Every recognised discipline (17: `seed.all_specialties()`) is a **pack**:
+a reference catalogue the clinic enables, disables and restores
+([ADR 0047](../../../../docs/adr/0047-a-specialty-is-a-reference-pack.md)).
+`packs.py` is the whole mechanism; `GET /specialty-packs`,
+`GET /specialty-packs/{key}` (its treatments by sub-area),
+`POST /specialty-packs/{key}/enable|disable|restore`.
+
+- **The reference is data**: one file per discipline,
+  `reference/<key>.json`
+  ([ADR 0048](../../../../docs/adr/0048-the-reference-catalogue-is-data.md),
+  [`reference/README.md`](./reference/README.md)). `reference.py` loads
+  and validates them on import — an unknown field, category, discipline,
+  sub-area or phase, or a code in two files, stops the boot.
+  `seed.reference_items(key)` is a discipline's reference.
+- **A treatment says everything about itself.** Its disciplines, its
+  stage of care, what it draws on the chart: fields of the entry, never
+  derived from its code or category. It is written once, in the file of
+  the first discipline it lists; the others reach it as *shared*.
+- **Sub-areas are the reference's, not the clinic's.** A grouping for
+  reading a discipline, resolved by code. There is no column for it: a
+  treatment the clinic created has none.
+- **A clinic only has what it enabled.** `seed_catalog` skips items whose
+  disciplines are all off. New clinics start with the ten baseline packs.
+- **Enable never overwrites.** It creates what is missing and reactivates
+  what disabling switched off (`disabled_by_specialty`). It is also how a
+  clinic seeded before the reference grew gets the new items
+  (`missing_count` → *Añadir N nuevos*).
+- **Disable deletes nothing.** Reference items claimed by no other enabled
+  discipline get `is_active=False, disabled_by_specialty=True`. Items the
+  clinic created (`is_system=False`) and ones it retired by hand are left
+  alone — the flag is what tells the two apart on re-enable.
+- **Restore overwrites, by design**: every reference item of the
+  discipline back to the reference (`REFERENCE_DEFAULTS` clears what a
+  reference item does not set), mapping and sessions rewritten. Refused
+  for a disabled discipline. `customised_count` is what the UI warns with.
+- **Prices are placeholders.** The reference is a starting point, not a
+  tariff. Plans and budgets snapshot prices, so a restore never changes
+  one already made.
+- **Per clinic, not per doctor.** One catalogue per clinic. Per-doctor
+  price lists do not exist.
 
 ## Events consumed
 

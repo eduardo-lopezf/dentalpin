@@ -1,0 +1,1154 @@
+{
+  "key": "odontopediatria",
+  "names": {
+    "es": "Odontopediatría",
+    "en": "Pediatric Dentistry"
+  },
+  "baseline": true,
+  "subareas": [
+    {
+      "key": "consulta",
+      "names": {
+        "es": "Consulta y manejo de conducta",
+        "en": "Consultation and behaviour management"
+      }
+    },
+    {
+      "key": "prevencion",
+      "names": {
+        "es": "Prevención infantil",
+        "en": "Paediatric prevention"
+      }
+    },
+    {
+      "key": "operatoria",
+      "names": {
+        "es": "Operatoria infantil",
+        "en": "Paediatric operative"
+      }
+    },
+    {
+      "key": "terapia_pulpar",
+      "names": {
+        "es": "Terapia pulpar",
+        "en": "Pulp therapy"
+      }
+    },
+    {
+      "key": "cirugia",
+      "names": {
+        "es": "Cirugía en dentición temporal",
+        "en": "Surgery in the primary dentition"
+      }
+    },
+    {
+      "key": "espacio",
+      "names": {
+        "es": "Manejo del espacio",
+        "en": "Space management"
+      }
+    },
+    {
+      "key": "traumatologia",
+      "names": {
+        "es": "Traumatología dental",
+        "en": "Dental trauma"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "PED-FIRST",
+      "names": {
+        "es": "Primera visita infantil",
+        "en": "First paediatric visit"
+      },
+      "category": "pediatrica",
+      "subarea": "consulta",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-BABY",
+      "names": {
+        "es": "Consulta del bebé (0-3 años)",
+        "en": "Infant oral health visit (0–3 years)"
+      },
+      "category": "pediatrica",
+      "subarea": "consulta",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-REVIEW",
+      "names": {
+        "es": "Revisión infantil",
+        "en": "Paediatric check-up"
+      },
+      "category": "pediatrica",
+      "subarea": "consulta",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-ADAPT",
+      "names": {
+        "es": "Sesión de adaptación",
+        "en": "Acclimatisation session"
+      },
+      "category": "pediatrica",
+      "subarea": "consulta",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-BEHAV",
+      "names": {
+        "es": "Manejo de conducta avanzado",
+        "en": "Advanced behaviour management"
+      },
+      "category": "pediatrica",
+      "subarea": "consulta",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PREV-CLEAN-PED",
+      "names": {
+        "es": "Profilaxis infantil",
+        "en": "Pediatric prophylaxis"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontopediatria",
+        "general",
+        "higiene"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-FLUOR",
+      "names": {
+        "es": "Fluorización pediátrica",
+        "en": "Pediatric fluoride"
+      },
+      "category": "pediatrica",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-SEAL",
+      "names": {
+        "es": "Sellador pediátrico",
+        "en": "Pediatric sealant"
+      },
+      "category": "pediatrica",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "25.00",
+      "minutes": 15,
+      "requires_surfaces": true,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "sealant",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#06B6D4",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#06B6D4"
+      }
+    },
+    {
+      "code": "PED-HYG-EDU",
+      "names": {
+        "es": "Educación en higiene para niños y padres",
+        "en": "Hygiene education for children and parents"
+      },
+      "category": "pediatrica",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-DIET",
+      "names": {
+        "es": "Asesoramiento dietético infantil",
+        "en": "Paediatric dietary counselling"
+      },
+      "category": "pediatrica",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-CARIES-RISK",
+      "names": {
+        "es": "Evaluación de riesgo de caries infantil",
+        "en": "Paediatric caries risk assessment"
+      },
+      "category": "pediatrica",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-SDF",
+      "names": {
+        "es": "Fluoruro diamino de plata en diente temporal",
+        "en": "Silver diamine fluoride"
+      },
+      "category": "pediatrica",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "25.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-HABIT-COUNSEL",
+      "names": {
+        "es": "Consejo sobre hábitos (chupete, succión digital)",
+        "en": "Habit counselling (dummy, thumb sucking)"
+      },
+      "category": "pediatrica",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-MOUTHGUARD",
+      "names": {
+        "es": "Protector bucal infantil",
+        "en": "Paediatric mouthguard"
+      },
+      "category": "pediatrica",
+      "subarea": "prevencion",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "preventivo",
+      "scope": "global_arch",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-CROWN-SS",
+      "names": {
+        "es": "Corona preformada pediátrica",
+        "en": "Stainless steel crown"
+      },
+      "category": "pediatrica",
+      "subarea": "operatoria",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#9CA3AF"
+        }
+      ],
+      "visualization_config": {
+        "color": "#9CA3AF"
+      }
+    },
+    {
+      "code": "PED-FILL-TEMP",
+      "names": {
+        "es": "Obturación en dentición temporal",
+        "en": "Primary tooth filling"
+      },
+      "category": "pediatrica",
+      "subarea": "operatoria",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "45.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_surface",
+      "surface_prices": {
+        "1": "45.00",
+        "2": "65.00",
+        "3": "85.00",
+        "4": "95.00",
+        "5": "105.00"
+      },
+      "requires_surfaces": true,
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#3B82F6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#3B82F6"
+      }
+    },
+    {
+      "code": "PED-FILL-GIC",
+      "names": {
+        "es": "Obturación de ionómero de vidrio en diente temporal",
+        "en": "Glass ionomer filling in a primary tooth"
+      },
+      "category": "pediatrica",
+      "subarea": "operatoria",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "PED-ART",
+      "names": {
+        "es": "Restauración atraumática (ART) en diente temporal",
+        "en": "Atraumatic restorative treatment (ART)"
+      },
+      "category": "pediatrica",
+      "subarea": "operatoria",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "PED-FILL-PERM",
+      "names": {
+        "es": "Obturación en diente permanente joven",
+        "en": "Filling in a young permanent tooth"
+      },
+      "category": "pediatrica",
+      "subarea": "operatoria",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "PED-HALL",
+      "names": {
+        "es": "Corona metálica con técnica de Hall",
+        "en": "Stainless-steel crown, Hall technique"
+      },
+      "category": "pediatrica",
+      "subarea": "operatoria",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "150.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#9CA3AF"
+        }
+      ],
+      "visualization_config": {
+        "color": "#9CA3AF"
+      }
+    },
+    {
+      "code": "PED-CROWN-ZIR",
+      "names": {
+        "es": "Corona de zirconio pediátrica",
+        "en": "Paediatric zirconia crown"
+      },
+      "category": "pediatrica",
+      "subarea": "operatoria",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "260.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#9CA3AF"
+        }
+      ],
+      "visualization_config": {
+        "color": "#9CA3AF"
+      }
+    },
+    {
+      "code": "PED-CROWN-STRIP",
+      "names": {
+        "es": "Corona de celuloide (strip crown)",
+        "en": "Strip crown"
+      },
+      "category": "pediatrica",
+      "subarea": "operatoria",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "diagonal_stripes",
+          "color": "#9CA3AF"
+        }
+      ],
+      "visualization_config": {
+        "color": "#9CA3AF"
+      }
+    },
+    {
+      "code": "PED-RESIN-INFILT",
+      "names": {
+        "es": "Infiltración de resina",
+        "en": "Resin infiltration"
+      },
+      "category": "pediatrica",
+      "subarea": "operatoria",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-MIH",
+      "names": {
+        "es": "Tratamiento de hipomineralización incisivo-molar (MIH)",
+        "en": "Molar-incisor hypomineralisation (MIH) treatment"
+      },
+      "category": "pediatrica",
+      "subarea": "operatoria",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "80.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-PED",
+      "names": {
+        "es": "Endodoncia en pieza temporal",
+        "en": "Endodontics on primary tooth"
+      },
+      "category": "endodoncia",
+      "subarea": "terapia_pulpar",
+      "specialties": [
+        "odontopediatria",
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "140.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#A78BFA",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#A78BFA"
+      }
+    },
+    {
+      "code": "PED-PULPOTOMY",
+      "names": {
+        "es": "Pulpotomía",
+        "en": "Pulpotomy"
+      },
+      "category": "pediatrica",
+      "subarea": "terapia_pulpar",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "150.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_half",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#A78BFA",
+          "extent": "partial_1_2"
+        }
+      ],
+      "visualization_config": {
+        "color": "#A78BFA"
+      }
+    },
+    {
+      "code": "PED-PULPECTOMY",
+      "names": {
+        "es": "Pulpectomía pediátrica",
+        "en": "Pediatric pulpectomy"
+      },
+      "category": "pediatrica",
+      "subarea": "terapia_pulpar",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "160.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#A78BFA",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#A78BFA"
+      }
+    },
+    {
+      "code": "PED-IPC",
+      "names": {
+        "es": "Recubrimiento pulpar indirecto en diente temporal",
+        "en": "Indirect pulp cap in a primary tooth"
+      },
+      "category": "pediatrica",
+      "subarea": "terapia_pulpar",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-PULPOTOMY-MTA",
+      "names": {
+        "es": "Pulpotomía con MTA o biocerámico",
+        "en": "Pulpotomy with MTA or bioceramic"
+      },
+      "category": "pediatrica",
+      "subarea": "terapia_pulpar",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_half",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#A78BFA",
+          "extent": "partial_1_2"
+        }
+      ],
+      "visualization_config": {
+        "color": "#A78BFA"
+      }
+    },
+    {
+      "code": "PED-APEXOG",
+      "names": {
+        "es": "Apicogénesis en diente permanente joven",
+        "en": "Apexogenesis in a young permanent tooth"
+      },
+      "category": "pediatrica",
+      "subarea": "terapia_pulpar",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "200.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_half",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#A78BFA",
+          "extent": "partial_1_2"
+        }
+      ],
+      "visualization_config": {
+        "color": "#A78BFA"
+      }
+    },
+    {
+      "code": "PED-EXT-TEMP",
+      "names": {
+        "es": "Extracción de pieza temporal",
+        "en": "Primary tooth extraction"
+      },
+      "category": "pediatrica",
+      "subarea": "cirugia",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "55.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "PED-EXT-ANKYL",
+      "names": {
+        "es": "Extracción de diente temporal anquilosado",
+        "en": "Extraction of an ankylosed primary tooth"
+      },
+      "category": "pediatrica",
+      "subarea": "cirugia",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "PED-NATAL",
+      "names": {
+        "es": "Extracción de diente natal o neonatal",
+        "en": "Natal or neonatal tooth extraction"
+      },
+      "category": "pediatrica",
+      "subarea": "cirugia",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "PED-FREN",
+      "names": {
+        "es": "Frenectomía en paciente infantil",
+        "en": "Frenectomy in a child"
+      },
+      "category": "pediatrica",
+      "subarea": "cirugia",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "180.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-FREN-LING",
+      "names": {
+        "es": "Frenotomía lingual del lactante",
+        "en": "Lingual frenotomy in an infant"
+      },
+      "category": "pediatrica",
+      "subarea": "cirugia",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-ERUPT-CYST",
+      "names": {
+        "es": "Tratamiento de quiste de erupción",
+        "en": "Eruption cyst treatment"
+      },
+      "category": "pediatrica",
+      "subarea": "cirugia",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "80.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-SPACE",
+      "names": {
+        "es": "Mantenedor de espacio simple",
+        "en": "Simple space maintainer"
+      },
+      "category": "pediatrica",
+      "subarea": "espacio",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "150.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-SPACE-COMPOUND",
+      "names": {
+        "es": "Mantenedor de espacio compuesto",
+        "en": "Compound space maintainer"
+      },
+      "category": "pediatrica",
+      "subarea": "espacio",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "220.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-SPACE-BAND",
+      "names": {
+        "es": "Mantenedor banda-ansa",
+        "en": "Band-and-loop space maintainer"
+      },
+      "category": "pediatrica",
+      "subarea": "espacio",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "160.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-SPACE-NANCE",
+      "names": {
+        "es": "Botón de Nance",
+        "en": "Nance appliance"
+      },
+      "category": "pediatrica",
+      "subarea": "espacio",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_arch",
+      "price": "220.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-SPACE-LING",
+      "names": {
+        "es": "Arco lingual mantenedor",
+        "en": "Lingual arch space maintainer"
+      },
+      "category": "pediatrica",
+      "subarea": "espacio",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_arch",
+      "price": "220.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-SPACE-REMOV",
+      "names": {
+        "es": "Mantenedor removible con dientes",
+        "en": "Removable space maintainer with teeth"
+      },
+      "category": "pediatrica",
+      "subarea": "espacio",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_arch",
+      "price": "200.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-SPACE-RECEMENT",
+      "names": {
+        "es": "Recementado de mantenedor",
+        "en": "Space maintainer recementation"
+      },
+      "category": "pediatrica",
+      "subarea": "espacio",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "mantenimiento",
+      "scope": "tooth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-HABIT-APPL",
+      "names": {
+        "es": "Aparato para hábito de succión",
+        "en": "Habit-breaking appliance"
+      },
+      "category": "pediatrica",
+      "subarea": "espacio",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_arch",
+      "price": "280.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-CROSSBITE",
+      "names": {
+        "es": "Corrección de mordida cruzada anterior",
+        "en": "Anterior crossbite correction"
+      },
+      "category": "pediatrica",
+      "subarea": "espacio",
+      "specialties": [
+        "odontopediatria",
+        "ortodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_arch",
+      "price": "300.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-TRAUMA-EXAM",
+      "names": {
+        "es": "Valoración de traumatismo dental",
+        "en": "Dental trauma assessment"
+      },
+      "category": "pediatrica",
+      "subarea": "traumatologia",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "urgencia",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-TRAUMA-SPLINT",
+      "names": {
+        "es": "Ferulización de diente traumatizado",
+        "en": "Splinting of a traumatised tooth"
+      },
+      "category": "pediatrica",
+      "subarea": "traumatologia",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "urgencia",
+      "scope": "multi_tooth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PED-TRAUMA-RESTORE",
+      "names": {
+        "es": "Reconstrucción de fractura coronal",
+        "en": "Crown fracture restoration"
+      },
+      "category": "pediatrica",
+      "subarea": "traumatologia",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "PED-TRAUMA-FOLLOW",
+      "names": {
+        "es": "Control de traumatismo dental",
+        "en": "Dental trauma follow-up"
+      },
+      "category": "pediatrica",
+      "subarea": "traumatologia",
+      "specialties": [
+        "odontopediatria"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

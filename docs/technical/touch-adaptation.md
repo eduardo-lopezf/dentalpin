@@ -1,6 +1,6 @@
 # Touch adaptation
 
-How DentalPin adapts to being driven by a finger. The rule and its
+How Diente Azul adapts to being driven by a finger. The rule and its
 rationale live in
 [ADR 0022](../adr/0022-touch-adaptation-is-capability-driven.md); this is
 the working reference for module authors.

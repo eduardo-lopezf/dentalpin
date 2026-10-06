@@ -1,0 +1,1148 @@
+{
+  "key": "cirugia",
+  "names": {
+    "es": "Cirugía Oral y Maxilofacial",
+    "en": "Oral and Maxillofacial Surgery"
+  },
+  "baseline": true,
+  "subareas": [
+    {
+      "key": "consulta",
+      "names": {
+        "es": "Consulta y seguimiento",
+        "en": "Consultation and follow-up"
+      }
+    },
+    {
+      "key": "dentoalveolar",
+      "names": {
+        "es": "Cirugía dentoalveolar",
+        "en": "Dentoalveolar surgery"
+      }
+    },
+    {
+      "key": "infecciones",
+      "names": {
+        "es": "Infecciones y traumatismos",
+        "en": "Infections and trauma"
+      }
+    },
+    {
+      "key": "tejidos_blandos",
+      "names": {
+        "es": "Tejidos blandos y patología",
+        "en": "Soft tissue and pathology"
+      }
+    },
+    {
+      "key": "preprotesica",
+      "names": {
+        "es": "Cirugía preprotésica",
+        "en": "Pre-prosthetic surgery"
+      }
+    },
+    {
+      "key": "ortognatica",
+      "names": {
+        "es": "Cirugía ortognática",
+        "en": "Orthognathic surgery"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "SURG-CONS",
+      "names": {
+        "es": "Consulta de cirugía oral",
+        "en": "Oral surgery consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-FOLLOW",
+      "names": {
+        "es": "Revisión posquirúrgica",
+        "en": "Post-surgical review"
+      },
+      "category": "cirugia",
+      "subarea": "consulta",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-SUTURE-REMOVE",
+      "names": {
+        "es": "Retirada de sutura",
+        "en": "Suture removal"
+      },
+      "category": "cirugia",
+      "subarea": "consulta",
+      "specialties": [
+        "cirugia",
+        "general",
+        "periodoncia",
+        "implantologia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "15.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-EXT-SIMPLE",
+      "names": {
+        "es": "Extracción simple",
+        "en": "Simple extraction"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "SURG-EXT-COMPLEX",
+      "names": {
+        "es": "Extracción compleja",
+        "en": "Complex extraction"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "140.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "SURG-EXT-3MOLAR",
+      "names": {
+        "es": "Extracción tercer molar",
+        "en": "Wisdom tooth extraction"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "200.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "SURG-EXT-OST",
+      "names": {
+        "es": "Extracción quirúrgica con ostectomía",
+        "en": "Surgical extraction with osteotomy"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "280.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#991B1B"
+        }
+      ],
+      "visualization_config": {
+        "color": "#991B1B"
+      }
+    },
+    {
+      "code": "SURG-EXT-INCLUIDO",
+      "names": {
+        "es": "Extracción de pieza incluida",
+        "en": "Impacted tooth extraction"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "250.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "SURG-EXT-ROOT",
+      "names": {
+        "es": "Extracción de resto radicular",
+        "en": "Root remnant extraction"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "100.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "SURG-EXT-3M-IMPACT",
+      "names": {
+        "es": "Extracción de tercer molar impactado",
+        "en": "Impacted third molar extraction"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "320.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "SURG-EXT-SUPERNUM",
+      "names": {
+        "es": "Extracción de diente supernumerario",
+        "en": "Supernumerary tooth extraction"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "220.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "SURG-GERMECT",
+      "names": {
+        "es": "Germenectomía",
+        "en": "Germectomy"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "260.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "extraction",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "extraction",
+          "color": "#DC2626"
+        }
+      ],
+      "visualization_config": {
+        "color": "#DC2626"
+      }
+    },
+    {
+      "code": "SURG-EXT-MULTI",
+      "names": {
+        "es": "Extracciones múltiples con alveoloplastia",
+        "en": "Multiple extractions with alveoloplasty"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "multi_tooth",
+      "price": "300.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-CORONECT",
+      "names": {
+        "es": "Coronectomía",
+        "en": "Coronectomy"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "260.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-EXPOSE",
+      "names": {
+        "es": "Fenestración de diente retenido",
+        "en": "Surgical exposure of an impacted tooth"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia",
+        "ortodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "240.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-AUTOTRANSPL",
+      "names": {
+        "es": "Autotrasplante dental",
+        "en": "Tooth autotransplantation"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "600.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-ALV-PRESERV",
+      "names": {
+        "es": "Preservación alveolar",
+        "en": "Socket preservation"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia",
+        "implantologia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "300.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-DRYSOCKET",
+      "names": {
+        "es": "Tratamiento de alveolitis",
+        "en": "Dry socket treatment"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia",
+        "general"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-HEMOST",
+      "names": {
+        "es": "Control de hemorragia postextracción",
+        "en": "Post-extraction bleeding control"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia",
+        "general"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-OAC",
+      "names": {
+        "es": "Cierre de comunicación oroantral",
+        "en": "Oroantral communication closure"
+      },
+      "category": "cirugia",
+      "subarea": "dentoalveolar",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "450.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-DRAIN",
+      "names": {
+        "es": "Drenaje de absceso",
+        "en": "Abscess incision and drainage"
+      },
+      "category": "cirugia",
+      "subarea": "infecciones",
+      "specialties": [
+        "cirugia",
+        "general"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "70.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-DRAIN-EXT",
+      "names": {
+        "es": "Drenaje extraoral de absceso",
+        "en": "Extraoral abscess drainage"
+      },
+      "category": "cirugia",
+      "subarea": "infecciones",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "urgencia",
+      "scope": "global_mouth",
+      "price": "350.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-WOUND",
+      "names": {
+        "es": "Sutura de herida intraoral",
+        "en": "Intraoral wound suture"
+      },
+      "category": "cirugia",
+      "subarea": "infecciones",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "urgencia",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-ALV-FRACT",
+      "names": {
+        "es": "Reducción de fractura dentoalveolar",
+        "en": "Dentoalveolar fracture reduction"
+      },
+      "category": "cirugia",
+      "subarea": "infecciones",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "urgencia",
+      "scope": "multi_tooth",
+      "price": "350.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-MAND-FRACT",
+      "names": {
+        "es": "Reducción de fractura mandibular",
+        "en": "Mandibular fracture reduction"
+      },
+      "category": "cirugia",
+      "subarea": "infecciones",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "2500.00",
+      "minutes": 150,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-LUX",
+      "names": {
+        "es": "Reducción de luxación de ATM",
+        "en": "TMJ dislocation reduction"
+      },
+      "category": "cirugia",
+      "subarea": "infecciones",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "urgencia",
+      "scope": "global_mouth",
+      "price": "100.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-FREN",
+      "names": {
+        "es": "Frenectomía",
+        "en": "Frenectomy"
+      },
+      "category": "cirugia",
+      "subarea": "tejidos_blandos",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-BIOPSY",
+      "names": {
+        "es": "Biopsia",
+        "en": "Biopsy"
+      },
+      "category": "cirugia",
+      "subarea": "tejidos_blandos",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "220.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-CYST",
+      "names": {
+        "es": "Exéresis de quiste",
+        "en": "Cyst removal"
+      },
+      "category": "cirugia",
+      "subarea": "tejidos_blandos",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "550.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "apicoectomy",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "apicoectomy",
+          "color": "#F59E0B"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F59E0B"
+      }
+    },
+    {
+      "code": "SURG-FREN-LING",
+      "names": {
+        "es": "Frenectomía lingual",
+        "en": "Lingual frenectomy"
+      },
+      "category": "cirugia",
+      "subarea": "tejidos_blandos",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "200.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-OPERCUL",
+      "names": {
+        "es": "Operculectomía",
+        "en": "Operculectomy"
+      },
+      "category": "cirugia",
+      "subarea": "tejidos_blandos",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-SIALOLITH",
+      "names": {
+        "es": "Extracción de cálculo salival (sialolitotomía)",
+        "en": "Sialolith removal"
+      },
+      "category": "cirugia",
+      "subarea": "tejidos_blandos",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "350.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-RANULA",
+      "names": {
+        "es": "Tratamiento de ránula",
+        "en": "Ranula treatment"
+      },
+      "category": "cirugia",
+      "subarea": "tejidos_blandos",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "400.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-LASER",
+      "names": {
+        "es": "Cirugía de tejidos blandos con láser",
+        "en": "Laser soft-tissue surgery"
+      },
+      "category": "cirugia",
+      "subarea": "tejidos_blandos",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-ALVEOLOPL",
+      "names": {
+        "es": "Alveoloplastia",
+        "en": "Alveoloplasty"
+      },
+      "category": "cirugia",
+      "subarea": "preprotesica",
+      "specialties": [
+        "cirugia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "250.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-TORUS",
+      "names": {
+        "es": "Exéresis de torus",
+        "en": "Torus removal"
+      },
+      "category": "cirugia",
+      "subarea": "preprotesica",
+      "specialties": [
+        "cirugia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "400.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-EXOST",
+      "names": {
+        "es": "Exéresis de exostosis",
+        "en": "Exostosis removal"
+      },
+      "category": "cirugia",
+      "subarea": "preprotesica",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "multi_tooth",
+      "price": "280.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-TUBER",
+      "names": {
+        "es": "Reducción de tuberosidad",
+        "en": "Tuberosity reduction"
+      },
+      "category": "cirugia",
+      "subarea": "preprotesica",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "300.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-HYPERPL",
+      "names": {
+        "es": "Exéresis de hiperplasia fibrosa (épulis fisurado)",
+        "en": "Excision of fibrous hyperplasia (epulis fissuratum)"
+      },
+      "category": "cirugia",
+      "subarea": "preprotesica",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "250.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MXF-CONS-01",
+      "names": {
+        "es": "Primera consulta de Cirugía Maxilofacial",
+        "en": "First maxillofacial surgery consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia",
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "consultation"
+    },
+    {
+      "code": "MXF-EST-01",
+      "names": {
+        "es": "Estudio diagnóstico ortognático",
+        "en": "Orthognathic diagnostic workup"
+      },
+      "descriptions": {
+        "es": "Registros, CBCT, escaneado de modelos, arco facial y cefalometría",
+        "en": "Records, CBCT, model scanning, facebow and cephalometrics"
+      },
+      "category": "diagnostico",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia",
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "350.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "imaging"
+    },
+    {
+      "code": "MXF-PREAN-01",
+      "names": {
+        "es": "Valoración preanestésica",
+        "en": "Pre-anaesthetic assessment"
+      },
+      "category": "diagnostico",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia",
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "consultation"
+    },
+    {
+      "code": "MXF-VSP-01",
+      "names": {
+        "es": "Planificación virtual y férulas quirúrgicas",
+        "en": "Virtual surgical planning and splints"
+      },
+      "category": "cirugia",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "900.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "consultation"
+    },
+    {
+      "code": "MXF-CIR-01",
+      "names": {
+        "es": "Cirugía ortognática bimaxilar (Le Fort I + OSBR)",
+        "en": "Bimaxillary orthognathic surgery (Le Fort I + BSSO)"
+      },
+      "category": "cirugia",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "9500.00",
+      "minutes": 300,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "osteotomy_lefort1",
+      "sessions": [
+        {
+          "labels": {
+            "es": "Acto quirúrgico",
+            "en": "Surgery"
+          },
+          "default_price": "9500.00"
+        },
+        {
+          "labels": {
+            "es": "Control postoperatorio inmediato",
+            "en": "Immediate post-op check"
+          },
+          "default_price": "0.00"
+        },
+        {
+          "labels": {
+            "es": "Revisión 1.ª semana",
+            "en": "Week 1 review"
+          },
+          "default_price": "0.00"
+        },
+        {
+          "labels": {
+            "es": "Revisión 2.ª semana",
+            "en": "Week 2 review"
+          },
+          "default_price": "0.00"
+        },
+        {
+          "labels": {
+            "es": "Revisión al mes",
+            "en": "One-month review"
+          },
+          "default_price": "0.00"
+        },
+        {
+          "labels": {
+            "es": "Revisión a los 3 meses",
+            "en": "Three-month review"
+          },
+          "default_price": "0.00"
+        },
+        {
+          "labels": {
+            "es": "Revisión a los 6 meses",
+            "en": "Six-month review"
+          },
+          "default_price": "0.00"
+        },
+        {
+          "labels": {
+            "es": "Alta quirúrgica al año",
+            "en": "Discharge at one year"
+          },
+          "default_price": "0.00"
+        }
+      ]
+    },
+    {
+      "code": "MXF-GENIO-01",
+      "names": {
+        "es": "Mentoplastia (genioplastia de deslizamiento)",
+        "en": "Sliding genioplasty"
+      },
+      "category": "cirugia",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "1800.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "genioplasty"
+    },
+    {
+      "code": "MXF-OSTEO-01",
+      "names": {
+        "es": "Retirada de material de osteosíntesis",
+        "en": "Osteosynthesis hardware removal"
+      },
+      "category": "cirugia",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "1200.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "osteosynthesis_removal"
+    },
+    {
+      "code": "MXF-LEFORT",
+      "names": {
+        "es": "Osteotomía Le Fort I aislada",
+        "en": "Isolated Le Fort I osteotomy"
+      },
+      "category": "cirugia",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "6000.00",
+      "minutes": 180,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "osteotomy_lefort1"
+    },
+    {
+      "code": "MXF-BSSO",
+      "names": {
+        "es": "Osteotomía sagital mandibular bilateral",
+        "en": "Bilateral sagittal split osteotomy"
+      },
+      "category": "cirugia",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "6000.00",
+      "minutes": 180,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MXF-SARPE",
+      "names": {
+        "es": "Expansión palatina asistida quirúrgicamente (SARPE)",
+        "en": "Surgically assisted rapid palatal expansion (SARPE)"
+      },
+      "category": "cirugia",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia",
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "3500.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MXF-FOLLOW",
+      "names": {
+        "es": "Revisión de cirugía ortognática",
+        "en": "Orthognathic surgery review"
+      },
+      "category": "cirugia",
+      "subarea": "ortognatica",
+      "specialties": [
+        "cirugia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

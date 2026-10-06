@@ -130,7 +130,7 @@ watch(() => formState.password, () => {
     <!-- Brand -->
     <div class="text-center mb-6">
       <img
-        src="/logo-icon.svg"
+        src="/dienteazul-icon.svg"
         alt="Dental Demo"
         width="56"
         height="56"

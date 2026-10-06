@@ -1,0 +1,991 @@
+{
+  "key": "endodoncia",
+  "names": {
+    "es": "Endodoncia",
+    "en": "Endodontics"
+  },
+  "baseline": true,
+  "subareas": [
+    {
+      "key": "diagnostico",
+      "names": {
+        "es": "Diagnóstico endodóncico",
+        "en": "Endodontic diagnosis"
+      }
+    },
+    {
+      "key": "urgencias",
+      "names": {
+        "es": "Urgencias",
+        "en": "Emergencies"
+      }
+    },
+    {
+      "key": "vital",
+      "names": {
+        "es": "Terapia pulpar vital",
+        "en": "Vital pulp therapy"
+      }
+    },
+    {
+      "key": "convencional",
+      "names": {
+        "es": "Endodoncia convencional",
+        "en": "Conventional endodontics"
+      }
+    },
+    {
+      "key": "retratamiento",
+      "names": {
+        "es": "Retratamiento",
+        "en": "Retreatment"
+      }
+    },
+    {
+      "key": "apice_inmaduro",
+      "names": {
+        "es": "Ápice inmaduro",
+        "en": "Immature apex"
+      }
+    },
+    {
+      "key": "complicaciones",
+      "names": {
+        "es": "Complicaciones",
+        "en": "Complications"
+      }
+    },
+    {
+      "key": "postes",
+      "names": {
+        "es": "Postes y pernos",
+        "en": "Posts"
+      }
+    },
+    {
+      "key": "blanqueamiento_interno",
+      "names": {
+        "es": "Blanqueamiento interno",
+        "en": "Internal bleaching"
+      }
+    },
+    {
+      "key": "microcirugia",
+      "names": {
+        "es": "Microcirugía apical",
+        "en": "Apical microsurgery"
+      }
+    },
+    {
+      "key": "seguimiento",
+      "names": {
+        "es": "Seguimiento",
+        "en": "Follow-up"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "ENDO-CONS",
+      "names": {
+        "es": "Consulta de endodoncia",
+        "en": "Endodontic consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-VITAL",
+      "names": {
+        "es": "Pruebas de vitalidad pulpar",
+        "en": "Pulp vitality tests"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "endodoncia",
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "tooth",
+      "price": "15.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-CRACK",
+      "names": {
+        "es": "Diagnóstico de fisura o fractura",
+        "en": "Crack or fracture diagnosis"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "diagnostico",
+      "scope": "tooth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-URGENT",
+      "names": {
+        "es": "Apertura cameral urgente",
+        "en": "Emergency pulp chamber opening"
+      },
+      "category": "endodoncia",
+      "subarea": "urgencias",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_half",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#C084FC",
+          "extent": "partial_1_2"
+        }
+      ],
+      "visualization_config": {
+        "color": "#C084FC"
+      }
+    },
+    {
+      "code": "ENDO-MED-REFRESH",
+      "names": {
+        "es": "Recambio de medicación intraconducto",
+        "en": "Intracanal medication refresh"
+      },
+      "category": "endodoncia",
+      "subarea": "urgencias",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_two_thirds",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#C4B5FD",
+          "extent": "partial_2_3"
+        }
+      ],
+      "visualization_config": {
+        "color": "#C4B5FD"
+      }
+    },
+    {
+      "code": "ENDO-PULPOTOMY-URG",
+      "names": {
+        "es": "Pulpotomía de urgencia",
+        "en": "Emergency pulpotomy"
+      },
+      "category": "endodoncia",
+      "subarea": "urgencias",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "70.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_half",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#C084FC",
+          "extent": "partial_1_2"
+        }
+      ],
+      "visualization_config": {
+        "color": "#C084FC"
+      }
+    },
+    {
+      "code": "ENDO-DRAIN",
+      "names": {
+        "es": "Drenaje de absceso por conducto",
+        "en": "Abscess drainage through the canal"
+      },
+      "category": "endodoncia",
+      "subarea": "urgencias",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "urgencia",
+      "scope": "tooth",
+      "price": "70.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_half",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#C084FC",
+          "extent": "partial_1_2"
+        }
+      ],
+      "visualization_config": {
+        "color": "#C084FC"
+      }
+    },
+    {
+      "code": "ENDO-PULPOTOMY-PART",
+      "names": {
+        "es": "Pulpotomía parcial (Cvek)",
+        "en": "Partial pulpotomy (Cvek)"
+      },
+      "category": "endodoncia",
+      "subarea": "vital",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "100.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_half",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#C084FC",
+          "extent": "partial_1_2"
+        }
+      ],
+      "visualization_config": {
+        "color": "#C084FC"
+      }
+    },
+    {
+      "code": "ENDO-PULPOTOMY-FULL",
+      "names": {
+        "es": "Pulpotomía total con biocerámico",
+        "en": "Full pulpotomy with bioceramic"
+      },
+      "category": "endodoncia",
+      "subarea": "vital",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "130.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_half",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#C084FC",
+          "extent": "partial_1_2"
+        }
+      ],
+      "visualization_config": {
+        "color": "#C084FC"
+      }
+    },
+    {
+      "code": "ENDO-UNI",
+      "names": {
+        "es": "Endodoncia unirradicular",
+        "en": "Single-root endodontics"
+      },
+      "category": "endodoncia",
+      "subarea": "convencional",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#8B5CF6",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "ENDO-BI",
+      "names": {
+        "es": "Endodoncia birradicular",
+        "en": "Two-root endodontics"
+      },
+      "category": "endodoncia",
+      "subarea": "convencional",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "280.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#8B5CF6",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "ENDO-MULTI",
+      "names": {
+        "es": "Endodoncia molar",
+        "en": "Molar endodontics"
+      },
+      "category": "endodoncia",
+      "subarea": "convencional",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "380.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#7C3AED",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#7C3AED"
+      },
+      "sessions": [
+        {
+          "labels": {
+            "es": "Apertura y conductometría",
+            "en": "Access and length"
+          },
+          "default_price": "130.00"
+        },
+        {
+          "labels": {
+            "es": "Limpieza y conformación",
+            "en": "Cleaning and shaping"
+          },
+          "default_price": "130.00"
+        },
+        {
+          "labels": {
+            "es": "Obturación",
+            "en": "Obturation"
+          },
+          "default_price": "120.00"
+        }
+      ]
+    },
+    {
+      "code": "ENDO-4CANAL",
+      "names": {
+        "es": "Endodoncia de molar con cuatro conductos o más",
+        "en": "Molar endodontics, four canals or more"
+      },
+      "category": "endodoncia",
+      "subarea": "convencional",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "430.00",
+      "minutes": 105,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#8B5CF6",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "ENDO-CALCIF",
+      "names": {
+        "es": "Endodoncia de conductos calcificados",
+        "en": "Endodontics of calcified canals"
+      },
+      "category": "endodoncia",
+      "subarea": "convencional",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "450.00",
+      "minutes": 105,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#8B5CF6",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "ENDO-MICRO",
+      "names": {
+        "es": "Suplemento por endodoncia con microscopio",
+        "en": "Microscope-assisted endodontics supplement"
+      },
+      "category": "endodoncia",
+      "subarea": "convencional",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "80.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-REBUILD-PRE",
+      "names": {
+        "es": "Reconstrucción preendodóncica",
+        "en": "Pre-endodontic build-up"
+      },
+      "category": "endodoncia",
+      "subarea": "convencional",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "70.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "filling_composite",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#8B5CF6",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "ENDO-RETREAT",
+      "names": {
+        "es": "Re-tratamiento endodóncico",
+        "en": "Endodontic retreatment"
+      },
+      "category": "endodoncia",
+      "subarea": "retratamiento",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "380.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#A78BFA",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#A78BFA"
+      }
+    },
+    {
+      "code": "ENDO-RETREAT-UNI",
+      "names": {
+        "es": "Retratamiento unirradicular",
+        "en": "Single-rooted retreatment"
+      },
+      "category": "endodoncia",
+      "subarea": "retratamiento",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "280.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#8B5CF6",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "ENDO-RETREAT-MULTI",
+      "names": {
+        "es": "Retratamiento molar",
+        "en": "Molar retreatment"
+      },
+      "category": "endodoncia",
+      "subarea": "retratamiento",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "450.00",
+      "minutes": 105,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#8B5CF6",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "ENDO-POST-REMOVE",
+      "names": {
+        "es": "Retirada de perno o poste",
+        "en": "Post removal"
+      },
+      "category": "endodoncia",
+      "subarea": "retratamiento",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-APICOFORM",
+      "names": {
+        "es": "Apicoformación",
+        "en": "Apexification"
+      },
+      "category": "endodoncia",
+      "subarea": "apice_inmaduro",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "280.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#A78BFA",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#A78BFA"
+      }
+    },
+    {
+      "code": "ENDO-APEX-MTA",
+      "names": {
+        "es": "Barrera apical con MTA",
+        "en": "Apical barrier with MTA"
+      },
+      "category": "endodoncia",
+      "subarea": "apice_inmaduro",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "320.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#8B5CF6",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "ENDO-REVASC",
+      "names": {
+        "es": "Revascularización pulpar (endodoncia regenerativa)",
+        "en": "Pulp revascularisation (regenerative endodontics)"
+      },
+      "category": "endodoncia",
+      "subarea": "apice_inmaduro",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "380.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "root_canal_full",
+      "visualization_rules": [
+        {
+          "layer": "pulp_fill",
+          "color": "#8B5CF6",
+          "extent": "full"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "ENDO-PERF-REPAIR",
+      "names": {
+        "es": "Reparación de perforación",
+        "en": "Perforation repair"
+      },
+      "category": "endodoncia",
+      "subarea": "complicaciones",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "220.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-INSTR-REMOVE",
+      "names": {
+        "es": "Retirada de instrumento fracturado",
+        "en": "Removal of a separated instrument"
+      },
+      "category": "endodoncia",
+      "subarea": "complicaciones",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "250.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-RESORP",
+      "names": {
+        "es": "Tratamiento de reabsorción radicular",
+        "en": "Root resorption treatment"
+      },
+      "category": "endodoncia",
+      "subarea": "complicaciones",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "300.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-POST-FIBER",
+      "names": {
+        "es": "Perno de fibra",
+        "en": "Fiber post"
+      },
+      "category": "endodoncia",
+      "subarea": "postes",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "post",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "post",
+          "color": "#8B5CF6"
+        }
+      ],
+      "visualization_config": {
+        "color": "#8B5CF6"
+      }
+    },
+    {
+      "code": "ENDO-POST-METAL",
+      "names": {
+        "es": "Perno colado",
+        "en": "Cast post"
+      },
+      "category": "endodoncia",
+      "subarea": "postes",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "post",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "post",
+          "color": "#6B7280"
+        }
+      ],
+      "visualization_config": {
+        "color": "#6B7280"
+      }
+    },
+    {
+      "code": "ENDO-BLEACH-INT",
+      "names": {
+        "es": "Blanqueamiento interno de diente no vital",
+        "en": "Internal bleaching of a non-vital tooth"
+      },
+      "category": "estetica",
+      "subarea": "blanqueamiento_interno",
+      "specialties": [
+        "endodoncia",
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "120.00",
+      "minutes": 30,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-APEC",
+      "names": {
+        "es": "Apicectomía",
+        "en": "Apicoectomy"
+      },
+      "category": "cirugia",
+      "subarea": "microcirugia",
+      "specialties": [
+        "endodoncia",
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "320.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "apicoectomy",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "apicoectomy",
+          "color": "#F59E0B"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F59E0B"
+      }
+    },
+    {
+      "code": "ENDO-MICROSURG",
+      "names": {
+        "es": "Microcirugía apical con obturación retrógrada",
+        "en": "Apical microsurgery with retrograde filling"
+      },
+      "category": "cirugia",
+      "subarea": "microcirugia",
+      "specialties": [
+        "endodoncia",
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "480.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "apicoectomy",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "apicoectomy",
+          "color": "#F59E0B"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F59E0B"
+      }
+    },
+    {
+      "code": "ENDO-HEMISECT",
+      "names": {
+        "es": "Hemisección radicular",
+        "en": "Hemisection"
+      },
+      "category": "cirugia",
+      "subarea": "microcirugia",
+      "specialties": [
+        "endodoncia",
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "300.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-ROOT-AMP",
+      "names": {
+        "es": "Amputación radicular",
+        "en": "Root amputation"
+      },
+      "category": "cirugia",
+      "subarea": "microcirugia",
+      "specialties": [
+        "endodoncia",
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "300.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-INTENT-REPL",
+      "names": {
+        "es": "Reimplante intencional",
+        "en": "Intentional replantation"
+      },
+      "category": "cirugia",
+      "subarea": "microcirugia",
+      "specialties": [
+        "endodoncia",
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "350.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ENDO-FOLLOW",
+      "names": {
+        "es": "Control de endodoncia",
+        "en": "Endodontic follow-up"
+      },
+      "category": "diagnostico",
+      "subarea": "seguimiento",
+      "specialties": [
+        "endodoncia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "tooth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

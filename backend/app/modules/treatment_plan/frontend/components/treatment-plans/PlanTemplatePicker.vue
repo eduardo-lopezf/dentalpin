@@ -37,7 +37,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const { templates, fetchTemplates, needsTeeth, treatmentsNeedingTeeth }
+const { templates, fetchTemplates, needsTeeth, treatmentsNeedingTeeth, groupBySpecialty }
   = usePlanTemplates()
 
 const selectedId = ref<string | null>(props.modelValue ?? null)
@@ -98,6 +98,9 @@ const shownTemplates = computed<PlanTemplate[]>(() => {
 })
 
 const isSearchingAnything = computed(() => tokens.value.length > 0)
+
+/** The templates on show, under the discipline each belongs to. */
+const groups = computed(() => groupBySpecialty(shownTemplates.value, locale.value))
 
 const nothingFound = computed(() =>
   isSearchingAnything.value && shownTemplates.value.length === 0
@@ -224,11 +227,10 @@ watch(teethInput, emitChange)
       </p>
 
       <div
-        v-if="shownTemplates.length > 0"
+        v-if="allowBlank && !isSearchingAnything && shownTemplates.length > 0"
         class="template-grid"
       >
         <button
-          v-if="allowBlank && !isSearchingAnything"
           type="button"
           class="template-card"
           :class="{ 'is-selected': selectedId === null }"
@@ -238,38 +240,54 @@ watch(teethInput, emitChange)
           <span class="template-name">{{ t('clinical.plans.templates.blank') }}</span>
           <span class="template-desc">{{ t('clinical.plans.templates.blankHint') }}</span>
         </button>
-
-        <button
-          v-for="template in shownTemplates"
-          :key="template.id"
-          type="button"
-          class="template-card"
-          :class="{ 'is-selected': selectedId === template.id }"
-          :disabled="disabled"
-          @click="select(template.id)"
-        >
-          <span class="template-name">{{ template.name }}</span>
-          <span class="template-desc">{{ template.description }}</span>
-          <span class="template-meta">
-            <UBadge
-              color="neutral"
-              variant="subtle"
-              size="xs"
-            >
-              {{ t('clinical.plans.templates.itemsCount', { count: template.items.length }) }}
-            </UBadge>
-            <UBadge
-              :color="needsTeeth(template) ? 'warning' : 'success'"
-              variant="subtle"
-              size="xs"
-            >
-              {{ needsTeeth(template)
-                ? t('clinical.plans.templates.needsTeeth')
-                : t('clinical.plans.templates.noTeethNeeded') }}
-            </UBadge>
-          </span>
-        </button>
       </div>
+
+      <section
+        v-for="group in groups"
+        :key="group.id"
+        :data-testid="`template-group-${group.id}`"
+      >
+        <!-- One discipline needs no heading; several do. -->
+        <h4
+          v-if="groups.length > 1"
+          class="group-title"
+        >
+          {{ group.title }}
+          <span class="group-count">{{ group.templates.length }}</span>
+        </h4>
+        <div class="template-grid">
+          <button
+            v-for="template in group.templates"
+            :key="template.id"
+            type="button"
+            class="template-card"
+            :class="{ 'is-selected': selectedId === template.id }"
+            :disabled="disabled"
+            @click="select(template.id)"
+          >
+            <span class="template-name">{{ template.name }}</span>
+            <span class="template-desc">{{ template.description }}</span>
+            <span class="template-meta">
+              <UBadge
+                color="neutral"
+                variant="subtle"
+                size="xs"
+              >
+                {{ t('clinical.plans.templates.itemsCount', { count: template.items.length }) }}
+              </UBadge>
+              <UBadge
+                :color="needsTeeth(template) ? 'warning' : 'success'"
+                variant="subtle"
+                size="xs"
+              >
+                {{ needsTeeth(template)
+                  ? t('clinical.plans.templates.needsTeeth')
+                  : t('clinical.plans.templates.noTeethNeeded') }}
+              </UBadge>
+            </span>
+          </button>
+        </div>
+      </section>
     </template>
 
     <!-- What the chosen template contains, so nothing is applied blind.
@@ -404,6 +422,10 @@ watch(teethInput, emitChange)
   letter-spacing: 0.04em;
   color: var(--color-text-muted, #6B7280);
   margin: 0 0 4px;
+}
+
+.group-count {
+  font-weight: 400;
 }
 
 .treatment-list {

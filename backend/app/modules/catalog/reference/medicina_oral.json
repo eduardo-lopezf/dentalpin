@@ -1,0 +1,707 @@
+{
+  "key": "medicina_oral",
+  "names": {
+    "es": "Medicina Oral",
+    "en": "Oral Medicine"
+  },
+  "baseline": false,
+  "subareas": [
+    {
+      "key": "consulta",
+      "names": {
+        "es": "Consulta y pruebas",
+        "en": "Consultation and tests"
+      }
+    },
+    {
+      "key": "mucosa",
+      "names": {
+        "es": "Enfermedades de la mucosa",
+        "en": "Mucosal disease"
+      }
+    },
+    {
+      "key": "glandulas",
+      "names": {
+        "es": "Glándulas salivales",
+        "en": "Salivary glands"
+      }
+    },
+    {
+      "key": "paciente_comprometido",
+      "names": {
+        "es": "Paciente médicamente comprometido",
+        "en": "Medically compromised patient"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "MED-CONS",
+      "names": {
+        "es": "Consulta de medicina oral",
+        "en": "Oral medicine consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-FOLLOW",
+      "names": {
+        "es": "Revisión de medicina oral",
+        "en": "Oral medicine review"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-SIALOMETRY",
+      "names": {
+        "es": "Sialometría",
+        "en": "Sialometry"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-HALITOSIS",
+      "names": {
+        "es": "Estudio de halitosis",
+        "en": "Halitosis assessment"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-BLOOD",
+      "names": {
+        "es": "Solicitud e interpretación de analítica",
+        "en": "Blood test request and interpretation"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "medicina_oral",
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-ALLERGY",
+      "names": {
+        "es": "Pruebas de alergia a materiales dentales (derivación)",
+        "en": "Dental material allergy testing (referral)"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-TASTE",
+      "names": {
+        "es": "Estudio de alteraciones del gusto",
+        "en": "Taste disorder work-up"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-REPORT",
+      "names": {
+        "es": "Informe para médico tratante",
+        "en": "Report for the treating physician"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-INTERCONS",
+      "names": {
+        "es": "Interconsulta médica",
+        "en": "Medical liaison consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-XEROST",
+      "names": {
+        "es": "Manejo de xerostomía",
+        "en": "Dry mouth management"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-CANDIDA",
+      "names": {
+        "es": "Tratamiento de candidiasis oral",
+        "en": "Oral candidiasis treatment"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-ULCER",
+      "names": {
+        "es": "Tratamiento de úlceras y aftas",
+        "en": "Treatment of ulcers and aphthae"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-LICHEN",
+      "names": {
+        "es": "Control de liquen plano oral",
+        "en": "Oral lichen planus follow-up"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-BMS",
+      "names": {
+        "es": "Manejo del síndrome de boca ardiente",
+        "en": "Burning mouth syndrome management"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-MUCOSITIS",
+      "names": {
+        "es": "Manejo de mucositis",
+        "en": "Mucositis management"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-HERPES",
+      "names": {
+        "es": "Tratamiento de herpes oral",
+        "en": "Oral herpes treatment"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-PEMPH",
+      "names": {
+        "es": "Control de enfermedades ampollosas (pénfigo, penfigoide)",
+        "en": "Management of blistering disease (pemphigus, pemphigoid)"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-ANG-CHEIL",
+      "names": {
+        "es": "Tratamiento de queilitis angular",
+        "en": "Angular cheilitis treatment"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-GEO",
+      "names": {
+        "es": "Valoración de lengua geográfica o fisurada",
+        "en": "Geographic or fissured tongue assessment"
+      },
+      "category": "diagnostico",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-LASER",
+      "names": {
+        "es": "Fotobiomodulación (láser de baja potencia)",
+        "en": "Photobiomodulation (low-level laser)"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-INFILT",
+      "names": {
+        "es": "Infiltración intralesional de corticoide",
+        "en": "Intralesional corticosteroid injection"
+      },
+      "category": "cirugia",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-GVHD",
+      "names": {
+        "es": "Manejo oral de enfermedad injerto contra huésped",
+        "en": "Oral management of graft-versus-host disease"
+      },
+      "category": "preventivo",
+      "subarea": "mucosa",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-SIALADEN",
+      "names": {
+        "es": "Tratamiento de sialoadenitis",
+        "en": "Sialadenitis treatment"
+      },
+      "category": "preventivo",
+      "subarea": "glandulas",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-SJOGREN",
+      "names": {
+        "es": "Seguimiento oral de síndrome de Sjögren",
+        "en": "Oral follow-up of Sjögren's syndrome"
+      },
+      "category": "preventivo",
+      "subarea": "glandulas",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-SALIVA-STIM",
+      "names": {
+        "es": "Pauta de estimulación y sustitutos salivales",
+        "en": "Salivary stimulation and substitutes regimen"
+      },
+      "category": "preventivo",
+      "subarea": "glandulas",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-COMPROMISED",
+      "names": {
+        "es": "Valoración de paciente médicamente comprometido",
+        "en": "Assessment of a medically compromised patient"
+      },
+      "category": "diagnostico",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-PREONC",
+      "names": {
+        "es": "Valoración oral previa a tratamiento oncológico",
+        "en": "Oral assessment before cancer treatment"
+      },
+      "category": "diagnostico",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-ANTICOAG",
+      "names": {
+        "es": "Protocolo para paciente anticoagulado",
+        "en": "Protocol for an anticoagulated patient"
+      },
+      "category": "diagnostico",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-BISPHOS",
+      "names": {
+        "es": "Valoración previa a antirresortivos (bifosfonatos)",
+        "en": "Assessment before antiresorptive therapy (bisphosphonates)"
+      },
+      "category": "diagnostico",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-MRONJ",
+      "names": {
+        "es": "Manejo de osteonecrosis por medicamentos",
+        "en": "Management of medication-related osteonecrosis"
+      },
+      "category": "preventivo",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-ORN",
+      "names": {
+        "es": "Manejo de osteorradionecrosis",
+        "en": "Osteoradionecrosis management"
+      },
+      "category": "preventivo",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-POSTONC",
+      "names": {
+        "es": "Seguimiento oral durante y tras tratamiento oncológico",
+        "en": "Oral follow-up during and after cancer treatment"
+      },
+      "category": "diagnostico",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-DIABETES",
+      "names": {
+        "es": "Valoración oral del paciente diabético",
+        "en": "Oral assessment of the diabetic patient"
+      },
+      "category": "diagnostico",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-PREGNANCY",
+      "names": {
+        "es": "Valoración oral en el embarazo",
+        "en": "Oral assessment in pregnancy"
+      },
+      "category": "diagnostico",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-TRANSPLANT",
+      "names": {
+        "es": "Valoración oral previa a trasplante",
+        "en": "Oral assessment before a transplant"
+      },
+      "category": "diagnostico",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-PROPHYL",
+      "names": {
+        "es": "Pauta de profilaxis antibiótica",
+        "en": "Antibiotic prophylaxis regimen"
+      },
+      "category": "diagnostico",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "MED-SPECIAL",
+      "names": {
+        "es": "Atención a paciente con necesidades especiales",
+        "en": "Care for a patient with special needs"
+      },
+      "category": "diagnostico",
+      "subarea": "paciente_comprometido",
+      "specialties": [
+        "medicina_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 """Authentication router with rate limiting."""
 
 import logging
+from datetime import datetime
+from pathlib import Path
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -910,7 +912,7 @@ async def update_clinic_metadata(
 
 from pydantic import BaseModel, Field  # noqa: E402
 
-from app.core.contracts import ProfessionalDirectory, provider  # noqa: E402
+from app.core.contracts import PatientDocuments, ProfessionalDirectory, provider  # noqa: E402
 from app.core.letterhead import CLINIC as LETTERHEAD_CLINIC  # noqa: E402
 from app.core.letterhead import (  # noqa: E402
     LOGO_MAX_BYTES,
@@ -918,6 +920,7 @@ from app.core.letterhead import (  # noqa: E402
     get_letterhead,
     logo_mime_type,
 )
+from app.core.tenancy.usage import by_clinical_kind, cached_file_usage  # noqa: E402
 
 
 class _BudgetSettingsPatch(BaseModel):
@@ -1108,6 +1111,57 @@ async def _brand_response(db: AsyncSession, clinic: Clinic) -> _BrandResponse:
             stored.get("color_mode") if stored.get("color_mode") in BRAND_COLOR_MODES else None
         ),
         has_logo=await db.get(ClinicBrandLogo, clinic.id) is not None,
+    )
+
+
+class _FileTypeUsageResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    #: A clinical kind as media names it (``xray``, ``photo``, ``document``…),
+    #: ``previews`` (reduced copies of images) or ``other``.
+    type: str
+    bytes: int
+    count: int
+
+
+class _StorageUsageResponse(BaseModel):
+    #: Everything the clinics uploaded, with the reduced copies of its images.
+    total_bytes: int
+    file_count: int
+    types: list[_FileTypeUsageResponse]
+    #: When the files were last counted: the figure is kept for ten minutes.
+    measured_at: datetime
+
+
+@router.get("/tenant/storage", response_model=ApiResponse[_StorageUsageResponse])
+async def get_storage_usage(
+    _: Annotated[None, Depends(require_permission("admin.clinic.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
+    refresh: bool = False,
+) -> ApiResponse[_StorageUsageResponse]:
+    """Disk space the tenant's uploaded files take up, by clinical kind.
+
+    A figure of the tenant, not of the clinic asking: clinics share its
+    storage. Counted at most once every ten minutes; ``refresh=true``
+    counts again now.
+    """
+    root = Path(settings.STORAGE_LOCAL_PATH) / tenant.storage_prefix
+    measured = await cached_file_usage(root, refresh=refresh)
+    # With the Media App off nobody can say what a file is: it all goes
+    # under "other".
+    documents = provider(PatientDocuments)
+    kinds = await documents.usage_by_kind(db) if documents else []
+    return ApiResponse(
+        data=_StorageUsageResponse(
+            total_bytes=measured.usage.total_bytes,
+            file_count=measured.usage.file_count,
+            types=[
+                _FileTypeUsageResponse.model_validate(t)
+                for t in by_clinical_kind(measured.usage, kinds)
+            ],
+            measured_at=measured.measured_at,
+        )
     )
 
 

@@ -100,8 +100,8 @@ class PatientAlertMapper:
             entity_type="patient_alert",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table=_TARGET_TABLE.get(result.category, "patients"),
-            dentalpin_id=target_id,
+            dienteazul_table=_TARGET_TABLE.get(result.category, "patients"),
+            dienteazul_id=target_id,
         )
         return target_id
 

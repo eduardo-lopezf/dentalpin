@@ -39,7 +39,7 @@ Three pieces:
    modules root — Node resolves bare imports by walking *up* from the
    importing file, and a layer never reaches the host's packages
    otherwise.
-2. `nuxt.config.ts` reads `process.env.DENTALPIN_MODULES_JSON` when set,
+2. `nuxt.config.ts` reads `process.env.DIENTEAZUL_MODULES_JSON` when set,
    so CI points at that manifest while a developer's real `modules.json`
    (written by their running backend) is left alone.
 3. `frontend/scripts/typecheck-gate.mjs` runs the typecheck and compares
@@ -104,5 +104,5 @@ key is part of it, so a new occurrence of a known error still fails.
 
 - `frontend/scripts/write-module-layers.mjs`
 - `frontend/scripts/typecheck-gate.mjs`
-- `frontend/nuxt.config.ts` — `DENTALPIN_MODULES_JSON`
+- `frontend/nuxt.config.ts` — `DIENTEAZUL_MODULES_JSON`
 - [`docs/technical/audit-2026-07-03.md`](../technical/audit-2026-07-03.md) — finding S5, "CI blind spot"

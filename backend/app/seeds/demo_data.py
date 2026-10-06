@@ -1,4 +1,4 @@
-"""Demo data definitions for DentalPin.
+"""Demo data definitions for Diente Azul.
 
 This module contains all the seed data used to populate a demo environment.
 All UUIDs are fixed to allow consistent references and easier debugging.

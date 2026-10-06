@@ -1,22 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <rect x="1" y="1" width="30" height="30" rx="7" fill="#E0F2FE"/>
-  <path d="M16 7
-           c -3 0 -5 1.5 -6 1.5
-           c -1.5 0 -3 1.5 -3 4.5
-           c 0 2.5 1 4 1.5 6
-           c 0.5 2 0.5 4.5 2 5.5
-           c 1 0.5 1.5 -1.5 2 -3.5
-           c 0.5 -1.5 1 -2.5 1.5 -2.5
-           c 0.5 0 1 1 1.5 2.5
-           c 0.5 2 1 4 2 3.5
-           c 1.5 -1 1.5 -3.5 2 -5.5
-           c 0.5 -2 1.5 -3.5 1.5 -6
-           c 0 -3 -1.5 -4.5 -3 -4.5
-           c -1 0 -3 -1.5 -6 -1.5 Z"
-        fill="#FFFFFF"
-        stroke="#0EA5E9"
-        stroke-width="1.6"
-        stroke-linejoin="round"
-        stroke-linecap="round"/>
-  <circle cx="16" cy="13.5" r="2" fill="#0EA5E9"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 64 64" fill="none" role="img" aria-label="Diente Azul">
+  <!-- The same mark, optically sized for 16px: heavier stroke, and the rune's two
+       crossing diagonals dropped. At that size they close up into a blot and take
+       the stem and bowls down with them — keeping them would cost the whole
+       drawing to preserve a detail nobody can resolve. -->
+  <g stroke="#0EA5E9" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 17 22 11 14 21 17.5 34 23 51 27 52 30 37 32 35 34 37 37 52 41 51 46.5 34 50 21 42 11Z"/>
+    <path d="M32 16V36"/>
+    <path d="M32 16 42 22.5"/>
+    <path d="M32 36 42 29.5"/>
+  </g>
 </svg>

@@ -30,6 +30,9 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `budget.renegotiated` | `EventType.BUDGET_RENEGOTIATED` | `budget` | `patient_timeline`, `treatment_plan` |
 | `budget.sent` | `EventType.BUDGET_SENT` | `budget` | `notifications`, `patient_timeline` |
 | `budget.viewed` | `EventType.BUDGET_VIEWED` | `budget` | `patient_timeline` |
+| `catalog.specialty_disabled` | `EventType.CATALOG_SPECIALTY_DISABLED` | `catalog` | `treatment_plan` |
+| `catalog.specialty_enabled` | `EventType.CATALOG_SPECIALTY_ENABLED` | `catalog` | `treatment_plan` |
+| `catalog.specialty_restored` | `EventType.CATALOG_SPECIALTY_RESTORED` | `catalog` | `treatment_plan` |
 | `clinic.created` | `EventType.CLINIC_CREATED` | `core:core` | `catalog`, `treatment_plan` |
 | `clinical_notes.administrative_created` | `EventType.CLINICAL_NOTE_ADMINISTRATIVE_CREATED` | `clinical_notes` | `patient_timeline` |
 | `clinical_notes.appointment_administrative_created` | `EventType.CLINICAL_NOTE_APPOINTMENT_ADMINISTRATIVE_CREATED` | `clinical_notes` | — |
@@ -280,6 +283,30 @@ Maintained by `backend/scripts/generate_catalogs.py`.
   - `budget` — `backend/app/modules/budget/workflow.py`
 - **Subscribers:**
   - `patient_timeline`
+
+### `catalog.specialty_disabled`
+
+- **Constant:** `EventType.CATALOG_SPECIALTY_DISABLED`
+- **Publishers:**
+  - `catalog` — `backend/app/modules/catalog/packs.py`
+- **Subscribers:**
+  - `treatment_plan`
+
+### `catalog.specialty_enabled`
+
+- **Constant:** `EventType.CATALOG_SPECIALTY_ENABLED`
+- **Publishers:**
+  - `catalog` — `backend/app/modules/catalog/packs.py`
+- **Subscribers:**
+  - `treatment_plan`
+
+### `catalog.specialty_restored`
+
+- **Constant:** `EventType.CATALOG_SPECIALTY_RESTORED`
+- **Publishers:**
+  - `catalog` — `backend/app/modules/catalog/packs.py`
+- **Subscribers:**
+  - `treatment_plan`
 
 ### `clinic.created`
 

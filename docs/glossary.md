@@ -1,6 +1,6 @@
 # Glossary
 
-Source of truth for DentalPin terminology. Code is in English; UI strings
+Source of truth for Diente Azul terminology. Code is in English; UI strings
 are in Spanish (i18n). When the same concept has both forms, list both.
 
 When you introduce a new domain term in code or UI, append it here. Keep
@@ -22,6 +22,9 @@ ADRs) for the full story.
 | Chief complaint | Motivo de consulta | Why the patient came, in their words. A field of the health questionnaire. |
 | Vital signs | Signos vitales | Blood pressure, heart and respiratory rate, temperature, taken at a visit and kept on the clinical note about it (`clinical_notes.vitals`). |
 | Agreement with the treatment | Conformidad con el tratamiento | A letter the patient signs when a treatment is concluded to their satisfaction. Module `consents`, kind `conformity`. Not a consent, and says nothing about money. |
+| Specialty pack | Especialidad (paquete de referencia) | A discipline's reference catalogue — treatments and plan templates — that a clinic enables, edits and can restore (ADR 0047). Not an App: data, per clinic, inside Treatments. |
+| Sub-area | Subárea | A grouping of a discipline's reference treatments for reading (orthodontics: fixed appliances, aligners, retention…). Belongs to the reference, not to the clinic's catalogue; not a sub-specialty and not something a clinic enables. |
+| Reference catalogue | Catálogo de referencia | The treatments a specialty pack ships with, held as data, one JSON file per discipline (`catalog/reference/`, ADR 0048). A starting point a clinic copies and edits; its prices are placeholders. |
 | Data-use consent | Consentimiento de uso de datos | The patient's consent to the clinic processing their personal data, against the privacy notice shown. Module `consents`, kind `data_use`. |
 | Patient | Paciente | A person registered in the clinic. Soft-deleted via `status`, never hard-deleted. |
 | Appointment | Cita | A scheduled visit. Has a state machine (`scheduled → confirmed → checked_in → in_treatment → completed`/`no_show`/`cancelled`). |
@@ -123,7 +126,7 @@ ADRs) for the full story.
 | App | What a clinic chooses: a named, versioned group of modules declared in `backend/apps.json` (Agenda = `agenda` + `schedules`), where it is `enabled` or `disabled` for the whole deployment. See ADR 0036, ADR 0038. |
 | Enabled / disabled (Habilitada / Deshabilitada) | Whether a module runs. A disabled module keeps its tables and data and is still migrated; only what is mounted changes. Stored as `installed` / `disabled` in `core_module.state`. See ADR 0035. |
 | Manifest | The `manifest` dict on a `BaseModule` subclass. Identity, dependencies, permissions, install policy. Schema in `backend/app/core/plugins/manifest.py`. |
-| Entry point | `pyproject.toml` registration under `[project.entry-points."dentalpin.modules"]` so the loader can discover the module. |
+| Entry point | `pyproject.toml` registration under `[project.entry-points."dienteazul.modules"]` so the loader can discover the module. |
 | `depends` | Manifest field. List of modules this one needs at load time. Cross-module FKs and direct imports are only allowed against modules listed here. |
 | Contract / provider | A `Protocol` in `app/core/contracts.py` and the module-supplied object that implements it. How one module reads another's data without importing it; no provider means the owning App is off. See ADR 0039. |
 | `integrates` | Manifest field. Modules linked when they run and done without when they do not: imports and FKs allowed, but not pulled in by `enable` and free to be disabled. See ADR 0037. |

@@ -936,6 +936,8 @@
         "optionalHint": "Las líneas opcionales vienen marcadas. Desmarca las que tu clínica no ofrezca o este paciente no necesite.",
         "skipped": "Omitido, no está en tu catálogo: {treatments}.",
         "searchPlaceholder": "Buscar un tratamiento o una plantilla",
+        "noSpecialty": "Sin especialidad",
+        "ownGroup": "De la clínica",
         "searchTemplatesPlaceholder": "Buscar una plantilla",
         "groupTreatments": "Tratamientos sueltos",
         "noResults": "Sin resultados para «{query}».",
@@ -1418,6 +1420,25 @@
     "clinicUpdateError": "Error al actualizar la información",
     "cabinets": "Gabinetes",
     "language": "Idioma",
+    "storage": {
+      "title": "Espacio en disco",
+      "description": "Espacio que ocupan los archivos subidos de la cuenta.",
+      "total": "Espacio usado por los archivos subidos",
+      "fileCount": "{count} archivo | {count} archivos",
+      "types": {
+        "xray": "Radiografías",
+        "photo": "Fotografías",
+        "document": "Documentos",
+        "scan": "Escaneados 3D",
+        "video": "Vídeos",
+        "previews": "Vistas reducidas de las imágenes",
+        "other": "Otros archivos"
+      },
+      "measuredAt": "Contados el {when}. La cifra se guarda diez minutos.",
+      "refresh": "Contar de nuevo",
+      "note": "Es la cifra de toda la cuenta, con todas sus clínicas. Las vistas reducidas son las copias pequeñas que el sistema genera de cada imagen. «Otros archivos» es lo que no pertenece al expediente de un paciente, como las fotos de los profesionales.",
+      "error": "No se pudo consultar el espacio en disco."
+    },
     "languageDescription": "Selecciona tu idioma preferido",
     "users": "Usuarios de la Clínica",
     "newUser": "Nuevo Usuario",
@@ -1904,6 +1925,41 @@
     "sunday": "Domingo"
   },
   "catalog": {
+    "packs": {
+      "treatments": "Tratamientos",
+      "sharedWith": "Compartidos con {name}",
+      "badge": {
+        "customised": "Personalizado",
+        "inactive": "Inactivo",
+        "missing": "Nuevo"
+      },
+      "complete": "Añadir {count} nuevos",
+      "intro": "Las especialidades con las que trabaja la clínica. Cada una trae un catálogo de referencia —sus tratamientos y sus plantillas de plan— que al habilitarla se añade al catálogo de la clínica y desde ahí se puede personalizar.",
+      "enabled": "Habilitadas",
+      "available": "Disponibles",
+      "none": {
+        "enabled": "Ninguna especialidad habilitada.",
+        "available": "Todas las especialidades están habilitadas."
+      },
+      "installed": "{installed} de {total} tratamientos en el catálogo",
+      "customised": "{count} personalizados",
+      "reference": "{total} tratamientos de referencia",
+      "restore": "Restaurar",
+      "restoreTitle": "Restaurar {name}",
+      "restoreWarning": "Se restaurarán los valores de referencia",
+      "restoreCustomised": "Se perderán los cambios en {count} tratamientos que la clínica personalizó: nombre, precio, duración y forma de cobro vuelven a los de referencia.",
+      "restoreNothingCustomised": "Ningún tratamiento de referencia está personalizado ahora mismo. Se repondrán los que falten.",
+      "restoreResets": "Los tratamientos de referencia de esta especialidad vuelven a su nombre, precio, duración y dibujo en el odontograma originales, y los que se hubieran desactivado se reactivan. También sus plantillas de plan.",
+      "restoreKeeps": "Los tratamientos que la clínica creó por su cuenta no se tocan.",
+      "restorePlans": "Los planes y presupuestos ya hechos conservan los precios con los que se crearon.",
+      "restoreConfirm": "Restaurar valores de referencia",
+      "done": {
+        "enable": "{name} habilitada",
+        "disable": "{name} deshabilitada",
+        "restore": "{name} restaurada"
+      },
+      "note": "Deshabilitar una especialidad no borra nada: sus tratamientos se desactivan y vuelven al habilitarla. Los precios de referencia son un punto de partida; ajústalos a los de tu clínica."
+    },
     "title": "Catálogo de Tratamientos",
     "description": "Gestiona los tratamientos, precios y configuración fiscal",
     "byTreatmentType": "Tipo de Tratamiento",

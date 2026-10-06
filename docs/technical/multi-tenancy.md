@@ -1,6 +1,6 @@
-# Multi-tenancy en DentalPin
+# Multi-tenancy en Diente Azul
 
-Documento de arquitectura. Define el modelo de aislamiento actual (self-hosted) y las costuras que permitirán un módulo externo `dentalpin-saas` con DB-per-tenant sin tocar core.
+Documento de arquitectura. Define el modelo de aislamiento actual (self-hosted) y las costuras que permitirán un módulo externo `dienteazul-saas` con DB-per-tenant sin tocar core.
 
 **Estado**: diseño aprobado, Fase 1 pendiente de ejecución. Las fases 2–7 se ejecutarán cuando exista un segundo cliente real que justifique el SaaS.
 
@@ -10,7 +10,7 @@ Documento de arquitectura. Define el modelo de aislamiento actual (self-hosted) 
 
 ## 1. Modelo de aislamiento
 
-DentalPin usa **dos capas de aislamiento** complementarias:
+Diente Azul usa **dos capas de aislamiento** complementarias:
 
 | Capa | Unidad | Aislamiento | Vive en |
 |------|--------|-------------|---------|
@@ -125,7 +125,13 @@ En Fase 1 solo se **declara** `TENANT_RESOLVED` como constante; no se publica ha
 
 ## 4. Punto de extensión SaaS
 
-Un futuro módulo `dentalpin-saas` no toca core. Implementa:
+> **Primer paso real ([ADR 0049](../adr/0049-the-control-plane-is-a-separate-service.md)).**
+> El control plane es un servicio aparte y, mientras la Fase 2 siga
+> pendiente, un tenant es un stack completo (BD + backend + frontend) que
+> conserva `SingleTenantResolver`. Lo que sigue describe la forma
+> posterior, con varios tenants en un mismo proceso.
+
+Un futuro módulo `dienteazul-saas` no toca core. Implementa:
 
 1. **`SaasTenantResolver(TenantResolver)`**: resuelve por host/header/JWT, consulta su control plane (DB propia con tenants y planes), devuelve `TenantContext` con `db_url` y `modules_enabled` por suscripción.
 2. **Hook en lifespan**: sustituye `app.state.tenant_resolver` por el suyo.
@@ -177,3 +183,41 @@ Estas reglas entran en `CLAUDE.md` tras Fase 1 ejecutada.
 - **Resolver**: componente que dado un request (o un slug) devuelve el `TenantContext` correspondiente.
 - **`modules_enabled`**: subset de módulos visibles para un tenant. Self-hosted = todo el registry. SaaS = lo que dicte el plan.
 - **Costura** (seam): punto de extensión vía interfaz que permite sustituir implementación sin tocar consumidores.
+
+## 8. Espacio en disco de un tenant
+
+`GET /api/v1/auth/tenant/storage` (`admin.clinic.read`) responde cuánto
+disco ocupan los archivos subidos del tenant, por clasificación clínica. Se muestra en
+*Configuración → Cuenta → Espacio en disco*. `app/core/tenancy/usage.py`.
+
+| Campo | Qué es |
+|---|---|
+| `total_bytes`, `file_count` | Lo que hay en la carpeta de almacenamiento del tenant (`STORAGE_LOCAL_PATH` + `storage_prefix`). |
+| `types` | El mismo total repartido: primero las clases clínicas que tengan archivos (`xray`, `photo`, `document`, `scan`, `video`), y siempre al final `previews` y `other`. Cada una con `bytes` y `count`. |
+| `measured_at` | Cuándo se contó. |
+
+- **La clase clínica la dice el módulo de medios**, no core: es quien
+  sabe si un archivo es una radiografía, una fotografía o un documento.
+  Core se lo pregunta por el contrato `PatientDocuments.usage_by_kind`
+  (ADR 0039), que suma `file_size` por `media_kind`, archivados
+  incluidos. Con la App de medios apagada no hay clases y todo cae en
+  `other`.
+- **`previews` y `other` salen de la carpeta.** `previews` son las copias
+  reducidas que se guardan junto a cada imagen (`.thumb.jpg`,
+  `.medium.jpg`). `other` es lo que queda del total de la carpeta al
+  restar las clases y las copias: lo que no es de ningún expediente, como
+  las fotos de los profesionales. Nunca es negativo.
+- **La base de datos no se cuenta.** Solo archivos.
+- **No se filtra por clínica.** La carpeta es del tenant; el
+  administrador de una clínica ve la cifra de todo el tenant.
+- **Se mide recorriendo la carpeta**, no sumando una columna: es lo que
+  hay en disco, e incluye lo que ninguna tabla lista. El recorrido corre
+  fuera del bucle de eventos y no sigue enlaces simbólicos.
+- **La cifra se guarda diez minutos** (`FILE_USAGE_TTL`), porque recorrer
+  cientos de miles de archivos tarda segundos. `?refresh=true` vuelve a
+  contar en el momento (*Contar de nuevo* en la pantalla). La caché es
+  por proceso: cada worker cuenta por su cuenta.
+- **Las copias de seguridad de módulos no se cuentan.** La subcarpeta
+  `backups/` guarda los volcados que deja un módulo al desinstalarse;
+  nadie la subió, y el recorrido la salta.
+- **Solo almacenamiento local**, que es el único backend que existe hoy.

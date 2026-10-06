@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+- feat(treatment_plan): **el selector de plantillas agrupa por
+  especialidad**. Con 125 plantillas de referencia la rejilla plana ya no
+  se podía recorrer. Las que la clínica guardó de sus propios planes van
+  primero (*De la clínica*); el buscador filtra dentro de los grupos.
+  El buscador rápido del odontograma (nuevo plan y detalle) agrupa igual
+  las plantillas que encuentra, y también los tratamientos sueltos, cada
+  uno bajo una sola especialidad.
+  - API: cada plantilla de `GET /plan-templates` (y las respuestas de
+    crear, editar y guardar desde un plan) lleva `specialty`
+    (`key`, `names`), con el nombre que la clínica le dio a la
+    especialidad; `null` en las propias.
+
+- feat(treatment_plan): **plantillas de plan para todas las
+  especialidades**. De 20 a 125 plantillas de referencia: entre cuatro y
+  ocho más por cada especialidad que no era Ortodoncia, incluidas
+  Odontopediatría y Rehabilitación Oral, que no tenían ninguna. Cubren
+  las secuencias habituales (endodoncia + perno + corona, implante con
+  elevación de seno, cordal impactado, prótesis completa, pulpotomía y
+  corona, entre otras). Solo datos en `templates_seed.py`.
+  - Cada plantilla usa solo tratamientos de su especialidad o de una de
+    las diez de base, así que una clínica que la habilita la recibe
+    entera; una prueba lo comprueba.
+  - Una clínica que ya tiene la especialidad las recibe al pulsar
+    *Añadir N nuevos* en *Configuración → Apps → Tratamientos*, o con
+    `scripts/backfill_plan_templates.py`. Las plantillas existentes no
+    cambian.
+  - Contenido sin revisión clínica.
+
+- feat(treatment_plan): **plantillas de plan por especialidad**. Cada
+  plantilla de referencia pertenece a una especialidad y la clínica la
+  recibe solo mientras la tiene habilitada. De 8 a 20 plantillas: cinco
+  de Ortodoncia (estudio, fija completa, alineadores, interceptiva,
+  retención) y una por cada especialidad nueva. Siguen a la especialidad
+  por eventos del catálogo: al habilitarla se instalan y se muestran, al
+  deshabilitarla se ocultan, al restaurarla vuelven a la referencia. Las
+  plantillas que la clínica guardó de sus propios planes no se tocan.
+
 - feat(treatment_plan): el detalle del plan muestra el **diagnóstico y el
   pronóstico** y permite editarlos después de crear el plan
   (`PlanDiagnosisCard`). Antes solo se podían escribir al crearlo y el

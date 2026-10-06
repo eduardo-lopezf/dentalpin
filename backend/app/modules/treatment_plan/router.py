@@ -10,6 +10,7 @@ from app.core.auth.dependencies import ClinicContext, get_clinic_context, requir
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import get_db
 
+from .models import PlanTemplate
 from .prescriptions import PrescriptionService, ProfessionalNotFoundError
 from .proposals import PlanProposalService
 from .schemas import (
@@ -35,6 +36,7 @@ from .schemas import (
     PlanTemplateCreate,
     PlanTemplateFromPlanRequest,
     PlanTemplateResponse,
+    PlanTemplateSpecialty,
     PlanTemplateUpdate,
     PrescriptionCreate,
     PrescriptionResponse,
@@ -899,6 +901,21 @@ async def sync_plan_with_budget(
 # -----------------------------------------------------------------------------
 
 
+async def _template_responses(
+    db: AsyncSession, clinic_id: UUID, templates: list[PlanTemplate]
+) -> list[PlanTemplateResponse]:
+    """Templates as the API answers them, each with the discipline it belongs to."""
+    specialties = await PlanTemplateService.specialties_by_key(db, clinic_id)
+    responses = []
+    for template in templates:
+        response = PlanTemplateResponse.model_validate(template)
+        specialty = specialties.get(template.key) if template.key else None
+        if specialty is not None:
+            response.specialty = PlanTemplateSpecialty.model_validate(specialty)
+        responses.append(response)
+    return responses
+
+
 @router.get("/plan-templates", response_model=ApiResponse[list[PlanTemplateResponse]])
 async def list_plan_templates(
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
@@ -910,7 +927,7 @@ async def list_plan_templates(
     templates = await PlanTemplateService.list_templates(
         db, ctx.clinic_id, include_inactive=include_inactive
     )
-    return ApiResponse(data=[PlanTemplateResponse.model_validate(t) for t in templates])
+    return ApiResponse(data=await _template_responses(db, ctx.clinic_id, templates))
 
 
 @router.post(
@@ -932,7 +949,7 @@ async def create_plan_template(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     await db.commit()
     reloaded = await PlanTemplateService.get(db, ctx.clinic_id, template.id)
-    return ApiResponse(data=PlanTemplateResponse.model_validate(reloaded))
+    return ApiResponse(data=(await _template_responses(db, ctx.clinic_id, [reloaded]))[0])
 
 
 @router.put("/plan-templates/{template_id}", response_model=ApiResponse[PlanTemplateResponse])
@@ -953,7 +970,7 @@ async def update_plan_template(
         raise HTTPException(status_code=404, detail="Template not found")
     await db.commit()
     reloaded = await PlanTemplateService.get(db, ctx.clinic_id, template_id)
-    return ApiResponse(data=PlanTemplateResponse.model_validate(reloaded))
+    return ApiResponse(data=(await _template_responses(db, ctx.clinic_id, [reloaded]))[0])
 
 
 @router.delete("/plan-templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -989,7 +1006,7 @@ async def create_template_from_plan(
         raise HTTPException(status_code=404, detail="Plan not found")
     await db.commit()
     reloaded = await PlanTemplateService.get(db, ctx.clinic_id, template.id)
-    return ApiResponse(data=PlanTemplateResponse.model_validate(reloaded))
+    return ApiResponse(data=(await _template_responses(db, ctx.clinic_id, [reloaded]))[0])
 
 
 @router.post(

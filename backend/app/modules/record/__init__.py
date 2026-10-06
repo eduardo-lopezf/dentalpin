@@ -37,7 +37,7 @@ class RecordModule(BaseModule):
             "The clinical record: composes the installed modules' clinical data "
             "into a patient-scoped document."
         ),
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         # Deliberately short. Contributing modules are reached through

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="Diente Azul">
+  <!-- One drawing, one stroke weight: the faceted tooth and the bind-rune are
+       the same line, which is what makes them read as one figure rather than a
+       badge with something inside it. The rune is the Hagall+Bjarkan bind the
+       Bluetooth mark uses, and "Diente Azul" is that name in Spanish — the mark
+       says the same thing the name does.
+       Colour is literal, not currentColor: this file is loaded through <img>,
+       where nothing is inherited. -->
+  <g stroke="#0EA5E9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 17 22 11 14 21 17.5 34 23 51 27 52 30 37 32 35 34 37 37 52 41 51 46.5 34 50 21 42 11Z"/>
+    <path d="M32 17V35"/>
+    <path d="M32 17 41 23"/>
+    <path d="M32 35 41 29"/>
+    <path d="M24 29.5 41 23"/>
+    <path d="M24 22.5 41 29"/>
+  </g>
+</svg>

@@ -5,7 +5,7 @@ guarda el registro **tal como venía del sistema de origen**, en JSON. Ahí
 está el nombre, el teléfono y el documento del paciente en crudo, y no
 hay ninguna columna ``patient_id`` que lo delate — el enlace pasa por
 ``migration_import_entity_mappings``, que traduce el identificador
-canónico del origen al id de DentalPin.
+canónico del origen al id de Diente Azul.
 
 Un export que ignorara esta tabla devolvería la ficha migrada del
 paciente y dejaría fuera la copia literal de la que salió. Una supresión
@@ -36,7 +36,7 @@ async def _canonical_uuids(db: AsyncSession, clinic_id: UUID, patient_id: UUID) 
         select(EntityMapping.source_canonical_uuid).where(
             EntityMapping.clinic_id == clinic_id,
             EntityMapping.entity_type == "patient",
-            EntityMapping.dentalpin_id == patient_id,
+            EntityMapping.dienteazul_id == patient_id,
         )
     )
     return list(result.scalars().all())

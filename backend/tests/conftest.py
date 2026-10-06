@@ -132,7 +132,7 @@ def isolated_runtime(tmp_path):
     put them back, or every later test sees a half-dismantled app.
 
     The module-layer sync is redirected at ``tmp_path`` for the same
-    reason: ``DENTALPIN_FRONTEND_ROOT`` points at the developer's own
+    reason: ``DIENTEAZUL_FRONTEND_ROOT`` points at the developer's own
     checkout, so a test that drives the lifespan would rewrite the
     repository's ``frontend/modules.json`` from the *test* database's
     install state — dropping layers the dev app is actually serving.

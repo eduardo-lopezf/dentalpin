@@ -62,7 +62,7 @@ Six rules.
 2. **The key is a signed licence artifact, verified offline.** A
    detached signature over `(licensee, tier, custody_mode, issued_at,
    expires_at, entitlements)`, with the public key shipped in the
-   release and the licence supplied as a file or `DENTALPIN_LICENSE`.
+   release and the licence supplied as a file or `DIENTEAZUL_LICENSE`.
    **No phone-home.** A call to our servers at boot would contradict the
    exact property the clinic paid for — `SELF` means no operator path,
    and a path is no less a path for pointing outward — and it would
@@ -146,9 +146,11 @@ being one.
   non-standard "Use Limitation" line is now a proper Additional Use Grant
   pointing production use at an authorization the Licensor issues or at a
   commercial licence ([ADR 0004](0004-bsl-license.md) Amendment 1). It is
-  a draft written alongside this ADR, not legal advice, and it inherits an
-  unresolved question it cannot answer itself: "DentalPin Contributors" is
-  not an entity that can grant a commercial licence or sign a key.
+  a draft written alongside this ADR and not legal advice, but the
+  question it could not answer itself is now answered: the Licensor is
+  **Dentared Odontology Services S.L.**, which the CLA empowers to
+  relicense the work, so there is a party that can grant a commercial
+  licence and sign a key.
 - ADR 0004 and the README have been telling readers for months that any
   clinic may self-host. Narrowing that reads as a rug-pull even where it
   is not one legally. Anyone already running a production deployment

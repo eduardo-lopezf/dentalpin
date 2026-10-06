@@ -2,6 +2,77 @@
 
 ## Unreleased
 
+- feat(catalog): `GET /items/search` dice bajo qué especialidad se
+  muestra cada resultado (`specialty`: `id`, `names`, `is_active`), para
+  que un buscador pueda agruparlos. Un tratamiento de varias
+  especialidades va bajo la que lo tiene en su archivo de referencia si
+  la clínica la tiene habilitada; si no, bajo la primera habilitada que
+  lo reclame; `null` si no tiene ninguna.
+
+- feat(catalog): **catálogo completo para todas las especialidades**. Las
+  dieciséis que no eran Ortodoncia pasan a su rango completo: de 260 a 706
+  tratamientos de referencia (446 nuevos), con subáreas nuevas donde
+  hacían falta (consulta, planificación, traumatología, sedación,
+  cirugía preprotésica, tejidos periimplantarios, entre otras). Solo
+  datos: `reference/*.json`; ningún código existente cambia de código,
+  nombre ni precio.
+  - Una clínica que ya tiene una especialidad ve los nuevos como *Nuevo*
+    y los añade con *Añadir N nuevos*; no llegan solos.
+  - Varios tratamientos se comparten entre especialidades (la
+    fenestración de un diente retenido es de Cirugía y la usa
+    Ortodoncia): al deshabilitar una, siguen activos mientras otra
+    habilitada los reclame.
+  - Contenido sin revisión clínica; precios de partida. Algunos
+    tratamientos dependen de la jurisdicción y de la habilitación del
+    profesional (rellenos periorales, toxina botulínica, sedación
+    intravenosa, cirugía ortognática).
+  - fix: en *Configuración → Apps → Tratamientos* los botones de la
+    tarjeta bajan a una segunda fila cuando no caben; antes apretaban el
+    nombre de la especialidad al aparecer *Añadir N nuevos*.
+
+- refactor(catalog): **el catálogo de referencia es dato** (ADR 0048). Un
+  archivo JSON por especialidad en `reference/`, con cada tratamiento
+  escrito una sola vez y todos sus campos explícitos (especialidades,
+  fase, lo que dibuja en el odontograma); antes una parte salía de reglas
+  sobre el código y la categoría. `reference.py` los valida al arrancar.
+  Mismos 260 tratamientos, sin cambios en lo que se siembra.
+  - Cada especialidad organiza sus tratamientos en **subáreas**
+    (Ortodoncia: diagnóstico, interceptiva, aparatología fija,
+    alineadores, auxiliares, seguimiento, retención).
+  - API: `GET /specialty-packs/{key}` (`catalog.read`) — los tratamientos
+    de referencia por subárea y los compartidos con otra especialidad,
+    cada uno con su estado en la clínica (activo, inactivo, falta,
+    personalizado).
+  - *Configuración → Apps → Tratamientos*: cada especialidad despliega
+    sus tratamientos agrupados por subárea.
+  - `seed_specialties.py` desaparece.
+
+- feat(catalog): **especialidades como paquetes de referencia** (ADR 0047).
+  Cada una de las 17 especialidades trae su catálogo de referencia; la
+  clínica la habilita, la deshabilita y la restaura desde *Configuración →
+  Apps → Tratamientos*.
+  - **Contenido**: Ortodoncia pasa de 15 a 49 tratamientos, y las siete
+    especialidades que se ofrecían vacías tienen ahora catálogo:
+    Radiología (17), Patología oral (12), Medicina oral (12), Dolor
+    orofacial y ATM (14), Odontología del sueño (10), Prótesis de
+    laboratorio (16) y Odontogeriatría (12). 260 tratamientos de
+    referencia en total. Los precios son un punto
+    de partida, no una tarifa.
+  - **Habilitar** añade lo que falta y no toca lo que la clínica ya tiene.
+    **Deshabilitar** desactiva los tratamientos que ninguna otra
+    especialidad habilitada reclama; no borra nada. **Restaurar** devuelve
+    los tratamientos de referencia a sus valores originales y conserva los
+    que la clínica creó.
+  - API: `GET /specialty-packs`, `POST /specialty-packs/{key}/enable`,
+    `/disable`, `/restore` (`catalog.admin`). Cada paquete informa cuántos
+    tratamientos tiene la clínica, cuántos personalizó y cuántos le faltan.
+  - Una clínica nueva recibe solo las diez especialidades de base; antes
+    recibía todos los tratamientos sembrables.
+  - Eventos nuevos: `catalog.specialty_enabled`, `_disabled`, `_restored`.
+  - Migración `cat_0009`: `disabled_by_specialty`, para distinguir lo que
+    apagó una especialidad de lo que la clínica retiró a mano.
+  - Página nueva `/settings/apps/treatments`.
+
 - refactor(catalog): los selectores de tratamientos del catálogo
   (`TreatmentMultiSelector`, `TreatmentVisualSelector`) y
   `useTreatmentCatalogSearch` viven ahora en esta capa y no en la app base

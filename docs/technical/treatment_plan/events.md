@@ -28,6 +28,9 @@ Per-module slice of [`docs/events-catalog.md`](../../events-catalog.md)
 
 | Event | Handler | Effect |
 |-------|---------|--------|
+| `catalog.specialty_enabled` | `treatment_plan.events.on_specialty_enabled` | Installs and shows the reference plan templates of that discipline. |
+| `catalog.specialty_disabled` | `treatment_plan.events.on_specialty_disabled` | Hides the reference templates of that discipline. Templates the clinic saved itself are left alone. |
+| `catalog.specialty_restored` | `treatment_plan.events.on_specialty_restored` | Puts the reference templates of that discipline back to the reference. |
 | `appointment.completed` | `treatment_plan.events.on_appointment_completed` | From the payload's `planned_items` alone: starts the plans the visit belongs to, and completes the items ticked off in it. Reads no agenda table. |
 | `budget.accepted` | _Handler module path._ | _What it does in response._ |
 | `budget.created_for_plan` | `treatment_plan.events.on_budget_created_for_plan` | Links a `primary` budget to the plan (`budget_id`) and writes the history entry (`budget_created`, `budget_addendum` or `budget_extended`). The only place the plan's budget link is written. |

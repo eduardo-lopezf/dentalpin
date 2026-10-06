@@ -24,7 +24,7 @@
 
 ## Context
 
-DentalPin holds everything a dental clinical record needs — demographics
+Diente Azul holds everything a dental clinical record needs — demographics
 in `patients`, history in `patients_clinical`, evolution notes in
 `clinical_notes`, tooth status and procedures in `odontogram`, charting
 in `periodontogram`, therapeutic plans in `treatment_plan`, radiographs

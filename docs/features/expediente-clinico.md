@@ -15,7 +15,7 @@
 
 A clinic that cannot hand a patient their record, or send a colleague the
 relevant part of it, is not running a clinical system — it is running a
-database with a nice interface over it. Today DentalPin is the second
+database with a nice interface over it. Today Diente Azul is the second
 thing. Everything a dental record needs is already stored, and none of it
 can leave the building as a record.
 
@@ -112,7 +112,7 @@ emergencies) is what tells the operator whether this patient can be
 treated in the chair as usual (I–II), needs precautions and a shorter
 appointment (III), or should not be treated electively outside a hospital
 setting (IV+). In a dental practice it is the single most load-bearing
-summary on the pre-anaesthetic surface, and DentalPin does not have it:
+summary on the pre-anaesthetic surface, and Diente Azul does not have it:
 no column, no enum, no reference anywhere in the codebase.
 
 The inputs are already there. `patients_clinical_medical_context` holds
@@ -191,7 +191,7 @@ for CDA R2 with CIE-10, not FHIR.
 | Layer | Format | Role | Phase |
 |---|---|---|---|
 | Legal / human | **PDF/A-3**, signed | What the patient receives, what gets printed, what survives an archive. A-3 because it *embeds* the structured payload — one file, both audiences | 1 |
-| Portable / own | **DPMF** (`.dpm`), extended | DentalPin↔DentalPin transfer and backup. The format and its reader already exist in `migration_import` | 1 |
+| Portable / own | **DPMF** (`.dpm`), extended | Diente Azul↔Diente Azul transfer and backup. The format and its reader already exist in `migration_import` | 1 |
 | Interoperable | **FHIR R4 Bundle** (`type=document`); **CDA R2** | Only when a real counterparty needs it, or NOM-024 certification is pursued | 3 |
 
 **The rule that makes this affordable: all three are projections of one
@@ -227,7 +227,7 @@ prevent.
 Art. 51 Bis 1 gives the patient a right to *sufficient, clear, timely and
 truthful* information about their condition and about the risks and
 alternatives of the procedures indicated for them. That is an obligation
-on the clinical act, not on the data transfer, and nothing in DentalPin
+on the clinical act, not on the data transfer, and nothing in Diente Azul
 discharges it today.
 
 The nearest thing that exists is `budget_signatures` — and it is not it.
@@ -310,7 +310,7 @@ problem a migration does — reconciling someone else's codes, teeth
 notation and identities against yours — and the answer is the same:
 never auto-merge clinical data, always let a human adjudicate.
 
-Two dental-specific traps for the importer: **tooth notation** (DentalPin
+Two dental-specific traps for the importer: **tooth notation** (Diente Azul
 uses FDI/ISO 3950; a US-origin record will be Universal) and units in
 periodontal charting. Both must be declared on import, not inferred.
 
@@ -435,7 +435,7 @@ That gap is not an oversight to be closed by adding fifteen columns. Four
 of those five are general-medicine surfaces in a dental product, and a
 clinic that needs a full *historia clínica general* is describing a
 different product. What is worth deciding, and is **TBD**, is whether
-DentalPin claims NOM-004 compliance for the dental record specifically —
+Diente Azul claims NOM-004 compliance for the dental record specifically —
 a defensible position — or pursues the general expediente, which is a
 scope decision, not a backlog item. Informed consent is the exception:
 it is squarely dental, squarely required, and squarely missing.

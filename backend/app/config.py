@@ -38,7 +38,7 @@ _PLACEHOLDER_MARKERS: Final = (
     "placeholder",
     "insecure",
     "dental_dev",
-    "dentalpin_dev",
+    "dienteazul_dev",
 )
 
 # A hex-32 secret draws from 16 symbols, so "distinct characters" is a
@@ -133,12 +133,12 @@ class Settings(BaseSettings):
     TESTING: bool = False
 
     # Module system
-    DENTALPIN_DEV_MODULE_SCAN: bool = True  # Fallback filesystem scan for dev
+    DIENTEAZUL_DEV_MODULE_SCAN: bool = True  # Fallback filesystem scan for dev
     # Host-mounted path where `frontend/modules.json` lives. The backend
     # writes this file whenever a module with a Nuxt layer is
     # installed/uninstalled so the Nuxt host picks up `extends` on next
     # build. docker-compose mounts `./frontend` → `/host_frontend`.
-    DENTALPIN_FRONTEND_ROOT: str = "/host_frontend"
+    DIENTEAZUL_FRONTEND_ROOT: str = "/host_frontend"
     # Absolute path INSIDE the frontend container where
     # `backend/app/modules` is mounted (see docker-compose). The writer
     # uses this prefix when rendering layer paths in `modules.json` so
@@ -146,11 +146,11 @@ class Settings(BaseSettings):
     # production (single container / bundled deploy) this can be set to
     # the same path the backend sees for modules, in which case no
     # translation happens.
-    DENTALPIN_MODULE_LAYERS_MOUNT: str = "/module_layers"
+    DIENTEAZUL_MODULE_LAYERS_MOUNT: str = "/module_layers"
     # The backend-container path at which module packages live. Stripped
     # from absolute layer paths before the MOUNT prefix is applied. Rare
     # to override; exists for non-standard container layouts.
-    DENTALPIN_MODULE_PKG_ROOT: str = "/app/app/modules"
+    DIENTEAZUL_MODULE_PKG_ROOT: str = "/app/app/modules"
 
     # Storage configuration
     STORAGE_BACKEND: str = "local"
@@ -175,8 +175,8 @@ class Settings(BaseSettings):
     EMAIL_SMTP_PASSWORD: str = ""
 
     # Default sender
-    EMAIL_FROM_ADDRESS: str = "noreply@dentalpin.com"
-    EMAIL_FROM_NAME: str = "DentalPin"
+    EMAIL_FROM_ADDRESS: str = "noreply@dienteazul.com"
+    EMAIL_FROM_NAME: str = "Diente Azul"
 
     # Copilot / agentic layer (app/core/llm/). OpenAI is the only live
     # provider in v1; per-clinic `copilot_settings` overrides provider +

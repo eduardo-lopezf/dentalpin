@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to DentalPin are documented here. Format loosely
+All notable changes to Diente Azul are documented here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/) and the project
 uses [Semantic Versioning](https://semver.org/).
 
@@ -165,6 +165,44 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Changed
 
+- **New logo.** The old mark's idea was a pun that died with the rename —
+  its dot was "the *Pin* in DentalPin". The new one draws a faceted tooth
+  and the Hagall+Bjarkan bind-rune in a single uniform stroke, so they read
+  as one figure rather than a badge with something inside it; "Diente Azul"
+  is what that rune's own brand is called, in Spanish. Shipped as
+  `dienteazul-icon.svg`, `dienteazul-mark.svg` (`currentColor`, inline
+  only), `dienteazul-horizontal.svg` and `favicon.svg`. The favicon is
+  optically sized rather than merely scaled: heavier stroke and no crossing
+  diagonals, because at 16px they close into a blot and take the rest of
+  the drawing with them. **Note for whoever owns this decision:** the
+  Bluetooth word and figure marks belong to Bluetooth SIG, and a dental
+  product whose name translates to theirs, carrying a mark derived from
+  their rune, is the shape of a trademark problem.
+
+- **The product is renamed DentalPin → Diente Azul.** 729 occurrences
+  across 242 files: `dentalpin` → `dienteazul` in code, `DentalPin` →
+  `Diente Azul` in prose and UI, `DENTALPIN_*` → `DIENTEAZUL_*` in
+  settings. The Python distribution, the `dienteazul.modules` entry-point
+  group, `bin/dienteazul`, the demo-reset script and its cron file, the
+  npm package names, the `dienteazul.tenant` Docker label, the
+  `dienteazul.settings.*` browser-storage keys and the `dienteazul.com`
+  domains all move with it. Logo assets become
+  `dienteazul-{icon,mark,horizontal}.svg`; `favicon.svg` keeps its
+  conventional name. `migration_import` gains `mig_0005`, renaming
+  `dentalpin_table`/`dentalpin_id` to `dienteazul_*` — `mig_0001` still
+  creates the old names on purpose, because a migration records what
+  happened rather than describing the current schema, and a fresh install
+  must end up where an existing one does.
+
+  **Two things deliberately keep the old name.** The `uuid5` seed
+  `"dentalpin:legacy-professional:…"` is frozen: five already-applied
+  migrations derived profile ids from that exact string, and
+  `professionals/providers.py` recomputes them at runtime, so changing it
+  would make live code stop finding the rows those migrations wrote. It is
+  an identifier, not branding. And the Docker Compose project name still
+  comes from the working directory, so containers remain `dentalpin-*`
+  until the directory is renamed or `COMPOSE_PROJECT_NAME` is set.
+
 - **A request's writes are committed before its response is sent**
   ([ADR 0031](docs/adr/0031-writes-commit-before-the-response.md)).
   `get_db` committed on its way out, and FastAPI runs that exit after the
@@ -187,10 +225,20 @@ frontend as a Nuxt layer under its own Python package.
   on who owns the server. The competing-managed-service exclusion moves
   inside the grant instead of floating as a stray field, and the Change
   Date now reads per version, which is what ADR 0004 always intended.
-  **A draft, not legal advice**: it has not been reviewed by counsel, and
-  it inherits one question drafting cannot fix — the Licensor is named
-  "DentalPin Contributors", which is not an entity that can grant a
-  commercial licence or sign a key.
+  **A draft, not legal advice**: it has not been reviewed by counsel.
+
+- **The `LICENSE` names a Licensor that can actually grant a licence.**
+  The field read "Diente Azul Contributors", which is not an entity able
+  to grant a commercial licence or sign a key, and the Additional Use
+  Grant above points both of its routes at the Licensor. It is now
+  **Dentared Odontology Services S.L.**, the sole maintainer of the core
+  per `COLLABORATORS.md`, whose mandatory CLA grants it the rights to
+  maintain, relicense and defend the work — which is what granting a
+  licence requires. The copyright line still reads "Diente Azul
+  Contributors" on purpose: the same CLA states it does not transfer
+  authorship, so contributors remain the owners of their work. Licensor
+  and copyright holder are different roles, and merging them would claim
+  more than the CLA obtained.
 
 - **`account_tier` is mandatory at creation, and paired with a custody
   mode.** `clinics.account_tier` carried `server_default='clinic'`, so a

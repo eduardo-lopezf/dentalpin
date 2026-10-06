@@ -24,9 +24,6 @@ useHead(() => ({
     // Ignored by browsers without a virtual keyboard.
     { name: 'viewport', content: 'width=device-width, initial-scale=1, interactive-widget=resizes-content' }
   ],
-  link: [
-    { rel: 'icon', href: '/favicon.ico' }
-  ],
   htmlAttrs: {
     lang: locale.value
   }

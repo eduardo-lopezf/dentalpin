@@ -120,7 +120,7 @@ stops mattering when there is nobody to mislead.
   verifiable offline.
 - The `account_tier` trap is documented before something gates on it.
 - The control-plane schema is now specified enough that the
-  `dentalpin-saas` module can be built against it without renegotiating
+  `dienteazul-saas` module can be built against it without renegotiating
   the boundary.
 
 ### Bad / accepted trade-offs

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- feat(media): el contrato `PatientDocuments` ofrece `usage_by_kind`:
+  cuánto pesan los archivos de los pacientes por clase clínica
+  (`media_kind`), archivados incluidos. Lo usa *Configuración → Cuenta →
+  Espacio en disco*. Es de toda la base de datos, no de una clínica: la
+  cifra es la del tenant.
+
 - feat(media): aporta al expediente clínico la sección **Radiografías y fotografías** (`record.py`). Los documentos administrativos quedan fuera.
 
 - feat(media): ofrece el contrato `PatientDocuments` (ADR 0039): si un

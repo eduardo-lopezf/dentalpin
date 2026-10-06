@@ -92,6 +92,60 @@ class SpecialtySuggestion(BaseModel):
     names: dict[str, str]
 
 
+class SpecialtyPackResponse(BaseModel):
+    """A discipline's reference catalogue, and where the clinic stands on it."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    key: str
+    names: dict[str, str]
+    enabled: bool
+    #: Treatments in the reference catalogue of the discipline.
+    reference_count: int
+    #: Of those, how many the clinic has, active.
+    installed_count: int
+    #: Of those, how many the clinic changed — what a restore would overwrite.
+    customised_count: int
+    #: Reference treatments the clinic lacks: enabling again adds them and
+    #: touches nothing else.
+    missing_count: int = 0
+    specialty_id: UUID | None = None
+
+
+class PackTreatmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    code: str
+    names: dict[str, str]
+    #: The reference price: a starting point, not a tariff.
+    reference_price: Decimal | None
+    minutes: int | None
+    state: str
+    customised: bool
+    clinic_price: Decimal | None
+
+
+class PackSubareaResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    key: str
+    names: dict[str, str]
+    treatments: list[PackTreatmentResponse]
+
+
+class PackSharedResponse(BaseModel):
+    """Treatments another discipline's file holds and shares with this one."""
+
+    specialty_key: str
+    names: dict[str, str]
+    treatments: list[PackTreatmentResponse]
+
+
+class SpecialtyPackDetailResponse(SpecialtyPackResponse):
+    subareas: list[PackSubareaResponse]
+    shared: list[PackSharedResponse]
+
+
 class SpecialtyUpdate(BaseModel):
     """Schema for updating a specialty."""
 
@@ -425,6 +479,14 @@ class CatalogItemBrief(BaseModel):
     is_diagnostic: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CatalogItemSearchResult(CatalogItemBrief):
+    """A search hit, with the discipline it is shown under."""
+
+    #: One discipline, even when the treatment belongs to several
+    #: (``CatalogService.primary_specialties``). None when it has none enabled.
+    specialty: SpecialtyBrief | None = None
 
 
 # ============================================================================

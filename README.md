@@ -1,14 +1,14 @@
-# DentalPin
+# Diente Azul
 
 Open source dental clinic management software. Built with modular architecture for extensibility.
 
-## Why DentalPin?
+## Why Diente Azul?
 
 Dental clinics around the world share the same fundamental needs: managing patients, scheduling appointments, tracking treatments, and running their practice efficiently. Yet the software landscape is fragmented into dozens of localized, closed-source solutions that lock clinics into expensive contracts and outdated technology.
 
 **We believe it's time for a change.**
 
-DentalPin is built on a simple premise: **one open platform for dental clinics everywhere**. Not another regional solution, but a global foundation that any clinic can adopt, any developer can extend, and any community can localize.
+Diente Azul is built on a simple premise: **one open platform for dental clinics everywhere**. Not another regional solution, but a global foundation that any clinic can adopt, any developer can extend, and any community can localize.
 
 ### Why now?
 
@@ -26,11 +26,11 @@ AI has fundamentally changed what small teams can build. Features that once requ
 
 We're not just building software—we're building the foundation for an ecosystem. A platform where developers contribute modules, clinics share improvements, and the entire dental community benefits from collective innovation.
 
-Clinics deserve better than closed, expensive software from the last decade. DentalPin is the open alternative.
+Clinics deserve better than closed, expensive software from the last decade. Diente Azul is the open alternative.
 
 ## ✨ AI Copilot
 
-DentalPin ships with a built-in **agentic AI assistant** that turns the whole clinic into something you can simply talk to. Ask it to find a patient, free up a slot, chase an unanswered budget, or brief you on the day ahead — in plain Spanish or English — and it acts on your real data.
+Diente Azul ships with a built-in **agentic AI assistant** that turns the whole clinic into something you can simply talk to. Ask it to find a patient, free up a slot, chase an unanswered budget, or brief you on the day ahead — in plain Spanish or English — and it acts on your real data.
 
 ![AI Copilot](docs/screenshots/ia.png)
 
@@ -48,11 +48,11 @@ Vendor-agnostic under the hood (an LLM-provider abstraction), with provider, mod
 
 ## Website
 
-Visit [**dentalpin.com**](https://www.dentalpin.com) for product info, features, and commercial details.
+Visit [**dienteazul.com**](https://www.dienteazul.com) for product info, features, and commercial details.
 
 ## Community
 
-Join our [**Telegram channel**](https://t.me/dentalpin) for support, installation help, and questions.
+Join our [**Telegram channel**](https://t.me/dienteazul) for support, installation help, and questions.
 
 ## Screenshots
 
@@ -234,7 +234,7 @@ Full runbook + fixture reference: [docs/technical/e2e-testing.md](docs/technical
 
 ## Architecture
 
-DentalPin uses a modular plugin architecture. Each feature is a self-contained module that:
+Diente Azul uses a modular plugin architecture. Each feature is a self-contained module that:
 - Declares its SQLAlchemy models
 - Provides a FastAPI router
 - Can subscribe to events from other modules
@@ -249,7 +249,7 @@ Business Source License 1.1 (BSL 1.1)
 
 **Licensed:** production use — running a clinic on real patient records — whether you host it yourself or we host it for you. It requires either a trial authorization we issue or a commercial licence (see the Additional Use Grant in [LICENSE](LICENSE)). Self-hosting is the premium tier and activates with a signed licence key ([ADR 0028](docs/adr/0028-self-hosting-is-the-premium-tier.md)). The key never gates your clinical data: reads, exports, backups and the patient subject-rights endpoints keep working with an expired licence or none at all.
 
-**Not permitted at any tier:** offering DentalPin, or a service substantially derived from it, as a hosted dental clinic management service to third parties.
+**Not permitted at any tier:** offering Diente Azul, or a service substantially derived from it, as a hosted dental clinic management service to third parties.
 
 **Change Date:** 4 years from each version's release
 

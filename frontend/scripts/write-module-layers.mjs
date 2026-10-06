@@ -13,7 +13,7 @@
  *   node scripts/write-module-layers.mjs [outfile]
  *
  * Default outfile is `modules.ci.json`, which `nuxt.config.ts` reads when
- * `DENTALPIN_MODULES_JSON` points at it — so a developer's real
+ * `DIENTEAZUL_MODULES_JSON` points at it — so a developer's real
  * `modules.json` (written by their running backend) is never clobbered.
  */
 import { existsSync, lstatSync, readdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'

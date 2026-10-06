@@ -50,7 +50,7 @@ related_paths:
   - backend/app/modules/treatment_plan/prescriptions.py
   - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 75cd119
+last_verified_commit: 01eb2d1
 ---
 
 # Treatment plan detail
@@ -71,7 +71,10 @@ combine:
   once, so a plan can be hygiene phase + single implant. The dialog
   carries a search box that filters templates by name and by the
   treatments they contain; it does not offer individual treatments
-  here, because the chart already does that.
+  here, because the chart already does that. Templates are **grouped
+  by specialty**; the ones the clinic saved from its own plans come
+  first, under *The clinic's own*. Only those of enabled specialties
+  are shown.
 - **Propose from the chart.** The button appears with a count when the
   patient has findings charted that nothing is planned for. The list
   pairs each finding with the matching treatment — caries →

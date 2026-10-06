@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- feat(brand): **logo nuevo** — el diente facetado y el bind-rune dibujados
+  con el mismo trazo. El logo anterior tenía un chiste muerto: el punto era
+  «el *Pin* de DentalPin», y con el nombre nuevo no significaba nada. La
+  runa es la misma que usa la marca Bluetooth, y «Diente Azul» es ese
+  nombre en español, así que el símbolo dice lo que dice el nombre.
+  `dienteazul-icon.svg`, `dienteazul-mark.svg` (en `currentColor`, solo
+  válido incrustado), `dienteazul-horizontal.svg` con «Azul» en azul, y
+  `favicon.svg`. El favicon lleva **ajuste óptico**: trazo más grueso y sin
+  las dos diagonales de la runa, porque a 16 px se cierran en un borrón y
+  se llevan por delante el resto del dibujo. Mismo dibujo, distinto tamaño
+  óptico — no son dos logos.
+
 - feat(workspace): **tema por defecto de la clínica** — claro, oscuro o
   según el dispositivo — en el lienzo de *Espacio de trabajo*. Se aplica a
   quien no haya elegido el suyo; usar el botón de sol y luna marca el
@@ -476,4 +488,4 @@
   did not touch — dead declarations, four `any`s in verifactu, three pages with
   multiple template roots, a `v-memo` inside a `v-for` that does nothing, one
   dynamic `delete` — warn instead of erroring, listed on every run. See the
-  `dentalpin/layers/pre-existing` block in `eslint.config.mjs`.
+  `dienteazul/layers/pre-existing` block in `eslint.config.mjs`.

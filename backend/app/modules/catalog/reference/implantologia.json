@@ -1,0 +1,1130 @@
+{
+  "key": "implantologia",
+  "names": {
+    "es": "Implantología",
+    "en": "Implantology"
+  },
+  "baseline": true,
+  "subareas": [
+    {
+      "key": "planificacion",
+      "names": {
+        "es": "Diagnóstico y planificación",
+        "en": "Diagnosis and planning"
+      }
+    },
+    {
+      "key": "quirurgica",
+      "names": {
+        "es": "Fase quirúrgica",
+        "en": "Surgical phase"
+      }
+    },
+    {
+      "key": "regeneracion",
+      "names": {
+        "es": "Regeneración ósea",
+        "en": "Bone regeneration"
+      }
+    },
+    {
+      "key": "protesica",
+      "names": {
+        "es": "Fase protésica",
+        "en": "Prosthetic phase"
+      }
+    },
+    {
+      "key": "mantenimiento",
+      "names": {
+        "es": "Mantenimiento de implantes",
+        "en": "Implant maintenance"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "IMP-CONS",
+      "names": {
+        "es": "Consulta de implantología",
+        "en": "Implant consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "planificacion",
+      "specialties": [
+        "implantologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-PLAN",
+      "names": {
+        "es": "Planificación digital de implantes",
+        "en": "Digital implant planning"
+      },
+      "category": "diagnostico",
+      "subarea": "planificacion",
+      "specialties": [
+        "implantologia"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-GUIDE",
+      "names": {
+        "es": "Cirugía guiada (férula quirúrgica)",
+        "en": "Guided surgery (surgical guide)"
+      },
+      "category": "cirugia",
+      "subarea": "planificacion",
+      "specialties": [
+        "implantologia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "300.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-IMP-TI",
+      "names": {
+        "es": "Implante de titanio",
+        "en": "Titanium implant"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "1100.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#10B981"
+        }
+      ],
+      "visualization_config": {
+        "color": "#10B981"
+      },
+      "sessions": [
+        {
+          "labels": {
+            "es": "Cirugía de implante",
+            "en": "Implant surgery"
+          },
+          "default_price": "700.00"
+        },
+        {
+          "labels": {
+            "es": "Pilar de cicatrización",
+            "en": "Healing abutment"
+          },
+          "default_price": "150.00"
+        },
+        {
+          "labels": {
+            "es": "Colocación de corona",
+            "en": "Crown placement"
+          },
+          "default_price": "250.00"
+        }
+      ]
+    },
+    {
+      "code": "SURG-IMP-ZIR",
+      "names": {
+        "es": "Implante de zirconio",
+        "en": "Zirconia implant"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "1500.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#14B8A6"
+        }
+      ],
+      "visualization_config": {
+        "color": "#14B8A6"
+      }
+    },
+    {
+      "code": "IMP-IMMEDIATE",
+      "names": {
+        "es": "Implante inmediato postextracción",
+        "en": "Immediate post-extraction implant"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "1250.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#10B981"
+        }
+      ],
+      "visualization_config": {
+        "color": "#10B981"
+      }
+    },
+    {
+      "code": "IMP-SHORT",
+      "names": {
+        "es": "Implante corto",
+        "en": "Short implant"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "1150.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#10B981"
+        }
+      ],
+      "visualization_config": {
+        "color": "#10B981"
+      }
+    },
+    {
+      "code": "IMP-NARROW",
+      "names": {
+        "es": "Implante de diámetro reducido",
+        "en": "Narrow-diameter implant"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "1100.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#10B981"
+        }
+      ],
+      "visualization_config": {
+        "color": "#10B981"
+      }
+    },
+    {
+      "code": "IMP-MINI",
+      "names": {
+        "es": "Mini-implante para sobredentadura",
+        "en": "Mini-implant for an overdenture"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "450.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#10B981"
+        }
+      ],
+      "visualization_config": {
+        "color": "#10B981"
+      }
+    },
+    {
+      "code": "IMP-ZYGO",
+      "names": {
+        "es": "Implante cigomático",
+        "en": "Zygomatic implant"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "4500.00",
+      "minutes": 180,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#10B981"
+        }
+      ],
+      "visualization_config": {
+        "color": "#10B981"
+      }
+    },
+    {
+      "code": "IMP-PTERYG",
+      "names": {
+        "es": "Implante pterigoideo",
+        "en": "Pterygoid implant"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "2000.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#10B981"
+        }
+      ],
+      "visualization_config": {
+        "color": "#10B981"
+      }
+    },
+    {
+      "code": "IMP-2ND-STAGE",
+      "names": {
+        "es": "Segunda fase quirúrgica (descubrimiento)",
+        "en": "Second-stage surgery (uncovering)"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "implantologia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "120.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-REMOVE",
+      "names": {
+        "es": "Explantación de implante",
+        "en": "Implant removal"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "250.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-SINUS",
+      "names": {
+        "es": "Elevación de seno",
+        "en": "Sinus lift"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "800.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-BONE-GRAFT",
+      "names": {
+        "es": "Injerto óseo",
+        "en": "Bone graft"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "450.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-BONE-REGUL",
+      "names": {
+        "es": "Regularización ósea",
+        "en": "Bone reshaping"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "multi_tooth",
+      "price": "220.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-PRP",
+      "names": {
+        "es": "Plasma rico en plaquetas",
+        "en": "Platelet-rich plasma"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-BONE-VERT",
+      "names": {
+        "es": "Aumento óseo vertical",
+        "en": "Vertical bone augmentation"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "750.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-BONE-HORIZ",
+      "names": {
+        "es": "Aumento óseo horizontal",
+        "en": "Horizontal bone augmentation"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "650.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-SINUS-CLOSED",
+      "names": {
+        "es": "Elevación de seno cerrada (atraumática)",
+        "en": "Closed sinus lift (atraumatic)"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "500.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-MEMBRANE",
+      "names": {
+        "es": "Membrana de regeneración",
+        "en": "Regeneration membrane"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "200.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-BLOCK",
+      "names": {
+        "es": "Injerto óseo en bloque",
+        "en": "Block bone graft"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "900.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-TI-MESH",
+      "names": {
+        "es": "Regeneración con malla de titanio",
+        "en": "Regeneration with titanium mesh"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "950.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-RIDGE-SPLIT",
+      "names": {
+        "es": "Expansión de cresta",
+        "en": "Ridge split"
+      },
+      "category": "cirugia",
+      "subarea": "regeneracion",
+      "specialties": [
+        "implantologia",
+        "cirugia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "600.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-CROWN-IMPL-MC",
+      "names": {
+        "es": "Corona sobre implante metal-cerámica",
+        "en": "Metal-ceramic crown on implant"
+      },
+      "category": "restauradora",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "general",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "600.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown_on_implant",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "solid",
+          "color": "#F59E0B"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F59E0B"
+      },
+      "sessions": [
+        {
+          "labels": {
+            "es": "Toma de medidas",
+            "en": "Impressions"
+          },
+          "default_price": "200.00"
+        },
+        {
+          "labels": {
+            "es": "Colocación",
+            "en": "Placement"
+          },
+          "default_price": "400.00"
+        }
+      ]
+    },
+    {
+      "code": "REST-CROWN-IMPL-ZIR",
+      "names": {
+        "es": "Corona sobre implante zirconio",
+        "en": "Zirconia crown on implant"
+      },
+      "category": "restauradora",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "general",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "750.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown_on_implant",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "solid",
+          "color": "#FBBF24"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FBBF24"
+      },
+      "sessions": [
+        {
+          "labels": {
+            "es": "Toma de medidas",
+            "en": "Impressions"
+          },
+          "default_price": "250.00"
+        },
+        {
+          "labels": {
+            "es": "Colocación",
+            "en": "Placement"
+          },
+          "default_price": "500.00"
+        }
+      ]
+    },
+    {
+      "code": "REST-CROWN-IMPL-PROV",
+      "names": {
+        "es": "Corona provisional sobre implante",
+        "en": "Provisional crown on implant"
+      },
+      "category": "restauradora",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "general",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "provisional_crown_on_implant",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "solid",
+          "color": "#FCD34D"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FCD34D"
+      }
+    },
+    {
+      "code": "REST-HEAL-ABUT",
+      "names": {
+        "es": "Pilar de cicatrización",
+        "en": "Healing abutment"
+      },
+      "category": "restauradora",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "general",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "150.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#22C55E"
+        }
+      ],
+      "visualization_config": {
+        "color": "#22C55E"
+      }
+    },
+    {
+      "code": "REST-DEF-ABUT",
+      "names": {
+        "es": "Pilar definitivo",
+        "en": "Definitive abutment"
+      },
+      "category": "restauradora",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "general",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "250.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#16A34A"
+        }
+      ],
+      "visualization_config": {
+        "color": "#16A34A"
+      }
+    },
+    {
+      "code": "PROT-OVERDENT",
+      "names": {
+        "es": "Sobredentadura sobre implantes",
+        "en": "Implant-supported overdenture"
+      },
+      "category": "protesis",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "1800.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-IMMEDIATE-LOAD",
+      "names": {
+        "es": "Carga inmediata unitaria",
+        "en": "Immediate loading, single tooth"
+      },
+      "category": "restauradora",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "300.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "provisional_crown_on_implant",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "solid",
+          "color": "#FCD34D"
+        }
+      ],
+      "visualization_config": {
+        "color": "#FCD34D"
+      }
+    },
+    {
+      "code": "IMP-ABUT-CUSTOM",
+      "names": {
+        "es": "Pilar personalizado CAD/CAM",
+        "en": "Custom CAD/CAM abutment"
+      },
+      "category": "restauradora",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "350.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "implant",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "implant",
+          "color": "#16A34A"
+        }
+      ],
+      "visualization_config": {
+        "color": "#16A34A"
+      }
+    },
+    {
+      "code": "IMP-BRIDGE",
+      "names": {
+        "es": "Puente sobre implantes (por pieza)",
+        "en": "Implant-supported bridge (per unit)"
+      },
+      "category": "restauradora",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "650.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "crown_on_implant",
+      "visualization_rules": [
+        {
+          "layer": "cenital_pattern",
+          "pattern": "solid",
+          "color": "#F59E0B"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F59E0B"
+      }
+    },
+    {
+      "code": "IMP-ALLON4",
+      "names": {
+        "es": "Rehabilitación fija de arcada completa sobre 4 implantes",
+        "en": "Full-arch fixed rehabilitation on 4 implants"
+      },
+      "category": "protesis",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "9500.00",
+      "minutes": 240,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-ALLON6",
+      "names": {
+        "es": "Rehabilitación fija de arcada completa sobre 6 implantes",
+        "en": "Full-arch fixed rehabilitation on 6 implants"
+      },
+      "category": "protesis",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "12500.00",
+      "minutes": 300,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-HYBRID",
+      "names": {
+        "es": "Prótesis híbrida sobre implantes",
+        "en": "Implant-supported hybrid prosthesis"
+      },
+      "category": "protesis",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "4500.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-PROV-ARCH",
+      "names": {
+        "es": "Prótesis provisional de carga inmediata (arcada)",
+        "en": "Immediate-load provisional prosthesis (arch)"
+      },
+      "category": "protesis",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "1800.00",
+      "minutes": 180,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-BAR",
+      "names": {
+        "es": "Barra para sobredentadura",
+        "en": "Overdenture bar"
+      },
+      "category": "protesis",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "1200.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-LOCATOR",
+      "names": {
+        "es": "Atache tipo Locator",
+        "en": "Locator attachment"
+      },
+      "category": "protesis",
+      "subarea": "protesica",
+      "specialties": [
+        "implantologia",
+        "rehabilitacion"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "250.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SURG-PERIIMP",
+      "names": {
+        "es": "Tratamiento de periimplantitis",
+        "en": "Peri-implantitis treatment"
+      },
+      "category": "cirugia",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "implantologia",
+        "cirugia",
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "tooth",
+      "price": "420.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-MAINT",
+      "names": {
+        "es": "Mantenimiento de implantes",
+        "en": "Implant maintenance"
+      },
+      "category": "preventivo",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "implantologia",
+        "higiene",
+        "periodoncia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-SCREW",
+      "names": {
+        "es": "Reapriete o cambio de tornillo protésico",
+        "en": "Prosthetic screw retightening or replacement"
+      },
+      "category": "restauradora",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "implantologia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-LOCATOR-REPL",
+      "names": {
+        "es": "Cambio de retenciones de sobredentadura",
+        "en": "Overdenture retention insert replacement"
+      },
+      "category": "protesis",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "implantologia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_arch",
+      "price": "80.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-PROST-CLEAN",
+      "names": {
+        "es": "Desmontaje e higiene de prótesis sobre implantes",
+        "en": "Removal and cleaning of an implant prosthesis"
+      },
+      "category": "preventivo",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "implantologia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_arch",
+      "price": "150.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "IMP-FOLLOW",
+      "names": {
+        "es": "Revisión de implantes",
+        "en": "Implant review"
+      },
+      "category": "diagnostico",
+      "subarea": "mantenimiento",
+      "specialties": [
+        "implantologia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

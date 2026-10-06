@@ -48,22 +48,22 @@ def _locate_repo_root() -> Path:
 
     Order:
 
-    1. ``DENTALPIN_REPO_ROOT`` env var if set (useful in Docker where
+    1. ``DIENTEAZUL_REPO_ROOT`` env var if set (useful in Docker where
        ``/app`` is the backend mount and ``/docs`` is mounted separately —
-       set ``DENTALPIN_REPO_ROOT=/`` and ensure both ``/docs`` and
+       set ``DIENTEAZUL_REPO_ROOT=/`` and ensure both ``/docs`` and
        ``/backend`` exist as symlinks or mounts).
     2. Walk up from this file until we find both ``docs/`` and ``backend/``.
 
     Works on the GitHub Actions runner (host layout), and in Docker when
     the env var is set.
     """
-    override = os.environ.get("DENTALPIN_REPO_ROOT")
+    override = os.environ.get("DIENTEAZUL_REPO_ROOT")
     if override:
         root = Path(override).resolve()
         if (root / "docs").is_dir() and (root / "backend").is_dir():
             return root
         raise RuntimeError(
-            f"DENTALPIN_REPO_ROOT={override!r} but it doesn't contain both `docs/` and `backend/`."
+            f"DIENTEAZUL_REPO_ROOT={override!r} but it doesn't contain both `docs/` and `backend/`."
         )
     here = Path(__file__).resolve()
     for candidate in (here.parent, *here.parents):
@@ -71,7 +71,7 @@ def _locate_repo_root() -> Path:
             return candidate
     raise RuntimeError(
         f"Could not locate repo root from {here}. "
-        "Set DENTALPIN_REPO_ROOT or run the script from a checkout that "
+        "Set DIENTEAZUL_REPO_ROOT or run the script from a checkout that "
         "contains both `docs/` and `backend/`."
     )
 
@@ -94,7 +94,7 @@ def _bootstrap_env() -> None:
     os.environ.setdefault("SECRET_KEY", "docs-coverage-stub-key-32chars-minimum")
     os.environ.setdefault("ENVIRONMENT", "test")
     os.environ.setdefault("TESTING", "true")
-    os.environ.setdefault("DENTALPIN_DEV_MODULE_SCAN", "true")
+    os.environ.setdefault("DIENTEAZUL_DEV_MODULE_SCAN", "true")
     # Run from backend/, or `Settings` picks up the repo-root compose
     # `.env` and rejects its POSTGRES_*/API_BASE_URL keys as extras. See
     # generate_catalogs.py's `_bootstrap_env` for the full reasoning.
@@ -632,7 +632,7 @@ def run(strict: bool) -> int:
     modules = list(discover_modules())
     if not modules:
         findings.err(
-            "No modules discovered. Ensure DENTALPIN_DEV_MODULE_SCAN=true and "
+            "No modules discovered. Ensure DIENTEAZUL_DEV_MODULE_SCAN=true and "
             "the backend is installed."
         )
 

@@ -1,0 +1,672 @@
+{
+  "key": "patologia_oral",
+  "names": {
+    "es": "Patología Oral",
+    "en": "Oral Pathology"
+  },
+  "baseline": false,
+  "subareas": [
+    {
+      "key": "consulta",
+      "names": {
+        "es": "Consulta y seguimiento",
+        "en": "Consultation and follow-up"
+      }
+    },
+    {
+      "key": "diagnostico",
+      "names": {
+        "es": "Pruebas diagnósticas",
+        "en": "Diagnostic tests"
+      }
+    },
+    {
+      "key": "premalignas",
+      "names": {
+        "es": "Lesiones potencialmente malignas",
+        "en": "Potentially malignant lesions"
+      }
+    },
+    {
+      "key": "quirurgica",
+      "names": {
+        "es": "Tratamiento quirúrgico",
+        "en": "Surgical treatment"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "PAT-CONS",
+      "names": {
+        "es": "Consulta de patología oral",
+        "en": "Oral pathology consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-PHOTO-MAP",
+      "names": {
+        "es": "Mapeo fotográfico de lesiones",
+        "en": "Photographic mapping of lesions"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-FOLLOW",
+      "names": {
+        "es": "Seguimiento de lesión",
+        "en": "Lesion follow-up"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-SCREEN",
+      "names": {
+        "es": "Cribado de cáncer oral",
+        "en": "Oral cancer screening"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-2ND",
+      "names": {
+        "es": "Segunda opinión en patología oral",
+        "en": "Second opinion in oral pathology"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-REPORT",
+      "names": {
+        "es": "Informe de patología oral",
+        "en": "Oral pathology report"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-REFERRAL",
+      "names": {
+        "es": "Derivación a oncología o cirugía",
+        "en": "Referral to oncology or surgery"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-HISTO",
+      "names": {
+        "es": "Estudio histopatológico",
+        "en": "Histopathology study"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-CYTO",
+      "names": {
+        "es": "Citología exfoliativa",
+        "en": "Exfoliative cytology"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-BIOPSY-INC",
+      "names": {
+        "es": "Biopsia incisional",
+        "en": "Incisional biopsy"
+      },
+      "category": "cirugia",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-BIOPSY-EXC",
+      "names": {
+        "es": "Biopsia excisional",
+        "en": "Excisional biopsy"
+      },
+      "category": "cirugia",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-FNA",
+      "names": {
+        "es": "Punción-aspiración con aguja fina",
+        "en": "Fine-needle aspiration"
+      },
+      "category": "cirugia",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-TOLUIDINE",
+      "names": {
+        "es": "Tinción con azul de toluidina",
+        "en": "Toluidine blue staining"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-AUTOFLUOR",
+      "names": {
+        "es": "Examen por autofluorescencia",
+        "en": "Autofluorescence examination"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-BRUSH",
+      "names": {
+        "es": "Biopsia por cepillado",
+        "en": "Brush biopsy"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-IHC",
+      "names": {
+        "es": "Inmunohistoquímica",
+        "en": "Immunohistochemistry"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-IF",
+      "names": {
+        "es": "Inmunofluorescencia directa",
+        "en": "Direct immunofluorescence"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-CULTURE",
+      "names": {
+        "es": "Cultivo microbiológico",
+        "en": "Microbiological culture"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-BIOPSY-BONE",
+      "names": {
+        "es": "Biopsia ósea",
+        "en": "Bone biopsy"
+      },
+      "category": "cirugia",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "220.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-BIOPSY-GLAND",
+      "names": {
+        "es": "Biopsia de glándula salival menor",
+        "en": "Minor salivary gland biopsy"
+      },
+      "category": "cirugia",
+      "subarea": "diagnostico",
+      "specialties": [
+        "patologia_oral",
+        "medicina_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "160.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-PMD-FOLLOW",
+      "names": {
+        "es": "Control de lesión potencialmente maligna",
+        "en": "Follow-up of a potentially malignant lesion"
+      },
+      "category": "diagnostico",
+      "subarea": "premalignas",
+      "specialties": [
+        "patologia_oral",
+        "medicina_oral"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-LEUKO",
+      "names": {
+        "es": "Exéresis de leucoplasia",
+        "en": "Leukoplakia excision"
+      },
+      "category": "cirugia",
+      "subarea": "premalignas",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "250.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-POST-ONC",
+      "names": {
+        "es": "Seguimiento oral tras cáncer oral",
+        "en": "Oral follow-up after oral cancer"
+      },
+      "category": "diagnostico",
+      "subarea": "premalignas",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-EXC-BENIGN",
+      "names": {
+        "es": "Exéresis de lesión benigna de mucosa",
+        "en": "Excision of a benign mucosal lesion"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "180.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-MUCOCELE",
+      "names": {
+        "es": "Exéresis de mucocele",
+        "en": "Mucocele excision"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "160.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-CYST-ENUC",
+      "names": {
+        "es": "Enucleación de quiste",
+        "en": "Cyst enucleation"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "320.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-CYST-MARSUP",
+      "names": {
+        "es": "Marsupialización de quiste",
+        "en": "Cyst marsupialisation"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "280.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-FIBROMA",
+      "names": {
+        "es": "Exéresis de fibroma",
+        "en": "Fibroma excision"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "170.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-PAPILLOMA",
+      "names": {
+        "es": "Exéresis de papiloma",
+        "en": "Papilloma excision"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "170.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-EPULIS",
+      "names": {
+        "es": "Exéresis de épulis",
+        "en": "Epulis excision"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "190.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-LASER",
+      "names": {
+        "es": "Vaporización de lesión con láser",
+        "en": "Laser ablation of a lesion"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "200.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-CRYO",
+      "names": {
+        "es": "Crioterapia de lesión oral",
+        "en": "Cryotherapy of an oral lesion"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-ODONTOMA",
+      "names": {
+        "es": "Exéresis de odontoma",
+        "en": "Odontoma removal"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "380.00",
+      "minutes": 75,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-TUMOR-BENIGN",
+      "names": {
+        "es": "Exéresis de tumor benigno de los maxilares",
+        "en": "Excision of a benign jaw tumour"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "650.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PAT-SEQUESTR",
+      "names": {
+        "es": "Secuestrectomía",
+        "en": "Sequestrectomy"
+      },
+      "category": "cirugia",
+      "subarea": "quirurgica",
+      "specialties": [
+        "patologia_oral"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "300.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

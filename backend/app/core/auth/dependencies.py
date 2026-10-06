@@ -132,7 +132,7 @@ async def get_clinic_context(
 # Attribute carrying the permissions a route is gated by, readable
 # without executing the route. ``tests/test_route_authorization_coverage.py``
 # walks every mounted route looking for it (ADR 0029, invariant 1).
-PERMISSION_MARKER = "__dentalpin_permissions__"
+PERMISSION_MARKER = "__dienteazul_permissions__"
 
 
 def require_permission(permission: str) -> Callable:

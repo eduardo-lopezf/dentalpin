@@ -55,7 +55,7 @@ jobs:
       # BACKUP_ROOT (module-uninstall's pre-drop table dump) fails with
       # a read-only-filesystem error — surfaced as tables that "survive"
       # an uninstall because _remove() aborts before dropping them.
-      STORAGE_LOCAL_PATH: /tmp/dentalpin-storage
+      STORAGE_LOCAL_PATH: /tmp/dienteazul-storage
 
     steps:
       - uses: actions/checkout@v5

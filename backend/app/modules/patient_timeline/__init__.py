@@ -28,7 +28,7 @@ class PatientTimelineModule(BaseModule):
         "name": "patient_timeline",
         "version": "0.1.0",
         "summary": "Patient timeline — unified activity log.",
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients"],

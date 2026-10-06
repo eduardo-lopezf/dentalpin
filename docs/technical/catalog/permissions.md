@@ -16,9 +16,9 @@ them on `catalog.admin`.
 
 | Permission | Allows | Required by |
 |------------|--------|-------------|
-| `catalog.read` | Read the whole catalog: treatments, categories, VAT types, specialties and odontogram mappings. | `GET /items`, `GET /items/{id}`, `GET /items/search`, `GET /items/popular`, `GET /items/recent`, `GET /categories`, `GET /categories/{id}`, `GET /vat-types`, `GET /vat-types/default`, `GET /vat-types/{id}`, `GET /specialties`, `GET /specialties/suggestions`, `GET /specialties/{id}`, `GET /specialties/{id}/items`, `GET /odontogram-treatments`, `GET /odontogram-treatments/by-category` |
+| `catalog.read` | Read the whole catalog: treatments, categories, VAT types, specialties and odontogram mappings. | `GET /items`, `GET /items/{id}`, `GET /items/search`, `GET /items/popular`, `GET /items/recent`, `GET /categories`, `GET /categories/{id}`, `GET /vat-types`, `GET /vat-types/default`, `GET /vat-types/{id}`, `GET /specialties`, `GET /specialties/suggestions`, `GET /specialties/{id}`, `GET /specialties/{id}/items`, `GET /specialty-packs`, `GET /specialty-packs/{key}`, `GET /odontogram-treatments`, `GET /odontogram-treatments/by-category` |
 | `catalog.write` | Create, edit and delete **treatments**, including toggling their visibility (a `PUT` on the item). | `POST /items`, `PUT /items/{id}`, `DELETE /items/{id}` |
-| `catalog.admin` | Manage the **taxonomy** a treatment is classified by: categories, VAT types and specialties. | `POST/PUT/DELETE /categories/{id}`, `POST/PUT/DELETE /vat-types/{id}`, `POST/PUT/DELETE /specialties/{id}`, `PUT /specialties/{id}/items` |
+| `catalog.admin` | Manage the **taxonomy** a treatment is classified by: categories, VAT types and specialties. | `POST/PUT/DELETE /categories/{id}`, `POST/PUT/DELETE /vat-types/{id}`, `POST/PUT/DELETE /specialties/{id}`, `PUT /specialties/{id}/items`, `POST /specialty-packs/{key}/enable`, `/disable`, `/restore` |
 
 **By default only the `admin` role holds `write` or `admin`** — the
 module manifest grants every other role `read` and nothing else. The

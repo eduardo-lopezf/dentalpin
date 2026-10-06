@@ -7,7 +7,7 @@
 
 ## Context
 
-DentalPin is used on tablets in the gabinete and, increasingly, at the
+Diente Azul is used on tablets in the gabinete and, increasingly, at the
 front desk. The UI had three width breakpoints (`useBreakpoint`:
 `< 768` mobile, `768–1023` tablet, `>= 1024` desktop) and every touch
 accommodation hung off them: `useDensity` forced the comfortable scale

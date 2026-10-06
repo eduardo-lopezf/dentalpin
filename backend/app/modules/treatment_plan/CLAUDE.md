@@ -63,7 +63,7 @@ Routes mounted at `/api/v1/treatment-plans/`.
   `plans.write`. `{lines: [{catalog_item_id, tooth_numbers, surfaces, phase,
   notes}]}` in, `{items, skipped}` out, 422 naming the lines still waiting
   for a tooth. Same code underneath as `apply-template`.
-- `GET   /plan-templates`                   — list; `plans.read`
+- `GET   /plan-templates`                   — list; `plans.read`. Each carries `specialty` (`key`, `names`): the discipline a reference template belongs to, `null` on the clinic's own
 - `POST  /plan-templates`                   — create; `plans.templates`
 - `PUT   /plan-templates/{id}`              — update; items are a full replace when sent
 - `DELETE /plan-templates/{id}`             — soft delete (`is_active=False`)
@@ -228,6 +228,7 @@ Clinical-note created events (`clinical_notes.{administrative,diagnosis,treatmen
 
 | Event | Handler | Effect |
 |---|---|---|
+| `catalog.specialty_enabled` / `_disabled` / `_restored` | `on_specialty_*` | the reference plan templates of a discipline follow it: installed and shown, hidden, or put back to the reference (`PlanTemplateService.seed(specialty=…, restore=…)`, `set_specialty_active`). Templates without a `key` — saved by the clinic — are never touched. |
 | `appointment.completed`         | `on_appointment_completed`  | start the plan (`pending` → `active`) for every plan the appointment links to, then mark planned items as performed. The activation query is deliberately wider than the completion loop: it does not require `completed_in_appointment`, because a diagnostic first visit usually ticks nothing off and is exactly the visit that starts the plan. |
 | `budget.accepted`               | `on_budget_accepted`        | pending → active (idempotent) |
 | `budget.rejected`               | `on_budget_rejected`        | pending → closed (closure_reason=rejected_by_patient) |

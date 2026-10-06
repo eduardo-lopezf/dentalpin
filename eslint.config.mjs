@@ -38,7 +38,7 @@ export default withNuxt(
   {
     // Mirrors `nuxt/disables/routes`: a route file is named after its URL
     // segment, and a component nested in a folder is already namespaced.
-    name: 'dentalpin/disables/routes',
+    name: 'dienteazul/disables/routes',
     files: [
       // `app.vue` / `error.vue` have a fixed meaning in Nuxt.
       ...glob('app.{js,ts,jsx,tsx,vue}'),
@@ -55,7 +55,7 @@ export default withNuxt(
   },
   {
     // Mirrors `nuxt/vue/single-root`: layouts and pages render one root.
-    name: 'dentalpin/vue/single-root',
+    name: 'dienteazul/vue/single-root',
     files: [...glob('layouts/**'), ...glob('pages/**')],
     rules: {
       'vue/no-multiple-template-root': 'error'
@@ -72,7 +72,7 @@ export default withNuxt(
     // They warn so the list is printed on every run and CI stays honest
     // instead of red on code this change did not write. Fix them and delete
     // the corresponding line; when the list is empty, delete the block.
-    name: 'dentalpin/layers/pre-existing',
+    name: 'dienteazul/layers/pre-existing',
     files: ['backend/app/modules/*/frontend/**'],
     rules: {
       '@typescript-eslint/no-unused-vars': 'warn',

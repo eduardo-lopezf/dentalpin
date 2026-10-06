@@ -1,6 +1,6 @@
 """Gesdén-specific lookup tables for catalog mapping.
 
-This module lives inside ``migration_import`` because DentalPin is a
+This module lives inside ``migration_import`` because Diente Azul is a
 global project and Gesdén is a Spanish PMS: all Gesdén-flavoured
 heuristics must stay isolated to the importer. The destination
 ``catalog`` schema is untouched — no new columns, no aliases stored on
@@ -9,7 +9,7 @@ heuristics must stay isolated to the importer. The destination
 Three signals are reduced into these tables, all keyed by Gesdén's
 ``IdTipoODG`` (the 46-value ``TTipoOdg`` master enum):
 
-1. **Clinical type** — DentalPin ``TreatmentType`` enum (or ``None``
+1. **Clinical type** — Diente Azul ``TreatmentType`` enum (or ``None``
    when the Gesdén row is a non-tooth entry like Higiene/Panorámica).
 2. **Treatment scope** — ``tooth`` / ``multi_tooth`` / ``global_mouth``
    / ``global_arch``. Drives how the destination catalog item asks
@@ -59,7 +59,7 @@ CATEGORY_MIGRATED: Final[str] = "migrado_gesden"
 
 
 # ---------------------------------------------------------------------------
-# IdTipoODG → DentalPin TreatmentType (clinical_type) string.
+# IdTipoODG → Diente Azul TreatmentType (clinical_type) string.
 # ``None`` means "no odontogram-visible clinical type" — global treatments,
 # admin entries, tooth-state markers that are pre-existing conditions rather
 # than treatments.
@@ -114,7 +114,7 @@ GESDEN_TIPO_ODG_TO_CLINICAL_TYPE: Final[dict[int, str | None]] = {
 
 
 # ---------------------------------------------------------------------------
-# IdTipoODG → DentalPin treatment_scope. Drives how the destination catalog
+# IdTipoODG → Diente Azul treatment_scope. Drives how the destination catalog
 # item asks the clinician for tooth selection on the odontogram.
 # ---------------------------------------------------------------------------
 GESDEN_TIPO_ODG_TO_SCOPE: Final[dict[int, str]] = {
@@ -307,6 +307,14 @@ GESDEN_ABBREVIATION_ALIASES: Final[dict[str, tuple[str, ...]]] = {
     "exodoncia": ("extraccion",),
     "extracc": ("extraccion",),
     "cordal": ("tercer", "molar"),
+    # Gesdén writes the ordinal as a digit ("EXT 3 MOLAR") while the catalog
+    # spells it out ("Extracción tercer molar"), so the two differ by one
+    # token and the match lands below threshold — close enough to create a
+    # duplicate of an item that already exists. Expanding the digit is the
+    # cheapest way to make them agree, and it is safe for labels where the
+    # digit means something else: the scorer counts token overlap, so a
+    # "SESION 3" becoming "sesion tercer" neither helps nor hurts.
+    "3": ("tercer",),
     "impl": ("implante",),
     "ti": ("titanio",),
     "apec": ("apicectomia",),
@@ -393,7 +401,7 @@ def scope_for_tipo_odg(tipo_odg: int | None) -> str:
 
 
 def clinical_type_for_tipo_odg(tipo_odg: int | None) -> str | None:
-    """Return the DentalPin ``TreatmentType`` value for a Gesdén
+    """Return the Diente Azul ``TreatmentType`` value for a Gesdén
     ``IdTipoODG``, or ``None`` if the row is non-clinical."""
     if tipo_odg is None:
         return None

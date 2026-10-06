@@ -15,7 +15,7 @@ class ProfessionalsModule(BaseModule):
         "name": "professionals",
         "version": "0.1.0",
         "summary": "Clinic directory and scheduling source of truth for professionals.",
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["media", "catalog"],  # catalog owns `specialties` (FK target)

@@ -1,0 +1,459 @@
+{
+  "key": "higiene",
+  "names": {
+    "es": "Higiene Dental",
+    "en": "Dental Hygiene"
+  },
+  "baseline": true,
+  "subareas": [
+    {
+      "key": "revision",
+      "names": {
+        "es": "Revisión",
+        "en": "Check-up"
+      }
+    },
+    {
+      "key": "profilaxis",
+      "names": {
+        "es": "Profilaxis",
+        "en": "Prophylaxis"
+      }
+    },
+    {
+      "key": "prevencion",
+      "names": {
+        "es": "Prevención",
+        "en": "Prevention"
+      }
+    },
+    {
+      "key": "educacion",
+      "names": {
+        "es": "Educación en higiene",
+        "en": "Hygiene education"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "PREV-CHECKUP",
+      "names": {
+        "es": "Revisión",
+        "en": "Checkup"
+      },
+      "descriptions": {
+        "es": "Revisión general",
+        "en": "General checkup"
+      },
+      "category": "preventivo",
+      "subarea": "revision",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-PLAQUE-INDEX",
+      "names": {
+        "es": "Índice de placa y sangrado",
+        "en": "Plaque and bleeding index"
+      },
+      "category": "preventivo",
+      "subarea": "revision",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PREV-CLEAN",
+      "names": {
+        "es": "Limpieza dental",
+        "en": "Dental Cleaning"
+      },
+      "descriptions": {
+        "es": "Tartrectomía y pulido",
+        "en": "Scaling and polishing"
+      },
+      "category": "preventivo",
+      "subarea": "profilaxis",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PREV-CLEAN-CURETTAGE",
+      "names": {
+        "es": "Tartrectomía con curetaje",
+        "en": "Scaling with curettage"
+      },
+      "category": "preventivo",
+      "subarea": "profilaxis",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "110.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PERIO-SCAL",
+      "names": {
+        "es": "Tartrectomía simple",
+        "en": "Simple scaling"
+      },
+      "category": "periodoncia",
+      "subarea": "profilaxis",
+      "specialties": [
+        "higiene",
+        "periodoncia"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-AIRFLOW",
+      "names": {
+        "es": "Profilaxis con aeropulidor",
+        "en": "Air-polishing prophylaxis"
+      },
+      "category": "preventivo",
+      "subarea": "profilaxis",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "75.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-GBT",
+      "names": {
+        "es": "Terapia de biofilm guiada (GBT)",
+        "en": "Guided biofilm therapy (GBT)"
+      },
+      "category": "preventivo",
+      "subarea": "profilaxis",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-ORTHO-CLEAN",
+      "names": {
+        "es": "Profilaxis en paciente con ortodoncia",
+        "en": "Prophylaxis for an orthodontic patient"
+      },
+      "category": "preventivo",
+      "subarea": "profilaxis",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-POLISH",
+      "names": {
+        "es": "Pulido dental",
+        "en": "Tooth polishing"
+      },
+      "category": "preventivo",
+      "subarea": "profilaxis",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PREV-FLUOR",
+      "names": {
+        "es": "Fluorización",
+        "en": "Fluoride Application"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PREV-SEAL",
+      "names": {
+        "es": "Sellador de fosas y fisuras",
+        "en": "Pit and Fissure Sealant"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "tooth",
+      "price": "30.00",
+      "minutes": 15,
+      "requires_surfaces": true,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "sealant",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#06B6D4",
+          "kind": "solid_fill"
+        }
+      ],
+      "visualization_config": {
+        "color": "#06B6D4"
+      }
+    },
+    {
+      "code": "HYG-FLUOR-VARNISH",
+      "names": {
+        "es": "Barniz de flúor",
+        "en": "Fluoride varnish"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-CHX",
+      "names": {
+        "es": "Barniz de clorhexidina",
+        "en": "Chlorhexidine varnish"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-DESENS",
+      "names": {
+        "es": "Tratamiento de hipersensibilidad dentinaria",
+        "en": "Dentine hypersensitivity treatment"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-REMIN",
+      "names": {
+        "es": "Terapia remineralizante",
+        "en": "Remineralising therapy"
+      },
+      "category": "preventivo",
+      "subarea": "prevencion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "35.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-SALIVA",
+      "names": {
+        "es": "Test salival de riesgo de caries",
+        "en": "Salivary caries-risk test"
+      },
+      "category": "diagnostico",
+      "subarea": "prevencion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "PREV-HYGIENE-EDU",
+      "names": {
+        "es": "Instrucciones de higiene",
+        "en": "Oral Hygiene Instruction"
+      },
+      "category": "preventivo",
+      "subarea": "educacion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-DIET",
+      "names": {
+        "es": "Consejo dietético",
+        "en": "Dietary counselling"
+      },
+      "category": "preventivo",
+      "subarea": "educacion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-TOBACCO",
+      "names": {
+        "es": "Consejo para dejar de fumar",
+        "en": "Smoking cessation advice"
+      },
+      "category": "preventivo",
+      "subarea": "educacion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-INTERDENTAL",
+      "names": {
+        "es": "Enseñanza de higiene interdental",
+        "en": "Interdental cleaning instruction"
+      },
+      "category": "preventivo",
+      "subarea": "educacion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "15.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "HYG-APPL-CARE",
+      "names": {
+        "es": "Instrucción de cuidado de prótesis y aparatos",
+        "en": "Care instruction for dentures and appliances"
+      },
+      "category": "preventivo",
+      "subarea": "educacion",
+      "specialties": [
+        "higiene",
+        "general"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "15.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

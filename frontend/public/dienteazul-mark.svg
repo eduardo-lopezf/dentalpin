@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 64 64" fill="none" role="img" aria-label="Diente Azul mark">
+  <!-- Same drawing as the icon, in currentColor: for headers and dark surfaces,
+       where it should take the colour of the text around it. Only usable inlined
+       — an <img> cannot inherit a colour. -->
+  <g stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 17 22 11 14 21 17.5 34 23 51 27 52 30 37 32 35 34 37 37 52 41 51 46.5 34 50 21 42 11Z"/>
+    <path d="M32 17V35"/>
+    <path d="M32 17 41 23"/>
+    <path d="M32 35 41 29"/>
+    <path d="M24 29.5 41 23"/>
+    <path d="M24 22.5 41 29"/>
+  </g>
+</svg>

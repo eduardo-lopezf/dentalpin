@@ -44,7 +44,7 @@ class CustodyMode(StrEnum):
     """Who runs the deployment and who holds its keys.
 
     The three modes are the three combinations of operator access and key
-    custody that DentalPin supports. A fourth combination is a new mode,
+    custody that Diente Azul supports. A fourth combination is a new mode,
     not a new flag — which is why :class:`PrivacyPolicy` stores the mode
     and derives the other two.
     """

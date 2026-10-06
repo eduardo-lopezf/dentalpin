@@ -16,11 +16,10 @@ not seeded here. Their visualization is driven by the odontogram module's
 default rules for clinical_type.
 """
 
-from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import (
@@ -31,6 +30,13 @@ from .models import (
     TreatmentOdontogramMapping,
     VatType,
     catalog_item_specialties,
+)
+from .reference import (
+    BY_CODE,
+    CATEGORY_KEYS,
+    SPECIALTY_FILES,
+    seed_item,
+    treatments_by_category,
 )
 
 # ============================================================================
@@ -54,202 +60,58 @@ VAT_TYPES: list[dict[str, Any]] = [
 
 
 # ============================================================================
-# Specialties
+# The reference catalogue
 # ============================================================================
 #
-# The discipline axis, independent of the browsing axis (`CATEGORIES`) — see
-# docs. A category answers "where do I find this treatment", a specialty
-# answers "who performs it", and neither is a subset of the other:
-# `cirugia` holds two specialties, while Implantología spans three categories.
+# The treatments, the disciplines they belong to, their stage of care and
+# their sub-areas are data: one file per discipline under ``reference/``,
+# read and validated by ``reference.py`` (ADR 0048). Nothing about a
+# treatment is derived here from the shape of its code any more.
 #
-# Clinics can add their own (Radiología, Patología Oral, Odontología del
-# Sueño, ...); these are the ones every general clinic needs.
+# Two axes, both written on each treatment. A *category* answers "where do
+# I find this treatment" and a *specialty* answers "who performs it";
+# neither is a subset of the other — `cirugia` holds two specialties, while
+# Implantología spans three categories.
 
+
+def _specialty(key: str) -> dict[str, Any]:
+    return {"key": key, "names": SPECIALTY_FILES[key].names.model_dump()}
+
+
+#: The disciplines every new clinic starts with.
 SPECIALTIES: list[dict[str, Any]] = [
-    {"key": "general", "names": {"es": "Odontología General", "en": "General Dentistry"}},
-    {"key": "higiene", "names": {"es": "Higiene Dental", "en": "Dental Hygiene"}},
-    {"key": "endodoncia", "names": {"es": "Endodoncia", "en": "Endodontics"}},
-    {"key": "periodoncia", "names": {"es": "Periodoncia", "en": "Periodontics"}},
-    {
-        "key": "cirugia",
-        "names": {"es": "Cirugía Oral y Maxilofacial", "en": "Oral and Maxillofacial Surgery"},
-    },
-    {"key": "implantologia", "names": {"es": "Implantología", "en": "Implantology"}},
-    {"key": "ortodoncia", "names": {"es": "Ortodoncia", "en": "Orthodontics"}},
-    {"key": "odontopediatria", "names": {"es": "Odontopediatría", "en": "Pediatric Dentistry"}},
-    {"key": "estetica", "names": {"es": "Estética Dental", "en": "Cosmetic Dentistry"}},
-    {
-        "key": "rehabilitacion",
-        "names": {"es": "Rehabilitación Oral", "en": "Oral Rehabilitation"},
-    },
+    _specialty(key) for key, file in SPECIALTY_FILES.items() if file.baseline
 ]
 
-# Disciplines a clinic can add in one click, offered by the UI but not seeded.
-#
-# They are real enough to deserve a stable key and a name in both languages,
-# and rare enough that seeding them into every clinic would clutter every
-# picker — the same mistake as shipping 130 treatments nobody can remove.
-#
-# The keys matter: a clinic-created specialty normally carries `key = NULL`, so
-# two people typing "Radiología" produce two rows that split the treatments
-# between them. Picking from this list carries the key instead, which the
-# unique index enforces, and which a later seed run would match rather than
-# duplicate.
+#: Disciplines a clinic adds when it practises them. Real enough to deserve
+#: a stable key and a catalogue, rare enough that seeding them into every
+#: clinic would clutter every picker.
+#:
+#: The keys matter: a clinic-created specialty normally carries
+#: `key = NULL`, so two people typing "Radiología" produce two rows that
+#: split the treatments between them. Enabling one of these carries the key
+#: instead, which the unique index enforces.
 SUGGESTED_SPECIALTIES: list[dict[str, Any]] = [
-    {
-        "key": "radiologia",
-        "names": {"es": "Radiología y Diagnóstico por Imagen", "en": "Radiology and Imaging"},
-    },
-    {"key": "patologia_oral", "names": {"es": "Patología Oral", "en": "Oral Pathology"}},
-    {"key": "medicina_oral", "names": {"es": "Medicina Oral", "en": "Oral Medicine"}},
-    {
-        "key": "dolor_orofacial",
-        "names": {"es": "Dolor Orofacial y ATM", "en": "Orofacial Pain and TMD"},
-    },
-    {
-        "key": "odontologia_sueno",
-        "names": {"es": "Odontología del Sueño", "en": "Sleep Dentistry"},
-    },
-    {
-        "key": "protesis_laboratorio",
-        "names": {"es": "Prótesis Dental (laboratorio)", "en": "Dental Prosthetics (laboratory)"},
-    },
-    {"key": "odontogeriatria", "names": {"es": "Odontogeriatría", "en": "Geriatric Dentistry"}},
+    _specialty(key) for key, file in SPECIALTY_FILES.items() if not file.baseline
 ]
 
 
-# Baseline discipline for everything in a category.
-CATEGORY_SPECIALTIES: dict[str, list[str]] = {
-    "diagnostico": ["general"],
-    "preventivo": ["general", "higiene"],
-    "restauradora": ["general"],
-    "endodoncia": ["endodoncia"],
-    "periodoncia": ["periodoncia"],
-    "cirugia": ["cirugia"],
-    "ortodoncia": ["ortodoncia"],
-    "estetica": ["estetica"],
-    "protesis": ["rehabilitacion"],
-    "pediatrica": ["odontopediatria"],
-}
-
-# Where the category is too coarse, add disciplines by internal code. These
-# are additive — the category baseline still applies. Matched by prefix.
-ITEM_SPECIALTY_EXTRAS: list[tuple[str, list[str]]] = [
-    # Veneers are restorative work done for an aesthetic goal.
-    ("REST-VEN-", ["estetica"]),
-    # Crowns and bridges are prosthodontics even when a GP places them.
-    ("REST-CROWN-", ["rehabilitacion"]),
-    ("REST-BRIDGE-", ["rehabilitacion"]),
-    ("REST-INLAY-", ["rehabilitacion"]),
-    ("REST-OVER-", ["rehabilitacion"]),
-    # The implant-borne half of the restorative catalog.
-    ("REST-CROWN-IMPL-", ["implantologia"]),
-    ("REST-DEF-ABUT", ["implantologia", "rehabilitacion"]),
-    ("REST-HEAL-ABUT", ["implantologia", "rehabilitacion"]),
-    ("PROT-OVERDENT", ["implantologia"]),
-    # Surgery that exists to place or support implants.
-    ("SURG-IMP-", ["implantologia"]),
-    ("SURG-PERIIMP", ["implantologia", "periodoncia"]),
-    ("SURG-BONE-", ["implantologia"]),
-    ("SURG-SINUS", ["implantologia"]),
-    ("SURG-PRP", ["implantologia"]),
-    # The orthognathic pathway is surgery's, including the assessment steps
-    # that live under the diagnostic category.
-    ("MXF-", ["cirugia"]),
-    # Mucogingival and periapical surgery belong to their own disciplines too.
-    ("SURG-CONN-GRAFT", ["periodoncia"]),
-    ("SURG-CROWN-LENGTH", ["periodoncia"]),
-    ("SURG-APEC", ["endodoncia"]),
-    # Hygienist-delivered maintenance.
-    ("PERIO-MAINT", ["higiene"]),
-    ("PERIO-SCAL", ["higiene"]),
-    # Splints stabilising periodontally compromised teeth.
-    ("REST-SPLINT-PERIO", ["periodoncia"]),
-    # Paediatric variants of adult procedures.
-    ("ENDO-PED", ["odontopediatria"]),
-    ("PREV-CLEAN-PED", ["odontopediatria"]),
-    # Aesthetic composite work.
-    ("EST-COMP-AESTH", ["general"]),
-]
+def all_specialties() -> list[dict[str, Any]]:
+    """Every recognised discipline. Each is a *pack* — a reference
+    catalogue the clinic enables, disables and restores (``packs.py``)."""
+    return [*SPECIALTIES, *SUGGESTED_SPECIALTIES]
 
 
 def specialty_keys_for(category_key: str, internal_code: str) -> list[str]:
-    """Disciplines a seeded treatment belongs to: category baseline + extras."""
-    keys = list(CATEGORY_SPECIALTIES.get(category_key, []))
-    for prefix, extras in ITEM_SPECIALTY_EXTRAS:
-        if internal_code.startswith(prefix):
-            keys.extend(k for k in extras if k not in keys)
-    return keys
-
-
-# ============================================================================
-# Phases (stage of care)
-# ============================================================================
-#
-# The "when" axis. Baseline per category, refined per code where the category
-# mixes stages — `restauradora` holds both disease control (fillings) and
-# rehabilitation (crowns); `cirugia` holds emergency extractions and planned
-# implant surgery.
-
-CATEGORY_PHASES: dict[str, str] = {
-    "diagnostico": "diagnostico",
-    "preventivo": "preventivo",
-    "restauradora": "estabilizacion",
-    "endodoncia": "estabilizacion",
-    "periodoncia": "estabilizacion",
-    "cirugia": "estabilizacion",
-    "ortodoncia": "rehabilitacion",
-    "estetica": "estetica",
-    "protesis": "rehabilitacion",
-    "pediatrica": "estabilizacion",
-}
-
-# Prefix -> phase. First match wins, so list the specific before the general.
-ITEM_PHASES: list[tuple[str, str]] = [
-    # Anything explicitly urgent, whatever its category.
-    ("DX-URGENT", "urgencia"),
-    ("ENDO-URGENT", "urgencia"),
-    ("ENDO-MED-REFRESH", "urgencia"),
-    ("SURG-EXT-SIMPLE", "urgencia"),
-    ("PED-PULPOTOMY", "urgencia"),
-    ("PED-PULPECTOMY", "urgencia"),
-    # Restoring function rather than controlling disease.
-    ("REST-CROWN-", "rehabilitacion"),
-    ("REST-BRIDGE-", "rehabilitacion"),
-    ("REST-INLAY-", "rehabilitacion"),
-    ("REST-OVER-", "rehabilitacion"),
-    ("REST-DEF-ABUT", "rehabilitacion"),
-    ("REST-HEAL-ABUT", "rehabilitacion"),
-    ("SURG-IMP-", "rehabilitacion"),
-    ("SURG-BONE-", "rehabilitacion"),
-    ("SURG-SINUS", "rehabilitacion"),
-    # Orthognathic surgery restores function and face; it is not disease
-    # control, which is what `cirugia` defaults to. The three diagnostic MXF
-    # codes need no entry — their category already says `diagnostico`.
-    ("MXF-VSP-", "rehabilitacion"),
-    ("MXF-CIR-", "rehabilitacion"),
-    ("MXF-GENIO-", "rehabilitacion"),
-    # Elective aesthetics.
-    ("REST-VEN-", "estetica"),
-    # Recall and upkeep.
-    ("DX-REVIEW", "mantenimiento"),
-    ("PREV-CHECKUP", "mantenimiento"),
-    ("PERIO-MAINT", "mantenimiento"),
-    ("ORTO-REVIEW", "mantenimiento"),
-    ("ORTO-RET-", "mantenimiento"),
-    ("PROT-OCC-ADJ", "mantenimiento"),
-    ("PROT-REBASE", "mantenimiento"),
-    ("PROT-REPAIR", "mantenimiento"),
-    ("MXF-OSTEO-", "mantenimiento"),
-]
+    """Disciplines a reference treatment belongs to, as its file says."""
+    found = BY_CODE.get(internal_code)
+    return list(found[1].specialties) if found else []
 
 
 def phase_for(category_key: str, internal_code: str) -> str | None:
-    """Stage of care for a seeded treatment: per-code rule, else category."""
-    for prefix, phase in ITEM_PHASES:
-        if internal_code.startswith(prefix):
-            return phase
-    return CATEGORY_PHASES.get(category_key)
+    """Stage of care of a reference treatment, as its file says."""
+    found = BY_CODE.get(internal_code)
+    return found[1].phase if found else None
 
 
 # ============================================================================
@@ -363,1758 +225,31 @@ CATEGORIES: list[dict[str, Any]] = [
 # ============================================================================
 # Visualization presets
 # ============================================================================
-#
-# Keep helpers tiny and explicit to make adding new items obvious.
-
-
-def pattern_fill(pattern: str, color: str) -> dict[str, Any]:
-    """Cenital (occlusal) pattern fill. Common for crowns, bridges, inlays."""
-    return {"layer": "cenital_pattern", "pattern": pattern, "color": color}
-
-
-def lateral_icon(icon: str, color: str) -> dict[str, Any]:
-    """Lateral view SVG icon. Common for implants, extractions, brackets."""
-    return {"layer": "lateral_icon", "icon": icon, "color": color}
-
-
-def pulp_fill(color: str, extent: str = "full") -> dict[str, Any]:
-    """Pulp chamber fill on lateral view. Root canals."""
-    return {"layer": "pulp_fill", "color": color, "extent": extent}
-
-
-def occlusal_surface(color: str, kind: str = "solid_fill") -> dict[str, Any]:
-    """Per-surface fill on occlusal view. Fillings, sealants, veneers."""
-    return {"layer": "occlusal_surface", "color": color, "kind": kind}
-
-
-# ============================================================================
 # Treatments
 # ============================================================================
 
-TREATMENTS: dict[str, list[dict[str, Any]]] = {
-    # ---------- Diagnóstico ----------
-    "diagnostico": [
-        {
-            "internal_code": "DX-VISIT",
-            "names": {"es": "Primera Visita", "en": "First Visit"},
-            "descriptions": {
-                "es": "Consulta inicial con exploración y diagnóstico",
-                "en": "Initial consultation with examination and diagnosis",
-            },
-            "treatment_scope": "global_mouth",
-            "is_diagnostic": False,
-            "requires_surfaces": False,
-            "default_price": Decimal("30.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "DX-REVIEW",
-            "names": {"es": "Revisión", "en": "Follow-up"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("20.00"),
-            "default_duration_minutes": 20,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "DX-RXPA",
-            "names": {"es": "Radiografía Periapical", "en": "Periapical X-Ray"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("15.00"),
-            "default_duration_minutes": 10,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "DX-RXPAN",
-            "names": {"es": "Radiografía Panorámica", "en": "Panoramic X-Ray"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("45.00"),
-            "default_duration_minutes": 10,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "DX-CBCT",
-            "names": {"es": "CBCT (TAC 3D)", "en": "CBCT (3D Scan)"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("120.00"),
-            "default_duration_minutes": 20,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "DX-STUDY",
-            "names": {"es": "Estudio Ortodóncico", "en": "Orthodontic Study"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("90.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "DX-PHOTO",
-            "names": {"es": "Fotografías intraorales", "en": "Intraoral Photos"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("30.00"),
-            "default_duration_minutes": 15,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "DX-URGENT",
-            "names": {"es": "Visita de urgencia", "en": "Emergency visit"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("60.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "DX-2ND-OPINION",
-            "names": {"es": "Segunda opinión", "en": "Second opinion"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("50.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "DX-TELE",
-            "names": {"es": "Telerradiografía lateral", "en": "Lateral cephalogram"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("45.00"),
-            "default_duration_minutes": 15,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        # Orthognathic pathway — the assessment half. The surgical half lives
-        # under "cirugia"; both are whole-mouth or skeletal, so neither draws
-        # anything on a tooth chart.
-        {
-            "internal_code": "MXF-CONS-01",
-            "names": {
-                "es": "Primera consulta de Cirugía Maxilofacial",
-                "en": "First maxillofacial surgery consultation",
-            },
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("120.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "consultation",
-        },
-        {
-            "internal_code": "MXF-EST-01",
-            "names": {
-                "es": "Estudio diagnóstico ortognático",
-                "en": "Orthognathic diagnostic workup",
-            },
-            "descriptions": {
-                "es": "Registros, CBCT, escaneado de modelos, arco facial y cefalometría",
-                "en": "Records, CBCT, model scanning, facebow and cephalometrics",
-            },
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("350.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "imaging",
-        },
-        {
-            "internal_code": "MXF-PREAN-01",
-            "names": {
-                "es": "Valoración preanestésica",
-                "en": "Pre-anaesthetic assessment",
-            },
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("150.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "consultation",
-        },
-    ],
-    # ---------- Preventivo ----------
-    "preventivo": [
-        {
-            "internal_code": "PREV-CLEAN",
-            "names": {"es": "Limpieza dental", "en": "Dental Cleaning"},
-            "descriptions": {"es": "Tartrectomía y pulido", "en": "Scaling and polishing"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("60.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PREV-FLUOR",
-            "names": {"es": "Fluorización", "en": "Fluoride Application"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("25.00"),
-            "default_duration_minutes": 15,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PREV-CHECKUP",
-            "names": {"es": "Revisión", "en": "Checkup"},
-            "descriptions": {"es": "Revisión general", "en": "General checkup"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("30.00"),
-            "default_duration_minutes": 20,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PREV-SEAL",
-            "names": {"es": "Sellador de fosas y fisuras", "en": "Pit and Fissure Sealant"},
-            "treatment_scope": "tooth",
-            "requires_surfaces": True,
-            "default_price": Decimal("30.00"),
-            "default_duration_minutes": 15,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "sealant",
-            "visualization_rules": [occlusal_surface("#06B6D4", "solid_fill")],
-            "visualization_config": {"color": "#06B6D4"},
-        },
-        {
-            "internal_code": "PREV-HYGIENE-EDU",
-            "names": {"es": "Instrucciones de higiene", "en": "Oral Hygiene Instruction"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("20.00"),
-            "default_duration_minutes": 20,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PREV-CLEAN-CURETTAGE",
-            "names": {
-                "es": "Tartrectomía con curetaje",
-                "en": "Scaling with curettage",
-            },
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("110.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PREV-CLEAN-PED",
-            "names": {"es": "Profilaxis infantil", "en": "Pediatric prophylaxis"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("40.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-    ],
-    # ---------- Restauradora ----------
-    "restauradora": [
-        # Obturaciones (empastes) — un item por material con precio por
-        # tramos de superficies (1→5). El precio se calcula al picar las
-        # superficies en el diente.
-        {
-            "internal_code": "REST-COMP",
-            "names": {
-                "es": "Obturación composite",
-                "en": "Composite filling",
-            },
-            "treatment_scope": "tooth",
-            "requires_surfaces": True,
-            "default_price": Decimal("60.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_surface",
-            "surface_prices": {
-                "1": "60.00",
-                "2": "85.00",
-                "3": "110.00",
-                "4": "125.00",
-                "5": "135.00",
-            },
-            "odontogram_treatment_type": "filling_composite",
-            "visualization_rules": [occlusal_surface("#3B82F6", "solid_fill")],
-            "visualization_config": {"color": "#3B82F6"},
-        },
-        {
-            "internal_code": "REST-AMAL",
-            "names": {"es": "Obturación amalgama", "en": "Amalgam filling"},
-            "treatment_scope": "tooth",
-            "requires_surfaces": True,
-            "default_price": Decimal("55.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_surface",
-            "surface_prices": {
-                "1": "55.00",
-                "2": "75.00",
-                "3": "95.00",
-                "4": "110.00",
-                "5": "120.00",
-            },
-            "odontogram_treatment_type": "filling_amalgam",
-            "visualization_rules": [occlusal_surface("#6B7280", "solid_fill")],
-            "visualization_config": {"color": "#6B7280"},
-        },
-        {
-            "internal_code": "REST-TEMP",
-            "names": {"es": "Obturación temporal", "en": "Temporary filling"},
-            "treatment_scope": "tooth",
-            "requires_surfaces": True,
-            "default_price": Decimal("40.00"),
-            "default_duration_minutes": 20,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "filling_temporary",
-            "visualization_rules": [occlusal_surface("#FBBF24", "solid_fill")],
-            "visualization_config": {"color": "#FBBF24"},
-        },
-        # Incrustaciones
-        {
-            "internal_code": "REST-INLAY-COMP",
-            "names": {"es": "Inlay composite", "en": "Composite inlay"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("180.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "inlay",
-            "visualization_rules": [pattern_fill("dots", "#60A5FA")],
-            "visualization_config": {"color": "#60A5FA"},
-        },
-        {
-            "internal_code": "REST-INLAY-CER",
-            "names": {"es": "Inlay cerámico", "en": "Ceramic inlay"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("350.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "inlay",
-            "visualization_rules": [pattern_fill("dots", "#38BDF8")],
-            "visualization_config": {"color": "#38BDF8"},
-        },
-        {
-            "internal_code": "REST-OVER-COMP",
-            "names": {"es": "Overlay composite", "en": "Composite overlay"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("240.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "overlay",
-            "visualization_rules": [pattern_fill("grid", "#60A5FA")],
-            "visualization_config": {"color": "#60A5FA"},
-        },
-        {
-            "internal_code": "REST-OVER-CER",
-            "names": {"es": "Overlay cerámico", "en": "Ceramic overlay"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("450.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "overlay",
-            "visualization_rules": [pattern_fill("grid", "#38BDF8")],
-            "visualization_config": {"color": "#38BDF8"},
-        },
-        # Carillas (per_tooth pricing — ideal for "carillas múltiples")
-        {
-            "internal_code": "REST-VEN-COMP",
-            "names": {"es": "Carilla composite", "en": "Composite veneer"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("280.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "veneer",
-            "visualization_rules": [occlusal_surface("#F472B6", "outline")],
-            "visualization_config": {"color": "#F472B6"},
-        },
-        {
-            "internal_code": "REST-VEN-PORC",
-            "names": {"es": "Carilla porcelana", "en": "Porcelain veneer"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("480.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "veneer",
-            "visualization_rules": [occlusal_surface("#F472B6", "outline")],
-            "visualization_config": {"color": "#F472B6"},
-        },
-        {
-            "internal_code": "REST-VEN-ZIR",
-            "names": {"es": "Carilla zirconio", "en": "Zirconia veneer"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("550.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "veneer",
-            "visualization_rules": [occlusal_surface("#EC4899", "outline")],
-            "visualization_config": {"color": "#EC4899"},
-        },
-        # Coronas unitarias / múltiples (per_tooth pricing)
-        {
-            "internal_code": "REST-CROWN-MC",
-            "names": {"es": "Corona metal-cerámica", "en": "Metal-ceramic crown"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("400.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "crown",
-            "visualization_rules": [pattern_fill("diagonal_stripes", "#F59E0B")],
-            "visualization_config": {"color": "#F59E0B"},
-            "sessions": [
-                {
-                    "labels": {"es": "Toma de medidas", "en": "Impressions"},
-                    "default_price": Decimal("150.00"),
-                },
-                {
-                    "labels": {"es": "Colocación", "en": "Placement"},
-                    "default_price": Decimal("250.00"),
-                },
-            ],
-        },
-        {
-            "internal_code": "REST-CROWN-ZIR",
-            "names": {"es": "Corona zirconio", "en": "Zirconia crown"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("550.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "crown",
-            "visualization_rules": [pattern_fill("diagonal_stripes", "#FBBF24")],
-            "visualization_config": {"color": "#FBBF24"},
-            "sessions": [
-                {
-                    "labels": {"es": "Toma de medidas", "en": "Impressions"},
-                    "default_price": Decimal("200.00"),
-                },
-                {
-                    "labels": {"es": "Colocación", "en": "Placement"},
-                    "default_price": Decimal("350.00"),
-                },
-            ],
-        },
-        {
-            "internal_code": "REST-CROWN-DISI",
-            "names": {"es": "Corona disilicato de litio", "en": "Lithium disilicate crown"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("650.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "crown",
-            "visualization_rules": [pattern_fill("diagonal_stripes", "#FDE68A")],
-            "visualization_config": {"color": "#FDE68A"},
-            "sessions": [
-                {
-                    "labels": {"es": "Toma de medidas", "en": "Impressions"},
-                    "default_price": Decimal("250.00"),
-                },
-                {
-                    "labels": {"es": "Colocación", "en": "Placement"},
-                    "default_price": Decimal("400.00"),
-                },
-            ],
-        },
-        {
-            "internal_code": "REST-CROWN-METAL",
-            "names": {"es": "Corona metal", "en": "Metal crown"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("350.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "crown",
-            "visualization_rules": [pattern_fill("diagonal_stripes", "#9CA3AF")],
-            "visualization_config": {"color": "#9CA3AF"},
-        },
-        {
-            "internal_code": "REST-CROWN-PROV",
-            "names": {"es": "Corona provisional", "en": "Provisional crown"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("150.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "crown",
-            "visualization_rules": [pattern_fill("outline", "#D1D5DB")],
-            "visualization_config": {"color": "#D1D5DB"},
-        },
-        # Coronas sobre implante — render as solid lateral-crown fill
-        # (the runtime in ToothDualView treats `crown_on_implant` and
-        # `provisional_crown_on_implant` the same way as a bridge).
-        {
-            "internal_code": "REST-CROWN-IMPL-MC",
-            "names": {
-                "es": "Corona sobre implante metal-cerámica",
-                "en": "Metal-ceramic crown on implant",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("600.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "crown_on_implant",
-            "visualization_rules": [pattern_fill("solid", "#F59E0B")],
-            "visualization_config": {"color": "#F59E0B"},
-            "sessions": [
-                {
-                    "labels": {"es": "Toma de medidas", "en": "Impressions"},
-                    "default_price": Decimal("200.00"),
-                },
-                {
-                    "labels": {"es": "Colocación", "en": "Placement"},
-                    "default_price": Decimal("400.00"),
-                },
-            ],
-        },
-        {
-            "internal_code": "REST-CROWN-IMPL-ZIR",
-            "names": {
-                "es": "Corona sobre implante zirconio",
-                "en": "Zirconia crown on implant",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("750.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "crown_on_implant",
-            "visualization_rules": [pattern_fill("solid", "#FBBF24")],
-            "visualization_config": {"color": "#FBBF24"},
-            "sessions": [
-                {
-                    "labels": {"es": "Toma de medidas", "en": "Impressions"},
-                    "default_price": Decimal("250.00"),
-                },
-                {
-                    "labels": {"es": "Colocación", "en": "Placement"},
-                    "default_price": Decimal("500.00"),
-                },
-            ],
-        },
-        {
-            "internal_code": "REST-CROWN-IMPL-PROV",
-            "names": {
-                "es": "Corona provisional sobre implante",
-                "en": "Provisional crown on implant",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("180.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "provisional_crown_on_implant",
-            "visualization_rules": [pattern_fill("solid", "#FCD34D")],
-            "visualization_config": {"color": "#FCD34D"},
-        },
-        # Puentes (per_role pricing)
-        {
-            "internal_code": "REST-BRIDGE-MC",
-            "names": {"es": "Puente metal-cerámica", "en": "Metal-ceramic bridge"},
-            "treatment_scope": "multi_tooth",
-            "default_price": Decimal("400.00"),
-            "default_duration_minutes": 120,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_role",
-            "pricing_config": {"pillar": 400, "pontic": 300},
-            "odontogram_treatment_type": "bridge",
-            "visualization_rules": [pattern_fill("horizontal_stripes", "#F59E0B")],
-            "visualization_config": {"color": "#F59E0B"},
-        },
-        {
-            "internal_code": "REST-BRIDGE-ZIR",
-            "names": {"es": "Puente zirconio", "en": "Zirconia bridge"},
-            "treatment_scope": "multi_tooth",
-            "default_price": Decimal("500.00"),
-            "default_duration_minutes": 120,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_role",
-            "pricing_config": {"pillar": 500, "pontic": 400},
-            "odontogram_treatment_type": "bridge",
-            "visualization_rules": [pattern_fill("horizontal_stripes", "#FBBF24")],
-            "visualization_config": {"color": "#FBBF24"},
-        },
-        {
-            "internal_code": "REST-BRIDGE-MARY",
-            "names": {"es": "Puente Maryland", "en": "Maryland bridge"},
-            "treatment_scope": "multi_tooth",
-            "default_price": Decimal("350.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_role",
-            "pricing_config": {"pillar": 350, "pontic": 300},
-            "odontogram_treatment_type": "bridge",
-            "visualization_rules": [pattern_fill("horizontal_stripes", "#FDE68A")],
-            "visualization_config": {"color": "#FDE68A"},
-        },
-        # Férulas
-        {
-            "internal_code": "REST-SPLINT-OCC",
-            "names": {"es": "Férula de descarga", "en": "Occlusal splint"},
-            "treatment_scope": "global_arch",
-            "default_price": Decimal("220.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "splint",
-            "visualization_rules": [lateral_icon("splint", "#3B82F6")],
-            "visualization_config": {"color": "#3B82F6"},
-        },
-        {
-            "internal_code": "REST-SPLINT-PERIO",
-            "names": {
-                "es": "Férula periodontal de contención",
-                "en": "Periodontal retention splint",
-            },
-            "treatment_scope": "multi_tooth",
-            "default_price": Decimal("80.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "splint",
-            "visualization_rules": [lateral_icon("splint", "#8B5CF6")],
-            "visualization_config": {"color": "#8B5CF6"},
-        },
-        {
-            "internal_code": "REST-RECONSTR",
-            "names": {
-                "es": "Reconstrucción amplia con composite",
-                "en": "Large composite reconstruction",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("160.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "filling_composite",
-            "visualization_rules": [occlusal_surface("#8B5CF6", "solid_fill")],
-            "visualization_config": {"color": "#8B5CF6"},
-        },
-        {
-            "internal_code": "REST-FILL-REPAIR",
-            "names": {
-                "es": "Reparación de obturación",
-                "en": "Filling repair",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("55.00"),
-            "default_duration_minutes": 20,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "filling_composite",
-            "visualization_rules": [occlusal_surface("#3B82F6", "solid_fill")],
-            "visualization_config": {"color": "#3B82F6"},
-        },
-        {
-            "internal_code": "REST-CROWN-RECEMENT",
-            "names": {"es": "Recementado de corona", "en": "Crown recementation"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("60.00"),
-            "default_duration_minutes": 20,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "crown",
-            "visualization_rules": [pattern_fill("diagonal_stripes", "#94A3B8")],
-            "visualization_config": {"color": "#94A3B8"},
-        },
-        {
-            "internal_code": "REST-CROWN-POST-ENDO",
-            "names": {
-                "es": "Corona sobre diente endodonciado",
-                "en": "Crown over endodontically treated tooth",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("450.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "crown",
-            "visualization_rules": [pattern_fill("diagonal_stripes", "#A78BFA")],
-            "visualization_config": {"color": "#A78BFA"},
-        },
-        {
-            "internal_code": "REST-HEAL-ABUT",
-            "names": {"es": "Pilar de cicatrización", "en": "Healing abutment"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("150.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "implant",
-            "visualization_rules": [lateral_icon("implant", "#22C55E")],
-            "visualization_config": {"color": "#22C55E"},
-        },
-        {
-            "internal_code": "REST-DEF-ABUT",
-            "names": {"es": "Pilar definitivo", "en": "Definitive abutment"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("250.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "implant",
-            "visualization_rules": [lateral_icon("implant", "#16A34A")],
-            "visualization_config": {"color": "#16A34A"},
-        },
-    ],
-    # ---------- Endodoncia ----------
-    "endodoncia": [
-        {
-            "internal_code": "ENDO-UNI",
-            "names": {"es": "Endodoncia unirradicular", "en": "Single-root endodontics"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("180.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "root_canal_full",
-            "visualization_rules": [pulp_fill("#8B5CF6", "full")],
-            "visualization_config": {"color": "#8B5CF6"},
-        },
-        {
-            "internal_code": "ENDO-BI",
-            "names": {"es": "Endodoncia birradicular", "en": "Two-root endodontics"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("280.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "root_canal_full",
-            "visualization_rules": [pulp_fill("#8B5CF6", "full")],
-            "visualization_config": {"color": "#8B5CF6"},
-        },
-        {
-            "internal_code": "ENDO-MULTI",
-            "names": {"es": "Endodoncia molar", "en": "Molar endodontics"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("380.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "root_canal_full",
-            "visualization_rules": [pulp_fill("#7C3AED", "full")],
-            "visualization_config": {"color": "#7C3AED"},
-            "sessions": [
-                {
-                    "labels": {"es": "Apertura y conductometría", "en": "Access and length"},
-                    "default_price": Decimal("130.00"),
-                },
-                {
-                    "labels": {"es": "Limpieza y conformación", "en": "Cleaning and shaping"},
-                    "default_price": Decimal("130.00"),
-                },
-                {
-                    "labels": {"es": "Obturación", "en": "Obturation"},
-                    "default_price": Decimal("120.00"),
-                },
-            ],
-        },
-        {
-            "internal_code": "ENDO-RETREAT",
-            "names": {"es": "Re-tratamiento endodóncico", "en": "Endodontic retreatment"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("380.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "root_canal_full",
-            "visualization_rules": [pulp_fill("#A78BFA", "full")],
-            "visualization_config": {"color": "#A78BFA"},
-        },
-        {
-            "internal_code": "ENDO-POST-FIBER",
-            "names": {"es": "Perno de fibra", "en": "Fiber post"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("120.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "post",
-            "visualization_rules": [lateral_icon("post", "#8B5CF6")],
-            "visualization_config": {"color": "#8B5CF6"},
-        },
-        {
-            "internal_code": "ENDO-POST-METAL",
-            "names": {"es": "Perno colado", "en": "Cast post"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("180.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "post",
-            "visualization_rules": [lateral_icon("post", "#6B7280")],
-            "visualization_config": {"color": "#6B7280"},
-        },
-        {
-            "internal_code": "ENDO-URGENT",
-            "names": {"es": "Apertura cameral urgente", "en": "Emergency pulp chamber opening"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("80.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "root_canal_half",
-            "visualization_rules": [pulp_fill("#C084FC", "partial_1_2")],
-            "visualization_config": {"color": "#C084FC"},
-        },
-        {
-            "internal_code": "ENDO-MED-REFRESH",
-            "names": {
-                "es": "Recambio de medicación intraconducto",
-                "en": "Intracanal medication refresh",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("60.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "root_canal_two_thirds",
-            "visualization_rules": [pulp_fill("#C4B5FD", "partial_2_3")],
-            "visualization_config": {"color": "#C4B5FD"},
-        },
-        {
-            "internal_code": "ENDO-APICOFORM",
-            "names": {"es": "Apicoformación", "en": "Apexification"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("280.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "root_canal_full",
-            "visualization_rules": [pulp_fill("#A78BFA", "full")],
-            "visualization_config": {"color": "#A78BFA"},
-        },
-        {
-            "internal_code": "ENDO-PED",
-            "names": {"es": "Endodoncia en pieza temporal", "en": "Endodontics on primary tooth"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("140.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "root_canal_full",
-            "visualization_rules": [pulp_fill("#A78BFA", "full")],
-            "visualization_config": {"color": "#A78BFA"},
-        },
-    ],
-    # ---------- Periodoncia ----------
-    "periodoncia": [
-        {
-            "internal_code": "PERIO-SCAL",
-            "names": {"es": "Tartrectomía simple", "en": "Simple scaling"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("60.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PERIO-RAR",
-            "names": {
-                "es": "Raspado y alisado radicular (por cuadrante)",
-                "en": "Root scaling and planing (per quadrant)",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("180.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PERIO-SURG",
-            "names": {"es": "Cirugía periodontal", "en": "Periodontal surgery"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("450.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PERIO-GRAFT",
-            "names": {"es": "Injerto gingival", "en": "Gingival graft"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("380.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PERIO-BONE",
-            "names": {"es": "Regeneración ósea guiada", "en": "Guided bone regeneration"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("550.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PERIO-MAINT",
-            "names": {"es": "Mantenimiento periodontal", "en": "Periodontal maintenance"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("90.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PERIO-CURET-SEXT",
-            "names": {"es": "Curetaje por sextante", "en": "Curettage per sextant"},
-            "treatment_scope": "multi_tooth",
-            "default_price": Decimal("90.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PERIO-STUDY",
-            "names": {"es": "Estudio periodontal (sondaje)", "en": "Periodontal probing study"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("70.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PERIO-SPLINT-RAR",
-            "names": {
-                "es": "Férula de contención post-RAR",
-                "en": "Post-SRP retention splint",
-            },
-            "treatment_scope": "multi_tooth",
-            "default_price": Decimal("150.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "splint",
-            "visualization_rules": [lateral_icon("splint", "#8B5CF6")],
-            "visualization_config": {"color": "#8B5CF6"},
-        },
-        {
-            "internal_code": "PERIO-GINGIV",
-            "names": {"es": "Gingivectomía", "en": "Gingivectomy"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("180.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PERIO-SURG-RESECT",
-            "names": {
-                "es": "Cirugía periodontal resectiva",
-                "en": "Resective periodontal surgery",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("480.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PERIO-SURG-REGEN",
-            "names": {
-                "es": "Cirugía periodontal regenerativa",
-                "en": "Regenerative periodontal surgery",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("580.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-    ],
-    # ---------- Cirugía ----------
-    "cirugia": [
-        {
-            "internal_code": "SURG-EXT-SIMPLE",
-            "names": {"es": "Extracción simple", "en": "Simple extraction"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("80.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "extraction",
-            "visualization_rules": [lateral_icon("extraction", "#DC2626")],
-            "visualization_config": {"color": "#DC2626"},
-        },
-        {
-            "internal_code": "SURG-EXT-COMPLEX",
-            "names": {"es": "Extracción compleja", "en": "Complex extraction"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("140.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "extraction",
-            "visualization_rules": [lateral_icon("extraction", "#DC2626")],
-            "visualization_config": {"color": "#DC2626"},
-        },
-        {
-            "internal_code": "SURG-EXT-3MOLAR",
-            "names": {"es": "Extracción tercer molar", "en": "Wisdom tooth extraction"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("200.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "extraction",
-            "visualization_rules": [lateral_icon("extraction", "#DC2626")],
-            "visualization_config": {"color": "#DC2626"},
-        },
-        {
-            "internal_code": "SURG-EXT-OST",
-            "names": {
-                "es": "Extracción quirúrgica con ostectomía",
-                "en": "Surgical extraction with osteotomy",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("280.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "extraction",
-            "visualization_rules": [lateral_icon("extraction", "#991B1B")],
-            "visualization_config": {"color": "#991B1B"},
-        },
-        {
-            "internal_code": "SURG-IMP-TI",
-            "names": {"es": "Implante de titanio", "en": "Titanium implant"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("1100.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "implant",
-            "visualization_rules": [lateral_icon("implant", "#10B981")],
-            "visualization_config": {"color": "#10B981"},
-            "sessions": [
-                {
-                    "labels": {"es": "Cirugía de implante", "en": "Implant surgery"},
-                    "default_price": Decimal("700.00"),
-                },
-                {
-                    "labels": {"es": "Pilar de cicatrización", "en": "Healing abutment"},
-                    "default_price": Decimal("150.00"),
-                },
-                {
-                    "labels": {"es": "Colocación de corona", "en": "Crown placement"},
-                    "default_price": Decimal("250.00"),
-                },
-            ],
-        },
-        {
-            "internal_code": "SURG-IMP-ZIR",
-            "names": {"es": "Implante de zirconio", "en": "Zirconia implant"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("1500.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "implant",
-            "visualization_rules": [lateral_icon("implant", "#14B8A6")],
-            "visualization_config": {"color": "#14B8A6"},
-        },
-        {
-            "internal_code": "SURG-SINUS",
-            "names": {"es": "Elevación de seno", "en": "Sinus lift"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("800.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-BONE-GRAFT",
-            "names": {"es": "Injerto óseo", "en": "Bone graft"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("450.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-APEC",
-            "names": {"es": "Apicectomía", "en": "Apicoectomy"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("320.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "apicoectomy",
-            "visualization_rules": [lateral_icon("apicoectomy", "#F59E0B")],
-            "visualization_config": {"color": "#F59E0B"},
-        },
-        {
-            "internal_code": "SURG-FREN",
-            "names": {"es": "Frenectomía", "en": "Frenectomy"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("180.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-BIOPSY",
-            "names": {"es": "Biopsia", "en": "Biopsy"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("220.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-CONN-GRAFT",
-            "names": {
-                "es": "Injerto de tejido conectivo",
-                "en": "Connective tissue graft",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("420.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-CROWN-LENGTH",
-            "names": {"es": "Alargamiento coronario", "en": "Crown lengthening"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("380.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-CYST",
-            "names": {"es": "Exéresis de quiste", "en": "Cyst removal"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("550.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "apicoectomy",
-            "visualization_rules": [lateral_icon("apicoectomy", "#F59E0B")],
-            "visualization_config": {"color": "#F59E0B"},
-        },
-        {
-            "internal_code": "SURG-EXT-INCLUIDO",
-            "names": {
-                "es": "Extracción de pieza incluida",
-                "en": "Impacted tooth extraction",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("250.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "extraction",
-            "visualization_rules": [lateral_icon("extraction", "#DC2626")],
-            "visualization_config": {"color": "#DC2626"},
-        },
-        {
-            "internal_code": "SURG-BONE-REGUL",
-            "names": {"es": "Regularización ósea", "en": "Bone reshaping"},
-            "treatment_scope": "multi_tooth",
-            "default_price": Decimal("220.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-PRP",
-            "names": {
-                "es": "Plasma rico en plaquetas",
-                "en": "Platelet-rich plasma",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("180.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-PERIIMP",
-            "names": {
-                "es": "Tratamiento de periimplantitis",
-                "en": "Peri-implantitis treatment",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("420.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-BONE-VERT",
-            "names": {"es": "Aumento óseo vertical", "en": "Vertical bone augmentation"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("750.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-BONE-HORIZ",
-            "names": {"es": "Aumento óseo horizontal", "en": "Horizontal bone augmentation"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("650.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "SURG-SINUS-CLOSED",
-            "names": {
-                "es": "Elevación de seno cerrada (atraumática)",
-                "en": "Closed sinus lift (atraumatic)",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("500.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        # Orthognathic pathway — the surgical half. These act on the facial
-        # skeleton, not on a tooth, so they carry a skeletal clinical type and
-        # no visualization rules: they reach the UI as a named chip under
-        # "Boca completa" and draw nothing on the chart.
-        {
-            "internal_code": "MXF-VSP-01",
-            "names": {
-                "es": "Planificación virtual y férulas quirúrgicas",
-                "en": "Virtual surgical planning and splints",
-            },
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("900.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "consultation",
-        },
-        {
-            "internal_code": "MXF-CIR-01",
-            "names": {
-                "es": "Cirugía ortognática bimaxilar (Le Fort I + OSBR)",
-                "en": "Bimaxillary orthognathic surgery (Le Fort I + BSSO)",
-            },
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("9500.00"),
-            "default_duration_minutes": 300,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "osteotomy_lefort1",
-            # One act and a year of follow-up. The reviews are sessions rather
-            # than separate lines because they are included: only the first
-            # carries money, and the item is not finished until the last one
-            # is, which is what keeps the plan open for the year it lasts.
-            "sessions": [
-                {
-                    "labels": {"es": "Acto quirúrgico", "en": "Surgery"},
-                    "default_price": Decimal("9500.00"),
-                },
-                {
-                    "labels": {
-                        "es": "Control postoperatorio inmediato",
-                        "en": "Immediate post-op check",
-                    },
-                    "default_price": Decimal("0.00"),
-                },
-                {
-                    "labels": {"es": "Revisión 1.ª semana", "en": "Week 1 review"},
-                    "default_price": Decimal("0.00"),
-                },
-                {
-                    "labels": {"es": "Revisión 2.ª semana", "en": "Week 2 review"},
-                    "default_price": Decimal("0.00"),
-                },
-                {
-                    "labels": {"es": "Revisión al mes", "en": "One-month review"},
-                    "default_price": Decimal("0.00"),
-                },
-                {
-                    "labels": {"es": "Revisión a los 3 meses", "en": "Three-month review"},
-                    "default_price": Decimal("0.00"),
-                },
-                {
-                    "labels": {"es": "Revisión a los 6 meses", "en": "Six-month review"},
-                    "default_price": Decimal("0.00"),
-                },
-                {
-                    "labels": {"es": "Alta quirúrgica al año", "en": "Discharge at one year"},
-                    "default_price": Decimal("0.00"),
-                },
-            ],
-        },
-        {
-            "internal_code": "MXF-GENIO-01",
-            "names": {
-                "es": "Mentoplastia (genioplastia de deslizamiento)",
-                "en": "Sliding genioplasty",
-            },
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("1800.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "genioplasty",
-        },
-        {
-            "internal_code": "MXF-OSTEO-01",
-            "names": {
-                "es": "Retirada de material de osteosíntesis",
-                "en": "Osteosynthesis hardware removal",
-            },
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("1200.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "osteosynthesis_removal",
-        },
-    ],
-    # ---------- Ortodoncia ----------
-    "ortodoncia": [
-        {
-            "internal_code": "ORTO-METAL",
-            "names": {"es": "Ortodoncia brackets metálicos", "en": "Metal braces"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("2500.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "ORTO-CERAM",
-            "names": {"es": "Ortodoncia brackets estéticos", "en": "Ceramic braces"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("3500.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "ORTO-LINGUAL",
-            "names": {"es": "Ortodoncia lingual", "en": "Lingual braces"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("5500.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "ORTO-INV-LITE",
-            "names": {"es": "Invisalign Lite", "en": "Invisalign Lite"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("2900.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "ORTO-INV-FULL",
-            "names": {"es": "Invisalign Full", "en": "Invisalign Full"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("4500.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "ORTO-BRACK",
-            "names": {"es": "Bracket individual (reposición)", "en": "Bracket (replacement)"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("45.00"),
-            "default_duration_minutes": 20,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "bracket",
-            "visualization_rules": [lateral_icon("bracket", "#475569")],
-            "visualization_config": {"color": "#475569"},
-        },
-        {
-            "internal_code": "ORTO-REVIEW",
-            "names": {"es": "Revisión de ortodoncia", "en": "Orthodontic review"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("40.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "ORTO-RET-FIX",
-            "names": {"es": "Retenedor fijo", "en": "Fixed retainer"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("180.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "retainer",
-            "visualization_rules": [lateral_icon("retainer", "#0EA5E9")],
-            "visualization_config": {"color": "#0EA5E9"},
-        },
-        {
-            "internal_code": "ORTO-RET-REM",
-            "names": {"es": "Retenedor removible", "en": "Removable retainer"},
-            "treatment_scope": "global_arch",
-            "default_price": Decimal("120.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "ORTO-ATTACH",
-            "names": {"es": "Ataches de Invisalign", "en": "Invisalign attachments"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("60.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "attachment",
-            "visualization_rules": [lateral_icon("attachment", "#0891B2")],
-            "visualization_config": {"color": "#0891B2"},
-        },
-        {
-            "internal_code": "ORTO-BRACK-CEMENT",
-            "names": {"es": "Cementado de bracket", "en": "Bracket bonding"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("35.00"),
-            "default_duration_minutes": 15,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "bracket",
-            "visualization_rules": [lateral_icon("bracket", "#475569")],
-            "visualization_config": {"color": "#475569"},
-        },
-        {
-            "internal_code": "ORTO-BRACK-DEBOND",
-            "names": {"es": "Descementado de brackets", "en": "Bracket removal"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("120.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "ORTO-SEPARATOR",
-            "names": {"es": "Separadores ortodóncicos", "en": "Orthodontic separators"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("50.00"),
-            "default_duration_minutes": 20,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "ORTO-PALATAL-EXP",
-            "names": {"es": "Expansor palatino", "en": "Palatal expander"},
-            "treatment_scope": "global_arch",
-            "default_price": Decimal("450.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "ORTO-TAD",
-            "names": {
-                "es": "Microtornillo / anclaje esquelético temporal (TAD)",
-                "en": "Temporary anchorage device (TAD)",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("250.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-        },
-    ],
-    # ---------- Estética ----------
-    "estetica": [
-        {
-            "internal_code": "EST-BLAN-AMB",
-            "names": {"es": "Blanqueamiento ambulatorio", "en": "At-home whitening"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("250.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "standard",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "EST-BLAN-CLIN",
-            "names": {"es": "Blanqueamiento en clínica", "en": "In-office whitening"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("400.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "standard",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "EST-BLAN-COMBO",
-            "names": {"es": "Blanqueamiento combinado", "en": "Combined whitening"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("550.00"),
-            "default_duration_minutes": 120,
-            "vat_type": "standard",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "EST-MICROAB",
-            "names": {"es": "Microabrasión", "en": "Microabrasion"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("120.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "standard",
-            "pricing_strategy": "per_tooth",
-        },
-        {
-            "internal_code": "EST-REMIN",
-            "names": {"es": "Remineralización estética", "en": "Aesthetic remineralization"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("90.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "standard",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "EST-COMP-AESTH",
-            "names": {
-                "es": "Reconstrucción estética con composite",
-                "en": "Aesthetic composite reconstruction",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("220.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "standard",
-            "pricing_strategy": "per_tooth",
-        },
-        {
-            "internal_code": "EST-PIG-REMOVE",
-            "names": {
-                "es": "Eliminación de pigmentación",
-                "en": "Pigmentation removal",
-            },
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("90.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "standard",
-            "pricing_strategy": "flat",
-        },
-    ],
-    # ---------- Prótesis ----------
-    "protesis": [
-        {
-            "internal_code": "PROT-FULL-SUP",
-            "names": {"es": "Prótesis completa superior", "en": "Full upper denture"},
-            "treatment_scope": "global_arch",
-            "default_price": Decimal("900.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PROT-FULL-INF",
-            "names": {"es": "Prótesis completa inferior", "en": "Full lower denture"},
-            "treatment_scope": "global_arch",
-            "default_price": Decimal("900.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PROT-PART-METAL",
-            "names": {"es": "Prótesis parcial esquelética", "en": "Partial metal denture"},
-            "treatment_scope": "global_arch",
-            "default_price": Decimal("750.00"),
-            "default_duration_minutes": 90,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PROT-PART-ACR",
-            "names": {"es": "Prótesis parcial acrílica", "en": "Partial acrylic denture"},
-            "treatment_scope": "global_arch",
-            "default_price": Decimal("450.00"),
-            "default_duration_minutes": 75,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PROT-OVERDENT",
-            "names": {
-                "es": "Sobredentadura sobre implantes",
-                "en": "Implant-supported overdenture",
-            },
-            "treatment_scope": "global_arch",
-            "default_price": Decimal("1800.00"),
-            "default_duration_minutes": 120,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PROT-REBASE",
-            "names": {"es": "Rebasado de prótesis", "en": "Denture reline"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("120.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PROT-REPAIR",
-            "names": {"es": "Reparación de prótesis", "en": "Denture repair"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("80.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PROT-PROV-REMOV",
-            "names": {
-                "es": "Prótesis provisional removible",
-                "en": "Provisional removable denture",
-            },
-            "treatment_scope": "global_arch",
-            "default_price": Decimal("350.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PROT-OCC-ADJ",
-            "names": {"es": "Ajuste oclusal", "en": "Occlusal adjustment"},
-            "treatment_scope": "global_mouth",
-            "default_price": Decimal("60.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-    ],
-    # ---------- Odontopediatría ----------
-    "pediatrica": [
-        {
-            "internal_code": "PED-FLUOR",
-            "names": {"es": "Fluorización pediátrica", "en": "Pediatric fluoride"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("25.00"),
-            "default_duration_minutes": 15,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PED-SEAL",
-            "names": {"es": "Sellador pediátrico", "en": "Pediatric sealant"},
-            "treatment_scope": "tooth",
-            "requires_surfaces": True,
-            "default_price": Decimal("25.00"),
-            "default_duration_minutes": 15,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "sealant",
-            "visualization_rules": [occlusal_surface("#06B6D4", "solid_fill")],
-            "visualization_config": {"color": "#06B6D4"},
-        },
-        {
-            "internal_code": "PED-PULPOTOMY",
-            "names": {"es": "Pulpotomía", "en": "Pulpotomy"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("150.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "root_canal_half",
-            "visualization_rules": [pulp_fill("#A78BFA", "partial_1_2")],
-            "visualization_config": {"color": "#A78BFA"},
-        },
-        {
-            "internal_code": "PED-CROWN-SS",
-            "names": {"es": "Corona preformada pediátrica", "en": "Stainless steel crown"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("180.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_tooth",
-            "odontogram_treatment_type": "crown",
-            "visualization_rules": [pattern_fill("diagonal_stripes", "#9CA3AF")],
-            "visualization_config": {"color": "#9CA3AF"},
-        },
-        {
-            "internal_code": "PED-SPACE",
-            "names": {"es": "Mantenedor de espacio simple", "en": "Simple space maintainer"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("150.00"),
-            "default_duration_minutes": 45,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PED-SPACE-COMPOUND",
-            "names": {
-                "es": "Mantenedor de espacio compuesto",
-                "en": "Compound space maintainer",
-            },
-            "treatment_scope": "multi_tooth",
-            "default_price": Decimal("220.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-        },
-        {
-            "internal_code": "PED-EXT-TEMP",
-            "names": {"es": "Extracción de pieza temporal", "en": "Primary tooth extraction"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("55.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "extraction",
-            "visualization_rules": [lateral_icon("extraction", "#DC2626")],
-            "visualization_config": {"color": "#DC2626"},
-        },
-        {
-            "internal_code": "PED-FILL-TEMP",
-            "names": {
-                "es": "Obturación en dentición temporal",
-                "en": "Primary tooth filling",
-            },
-            "treatment_scope": "tooth",
-            "default_price": Decimal("45.00"),
-            "default_duration_minutes": 30,
-            "vat_type": "exempt",
-            "pricing_strategy": "per_surface",
-            "surface_prices": {
-                "1": "45.00",
-                "2": "65.00",
-                "3": "85.00",
-                "4": "95.00",
-                "5": "105.00",
-            },
-            "requires_surfaces": True,
-            "odontogram_treatment_type": "filling_composite",
-            "visualization_rules": [occlusal_surface("#3B82F6", "solid_fill")],
-            "visualization_config": {"color": "#3B82F6"},
-        },
-        {
-            "internal_code": "PED-PULPECTOMY",
-            "names": {"es": "Pulpectomía pediátrica", "en": "Pediatric pulpectomy"},
-            "treatment_scope": "tooth",
-            "default_price": Decimal("160.00"),
-            "default_duration_minutes": 60,
-            "vat_type": "exempt",
-            "pricing_strategy": "flat",
-            "odontogram_treatment_type": "root_canal_full",
-            "visualization_rules": [pulp_fill("#A78BFA", "full")],
-            "visualization_config": {"color": "#A78BFA"},
-        },
-    ],
-}
+#: Browsing category -> reference treatments, in the shape the catalogue's
+#: columns take. Built from ``reference/*.json``.
+TREATMENTS: dict[str, list[dict[str, Any]]] = treatments_by_category()
+
+if {category["key"] for category in CATEGORIES} != set(CATEGORY_KEYS):
+    raise RuntimeError("seed.CATEGORIES and reference.CATEGORY_KEYS disagree")
+
+
+def reference_items(specialty_key: str) -> list[tuple[str, dict[str, Any]]]:
+    """The reference catalogue of a discipline: ``(category_key, item)``.
+
+    Its own file's treatments first, in file order, then the ones other
+    disciplines' files share with it.
+    """
+    own, shared = [], []
+    for owner, treatment in BY_CODE.values():
+        if specialty_key not in treatment.specialties:
+            continue
+        (own if owner == specialty_key else shared).append(
+            (treatment.category, seed_item(treatment))
+        )
+    return own + shared
 
 
 # ============================================================================
@@ -2205,17 +340,163 @@ async def _link_item_specialties(
     return len(missing)
 
 
-async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
-    """Seed catalog items for a clinic. Idempotent (skips existing internal_codes)."""
-    vat_type_map = await _ensure_vat_types(db, clinic_id)
-    specialty_map = await _ensure_specialties(db, clinic_id)
+def _reference_fields(treatment_raw: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Split a reference item into its columns and what hangs from it."""
+    data = dict(treatment_raw)
+    extras = {
+        "odontogram_type": data.pop("odontogram_treatment_type", None),
+        # Both columns are JSONB containers, so an absent key means "empty",
+        # never None — an item that draws nothing still has a list of no
+        # rules, and the mapping is written with that list.
+        "viz_rules": data.pop("visualization_rules", None) or [],
+        "viz_config": data.pop("visualization_config", None) or {},
+        "vat_type": data.pop("vat_type", "exempt"),
+        "sessions": data.pop("sessions", None),
+    }
+    data.pop("specialties", None)
+    return data, extras
 
-    categories_created = 0
-    items_created = 0
-    specialty_links = 0
-    phases_set = 0
+
+async def _write_dependents(
+    db: AsyncSession,
+    clinic_id: UUID,
+    item: TreatmentCatalogItem,
+    category_key: str,
+    extras: dict[str, Any],
+) -> None:
+    """The odontogram mapping and the per-session template of an item."""
+    # A declared type with no drawing rules is a legitimate pair, not an
+    # incomplete one: skeletal and process types (an osteotomy, a
+    # consultation, a radiograph) act on the face or on the visit and
+    # deliberately draw nothing on a tooth chart — see
+    # `odontogram/constants.py`. Requiring rules here left those items
+    # with no mapping at all, so `_resolve_clinical_type` fell back to
+    # `procedure` and a Le Fort I was filed as a generic act.
+    if extras["odontogram_type"]:
+        db.add(
+            TreatmentOdontogramMapping(
+                clinic_id=clinic_id,
+                catalog_item_id=item.id,
+                odontogram_treatment_type=extras["odontogram_type"],
+                visualization_rules=extras["viz_rules"],
+                visualization_config=extras["viz_config"],
+                clinical_category=category_key,
+            )
+        )
+    # Per-session template (multi-session billing). Treatment plans
+    # snapshot this when the item is added — see ``treatment_plan``.
+    for idx, session_data in enumerate(extras["sessions"] or [], start=1):
+        db.add(
+            CatalogItemSession(
+                catalog_item_id=item.id,
+                sequence=session_data.get("sequence") or idx,
+                labels=session_data.get("labels") or {},
+                default_price=session_data["default_price"],
+            )
+        )
+
+
+async def upsert_reference_item(
+    db: AsyncSession,
+    clinic_id: UUID,
+    category_key: str,
+    category_id: UUID,
+    treatment_raw: dict[str, Any],
+    vat_type_map: dict[str, UUID],
+    specialty_map: dict[str, UUID],
+    *,
+    restore: bool = False,
+) -> tuple[str, int]:
+    """Bring one reference item into a clinic's catalogue.
+
+    Returns ``(outcome, specialty links added)``. Without ``restore`` an
+    item the clinic already has is left as the clinic made it — only its
+    missing discipline links and phase are filled in. With ``restore`` it
+    is put back to the reference: what the clinic changed on it is lost,
+    which is the point and why the caller asks first.
+    """
+    data, extras = _reference_fields(treatment_raw)
+    vat_type_id = vat_type_map.get(extras["vat_type"], vat_type_map.get("exempt"))
+    phase = phase_for(category_key, data["internal_code"])
+
+    existing = await db.execute(
+        select(TreatmentCatalogItem).where(
+            TreatmentCatalogItem.clinic_id == clinic_id,
+            TreatmentCatalogItem.internal_code == data["internal_code"],
+        )
+    )
+    already = existing.scalar_one_or_none()
+    if already is not None and not restore:
+        # The item predates the specialty and phase axes, so those may
+        # still be missing even though the item itself is not.
+        linked = await _link_item_specialties(db, already, category_key, specialty_map)
+        if already.default_phase is None:
+            already.default_phase = phase
+            return "phase", linked
+        return "existing", linked
+
+    if already is not None:
+        for column, value in REFERENCE_DEFAULTS.items():
+            setattr(already, column, data.get(column, value))
+        already.category_id = category_id
+        already.vat_type_id = vat_type_id
+        already.default_phase = phase
+        already.is_system = True
+        already.is_active = True
+        already.is_visible = True
+        already.deleted_at = None
+        already.disabled_by_specialty = False
+        await db.execute(
+            delete(TreatmentOdontogramMapping).where(
+                TreatmentOdontogramMapping.catalog_item_id == already.id
+            )
+        )
+        await db.execute(
+            delete(CatalogItemSession).where(CatalogItemSession.catalog_item_id == already.id)
+        )
+        await db.flush()
+        await _write_dependents(db, clinic_id, already, category_key, extras)
+        linked = await _link_item_specialties(db, already, category_key, specialty_map)
+        return "restored", linked
+
+    item = TreatmentCatalogItem(
+        clinic_id=clinic_id,
+        category_id=category_id,
+        vat_type_id=vat_type_id,
+        is_system=True,
+        default_phase=phase,
+        **data,
+    )
+    db.add(item)
+    await db.flush()
+    await _write_dependents(db, clinic_id, item, category_key, extras)
+    linked = await _link_item_specialties(db, item, category_key, specialty_map)
+    return "created", linked
+
+
+#: The columns a reference item may set, with what one that does not set
+#: them has — so a restore also clears what the clinic added.
+REFERENCE_DEFAULTS: dict[str, Any] = {
+    "names": {},
+    "descriptions": {},
+    "default_price": None,
+    "cost_price": None,
+    "default_duration_minutes": None,
+    "requires_appointment": True,
+    "pricing_strategy": "flat",
+    "pricing_config": None,
+    "surface_prices": None,
+    "treatment_scope": "tooth",
+    "is_diagnostic": False,
+    "requires_surfaces": False,
+    "material_notes": None,
+}
+
+
+async def ensure_categories(db: AsyncSession, clinic_id: UUID) -> tuple[dict[str, UUID], int]:
+    """The browsing categories of a clinic, created where missing."""
+    created = 0
     category_map: dict[str, UUID] = {}
-
     for cat_data in CATEGORIES:
         existing = await db.execute(
             select(TreatmentCategory).where(
@@ -2228,8 +509,33 @@ async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
             category = TreatmentCategory(clinic_id=clinic_id, is_system=True, **cat_data)
             db.add(category)
             await db.flush()
-            categories_created += 1
+            created += 1
         category_map[cat_data["key"]] = category.id
+    return category_map, created
+
+
+async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
+    """Seed catalog items for a clinic. Idempotent (skips existing internal_codes)."""
+    vat_type_map = await _ensure_vat_types(db, clinic_id)
+    specialty_map = await _ensure_specialties(db, clinic_id)
+
+    items_created = 0
+    specialty_links = 0
+    phases_set = 0
+    category_map, categories_created = await ensure_categories(db, clinic_id)
+
+    # Every keyed discipline the clinic has, not only the baseline: a pack
+    # enabled later is topped up by a re-seed like the rest.
+    rows = (
+        await db.execute(
+            select(Specialty).where(Specialty.clinic_id == clinic_id, Specialty.key.is_not(None))
+        )
+    ).scalars()
+    active_keys: set[str] = set()
+    for row in rows:
+        specialty_map[row.key] = row.id
+        if row.is_active:
+            active_keys.add(row.key)
 
     for category_key, treatments in TREATMENTS.items():
         category_id = category_map.get(category_key)
@@ -2237,80 +543,19 @@ async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
             continue
 
         for treatment_raw in treatments:
-            treatment_data = dict(treatment_raw)
-
-            odontogram_type = treatment_data.pop("odontogram_treatment_type", None)
-            # Both columns are JSONB containers, so an absent key means "empty",
-            # never None — an item that draws nothing still has a list of no
-            # rules, and the mapping below is written with that list.
-            viz_rules = treatment_data.pop("visualization_rules", None) or []
-            viz_config = treatment_data.pop("visualization_config", None) or {}
-            vat_type_key = treatment_data.pop("vat_type", "exempt")
-            vat_type_id = vat_type_map.get(vat_type_key, vat_type_map.get("exempt"))
-            session_template = treatment_data.pop("sessions", None)
-
-            existing = await db.execute(
-                select(TreatmentCatalogItem).where(
-                    TreatmentCatalogItem.clinic_id == clinic_id,
-                    TreatmentCatalogItem.internal_code == treatment_data["internal_code"],
-                )
-            )
-            already = existing.scalar_one_or_none()
-            if already:
-                # The item predates the specialty and phase axes, so those may
-                # still be missing even though the item itself is not.
-                specialty_links += await _link_item_specialties(
-                    db, already, category_key, specialty_map
-                )
-                if already.default_phase is None:
-                    already.default_phase = phase_for(category_key, already.internal_code)
-                    phases_set += 1
+            # A pack the clinic has not enabled contributes nothing: its
+            # treatments arrive when the discipline is switched on.
+            keys = specialty_keys_for(category_key, treatment_raw["internal_code"])
+            if keys and not (set(keys) & active_keys):
                 continue
-
-            item = TreatmentCatalogItem(
-                clinic_id=clinic_id,
-                category_id=category_id,
-                vat_type_id=vat_type_id,
-                is_system=True,
-                default_phase=phase_for(category_key, treatment_data["internal_code"]),
-                **treatment_data,
+            outcome, linked = await upsert_reference_item(
+                db, clinic_id, category_key, category_id, treatment_raw, vat_type_map, specialty_map
             )
-            db.add(item)
-            await db.flush()
-
-            # A declared type with no drawing rules is a legitimate pair, not an
-            # incomplete one: skeletal and process types (an osteotomy, a
-            # consultation, a radiograph) act on the face or on the visit and
-            # deliberately draw nothing on a tooth chart — see
-            # `odontogram/constants.py`. Requiring rules here left those items
-            # with no mapping at all, so `_resolve_clinical_type` fell back to
-            # `procedure` and a Le Fort I was filed as a generic act.
-            if odontogram_type:
-                mapping = TreatmentOdontogramMapping(
-                    clinic_id=clinic_id,
-                    catalog_item_id=item.id,
-                    odontogram_treatment_type=odontogram_type,
-                    visualization_rules=viz_rules,
-                    visualization_config=viz_config,
-                    clinical_category=category_key,
-                )
-                db.add(mapping)
-
-            # Per-session template (multi-session billing). Treatment plans
-            # snapshot this when the item is added — see ``treatment_plan``.
-            if session_template:
-                for idx, session_data in enumerate(session_template, start=1):
-                    db.add(
-                        CatalogItemSession(
-                            catalog_item_id=item.id,
-                            sequence=session_data.get("sequence") or idx,
-                            labels=session_data.get("labels") or {},
-                            default_price=session_data["default_price"],
-                        )
-                    )
-
-            specialty_links += await _link_item_specialties(db, item, category_key, specialty_map)
-            items_created += 1
+            specialty_links += linked
+            if outcome == "created":
+                items_created += 1
+            elif outcome == "phase":
+                phases_set += 1
 
     await db.flush()
 

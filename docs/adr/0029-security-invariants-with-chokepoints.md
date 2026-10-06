@@ -7,7 +7,7 @@
 
 ## Context
 
-DentalPin has real security controls and no security *model*. `require_permission`
+Diente Azul has real security controls and no security *model*. `require_permission`
 gates endpoints, every service filters by `clinic_id`, SQLAlchemy parameterises
 queries, Vue escapes by default, and [ADR 0006](0006-budget-public-link-2-factor-auth.md)
 gives the patient-facing budget link two factors, a lockout and an access log. What
@@ -32,7 +32,7 @@ concern still governed by discipline alone.
 
 ## Decision
 
-**Every security guarantee in DentalPin is stated as an invariant, enforced at a
+**Every security guarantee in Diente Azul is stated as an invariant, enforced at a
 single chokepoint, and pinned by a test that fails CI when the invariant is broken.
 A control with no chokepoint is an intention; a chokepoint with no test is a
 regression waiting for a release.**
@@ -291,7 +291,7 @@ until now it said nothing — so both references dangled. They should not, and t
 is wider than the deferral implies.
 
 **None of the licensing machinery exists — not the trials, the licence key itself.**
-There is no `DENTALPIN_LICENSE`, no signature verification, no public key shipped in
+There is no `DIENTEAZUL_LICENSE`, no signature verification, no public key shipped in
 the release, and no entitlement resolution: `TenantContext.modules_enabled` is filled
 from `module_registry.list_modules()` (`core/tenancy/single.py:128`), which is the
 install state and nothing else. ADR 0028 is `accepted` and describes machinery nobody

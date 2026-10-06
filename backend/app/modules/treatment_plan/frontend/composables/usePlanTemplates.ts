@@ -21,6 +21,13 @@ export interface PlanLineInput {
   notes?: string | null
 }
 
+/** The templates of one discipline, or the clinic's own (`id: 'own'`). */
+export interface PlanTemplateGroup {
+  id: string
+  title: string
+  templates: PlanTemplate[]
+}
+
 /** Scopes that cannot be created without at least one tooth. */
 const TOOTH_SCOPES = ['tooth', 'multi_tooth']
 
@@ -69,6 +76,38 @@ export function usePlanTemplates() {
       .filter(i => TOOTH_SCOPES.includes(i.catalog_item?.treatment_scope ?? ''))
       .map(i => i.catalog_item?.names?.[locale] || i.catalog_item?.names?.es || '')
       .filter(Boolean)
+  }
+
+  /**
+   * Templates under the discipline each belongs to. The ones the clinic
+   * saved from its own plans come first: they are the shapes it actually
+   * works with. Disciplines follow in the order the list arrives.
+   */
+  function groupBySpecialty(list: PlanTemplate[], locale = 'es'): PlanTemplateGroup[] {
+    const own: PlanTemplate[] = []
+    const byKey = new Map<string, PlanTemplateGroup>()
+    for (const template of list) {
+      const specialty = template.specialty
+      if (!specialty) {
+        own.push(template)
+        continue
+      }
+      let group = byKey.get(specialty.key)
+      if (!group) {
+        group = {
+          id: specialty.key,
+          title: specialty.names[locale] || specialty.names.es || specialty.key,
+          templates: []
+        }
+        byKey.set(specialty.key, group)
+      }
+      group.templates.push(template)
+    }
+    const groups = [...byKey.values()]
+    if (own.length > 0) {
+      groups.unshift({ id: 'own', title: t('clinical.plans.templates.ownGroup'), templates: own })
+    }
+    return groups
   }
 
   function needsTeeth(template: PlanTemplate, excludedIds: string[] = []): boolean {
@@ -187,6 +226,7 @@ export function usePlanTemplates() {
     loaded,
     fetchTemplates,
     needsTeeth,
+    groupBySpecialty,
     treatmentsNeedingTeeth,
     applyTemplate,
     addCatalogItems,

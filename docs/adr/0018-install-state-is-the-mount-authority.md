@@ -7,7 +7,7 @@
 
 ## Context
 
-DentalPin tracks each module's lifecycle in `core_module.state`. The
+Diente Azul tracks each module's lifecycle in `core_module.state`. The
 [2026-07-03 audit](../technical/audit-2026-07-03.md) found (finding S1)
 that **nothing read it**. Four things claimed to know which modules
 exist, and they disagreed:

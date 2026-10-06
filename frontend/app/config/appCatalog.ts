@@ -19,7 +19,7 @@ export const APP_CATALOG: Record<string, AppPresentation> = {
   agenda: { icon: 'i-lucide-calendar-days' },
   patients: { icon: 'i-lucide-users' },
   recalls: { icon: 'i-lucide-bell-ring' },
-  treatments: { icon: 'i-lucide-clipboard-list' },
+  treatments: { icon: 'i-lucide-clipboard-list', settingsPath: '/settings/apps/treatments' },
   budgets_payments: { icon: 'i-lucide-receipt' },
   cash: { icon: 'i-lucide-wallet' },
   communications: { icon: 'i-lucide-message-circle' },

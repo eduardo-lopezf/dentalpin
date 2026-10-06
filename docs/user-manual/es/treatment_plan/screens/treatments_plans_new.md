@@ -15,7 +15,7 @@ related_paths:
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanTreatmentSearch.vue
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanDraftLines.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 75cd119
+last_verified_commit: 01eb2d1
 ---
 
 # Nuevo plan de tratamiento
@@ -59,7 +59,10 @@ presupuesto.
 3. Al teclear, el panel busca en dos sitios a la vez: tus **plantillas**
    y el **catálogo**. Ignora acentos, y las plantillas se encuentran
    también por lo que llevan dentro, así que «implante» saca la plantilla
-   aunque su nombre no lo diga.
+   aunque su nombre no lo diga. Las plantillas encontradas salen
+   **agrupadas por especialidad**, con las propias de la clínica primero.
+   Los tratamientos sueltos también: cada uno bajo una sola especialidad,
+   así que dos «Revisión» se distinguen por el grupo en que están.
 4. Elegir un tratamiento lo añade a la pieza. Elegir una **plantilla**
    añade todas sus líneas de golpe: las que van por diente se ponen en la
    pieza donde estabas, y las de boca completa no piden ninguna.

@@ -186,6 +186,18 @@ export default defineNuxtPlugin(() => {
     searchKeywords: ['idioma', 'language', 'locale', 'lang'],
     order: 20
   })
+  // Of the whole account, so only whoever administers it sees it.
+  registerSettingsPage({
+    path: 'storage',
+    category: 'account',
+    labelKey: 'settings.storage.title',
+    descriptionKey: 'settings.storage.description',
+    icon: 'i-lucide-hard-drive',
+    permission: 'admin.clinic.read',
+    component: () => import('~/components/settings/pages/StorageUsagePage.vue'),
+    searchKeywords: ['espacio', 'disco', 'almacenamiento', 'storage', 'disk', 'space', 'base de datos', 'database'],
+    order: 30
+  })
 
   // ---- Onboarding rules ---------------------------------------------
   // Rules read state lazily inside the predicate to stay reactive

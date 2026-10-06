@@ -1,0 +1,591 @@
+{
+  "key": "odontologia_sueno",
+  "names": {
+    "es": "Odontología del Sueño",
+    "en": "Sleep Dentistry"
+  },
+  "baseline": false,
+  "subareas": [
+    {
+      "key": "diagnostico",
+      "names": {
+        "es": "Diagnóstico y seguimiento",
+        "en": "Diagnosis and follow-up"
+      }
+    },
+    {
+      "key": "dispositivos",
+      "names": {
+        "es": "Dispositivos orales",
+        "en": "Oral appliances"
+      }
+    },
+    {
+      "key": "terapias",
+      "names": {
+        "es": "Terapias complementarias",
+        "en": "Adjunctive therapies"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "SLEEP-CONS",
+      "names": {
+        "es": "Consulta de ronquido y apnea del sueño",
+        "en": "Snoring and sleep apnoea consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-SCREEN",
+      "names": {
+        "es": "Cribado con cuestionarios de sueño",
+        "en": "Screening with sleep questionnaires"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-HST",
+      "names": {
+        "es": "Poligrafía respiratoria domiciliaria",
+        "en": "Home sleep apnoea test"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "180.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-REFERRAL",
+      "names": {
+        "es": "Informe para la unidad de sueño",
+        "en": "Report for the sleep unit"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-FOLLOW",
+      "names": {
+        "es": "Revisión de odontología del sueño",
+        "en": "Sleep dentistry review"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-EXAM",
+      "names": {
+        "es": "Exploración de vía aérea superior",
+        "en": "Upper airway examination"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-CEPH",
+      "names": {
+        "es": "Cefalometría de vía aérea",
+        "en": "Airway cephalometry"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-BRUX",
+      "names": {
+        "es": "Valoración de bruxismo del sueño",
+        "en": "Sleep bruxism assessment"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-PED",
+      "names": {
+        "es": "Valoración de respiración oral y ronquido infantil",
+        "en": "Assessment of mouth breathing and snoring in children"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-PSG-REF",
+      "names": {
+        "es": "Derivación a polisomnografía",
+        "en": "Referral for polysomnography"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-HST-READ",
+      "names": {
+        "es": "Lectura de poligrafía con médico de sueño",
+        "en": "Polygraphy reading with a sleep physician"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-EFFICACY",
+      "names": {
+        "es": "Poligrafía de control con el dispositivo",
+        "en": "Follow-up polygraphy with the appliance"
+      },
+      "category": "diagnostico",
+      "subarea": "diagnostico",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "180.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MAD",
+      "names": {
+        "es": "Dispositivo de avance mandibular",
+        "en": "Mandibular advancement device"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "750.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MAD-TITR",
+      "names": {
+        "es": "Titulación del dispositivo de avance",
+        "en": "Titration of the advancement device"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MAD-REPAIR",
+      "names": {
+        "es": "Reparación del dispositivo de avance",
+        "en": "Repair of the advancement device"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MAD-REPL",
+      "names": {
+        "es": "Reposición del dispositivo de avance",
+        "en": "Replacement of the advancement device"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "600.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MORNING",
+      "names": {
+        "es": "Reposicionador matutino",
+        "en": "Morning repositioner"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-BITE-REG",
+      "names": {
+        "es": "Registro de mordida con galga de avance",
+        "en": "Bite registration with a protrusion gauge"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MAD-DIGITAL",
+      "names": {
+        "es": "Dispositivo de avance mandibular digital (impreso o fresado)",
+        "en": "Digital mandibular advancement device (printed or milled)"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "900.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MAD-TEMP",
+      "names": {
+        "es": "Dispositivo de avance provisional (termoadaptable)",
+        "en": "Temporary advancement device (boil-and-bite)"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-TRD",
+      "names": {
+        "es": "Dispositivo retenedor lingual",
+        "en": "Tongue-retaining device"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "250.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MAD-CPAP",
+      "names": {
+        "es": "Dispositivo oral combinado con CPAP",
+        "en": "Oral appliance combined with CPAP"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "850.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MAD-RELINE",
+      "names": {
+        "es": "Rebase del dispositivo de avance",
+        "en": "Advancement device reline"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-COMPLIANCE",
+      "names": {
+        "es": "Sensor de adherencia del dispositivo",
+        "en": "Appliance compliance sensor"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-SIDE",
+      "names": {
+        "es": "Manejo de efectos secundarios (oclusión, ATM)",
+        "en": "Side-effect management (occlusion, TMJ)"
+      },
+      "category": "protesis",
+      "subarea": "dispositivos",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MYO",
+      "names": {
+        "es": "Sesión de terapia miofuncional",
+        "en": "Myofunctional therapy session"
+      },
+      "category": "preventivo",
+      "subarea": "terapias",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-POSITIONAL",
+      "names": {
+        "es": "Terapia posicional",
+        "en": "Positional therapy"
+      },
+      "category": "preventivo",
+      "subarea": "terapias",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-HYGIENE",
+      "names": {
+        "es": "Higiene del sueño y control de peso",
+        "en": "Sleep hygiene and weight management advice"
+      },
+      "category": "preventivo",
+      "subarea": "terapias",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-EXPANSION",
+      "names": {
+        "es": "Expansión maxilar por indicación respiratoria",
+        "en": "Maxillary expansion for an airway indication"
+      },
+      "category": "ortodoncia",
+      "subarea": "terapias",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "550.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-ENT-REF",
+      "names": {
+        "es": "Derivación a otorrinolaringología",
+        "en": "Referral to ENT"
+      },
+      "category": "diagnostico",
+      "subarea": "terapias",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "SLEEP-MMA-REF",
+      "names": {
+        "es": "Derivación a cirugía de avance maxilomandibular",
+        "en": "Referral for maxillomandibular advancement surgery"
+      },
+      "category": "diagnostico",
+      "subarea": "terapias",
+      "specialties": [
+        "odontologia_sueno"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

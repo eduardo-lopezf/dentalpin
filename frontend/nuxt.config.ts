@@ -10,13 +10,13 @@ import { resolve } from 'node:path'
  * checkout, no community modules yet), returns an empty array.
  */
 function loadModuleLayers(): string[] {
-  // `DENTALPIN_MODULES_JSON` lets CI (and anyone without a running
+  // `DIENTEAZUL_MODULES_JSON` lets CI (and anyone without a running
   // backend) point at a manifest with repo-relative paths, so the module
   // layers are actually typechecked instead of being stubbed away — the
   // blind spot that let type errors pile up unseen. A developer's real
   // `modules.json`, written by their backend with container paths, is
   // left alone.
-  const path = resolve(__dirname, process.env.DENTALPIN_MODULES_JSON ?? 'modules.json')
+  const path = resolve(__dirname, process.env.DIENTEAZUL_MODULES_JSON ?? 'modules.json')
   try {
     const raw = readFileSync(path, 'utf-8')
     const payload = JSON.parse(raw) as { layers?: string[] }
@@ -31,7 +31,7 @@ function loadModuleLayers(): string[] {
 }
 
 const moduleLayers = loadModuleLayers()
-const modulesJsonPath = resolve(__dirname, process.env.DENTALPIN_MODULES_JSON ?? 'modules.json')
+const modulesJsonPath = resolve(__dirname, process.env.DIENTEAZUL_MODULES_JSON ?? 'modules.json')
 
 export default defineNuxtConfig({
 
@@ -87,7 +87,7 @@ export default defineNuxtConfig({
       demoMode: process.env.NUXT_PUBLIC_DEMO_MODE === 'true',
       // Documentation portal origin used by the in-app help drawer
       // (Fase 5 of issue #75). Empty disables the help button.
-      docsUrl: process.env.NUXT_PUBLIC_DOCS_URL || 'https://docs.dentalpin.com',
+      docsUrl: process.env.NUXT_PUBLIC_DOCS_URL || 'https://docs.dienteazul.com',
       // Minutes without interaction before a session ends and the user is
       // sent to login (ADR 0030). Overridable at runtime with
       // NUXT_PUBLIC_SESSION_IDLE_MINUTES.

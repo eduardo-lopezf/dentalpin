@@ -11,6 +11,7 @@ Landing page for the `catalog` module in the end-user manual.
 
 ## Screens
 
+- [`/settings/apps/treatments`](./screens/settings_apps_treatments.md) — the clinic's specialties: enable, disable and restore their reference catalogue.
 - `/settings/catalog` — _Documentation pending._
 - `/settings/vat-types` — _Documentation pending._
 

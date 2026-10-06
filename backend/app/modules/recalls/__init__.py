@@ -37,7 +37,7 @@ class RecallsModule(BaseModule):
             "Patient recalls: schedule call-backs, work the monthly call "
             "list, log attempts, auto-link booked appointments."
         ),
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients", "agenda"],

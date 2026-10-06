@@ -56,7 +56,7 @@ Triggers (any one):
 | 0009 | [Documentation portal: VitePress, filesystem-as-contract, in-app help](0009-documentation-portal.md) | accepted | 2026-05-02 |
 | 0010 | [Payments as a primitive module; billing depends on payments](0010-payments-as-primitive-module.md) | accepted | 2026-05-13 |
 | 0011 | [Detail-page shared components](0011-detail-page-shared-components.md) | accepted | 2026-05-13 |
-| 0012 | [Multi-tenancy en DentalPin core — brief](0012-multi-tenancy-brief.md) | proposed | 2026-05-17 |
+| 0012 | [Multi-tenancy en Diente Azul core — brief](0012-multi-tenancy-brief.md) | proposed | 2026-05-17 |
 | 0013 | [Periodontogram snapshots are immutable dated rows, not an event stream](0013-periodontogram-snapshot-model.md) | accepted | 2026-05-26 |
 | 0014 | [Copilot proactivity v1: deterministic morning digest email](0014-copilot-proactivity.md) | accepted | 2026-06-11 |
 | 0015 | [Aggregate the copilot "Pendientes" feed through the tool registry](0015-copilot-pending-aggregation.md) | accepted | 2026-06-15 |
@@ -90,3 +90,6 @@ Triggers (any one):
 | 0044 | [The App organises; the module holds the code](0044-the-app-organises-the-module-holds-the-code.md) | accepted | 2026-10-03 |
 | 0045 | [A consent is a record entry, written from the clinic's own text](0045-a-consent-is-a-record-entry.md) | accepted | 2026-10-03 |
 | 0046 | [Letterheads belong to the clinic, and a document carries its own professional's](0046-the-letterhead-belongs-to-the-clinic.md) | accepted | 2026-10-04 |
+| 0047 | [A specialty is a reference pack the clinic enables, edits and can restore](0047-a-specialty-is-a-reference-pack.md) | accepted | 2026-10-04 |
+| 0048 | [The reference catalogue is data: one file per specialty, every treatment explicit](0048-the-reference-catalogue-is-data.md) | accepted | 2026-10-04 |
+| 0049 | [The control plane is a separate service, and a tenant is a stack](0049-the-control-plane-is-a-separate-service.md) | accepted | 2026-10-05 |

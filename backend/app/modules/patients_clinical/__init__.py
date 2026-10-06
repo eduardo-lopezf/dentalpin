@@ -34,7 +34,7 @@ class PatientsClinicalModule(BaseModule):
         "name": "patients_clinical",
         "version": "0.1.0",
         "summary": "Normalized medical history, allergies, medications, emergency contacts.",
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients"],

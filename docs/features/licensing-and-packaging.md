@@ -299,15 +299,16 @@ temporary upgrade, and whether either may be granted twice.
 - `LICENSE` now carries an *Additional Use Grant* (non-production free,
   production only under a Licensor-issued authorization or a commercial
   licence). **It has not been reviewed by counsel, and that review is
-  still the blocker for actually selling anything.** Two questions the
-  drafting surfaced and cannot answer: the Licensor is "DentalPin
-  Contributors", which is not a legal entity able to grant a commercial
-  licence or issue a key — so *who signs* is unresolved — and the trial
-  path in the grant is written to follow whatever authorization the
-  Licensor issues, which ties the licence to §4's token mechanism and
-  keeps the trial length a commercial parameter rather than a licence
-  term. That is deliberate; confirm it is what you want before signing
-  anything.
+  still the blocker for actually selling anything.**
+- *Who signs* is settled: the Licensor is **Dentared Odontology Services
+  S.L.**, which the mandatory CLA empowers to maintain, relicense and
+  defend the work. The copyright line stays with the contributors, because
+  the CLA does not transfer authorship — the two roles are not the same
+  party and the licence should not pretend otherwise.
+- The trial path in the grant follows whatever authorization the Licensor
+  issues, which ties the licence to §4's token mechanism and keeps the
+  trial length a commercial parameter rather than a licence term. That is
+  deliberate; confirm it is what you want before signing anything.
 - The processing contract that `managed` implies is still missing
   ([`todos.md`](../technical/todos.md)).
 - The Veri\*Factu *productor del SIF* role transfers to the operator. A

@@ -1,0 +1,778 @@
+{
+  "key": "dolor_orofacial",
+  "names": {
+    "es": "Dolor Orofacial y ATM",
+    "en": "Orofacial Pain and TMD"
+  },
+  "baseline": false,
+  "subareas": [
+    {
+      "key": "consulta",
+      "names": {
+        "es": "Consulta y exploración",
+        "en": "Consultation and examination"
+      }
+    },
+    {
+      "key": "conservador",
+      "names": {
+        "es": "Tratamiento conservador",
+        "en": "Conservative treatment"
+      }
+    },
+    {
+      "key": "ferulas",
+      "names": {
+        "es": "Férulas",
+        "en": "Splints"
+      }
+    },
+    {
+      "key": "infiltraciones",
+      "names": {
+        "es": "Infiltraciones y procedimientos",
+        "en": "Injections and procedures"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "DOF-CONS",
+      "names": {
+        "es": "Consulta de dolor orofacial y ATM",
+        "en": "Orofacial pain and TMD consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-EXAM",
+      "names": {
+        "es": "Exploración funcional de ATM",
+        "en": "Functional TMJ examination"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-FOLLOW",
+      "names": {
+        "es": "Revisión de dolor orofacial",
+        "en": "Orofacial pain review"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-BRUX",
+      "names": {
+        "es": "Valoración de bruxismo",
+        "en": "Bruxism assessment"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-BRUX-MONITOR",
+      "names": {
+        "es": "Registro domiciliario de bruxismo",
+        "en": "Home bruxism recording"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-HEADACHE",
+      "names": {
+        "es": "Valoración de cefalea de origen orofacial",
+        "en": "Assessment of headache of orofacial origin"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-NEURO",
+      "names": {
+        "es": "Valoración de dolor neuropático",
+        "en": "Neuropathic pain assessment"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-PSYCH-SCREEN",
+      "names": {
+        "es": "Cribado psicosocial (eje II)",
+        "en": "Psychosocial screening (axis II)"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-BLOCK-DX",
+      "names": {
+        "es": "Bloqueo anestésico diagnóstico",
+        "en": "Diagnostic anaesthetic block"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-IMAGING",
+      "names": {
+        "es": "Solicitud e interpretación de imagen de ATM",
+        "en": "TMJ imaging request and interpretation"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-REPORT",
+      "names": {
+        "es": "Informe de dolor orofacial",
+        "en": "Orofacial pain report"
+      },
+      "category": "diagnostico",
+      "subarea": "consulta",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-EDU",
+      "names": {
+        "es": "Educación y pautas de autocuidado",
+        "en": "Education and self-care guidance"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-PHYSIO",
+      "names": {
+        "es": "Sesión de fisioterapia orofacial",
+        "en": "Orofacial physiotherapy session"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-TENS",
+      "names": {
+        "es": "Sesión de TENS o láser terapéutico",
+        "en": "TENS or therapeutic laser session"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "35.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-EXERCISE",
+      "names": {
+        "es": "Programa de ejercicios mandibulares",
+        "en": "Jaw exercise programme"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-MANUAL",
+      "names": {
+        "es": "Terapia manual de ATM",
+        "en": "TMJ manual therapy"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-DRY-NEEDLE",
+      "names": {
+        "es": "Punción seca",
+        "en": "Dry needling"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "45.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-ULTRASOUND",
+      "names": {
+        "es": "Ultrasonido terapéutico",
+        "en": "Therapeutic ultrasound"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "35.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-BIOFEED",
+      "names": {
+        "es": "Biofeedback",
+        "en": "Biofeedback"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-PHARMA",
+      "names": {
+        "es": "Pauta farmacológica y seguimiento",
+        "en": "Pharmacological regimen and follow-up"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-SLEEP-HYG",
+      "names": {
+        "es": "Higiene del sueño y control de hábitos",
+        "en": "Sleep hygiene and habit control"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-CBT",
+      "names": {
+        "es": "Derivación a terapia cognitivo-conductual",
+        "en": "Referral for cognitive behavioural therapy"
+      },
+      "category": "preventivo",
+      "subarea": "conservador",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "preventivo",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-SPLINT-STAB",
+      "names": {
+        "es": "Férula de estabilización (Michigan)",
+        "en": "Stabilisation splint (Michigan)"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "320.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-SPLINT-REPOS",
+      "names": {
+        "es": "Férula de reposicionamiento anterior",
+        "en": "Anterior repositioning splint"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "350.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-SPLINT-ADJ",
+      "names": {
+        "es": "Ajuste de férula",
+        "en": "Splint adjustment"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-SPLINT-REPAIR",
+      "names": {
+        "es": "Reparación de férula",
+        "en": "Splint repair"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-SPLINT-SOFT",
+      "names": {
+        "es": "Férula blanda",
+        "en": "Soft splint"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "150.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-SPLINT-NTI",
+      "names": {
+        "es": "Férula de inhibición anterior (NTI)",
+        "en": "Anterior inhibition splint (NTI)"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "180.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-SPLINT-PIVOT",
+      "names": {
+        "es": "Férula pivotante",
+        "en": "Pivot splint"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "350.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-SPLINT-DIGITAL",
+      "names": {
+        "es": "Férula de estabilización digital (fresada o impresa)",
+        "en": "Digital stabilisation splint (milled or printed)"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "380.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-SPLINT-REVIEW",
+      "names": {
+        "es": "Revisión de férula",
+        "en": "Splint review"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-TRIGGER",
+      "names": {
+        "es": "Infiltración de puntos gatillo",
+        "en": "Trigger point injection"
+      },
+      "category": "cirugia",
+      "subarea": "infiltraciones",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-ATM-INFILT",
+      "names": {
+        "es": "Infiltración de ATM",
+        "en": "TMJ injection"
+      },
+      "category": "cirugia",
+      "subarea": "infiltraciones",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "180.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-ARTHRO",
+      "names": {
+        "es": "Artrocentesis de ATM",
+        "en": "TMJ arthrocentesis"
+      },
+      "category": "cirugia",
+      "subarea": "infiltraciones",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "380.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-BOTOX",
+      "names": {
+        "es": "Toxina botulínica en maseteros",
+        "en": "Botulinum toxin to the masseters"
+      },
+      "category": "cirugia",
+      "subarea": "infiltraciones",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "280.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-NERVE-BLOCK",
+      "names": {
+        "es": "Bloqueo nervioso terapéutico",
+        "en": "Therapeutic nerve block"
+      },
+      "category": "cirugia",
+      "subarea": "infiltraciones",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-HA-ATM",
+      "names": {
+        "es": "Infiltración de ácido hialurónico en ATM",
+        "en": "Hyaluronic acid TMJ injection"
+      },
+      "category": "cirugia",
+      "subarea": "infiltraciones",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "250.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-PRP-ATM",
+      "names": {
+        "es": "Infiltración de plasma rico en plaquetas en ATM",
+        "en": "PRP TMJ injection"
+      },
+      "category": "cirugia",
+      "subarea": "infiltraciones",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "280.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-BTX-TEMP",
+      "names": {
+        "es": "Toxina botulínica en temporales",
+        "en": "Botulinum toxin in the temporalis"
+      },
+      "category": "cirugia",
+      "subarea": "infiltraciones",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "250.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-TOPICAL",
+      "names": {
+        "es": "Tratamiento tópico de dolor neuropático (férula medicada)",
+        "en": "Topical treatment of neuropathic pain (medicated stent)"
+      },
+      "category": "cirugia",
+      "subarea": "infiltraciones",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "DOF-ARTHROSCOPY",
+      "names": {
+        "es": "Artroscopia de ATM",
+        "en": "TMJ arthroscopy"
+      },
+      "category": "cirugia",
+      "subarea": "infiltraciones",
+      "specialties": [
+        "dolor_orofacial"
+      ],
+      "phase": "estabilizacion",
+      "scope": "global_mouth",
+      "price": "1800.00",
+      "minutes": 120,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

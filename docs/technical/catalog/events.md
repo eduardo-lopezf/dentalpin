@@ -10,9 +10,13 @@ Per-module slice of [`docs/events-catalog.md`](../../events-catalog.md)
 
 ## Published
 
-This module does not publish any events. The catalog is read through
-`GET /api/v1/catalog/*`; changes to it are driven by the clinic, not
-broadcast.
+| Event | When | Payload |
+|---|---|---|
+| `catalog.specialty_enabled` | A clinic enables a specialty pack (`POST /specialty-packs/{key}/enable`), or tops one up. | `clinic_id`, `specialty_key`. `treatment_plan` installs and shows the discipline's plan templates. |
+| `catalog.specialty_disabled` | A clinic disables a specialty pack. | `clinic_id`, `specialty_key`. `treatment_plan` hides the discipline's reference templates. |
+| `catalog.specialty_restored` | A clinic restores a specialty pack to the reference. | `clinic_id`, `specialty_key`. `treatment_plan` puts the discipline's reference templates back. |
+
+Everything else about the catalog is read through `GET /api/v1/catalog/*`.
 
 ## Subscribed
 

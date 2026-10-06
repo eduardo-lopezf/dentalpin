@@ -32,7 +32,7 @@ class CashboxModule(BaseModule):
         "summary": (
             "Caja de la clínica: movimientos de efectivo, arqueo diario y cortes por periodo."
         ),
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["payments"],

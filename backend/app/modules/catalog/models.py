@@ -294,6 +294,12 @@ class TreatmentCatalogItem(Base, TimestampMixin):
     # showing everything until someone deliberately narrows it.
     is_visible: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)  # System-seeded item
+    # Switched off because its discipline was disabled, not because the
+    # clinic retired it: enabling the discipline again brings it back, and a
+    # treatment the clinic deactivated by hand is left alone.
+    disabled_by_specialty: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     # Relationships

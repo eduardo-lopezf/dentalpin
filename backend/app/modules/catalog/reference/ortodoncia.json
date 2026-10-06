@@ -1,0 +1,987 @@
+{
+  "key": "ortodoncia",
+  "names": {
+    "es": "Ortodoncia",
+    "en": "Orthodontics"
+  },
+  "baseline": true,
+  "subareas": [
+    {
+      "key": "diagnostico",
+      "names": {
+        "es": "Diagnóstico y planificación",
+        "en": "Diagnosis and planning"
+      }
+    },
+    {
+      "key": "interceptiva",
+      "names": {
+        "es": "Interceptiva y ortopedia",
+        "en": "Interceptive and orthopaedic"
+      }
+    },
+    {
+      "key": "fija",
+      "names": {
+        "es": "Aparatología fija",
+        "en": "Fixed appliances"
+      }
+    },
+    {
+      "key": "alineadores",
+      "names": {
+        "es": "Alineadores",
+        "en": "Clear aligners"
+      }
+    },
+    {
+      "key": "auxiliares",
+      "names": {
+        "es": "Auxiliares y aditamentos",
+        "en": "Auxiliaries"
+      }
+    },
+    {
+      "key": "seguimiento",
+      "names": {
+        "es": "Seguimiento y urgencias",
+        "en": "Follow-up and emergencies"
+      }
+    },
+    {
+      "key": "retencion",
+      "names": {
+        "es": "Retención",
+        "en": "Retention"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "ORTO-STUDY",
+      "names": {
+        "es": "Estudio ortodóncico completo",
+        "en": "Full orthodontic records"
+      },
+      "category": "ortodoncia",
+      "subarea": "diagnostico",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-CEPH",
+      "names": {
+        "es": "Análisis cefalométrico",
+        "en": "Cephalometric analysis"
+      },
+      "category": "ortodoncia",
+      "subarea": "diagnostico",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-PLAN",
+      "names": {
+        "es": "Presentación del plan de ortodoncia",
+        "en": "Orthodontic plan presentation"
+      },
+      "category": "ortodoncia",
+      "subarea": "diagnostico",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-PALATAL-EXP",
+      "names": {
+        "es": "Expansor palatino",
+        "en": "Palatal expander"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "450.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-INTERCEPT",
+      "names": {
+        "es": "Ortodoncia interceptiva (primera fase)",
+        "en": "Interceptive orthodontics (phase one)"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "1500.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-SPACE-MAINT",
+      "names": {
+        "es": "Mantenedor de espacio",
+        "en": "Space maintainer"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "180.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-QUADHELIX",
+      "names": {
+        "es": "Quad-hélix",
+        "en": "Quad helix"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "380.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-RPE",
+      "names": {
+        "es": "Disyuntor palatino (expansión rápida)",
+        "en": "Rapid palatal expander"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "520.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-TPA",
+      "names": {
+        "es": "Barra transpalatina",
+        "en": "Transpalatal arch"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "280.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-LINGUAL-ARCH",
+      "names": {
+        "es": "Arco lingual",
+        "en": "Lingual arch"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "280.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-FACEMASK",
+      "names": {
+        "es": "Máscara facial",
+        "en": "Face mask"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "480.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-HEADGEAR",
+      "names": {
+        "es": "Tracción extraoral",
+        "en": "Headgear"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "420.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-FUNCTIONAL",
+      "names": {
+        "es": "Aparato funcional (Twin Block, Bionator)",
+        "en": "Functional appliance (Twin Block, Bionator)"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "650.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-HAWLEY-ACT",
+      "names": {
+        "es": "Placa removible activa",
+        "en": "Active removable plate"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "320.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-BITE-PLANE",
+      "names": {
+        "es": "Plano de mordida",
+        "en": "Bite plane"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "260.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-HABIT",
+      "names": {
+        "es": "Aparato para hábitos (rejilla lingual)",
+        "en": "Habit appliance (tongue crib)"
+      },
+      "category": "ortodoncia",
+      "subarea": "interceptiva",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "300.00",
+      "minutes": 40,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-METAL",
+      "names": {
+        "es": "Ortodoncia brackets metálicos",
+        "en": "Metal braces"
+      },
+      "category": "ortodoncia",
+      "subarea": "fija",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "2500.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-CERAM",
+      "names": {
+        "es": "Ortodoncia brackets estéticos",
+        "en": "Ceramic braces"
+      },
+      "category": "ortodoncia",
+      "subarea": "fija",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "3500.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-LINGUAL",
+      "names": {
+        "es": "Ortodoncia lingual",
+        "en": "Lingual braces"
+      },
+      "category": "ortodoncia",
+      "subarea": "fija",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "5500.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-SELFLIG",
+      "names": {
+        "es": "Ortodoncia brackets de autoligado",
+        "en": "Self-ligating braces"
+      },
+      "category": "ortodoncia",
+      "subarea": "fija",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "3200.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-SAPPH",
+      "names": {
+        "es": "Ortodoncia brackets de zafiro",
+        "en": "Sapphire braces"
+      },
+      "category": "ortodoncia",
+      "subarea": "fija",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "3900.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-ARCH-SINGLE",
+      "names": {
+        "es": "Ortodoncia fija de una arcada",
+        "en": "Fixed braces, single arch"
+      },
+      "category": "ortodoncia",
+      "subarea": "fija",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "1500.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-PRESURG",
+      "names": {
+        "es": "Ortodoncia prequirúrgica",
+        "en": "Pre-surgical orthodontics"
+      },
+      "category": "ortodoncia",
+      "subarea": "fija",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "3800.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-INV-LITE",
+      "names": {
+        "es": "Invisalign Lite",
+        "en": "Invisalign Lite"
+      },
+      "category": "ortodoncia",
+      "subarea": "alineadores",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "2900.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-INV-FULL",
+      "names": {
+        "es": "Invisalign Full",
+        "en": "Invisalign Full"
+      },
+      "category": "ortodoncia",
+      "subarea": "alineadores",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "4500.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-ATTACH",
+      "names": {
+        "es": "Ataches de Invisalign",
+        "en": "Invisalign attachments"
+      },
+      "category": "ortodoncia",
+      "subarea": "alineadores",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "attachment",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "attachment",
+          "color": "#0891B2"
+        }
+      ],
+      "visualization_config": {
+        "color": "#0891B2"
+      }
+    },
+    {
+      "code": "ORTO-ALIGN-MOD",
+      "names": {
+        "es": "Alineadores, caso moderado",
+        "en": "Clear aligners, moderate case"
+      },
+      "category": "ortodoncia",
+      "subarea": "alineadores",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "3600.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-ALIGN-TEEN",
+      "names": {
+        "es": "Alineadores para adolescentes",
+        "en": "Clear aligners for teens"
+      },
+      "category": "ortodoncia",
+      "subarea": "alineadores",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "4200.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-ALIGN-REFINE",
+      "names": {
+        "es": "Refinamiento de alineadores",
+        "en": "Aligner refinement"
+      },
+      "category": "ortodoncia",
+      "subarea": "alineadores",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "600.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-ALIGN-REPL",
+      "names": {
+        "es": "Reposición de alineador",
+        "en": "Replacement aligner"
+      },
+      "category": "ortodoncia",
+      "subarea": "alineadores",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "90.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-IPR",
+      "names": {
+        "es": "Reducción interproximal (stripping)",
+        "en": "Interproximal reduction (IPR)"
+      },
+      "category": "ortodoncia",
+      "subarea": "alineadores",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-BRACK",
+      "names": {
+        "es": "Bracket individual (reposición)",
+        "en": "Bracket (replacement)"
+      },
+      "category": "ortodoncia",
+      "subarea": "auxiliares",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "45.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "bracket",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "bracket",
+          "color": "#475569"
+        }
+      ],
+      "visualization_config": {
+        "color": "#475569"
+      }
+    },
+    {
+      "code": "ORTO-BRACK-CEMENT",
+      "names": {
+        "es": "Cementado de bracket",
+        "en": "Bracket bonding"
+      },
+      "category": "ortodoncia",
+      "subarea": "auxiliares",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "35.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "bracket",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "bracket",
+          "color": "#475569"
+        }
+      ],
+      "visualization_config": {
+        "color": "#475569"
+      }
+    },
+    {
+      "code": "ORTO-BRACK-DEBOND",
+      "names": {
+        "es": "Descementado de brackets",
+        "en": "Bracket removal"
+      },
+      "category": "ortodoncia",
+      "subarea": "auxiliares",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-SEPARATOR",
+      "names": {
+        "es": "Separadores ortodóncicos",
+        "en": "Orthodontic separators"
+      },
+      "category": "ortodoncia",
+      "subarea": "auxiliares",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-TAD",
+      "names": {
+        "es": "Microtornillo / anclaje esquelético temporal (TAD)",
+        "en": "Temporary anchorage device (TAD)"
+      },
+      "category": "ortodoncia",
+      "subarea": "auxiliares",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "250.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth"
+    },
+    {
+      "code": "ORTO-ELASTICS",
+      "names": {
+        "es": "Elásticos intermaxilares",
+        "en": "Intermaxillary elastics"
+      },
+      "category": "ortodoncia",
+      "subarea": "auxiliares",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "20.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-ARCHWIRE",
+      "names": {
+        "es": "Cambio de arco",
+        "en": "Archwire change"
+      },
+      "category": "ortodoncia",
+      "subarea": "auxiliares",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "45.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-BAND",
+      "names": {
+        "es": "Banda ortodóncica",
+        "en": "Orthodontic band"
+      },
+      "category": "ortodoncia",
+      "subarea": "auxiliares",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-BUTTON",
+      "names": {
+        "es": "Botón o aditamento",
+        "en": "Button or auxiliary"
+      },
+      "category": "ortodoncia",
+      "subarea": "auxiliares",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-EXPOSURE",
+      "names": {
+        "es": "Tracción de diente retenido",
+        "en": "Traction of an impacted tooth"
+      },
+      "category": "ortodoncia",
+      "subarea": "auxiliares",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "350.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-REVIEW",
+      "names": {
+        "es": "Revisión de ortodoncia",
+        "en": "Orthodontic review"
+      },
+      "category": "ortodoncia",
+      "subarea": "seguimiento",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-URGENT",
+      "names": {
+        "es": "Urgencia ortodóncica",
+        "en": "Orthodontic emergency"
+      },
+      "category": "ortodoncia",
+      "subarea": "seguimiento",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-MONITOR",
+      "names": {
+        "es": "Seguimiento remoto de ortodoncia",
+        "en": "Remote orthodontic monitoring"
+      },
+      "category": "ortodoncia",
+      "subarea": "seguimiento",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-RET-FIX",
+      "names": {
+        "es": "Retenedor fijo",
+        "en": "Fixed retainer"
+      },
+      "category": "ortodoncia",
+      "subarea": "retencion",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "retainer",
+      "visualization_rules": [
+        {
+          "layer": "lateral_icon",
+          "icon": "retainer",
+          "color": "#0EA5E9"
+        }
+      ],
+      "visualization_config": {
+        "color": "#0EA5E9"
+      }
+    },
+    {
+      "code": "ORTO-RET-REM",
+      "names": {
+        "es": "Retenedor removible",
+        "en": "Removable retainer"
+      },
+      "category": "ortodoncia",
+      "subarea": "retencion",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_arch",
+      "price": "120.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-RET-ESSIX",
+      "names": {
+        "es": "Retenedor termoformado (Essix)",
+        "en": "Vacuum-formed retainer (Essix)"
+      },
+      "category": "ortodoncia",
+      "subarea": "retencion",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_arch",
+      "price": "110.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-RET-REPAIR",
+      "names": {
+        "es": "Reparación de retenedor",
+        "en": "Retainer repair"
+      },
+      "category": "ortodoncia",
+      "subarea": "retencion",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "ORTO-RET-REVIEW",
+      "names": {
+        "es": "Revisión de retención",
+        "en": "Retention review"
+      },
+      "category": "ortodoncia",
+      "subarea": "retencion",
+      "specialties": [
+        "ortodoncia"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

@@ -110,6 +110,12 @@ class ProfessionalsDirectory:
         # The derived id is the one the `*_use_directory_professionals`
         # migrations use for an account with no profile yet; keeping it
         # here keeps the two in step.
+        # The "dentalpin:" prefix is a frozen hash seed, not branding. Five
+        # migrations have already derived profile ids from this exact string
+        # on live databases; changing it would make this function compute
+        # different ids and stop finding the rows those migrations wrote. It
+        # survives the rename to Diente Azul for the same reason a primary
+        # key would.
         profile_id = uuid5(NAMESPACE_URL, f"dentalpin:legacy-professional:{clinic_id}:{account_id}")
         if await db.get(Professional, profile_id) is not None:
             return profile_id

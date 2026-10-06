@@ -30,7 +30,7 @@
 | 2 | NOM-004-SSA3-2012 | **Partial** |
 | 3 | ASA classification on the patient profile | **Not started** |
 | 4 | Medical record per Ley General de Salud Art. 51 Bis 1 | **Partial** — informed consent letters exist; nothing requires one |
-| 5 | Catalogue generation for all specialties | **Partial** — 10 of 17 |
+| 5 | Catalogue generation for all specialties | **Done** — 17 of 17 as specialty packs; clinical review pending |
 | 6 | Periodontogram integrated with Periodontics | **Partial** — API only |
 | 7 | Settings menu working on tablet | **Not started** (unverified) |
 | 8 | Agenda ↔ Google Calendar sync | **Not started** |
@@ -185,39 +185,62 @@ edited or deleted — only revoked — and appear in the composed record.
 `budget_signatures` remains what it was: evidence that a price was
 accepted, never a substitute.
 
-## 5. Catalogue generation for all specialties — **Partial (10 of 17)**
+## 5. Catalogue generation for all specialties — **Done (17 of 17), pending clinical review**
 
-**Done.** Seventeen specialties are recognised, with a suggestions
-endpoint offering the ones a clinic has not yet added, specialty
-management and inline price editing in the catalogue screen (shipped
-2026-09-25), and a specialty↔treatment mapping on `catalog_item_specialties`.
+Decision: [ADR 0047](../adr/0047-a-specialty-is-a-reference-pack.md).
 
-**The measured state**, counted in the seeded database rather than from
-source:
+**Done (2026-10-04).** Every one of the seventeen recognised disciplines
+is a *specialty pack*: a reference catalogue of treatments and plan
+templates that a clinic enables, edits and can restore from *Settings →
+Apps → Treatments*.
 
-| Seeded with a catalogue (10) | Treatments |
+| Reference catalogue | Treatments |
 |---|---|
-| `general` | 47 |
-| `rehabilitacion` | 28 |
-| `cirugia` | 21 |
-| `implantologia` | 16 |
-| `periodoncia` | 16 |
-| `ortodoncia` | 15 |
-| `endodoncia` | 11 |
-| `odontopediatria` | 11 |
-| `estetica` | 10 |
-| `higiene` | 9 |
+| `general` | 110 |
+| `cirugia` | 81 |
+| `rehabilitacion` | 73 |
+| `protesis_laboratorio` | 59 |
+| `odontopediatria` | 53 |
+| `ortodoncia` | 52 |
+| `implantologia` | 49 |
+| `periodoncia` | 47 |
+| `radiologia` | 42 |
+| `dolor_orofacial` | 41 |
+| `medicina_oral` | 39 |
+| `odontogeriatria` | 39 |
+| `estetica` | 38 |
+| `endodoncia` | 36 |
+| `patologia_oral` | 36 |
+| `odontologia_sueno` | 32 |
+| `higiene` | 25 |
 
-**Remaining (7).** `radiologia`, `patologia_oral`, `medicina_oral`,
-`dolor_orofacial`, `odontologia_sueno`, `protesis_laboratorio` and
-`odontogeriatria` exist as *suggestions* a clinic can add, with **no
-treatments behind them**. A clinic adding one today gets an empty
-specialty, which is worse than not offering it — the promise is only kept
-when a suggestion arrives with a catalogue.
+706 distinct treatments (a count above includes the ones a discipline
+shares from another's file) and 125 plan
+templates. The seven disciplines that used to be offered empty now arrive
+with a catalogue, and a clinic gets only the packs it enabled.
 
-Note that a clinic seeded before a catalogue grows does not receive the
-new entries: seeding bails on existing databases, so new baseline data
-needs a backfill script.
+The reference is data: one JSON file per discipline under
+`catalog/reference/`, validated on boot, each organised in sub-areas
+([ADR 0048](../adr/0048-the-reference-catalogue-is-data.md)). A clinical
+reviewer reads and corrects a file without reading Python.
+
+**Remaining.**
+
+- **Clinical review.** The lists were written as a first reference to be
+  edited, not validated by specialists; prices are placeholders on the
+  seed's scale.
+- **Depth — done.** Every discipline was taken to its full range on 2026-10-04
+  (260 → 706 treatments), and so were the plan templates (20 → 125,
+  every discipline has several).
+- **Scope of practice.** Some entries depend on the jurisdiction and the
+  practitioner's licence — perioral fillers and botulinum toxin,
+  intravenous sedation and general anaesthesia, orthognathic and
+  fracture surgery. They are listed, not endorsed; a clinic removes what
+  it may not offer.
+- **Per-doctor catalogues.** One catalogue per clinic; different fees per
+  doctor for the same treatment are not modelled.
+- A clinic seeded before the reference grew is offered the new treatments
+  (*Add N new*) rather than receiving them by itself.
 
 ## 6. Periodontogram integrated with Periodontics — **Partial (API only)**
 

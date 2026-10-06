@@ -9,7 +9,7 @@
 
 Two questions keep getting answered implicitly, in scattered places.
 
-**Who can read the data?** DentalPin's answer today is RBAC
+**Who can read the data?** Diente Azul's answer today is RBAC
 (`backend/app/core/auth/permissions.py`), and RBAC answers a different
 question. It governs what a *user of the application* may do. It says
 nothing about whoever holds a database shell: an operator running the
@@ -144,7 +144,7 @@ The ADR as accepted had `SingleTenantResolver` return a hardcoded
 and that a managed deployment must not be able to declare itself
 self-hosted.
 
-That was wrong about which way this deployment actually points. DentalPin
+That was wrong about which way this deployment actually points. Diente Azul
 is operated by us: `managed` is the truth for the normal case, and a
 hardcoded `self` meant the system asserted that no operator could read
 data an operator was in fact reading. A hardcoded lie is not safer than a

@@ -16,7 +16,7 @@ from .router import router
 class CatalogModule(BaseModule):
     """Catalog module providing treatment catalog management.
 
-    This module serves as the foundation for DentalPin's revenue workflow:
+    This module serves as the foundation for Diente Azul's revenue workflow:
     Catalog → Budgets → Billing.
 
     MVP Features:
@@ -32,7 +32,7 @@ class CatalogModule(BaseModule):
         "name": "catalog",
         "version": "0.1.0",
         "summary": "Treatment catalog, categories, VAT types.",
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": [],

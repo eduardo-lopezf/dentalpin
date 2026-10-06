@@ -21,7 +21,7 @@ class ReportsModule(BaseModule):
         "name": "reports",
         "version": "0.1.0",
         "summary": "Cross-module reporting: billing, budgets, scheduling.",
-        "author": "DentalPin Core Team",
+        "author": "Diente Azul Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": [

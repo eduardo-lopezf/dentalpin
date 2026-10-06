@@ -1,0 +1,1123 @@
+{
+  "key": "protesis_laboratorio",
+  "names": {
+    "es": "Prótesis Dental (laboratorio)",
+    "en": "Dental Prosthetics (laboratory)"
+  },
+  "baseline": false,
+  "subareas": [
+    {
+      "key": "diagnostico",
+      "names": {
+        "es": "Estudio y diagnóstico",
+        "en": "Study and diagnosis"
+      }
+    },
+    {
+      "key": "auxiliares",
+      "names": {
+        "es": "Trabajos auxiliares",
+        "en": "Auxiliary work"
+      }
+    },
+    {
+      "key": "fija",
+      "names": {
+        "es": "Prótesis fija",
+        "en": "Fixed work"
+      }
+    },
+    {
+      "key": "removible",
+      "names": {
+        "es": "Prótesis removible",
+        "en": "Removable work"
+      }
+    },
+    {
+      "key": "reparaciones",
+      "names": {
+        "es": "Reparaciones y añadidos",
+        "en": "Repairs and additions"
+      }
+    },
+    {
+      "key": "ferulas",
+      "names": {
+        "es": "Férulas y protectores",
+        "en": "Trays and guards"
+      }
+    },
+    {
+      "key": "digital",
+      "names": {
+        "es": "Flujo digital",
+        "en": "Digital workflow"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "LAB-STUDY-MODEL",
+      "names": {
+        "es": "Modelos de estudio",
+        "en": "Study models"
+      },
+      "category": "protesis",
+      "subarea": "diagnostico",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "40.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-WAXUP",
+      "names": {
+        "es": "Encerado diagnóstico",
+        "en": "Diagnostic wax-up"
+      },
+      "category": "protesis",
+      "subarea": "diagnostico",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-MOCKUP",
+      "names": {
+        "es": "Mock-up",
+        "en": "Mock-up"
+      },
+      "category": "protesis",
+      "subarea": "diagnostico",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-ARTIC",
+      "names": {
+        "es": "Montaje en articulador",
+        "en": "Articulator mounting"
+      },
+      "category": "protesis",
+      "subarea": "diagnostico",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-DIGITAL-WAX",
+      "names": {
+        "es": "Encerado digital",
+        "en": "Digital wax-up"
+      },
+      "category": "protesis",
+      "subarea": "diagnostico",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "130.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-SILICONE-KEY",
+      "names": {
+        "es": "Llave de silicona",
+        "en": "Silicone index"
+      },
+      "category": "protesis",
+      "subarea": "diagnostico",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-SHADE",
+      "names": {
+        "es": "Toma de color en laboratorio",
+        "en": "Laboratory shade taking"
+      },
+      "category": "protesis",
+      "subarea": "diagnostico",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-TRAY",
+      "names": {
+        "es": "Cubeta individual",
+        "en": "Custom tray"
+      },
+      "category": "protesis",
+      "subarea": "auxiliares",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "45.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-BASE-RIMS",
+      "names": {
+        "es": "Placa base y rodillos",
+        "en": "Baseplate and wax rims"
+      },
+      "category": "protesis",
+      "subarea": "auxiliares",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-PROV",
+      "names": {
+        "es": "Provisional de laboratorio",
+        "en": "Laboratory-made provisional"
+      },
+      "category": "protesis",
+      "subarea": "auxiliares",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-BITE-REG",
+      "names": {
+        "es": "Registro de mordida",
+        "en": "Bite registration"
+      },
+      "category": "protesis",
+      "subarea": "auxiliares",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-PROV-SHELL",
+      "names": {
+        "es": "Provisional prefabricado (cáscara)",
+        "en": "Shell provisional"
+      },
+      "category": "protesis",
+      "subarea": "auxiliares",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-PROV-PMMA",
+      "names": {
+        "es": "Provisional fresado en PMMA",
+        "en": "Milled PMMA provisional"
+      },
+      "category": "protesis",
+      "subarea": "auxiliares",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-JIG",
+      "names": {
+        "es": "Llave de verificación de implantes",
+        "en": "Implant verification jig"
+      },
+      "category": "protesis",
+      "subarea": "auxiliares",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "80.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-SOFT-TISSUE",
+      "names": {
+        "es": "Modelo con encía artificial",
+        "en": "Soft-tissue model"
+      },
+      "category": "protesis",
+      "subarea": "auxiliares",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "40.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-CROWN-MC",
+      "names": {
+        "es": "Corona metal-cerámica (laboratorio)",
+        "en": "Metal-ceramic crown (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "120.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-CROWN-ZIR",
+      "names": {
+        "es": "Corona de zirconio (laboratorio)",
+        "en": "Zirconia crown (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "150.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-CROWN-DISI",
+      "names": {
+        "es": "Corona de disilicato (laboratorio)",
+        "en": "Lithium disilicate crown (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "170.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-VENEER",
+      "names": {
+        "es": "Carilla cerámica (laboratorio)",
+        "en": "Ceramic veneer (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "160.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-INLAY",
+      "names": {
+        "es": "Incrustación (laboratorio)",
+        "en": "Inlay or onlay (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "110.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-POST-CORE",
+      "names": {
+        "es": "Perno-muñón colado (laboratorio)",
+        "en": "Cast post and core (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "70.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-BRIDGE-UNIT",
+      "names": {
+        "es": "Pieza de puente (laboratorio)",
+        "en": "Bridge unit (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "120.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-IMPL-CROWN",
+      "names": {
+        "es": "Corona sobre implante (laboratorio)",
+        "en": "Implant crown (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "200.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-IMPL-ABUT",
+      "names": {
+        "es": "Pilar personalizado (laboratorio)",
+        "en": "Custom abutment (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "150.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-IMPL-BAR",
+      "names": {
+        "es": "Barra sobre implantes (laboratorio)",
+        "en": "Implant bar (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "600.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-HYBRID",
+      "names": {
+        "es": "Estructura híbrida sobre implantes (laboratorio)",
+        "en": "Implant hybrid framework (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "fija",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "1500.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-FULL",
+      "names": {
+        "es": "Prótesis completa (laboratorio)",
+        "en": "Complete denture (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "300.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-IMMED",
+      "names": {
+        "es": "Prótesis inmediata (laboratorio)",
+        "en": "Immediate denture (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "320.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-PART-ACR",
+      "names": {
+        "es": "Prótesis parcial acrílica (laboratorio)",
+        "en": "Acrylic partial denture (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "180.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-PART-METAL",
+      "names": {
+        "es": "Estructura esquelética (laboratorio)",
+        "en": "Cast partial framework (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "300.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-PART-FLEX",
+      "names": {
+        "es": "Prótesis flexible (laboratorio)",
+        "en": "Flexible denture (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "240.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-SETUP",
+      "names": {
+        "es": "Montaje de dientes y prueba",
+        "en": "Tooth set-up and try-in"
+      },
+      "category": "protesis",
+      "subarea": "removible",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-REPAIR",
+      "names": {
+        "es": "Reparación de prótesis en laboratorio",
+        "en": "Laboratory denture repair"
+      },
+      "category": "protesis",
+      "subarea": "reparaciones",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-REBASE",
+      "names": {
+        "es": "Rebase en laboratorio",
+        "en": "Laboratory reline"
+      },
+      "category": "protesis",
+      "subarea": "reparaciones",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "140.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-ADD-TOOTH",
+      "names": {
+        "es": "Añadido de diente a prótesis",
+        "en": "Tooth added to a denture"
+      },
+      "category": "protesis",
+      "subarea": "reparaciones",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-ADD-CLASP",
+      "names": {
+        "es": "Añadido de retenedor (gancho)",
+        "en": "Clasp added to a denture"
+      },
+      "category": "protesis",
+      "subarea": "reparaciones",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "60.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-REPAIR-FRACT",
+      "names": {
+        "es": "Reparación de fractura de prótesis completa",
+        "en": "Complete denture fracture repair"
+      },
+      "category": "protesis",
+      "subarea": "reparaciones",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "90.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-REPAIR-CER",
+      "names": {
+        "es": "Reparación de cerámica en laboratorio",
+        "en": "Ceramic repair in the laboratory"
+      },
+      "category": "protesis",
+      "subarea": "reparaciones",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "100.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-RELINE-SOFT",
+      "names": {
+        "es": "Rebase blando en laboratorio",
+        "en": "Laboratory soft reline"
+      },
+      "category": "protesis",
+      "subarea": "reparaciones",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "150.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-CLASP-REPL",
+      "names": {
+        "es": "Sustitución de retenedor",
+        "en": "Clasp replacement"
+      },
+      "category": "protesis",
+      "subarea": "reparaciones",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "70.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-POLISH",
+      "names": {
+        "es": "Pulido y limpieza de prótesis en laboratorio",
+        "en": "Laboratory polishing and cleaning"
+      },
+      "category": "protesis",
+      "subarea": "reparaciones",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "mantenimiento",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-URGENT",
+      "names": {
+        "es": "Suplemento por trabajo urgente",
+        "en": "Rush-work supplement"
+      },
+      "category": "protesis",
+      "subarea": "reparaciones",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 5,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-GUARD-SPORT",
+      "names": {
+        "es": "Protector bucal deportivo",
+        "en": "Sports mouthguard"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "120.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-BLEACH-TRAY",
+      "names": {
+        "es": "Férulas de blanqueamiento",
+        "en": "Whitening trays"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-SPLINT-MICH",
+      "names": {
+        "es": "Férula de descarga (laboratorio)",
+        "en": "Occlusal splint (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "120.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-RETAINER",
+      "names": {
+        "es": "Retenedor de ortodoncia (laboratorio)",
+        "en": "Orthodontic retainer (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "70.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-ALIGNER",
+      "names": {
+        "es": "Alineador (laboratorio, por unidad)",
+        "en": "Aligner (laboratory, per unit)"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "40.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-ORTHO-APPL",
+      "names": {
+        "es": "Aparato de ortodoncia removible (laboratorio)",
+        "en": "Removable orthodontic appliance (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "150.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-SPACE-MAINT",
+      "names": {
+        "es": "Mantenedor de espacio (laboratorio)",
+        "en": "Space maintainer (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "70.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-MAD",
+      "names": {
+        "es": "Dispositivo de avance mandibular (laboratorio)",
+        "en": "Mandibular advancement device (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "ferulas",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "400.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-SURG-GUIDE",
+      "names": {
+        "es": "Guía quirúrgica",
+        "en": "Surgical guide"
+      },
+      "category": "protesis",
+      "subarea": "digital",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "250.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-CADCAM",
+      "names": {
+        "es": "Diseño CAD/CAM",
+        "en": "CAD/CAM design"
+      },
+      "category": "protesis",
+      "subarea": "digital",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-PRINT",
+      "names": {
+        "es": "Modelo impreso en 3D",
+        "en": "3D-printed model"
+      },
+      "category": "protesis",
+      "subarea": "digital",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "45.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-SCAN-MODEL",
+      "names": {
+        "es": "Escaneado de modelo o impresión",
+        "en": "Model or impression scanning"
+      },
+      "category": "protesis",
+      "subarea": "digital",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "25.00",
+      "minutes": 10,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-MILL",
+      "names": {
+        "es": "Fresado de restauración",
+        "en": "Restoration milling"
+      },
+      "category": "protesis",
+      "subarea": "digital",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-PRINT-SPLINT",
+      "names": {
+        "es": "Férula impresa en 3D",
+        "en": "3D-printed splint"
+      },
+      "category": "protesis",
+      "subarea": "digital",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "100.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-PRINT-PROV",
+      "names": {
+        "es": "Provisional impreso en 3D",
+        "en": "3D-printed provisional"
+      },
+      "category": "protesis",
+      "subarea": "digital",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 15,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-PRINT-DENTURE",
+      "names": {
+        "es": "Prótesis completa impresa",
+        "en": "3D-printed complete denture"
+      },
+      "category": "protesis",
+      "subarea": "digital",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_arch",
+      "price": "350.00",
+      "minutes": 20,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "LAB-SMILE-DESIGN",
+      "names": {
+        "es": "Diseño digital de sonrisa (laboratorio)",
+        "en": "Digital smile design (laboratory)"
+      },
+      "category": "protesis",
+      "subarea": "digital",
+      "specialties": [
+        "protesis_laboratorio"
+      ],
+      "phase": "rehabilitacion",
+      "scope": "global_mouth",
+      "price": "100.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

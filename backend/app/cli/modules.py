@@ -1,4 +1,4 @@
-"""``dentalpin modules ...`` subcommands.
+"""``dienteazul modules ...`` subcommands.
 
 Etapa 1 covers read-only queries: ``list``, ``info``, ``status``,
 ``doctor``, and the recovery command ``orphan``. Install, uninstall
@@ -243,7 +243,7 @@ async def _cmd_install(svc: ModuleService, args: argparse.Namespace) -> int:
     print("Scheduled for install on next restart:")
     for item in scheduled:
         print(f"  - {item}")
-    print("\nRun `dentalpin modules restart` to apply.")
+    print("\nRun `dienteazul modules restart` to apply.")
     return 0
 
 
@@ -256,7 +256,7 @@ async def _cmd_uninstall(svc: ModuleService, args: argparse.Namespace) -> int:
 
     print(f"Scheduled uninstall for {args.name}.")
     print("A data backup will be taken before Alembic downgrade.")
-    print("Run `dentalpin modules restart` to apply.")
+    print("Run `dienteazul modules restart` to apply.")
     return 0
 
 
@@ -274,7 +274,7 @@ async def _cmd_enable(svc: ModuleService, args: argparse.Namespace) -> int:
     print("Will be enabled on next restart:")
     for item in scheduled:
         print(f"  - {item}")
-    print("\nRun `dentalpin modules restart` to apply.")
+    print("\nRun `dienteazul modules restart` to apply.")
     return 0
 
 
@@ -286,7 +286,7 @@ async def _cmd_disable(svc: ModuleService, args: argparse.Namespace) -> int:
         return 3
 
     print(f"Disabled {args.name}. Its tables and data are kept.")
-    print("Run `dentalpin modules restart` to apply.")
+    print("Run `dienteazul modules restart` to apply.")
     return 0
 
 
@@ -302,7 +302,7 @@ async def _cmd_upgrade(svc: ModuleService, args: argparse.Namespace) -> int:
         return 0
 
     print(f"Scheduled upgrade for {args.name}.")
-    print("Run `dentalpin modules restart` to apply.")
+    print("Run `dienteazul modules restart` to apply.")
     return 0
 
 

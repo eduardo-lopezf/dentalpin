@@ -15,7 +15,7 @@ related_paths:
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanTreatmentSearch.vue
   - backend/app/modules/treatment_plan/frontend/components/treatment-plans/PlanDraftLines.vue
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 75cd119
+last_verified_commit: 01eb2d1
 ---
 
 # New treatment plan
@@ -58,7 +58,9 @@ generate a budget.
 3. Typing searches two places at once: your **templates** and the
    **catalog**. Accents are ignored, and templates also match on what
    they contain, so "implant" finds the template even when its name never
-   says so.
+   says so. Matching templates are **grouped by specialty**, the
+   clinic's own first. So are individual treatments: each under one
+   specialty, which tells two "Check-up" entries apart.
 4. Picking a treatment adds it to that tooth. Picking a **template** adds
    all of its lines at once: the per-tooth ones land on the tooth you
    were on, the whole-mouth ones ask for none.

@@ -1,6 +1,6 @@
-# Creating DentalPin modules
+# Creating Diente Azul modules
 
-A complete guide to shipping a DentalPin module — backend, frontend,
+A complete guide to shipping a Diente Azul module — backend, frontend,
 migrations, seeds, tests, distribution — from scratch. Written for
 contributors who have never read the core codebase.
 
@@ -14,7 +14,7 @@ bug fixes.
 > been split into `patients`, `patients_clinical`, `agenda` and
 > `patient_timeline`; every official module now ships its frontend as
 > a Nuxt layer. Report gaps at
-> https://github.com/dentalpin/dentalpin/issues.
+> https://github.com/dienteazul/dienteazul/issues.
 
 ---
 
@@ -46,9 +46,9 @@ intentionally minimal in v1; richer verification (signatures,
 marketplace) is post-v1.
 
 - **Official** modules ship inside `backend/app/modules/<name>/` and
-  are installed-by-default on every DentalPin instance.
+  are installed-by-default on every Diente Azul instance.
 - **Community** modules live in their own git repo, publish to PyPI,
-  and are installed via `pip install` + `dentalpin modules install`.
+  and are installed via `pip install` + `dienteazul modules install`.
 
 ### Manifest
 
@@ -58,7 +58,7 @@ See `docs/technical/core-api.md` for the full schema. Key fields:
 |-------|----------|---------|
 | `name` | yes | Unique id (snake_case). Becomes the API prefix `/api/v1/<name>/` and the permission namespace. |
 | `version` | yes | Semver `X.Y.Z`. Bumped per the rules in §8. |
-| `summary` / `author` / `license` | recommended | Shown in `dentalpin modules info`. |
+| `summary` / `author` / `license` | recommended | Shown in `dienteazul modules info`. |
 | `category` | yes | `official` or `community`. |
 | `min_core_version` | recommended | Reject install if core is older. |
 | `depends` | yes (list) | Module names that must install first. |
@@ -97,18 +97,18 @@ touch app/modules/inventory/{__init__.py,models.py,schemas.py,router.py,service.
 Add the entry point in `backend/pyproject.toml`:
 
 ```toml
-[project.entry-points."dentalpin.modules"]
+[project.entry-points."dienteazul.modules"]
 inventory = "app.modules.inventory:InventoryModule"
 ```
 
-Restart the backend, run `dentalpin modules list` — your module now
+Restart the backend, run `dienteazul modules list` — your module now
 appears as `uninstalled`.
 
 ### B. Community module (standalone repo)
 
 ```bash
 # Start from the template
-git clone https://github.com/dentalpin/dentalpin-module-template my-module
+git clone https://github.com/dienteazul/dienteazul-module-template my-module
 cd my-module
 ```
 
@@ -119,11 +119,11 @@ layer with one page, slot registration. Rename, adjust, publish:
 pip install -e .
 ```
 
-Inside the DentalPin instance:
+Inside the Diente Azul instance:
 
 ```bash
-./bin/dentalpin modules install my_module
-./bin/dentalpin modules restart
+./bin/dienteazul modules install my_module
+./bin/dienteazul modules restart
 docker compose build frontend && docker compose up -d frontend
 ```
 
@@ -136,9 +136,9 @@ Open `/my-module` in the app — the module is live.
 Walk through every file of a minimal module. File tree:
 
 ```
-dentalpin_inventory/                        # Python package
+dienteazul_inventory/                        # Python package
 ├── pyproject.toml
-├── dentalpin_inventory/
+├── dienteazul_inventory/
 │   ├── __init__.py
 │   ├── manifest.py
 │   ├── models.py
@@ -171,13 +171,13 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dentalpin-inventory"
+name = "dienteazul-inventory"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["dentalpin-core>=1.0"]
+dependencies = ["dienteazul-core>=1.0"]
 
-[project.entry-points."dentalpin.modules"]
-inventory = "dentalpin_inventory:InventoryModule"
+[project.entry-points."dienteazul.modules"]
+inventory = "dienteazul_inventory:InventoryModule"
 ```
 
 ### `__init__.py`
@@ -469,7 +469,7 @@ alembic revision --autogenerate \
 ```
 
 (For community modules, swap the `--version-path` for
-`dentalpin_inventory/migrations/versions`.)
+`dienteazul_inventory/migrations/versions`.)
 
 `backend/alembic.ini`'s `version_locations` lists every module's
 `migrations/versions` directory so `alembic history | heads | upgrade`
@@ -491,14 +491,14 @@ uninstalled there).
 A module that is switched off is `disabled`: nothing of it is mounted,
 but its tables stay and its branch keeps being migrated at boot
 ([ADR 0035](../adr/0035-apps-are-disabled-not-uninstalled.md)). That is
-the everyday switch — `dentalpin modules enable|disable <name>` — and it
+the everyday switch — `dienteazul modules enable|disable <name>` — and it
 is why a module with `auto_install=False` starts `disabled`, not
 `uninstalled`. `uninstall` is CLI-only and is the one operation that
 drops tables.
 
 #### What happens between the command and the restart
 
-`dentalpin modules disable` and `uninstall` both take effect at the next
+`dienteazul modules disable` and `uninstall` both take effect at the next
 boot. Until then the module is still mounted, so the core closes
 `module_gate` for it: every `/api/v1/<name>/…` request answers `409` —
 after an uninstall, instead of writing into tables that are about to be
@@ -733,7 +733,7 @@ Modules never hot-load. CLI responses and REST endpoints always return
 "restart required" after a state change. Restart via:
 
 - REST: `POST /api/v1/modules/-/restart`
-- CLI hint: `./bin/dentalpin modules rebuild-frontend`
+- CLI hint: `./bin/dienteazul modules rebuild-frontend`
 - Host: `docker compose restart backend`
 
 ---
@@ -916,7 +916,7 @@ The core's `tests/conftest.py` exposes:
 - `auth_headers` — Bearer token for a registered user
 
 Community modules can import these via pytest discovery once
-`dentalpin-core[tests]` is a dev dependency.
+`dienteazul-core[tests]` is a dev dependency.
 
 ### What to cover
 
@@ -957,7 +957,7 @@ async def test_create_item(client, auth_headers):
 1. Add `backend/app/modules/<name>/` with the files above.
 2. Register the entry point in `backend/pyproject.toml`.
 3. Open a PR to the main repo.
-4. Ship as part of the next DentalPin release.
+4. Ship as part of the next Diente Azul release.
 
 ### Community module
 
@@ -967,9 +967,9 @@ async def test_create_item(client, auth_headers):
 4. Document the install steps in your README:
 
 ```bash
-pip install dentalpin-my-module
-./bin/dentalpin modules install my_module
-./bin/dentalpin modules restart
+pip install dienteazul-my-module
+./bin/dienteazul modules install my_module
+./bin/dienteazul modules restart
 docker compose build frontend && docker compose up -d frontend
 ```
 
@@ -983,11 +983,11 @@ main repo — you own the code, the releases and the support.
 ### CLI
 
 ```bash
-./bin/dentalpin modules list              # everything + state
-./bin/dentalpin modules info inventory    # full metadata
-./bin/dentalpin modules status            # pending + errored summary
-./bin/dentalpin modules doctor            # orphans, missing deps, manifest errors
-./bin/dentalpin modules sync-frontend     # regenerate modules.json
+./bin/dienteazul modules list              # everything + state
+./bin/dienteazul modules info inventory    # full metadata
+./bin/dienteazul modules status            # pending + errored summary
+./bin/dienteazul modules doctor            # orphans, missing deps, manifest errors
+./bin/dienteazul modules sync-frontend     # regenerate modules.json
 ```
 
 ### Useful SQL
@@ -1106,7 +1106,7 @@ def upgrade() -> None:
 
 ## 12. AI agent integration
 
-Every module in DentalPin participates in the AI agent contract. The
+Every module in Diente Azul participates in the AI agent contract. The
 contract is intentionally thin so modules can start as "agent-aware"
 without committing to LLMs or long-running autonomy up front.
 
@@ -1307,7 +1307,7 @@ Before tagging a community module release:
 
 - [ ] `pytest` passes locally
 - [ ] `ruff check .` and `ruff format --check .` are clean
-- [ ] `dentalpin modules doctor` reports no issues after install
+- [ ] `dienteazul modules doctor` reports no issues after install
 - [ ] `CHANGELOG.md` has an entry for the new version
 - [ ] `README.md` has install + config instructions
 - [ ] `version` bumped per §8 rules
@@ -1319,13 +1319,13 @@ Before tagging a community module release:
 ## 14. Governance
 
 - **Community modules stay in their own repos** and are not merged
-  into the DentalPin monorepo.
+  into the Diente Azul monorepo.
 - **Official modules** are maintained by the core team; PRs welcome
   through the usual review process.
 - A **registry of known community modules** will appear at
   `docs/community-modules.md` once the first third-party modules
   exist. Inclusion is informational; it is not an endorsement.
-- **Security reports**: email security@dentalpin.example (placeholder
+- **Security reports**: email security@dienteazul.example (placeholder
   until the first release). Critical issues trigger a coordinated
   disclosure.
 - **Breaking changes to the core API** follow the deprecation policy

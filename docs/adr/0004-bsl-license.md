@@ -6,7 +6,7 @@
 
 ## Context
 
-DentalPin is open source and intends to grow a community. We also fund
+Diente Azul is open source and intends to grow a community. We also fund
 development through a managed SaaS deployment and partner integrators.
 A permissive license alone (Apache 2.0, MIT) lets a competing SaaS take
 the codebase and operate it without contributing back, undermining the
@@ -20,14 +20,14 @@ after a fixed number of years.
 
 ## Decision
 
-DentalPin is licensed under **BSL 1.1**. Per-version conversion: each
+Diente Azul is licensed under **BSL 1.1**. Per-version conversion: each
 released version becomes **Apache 2.0** four years after its release
 date.
 
 Use restriction (BSL "Additional Use Grant"): non-production use is
 unrestricted; production use is permitted **except** for offering a
 commercial managed dental clinic management service to third parties
-that is substantially similar to DentalPin's own SaaS.
+that is substantially similar to Diente Azul's own SaaS.
 
 The Veri\*Factu module (and any other compliance module) inherits the
 same license terms.
@@ -77,8 +77,8 @@ both be true.
 
 **The rule from here:** non-production and evaluation use stays free and
 unrestricted, as the BSL Terms already provide. Production use — a
-clinic running DentalPin against real patients, self-hosted or
-otherwise — requires a commercial licence. Offering DentalPin as a
+clinic running Diente Azul against real patients, self-hosted or
+otherwise — requires a commercial licence. Offering Diente Azul as a
 competing managed service remains excluded at any price.
 
 `LICENSE` now says this in the form BSL expects: the non-standard "Use
@@ -89,12 +89,19 @@ permitting production use only under an authorization the Licensor issues
 competing-managed-service exclusion survives inside the grant rather than
 as a stray field.
 
-**The draft has not been reviewed by counsel**, and two structural
-questions in the file are outside what drafting can fix: the Licensor is
-named as "DentalPin Contributors", which is not a legal entity able to
-grant a commercial licence or issue a key, and the Change Date now reads
-per version, which is what this ADR always intended but changes what a
-distributor must track. Anyone already running a production deployment
+**The draft has not been reviewed by counsel**, though the structural
+question it opened is now closed: the Licensor is **Dentared Odontology
+Services S.L.**, the entity [`../../COLLABORATORS.md`](../../COLLABORATORS.md)
+names as the sole maintainer of the core. It can act as Licensor because
+the mandatory CLA grants it the rights to maintain, relicense and defend
+the work — which is exactly what granting a licence and issuing a key
+require. The **copyright line deliberately still reads "Diente Azul
+Contributors"**, because the same CLA says it does not transfer authorship:
+contributors remain the owners of their work. Licensor and copyright
+holder are different roles here, and collapsing them would overstate what
+the CLA obtained. One question remains open in the file: the Change Date
+now reads per version, which is what this ADR always intended but changes
+what a distributor must track. Anyone already running a production deployment
 under the previous reading should be grandfathered by name in an issued
 key rather than argued with — deliberately kept out of the licence text,
 where it would be permanent and unadministrable.

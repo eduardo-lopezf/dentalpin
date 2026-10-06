@@ -21,7 +21,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.modules.catalog.models import TreatmentCatalogItem
+from app.modules.catalog.models import Specialty, TreatmentCatalogItem
 from app.modules.odontogram.models import Treatment
 from app.modules.odontogram.service import TreatmentService
 
@@ -110,6 +110,23 @@ class PlanTemplateService:
             stmt = stmt.where(PlanTemplate.is_active.is_(True))
         result = await db.execute(stmt)
         return list(result.scalars().unique().all())
+
+    @staticmethod
+    async def specialties_by_key(db: AsyncSession, clinic_id: UUID) -> dict[str, Specialty]:
+        """Template ``key`` -> the discipline it belongs to, as the clinic names it.
+
+        Only the reference templates have one. A template the clinic saved
+        from its own plan has no ``key`` and belongs to no discipline.
+        """
+        rows = await db.execute(
+            select(Specialty).where(Specialty.clinic_id == clinic_id, Specialty.key.is_not(None))
+        )
+        by_key = {row.key: row for row in rows.scalars()}
+        return {
+            spec["key"]: by_key[spec["specialty"]]
+            for spec in PLAN_TEMPLATES
+            if spec["specialty"] in by_key
+        }
 
     @staticmethod
     async def get(db: AsyncSession, clinic_id: UUID, template_id: UUID) -> PlanTemplate | None:
@@ -503,15 +520,47 @@ class PlanTemplateService:
     # ------------------------------------------------------------------
 
     @staticmethod
-    async def seed(db: AsyncSession, clinic_id: UUID) -> int:
-        """Install the starter templates for a clinic. Idempotent on ``key``.
+    async def seed(
+        db: AsyncSession,
+        clinic_id: UUID,
+        *,
+        specialty: str | None = None,
+        restore: bool = False,
+    ) -> int:
+        """Install the reference templates for a clinic. Idempotent on ``key``.
+
+        A template belongs to a discipline (``specialty``), and a clinic
+        gets it only while it has that discipline enabled in its catalogue.
+        ``specialty`` narrows the run to one discipline — what enabling or
+        restoring a specialty pack asks for.
 
         Deliberately tolerant: a clinic whose catalog lacks one of the codes
         gets the template without that line, and a template that would end up
         empty is not created at all. Re-running fills in whatever was missing
         the first time, so this doubles as the repair path when the catalog
         was seeded after the templates.
+
+        Without ``restore`` a template the clinic already has is never
+        overwritten. With it, the template is put back to the reference —
+        name, description, order and lines — and shown again.
         """
+        enabled = set(
+            (
+                await db.execute(
+                    select(Specialty.key).where(
+                        Specialty.clinic_id == clinic_id,
+                        Specialty.key.is_not(None),
+                        Specialty.is_active.is_(True),
+                    )
+                )
+            ).scalars()
+        )
+        wanted = [
+            spec
+            for spec in PLAN_TEMPLATES
+            if spec["specialty"] in enabled and specialty in (None, spec["specialty"])
+        ]
+
         result = await db.execute(
             select(PlanTemplate)
             .options(*_template_loader())
@@ -519,7 +568,7 @@ class PlanTemplateService:
         )
         existing = {t.key: t for t in result.scalars().unique().all()}
 
-        codes = {c for spec in PLAN_TEMPLATES for c in (i["code"] for i in spec["items"])}
+        codes = {c for spec in wanted for c in (i["code"] for i in spec["items"])}
         catalog_result = await db.execute(
             select(TreatmentCatalogItem).where(
                 TreatmentCatalogItem.clinic_id == clinic_id,
@@ -529,7 +578,7 @@ class PlanTemplateService:
         by_code = {c.internal_code: c for c in catalog_result.scalars().all()}
 
         touched = 0
-        for spec in PLAN_TEMPLATES:
+        for spec in wanted:
             specs = [
                 {"catalog_item_id": by_code[i["code"]].id, "phase": i.get("phase")}
                 for i in spec["items"]
@@ -549,6 +598,11 @@ class PlanTemplateService:
                 )
                 db.add(template)
                 await db.flush()
+            elif restore:
+                template.name = spec["name"]
+                template.description = spec["description"]
+                template.display_order = spec["display_order"]
+                template.is_active = True
             elif len(template.items) >= len(specs):
                 # Already complete (or edited by the clinic). Never overwrite.
                 continue
@@ -558,6 +612,30 @@ class PlanTemplateService:
 
         await db.flush()
         return touched
+
+    @staticmethod
+    async def set_specialty_active(
+        db: AsyncSession, clinic_id: UUID, specialty: str, active: bool
+    ) -> int:
+        """Show or hide the reference templates of a discipline.
+
+        Follows the discipline being enabled or disabled in the catalogue.
+        Only the reference ones (those with a ``key``): a template the
+        clinic saved from one of its own plans is the clinic's.
+        """
+        keys = [spec["key"] for spec in PLAN_TEMPLATES if spec["specialty"] == specialty]
+        if not keys:
+            return 0
+        result = await db.execute(
+            select(PlanTemplate).where(
+                PlanTemplate.clinic_id == clinic_id, PlanTemplate.key.in_(keys)
+            )
+        )
+        templates = list(result.scalars())
+        for template in templates:
+            template.is_active = active
+        await db.flush()
+        return len(templates)
 
 
 def _catalog_name(catalog_item: TreatmentCatalogItem) -> str:

@@ -18,6 +18,7 @@ from .models import (
     VatType,
     catalog_item_specialties,
 )
+from .reference import BY_CODE
 
 # Rounding tolerance when comparing session sum vs. item total.
 SESSION_SUM_TOLERANCE = Decimal("0.01")
@@ -936,6 +937,43 @@ class CatalogService:
             .limit(limit)
         )
         return list(result.unique().scalars().all())
+
+    @staticmethod
+    async def primary_specialties(
+        db: AsyncSession, clinic_id: UUID, items: list[TreatmentCatalogItem]
+    ) -> dict[UUID, Specialty]:
+        """The one discipline each treatment is shown under.
+
+        A treatment may belong to several. It is filed under the one whose
+        reference file holds it (ADR 0048) when the clinic has that one
+        enabled, otherwise under the first enabled one it was given. A
+        treatment with no enabled discipline is absent from the result.
+        """
+        if not items:
+            return {}
+        rows = await db.execute(
+            select(catalog_item_specialties.c.catalog_item_id, Specialty)
+            .join(Specialty, Specialty.id == catalog_item_specialties.c.specialty_id)
+            .where(
+                Specialty.clinic_id == clinic_id,
+                Specialty.is_active.is_(True),
+                catalog_item_specialties.c.catalog_item_id.in_([item.id for item in items]),
+            )
+            .order_by(Specialty.created_at, Specialty.id)
+        )
+        linked: dict[UUID, list[Specialty]] = {}
+        for item_id, specialty in rows.all():
+            linked.setdefault(item_id, []).append(specialty)
+
+        primary: dict[UUID, Specialty] = {}
+        for item in items:
+            candidates = linked.get(item.id)
+            if not candidates:
+                continue
+            reference = BY_CODE.get(item.internal_code)
+            owner = reference[0] if reference else None
+            primary[item.id] = next((s for s in candidates if s.key == owner), candidates[0])
+        return primary
 
     @staticmethod
     async def get_popular_items(

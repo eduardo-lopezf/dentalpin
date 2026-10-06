@@ -1,8 +1,8 @@
-# DentalPin Design System
+# Diente Azul Design System
 
-This document is the **single source of truth** for visual design in DentalPin. It defines tokens, components and patterns that any contributor (human or agent) must follow when adding or modifying UI.
+This document is the **single source of truth** for visual design in Diente Azul. It defines tokens, components and patterns that any contributor (human or agent) must follow when adding or modifying UI.
 
-DentalPin is clinical software used by dentists, hygienists, assistants and receptionists for **8+ hour shifts**. The design system optimises for **calm, legibility and clinical safety** in that order. Aesthetics serve those goals — they never override them.
+Diente Azul is clinical software used by dentists, hygienists, assistants and receptionists for **8+ hour shifts**. The design system optimises for **calm, legibility and clinical safety** in that order. Aesthetics serve those goals — they never override them.
 
 > **Companion docs**
 > - Implementation plan: `docs/technical/ui-redesign-calm.md`
@@ -226,7 +226,7 @@ See [`touch-adaptation.md`](./touch-adaptation.md) and [ADR 0022](../adr/0022-to
 
 ## 6. Components
 
-Components in DentalPin are built on **Nuxt UI 4** (Radix Vue under the hood). Customisation happens centrally via `app.config.ts`, not per-call.
+Components in Diente Azul are built on **Nuxt UI 4** (Radix Vue under the hood). Customisation happens centrally via `app.config.ts`, not per-call.
 
 ### 6.1 Buttons (`UButton`)
 

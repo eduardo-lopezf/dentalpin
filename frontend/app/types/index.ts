@@ -829,6 +829,8 @@ export interface TreatmentCatalogItem {
   odontogram_mapping?: OdontogramMapping
   sessions?: CatalogItemSession[]
   specialties?: SpecialtyBrief[]
+  /** Search hits only: the one discipline the treatment is shown under. */
+  specialty?: SpecialtyBrief | null
 }
 
 export interface TreatmentCatalogItemCreate {
@@ -2629,6 +2631,8 @@ export interface PlanProposal {
 export interface PlanTemplate {
   id: string
   key?: string | null
+  /** The discipline a reference template belongs to; none on the clinic's own. */
+  specialty?: { key: string, names: Record<string, string> } | null
   name: string
   description?: string | null
   is_active: boolean

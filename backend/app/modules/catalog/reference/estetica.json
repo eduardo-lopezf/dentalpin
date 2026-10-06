@@ -1,0 +1,789 @@
+{
+  "key": "estetica",
+  "names": {
+    "es": "Estética Dental",
+    "en": "Cosmetic Dentistry"
+  },
+  "baseline": true,
+  "subareas": [
+    {
+      "key": "diseno",
+      "names": {
+        "es": "Diseño de sonrisa",
+        "en": "Smile design"
+      }
+    },
+    {
+      "key": "blanqueamiento",
+      "names": {
+        "es": "Blanqueamiento",
+        "en": "Whitening"
+      }
+    },
+    {
+      "key": "carillas",
+      "names": {
+        "es": "Carillas",
+        "en": "Veneers"
+      }
+    },
+    {
+      "key": "conservadora",
+      "names": {
+        "es": "Estética conservadora",
+        "en": "Conservative aesthetics"
+      }
+    },
+    {
+      "key": "gingival",
+      "names": {
+        "es": "Estética gingival",
+        "en": "Gingival aesthetics"
+      }
+    },
+    {
+      "key": "perioral",
+      "names": {
+        "es": "Estética perioral",
+        "en": "Perioral aesthetics"
+      }
+    }
+  ],
+  "treatments": [
+    {
+      "code": "EST-CONS",
+      "names": {
+        "es": "Consulta de estética dental",
+        "en": "Cosmetic dentistry consultation"
+      },
+      "category": "diagnostico",
+      "subarea": "diseno",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "50.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-DSD",
+      "names": {
+        "es": "Diseño digital de sonrisa",
+        "en": "Digital smile design"
+      },
+      "category": "estetica",
+      "subarea": "diseno",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 45,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-MOCKUP",
+      "names": {
+        "es": "Mock-up estético (prueba de sonrisa)",
+        "en": "Aesthetic mock-up (smile trial)"
+      },
+      "category": "estetica",
+      "subarea": "diseno",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "150.00",
+      "minutes": 45,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-SHADE",
+      "names": {
+        "es": "Toma de color y fotografía estética",
+        "en": "Shade taking and aesthetic photography"
+      },
+      "category": "estetica",
+      "subarea": "diseno",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "diagnostico",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 20,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-BLAN-AMB",
+      "names": {
+        "es": "Blanqueamiento ambulatorio",
+        "en": "At-home whitening"
+      },
+      "category": "estetica",
+      "subarea": "blanqueamiento",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_mouth",
+      "price": "250.00",
+      "minutes": 30,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-BLAN-CLIN",
+      "names": {
+        "es": "Blanqueamiento en clínica",
+        "en": "In-office whitening"
+      },
+      "category": "estetica",
+      "subarea": "blanqueamiento",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_mouth",
+      "price": "400.00",
+      "minutes": 90,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-BLAN-COMBO",
+      "names": {
+        "es": "Blanqueamiento combinado",
+        "en": "Combined whitening"
+      },
+      "category": "estetica",
+      "subarea": "blanqueamiento",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_mouth",
+      "price": "550.00",
+      "minutes": 120,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-BLAN-LASER",
+      "names": {
+        "es": "Blanqueamiento con láser o lámpara LED",
+        "en": "Laser or LED-assisted whitening"
+      },
+      "category": "estetica",
+      "subarea": "blanqueamiento",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_mouth",
+      "price": "450.00",
+      "minutes": 75,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-BLAN-TOOTH",
+      "names": {
+        "es": "Blanqueamiento de un diente",
+        "en": "Single-tooth whitening"
+      },
+      "category": "estetica",
+      "subarea": "blanqueamiento",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-BLAN-MAINT",
+      "names": {
+        "es": "Mantenimiento de blanqueamiento (recarga)",
+        "en": "Whitening top-up"
+      },
+      "category": "estetica",
+      "subarea": "blanqueamiento",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_mouth",
+      "price": "80.00",
+      "minutes": 15,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-BLAN-DESENS",
+      "names": {
+        "es": "Tratamiento desensibilizante post-blanqueamiento",
+        "en": "Post-whitening desensitising treatment"
+      },
+      "category": "estetica",
+      "subarea": "blanqueamiento",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_mouth",
+      "price": "30.00",
+      "minutes": 15,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "REST-VEN-COMP",
+      "names": {
+        "es": "Carilla composite",
+        "en": "Composite veneer"
+      },
+      "category": "restauradora",
+      "subarea": "carillas",
+      "specialties": [
+        "estetica",
+        "general"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "280.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "veneer",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#F472B6",
+          "kind": "outline"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F472B6"
+      }
+    },
+    {
+      "code": "REST-VEN-PORC",
+      "names": {
+        "es": "Carilla porcelana",
+        "en": "Porcelain veneer"
+      },
+      "category": "restauradora",
+      "subarea": "carillas",
+      "specialties": [
+        "estetica",
+        "general"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "480.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "veneer",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#F472B6",
+          "kind": "outline"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F472B6"
+      }
+    },
+    {
+      "code": "REST-VEN-ZIR",
+      "names": {
+        "es": "Carilla zirconio",
+        "en": "Zirconia veneer"
+      },
+      "category": "restauradora",
+      "subarea": "carillas",
+      "specialties": [
+        "estetica",
+        "general"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "550.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "veneer",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#EC4899",
+          "kind": "outline"
+        }
+      ],
+      "visualization_config": {
+        "color": "#EC4899"
+      }
+    },
+    {
+      "code": "EST-VEN-DISI",
+      "names": {
+        "es": "Carilla de disilicato de litio",
+        "en": "Lithium disilicate veneer"
+      },
+      "category": "restauradora",
+      "subarea": "carillas",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "520.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "veneer",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#F472B6",
+          "kind": "outline"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F472B6"
+      }
+    },
+    {
+      "code": "EST-VEN-PREPLESS",
+      "names": {
+        "es": "Carilla sin tallado",
+        "en": "No-prep veneer"
+      },
+      "category": "restauradora",
+      "subarea": "carillas",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "600.00",
+      "minutes": 90,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "veneer",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#F472B6",
+          "kind": "outline"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F472B6"
+      }
+    },
+    {
+      "code": "EST-VEN-INJECT",
+      "names": {
+        "es": "Carilla de composite inyectado",
+        "en": "Injected composite veneer"
+      },
+      "category": "restauradora",
+      "subarea": "carillas",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "320.00",
+      "minutes": 60,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "veneer",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#F472B6",
+          "kind": "outline"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F472B6"
+      }
+    },
+    {
+      "code": "EST-VEN-PROV",
+      "names": {
+        "es": "Carilla provisional",
+        "en": "Provisional veneer"
+      },
+      "category": "restauradora",
+      "subarea": "carillas",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "per_tooth",
+      "odontogram_treatment_type": "veneer",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#F472B6",
+          "kind": "outline"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F472B6"
+      }
+    },
+    {
+      "code": "EST-VEN-REPAIR",
+      "names": {
+        "es": "Reparación de carilla",
+        "en": "Veneer repair"
+      },
+      "category": "restauradora",
+      "subarea": "carillas",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "mantenimiento",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "veneer",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#F472B6",
+          "kind": "outline"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F472B6"
+      }
+    },
+    {
+      "code": "EST-VEN-RECEMENT",
+      "names": {
+        "es": "Recementado de carilla",
+        "en": "Veneer recementation"
+      },
+      "category": "restauradora",
+      "subarea": "carillas",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "mantenimiento",
+      "scope": "tooth",
+      "price": "60.00",
+      "minutes": 30,
+      "vat_type": "exempt",
+      "pricing_strategy": "flat",
+      "odontogram_treatment_type": "veneer",
+      "visualization_rules": [
+        {
+          "layer": "occlusal_surface",
+          "color": "#F472B6",
+          "kind": "outline"
+        }
+      ],
+      "visualization_config": {
+        "color": "#F472B6"
+      }
+    },
+    {
+      "code": "EST-MICROAB",
+      "names": {
+        "es": "Microabrasión",
+        "en": "Microabrasion"
+      },
+      "category": "estetica",
+      "subarea": "conservadora",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "120.00",
+      "minutes": 45,
+      "vat_type": "standard",
+      "pricing_strategy": "per_tooth"
+    },
+    {
+      "code": "EST-REMIN",
+      "names": {
+        "es": "Remineralización estética",
+        "en": "Aesthetic remineralization"
+      },
+      "category": "estetica",
+      "subarea": "conservadora",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-COMP-AESTH",
+      "names": {
+        "es": "Reconstrucción estética con composite",
+        "en": "Aesthetic composite reconstruction"
+      },
+      "category": "estetica",
+      "subarea": "conservadora",
+      "specialties": [
+        "estetica",
+        "general"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "220.00",
+      "minutes": 60,
+      "vat_type": "standard",
+      "pricing_strategy": "per_tooth"
+    },
+    {
+      "code": "EST-PIG-REMOVE",
+      "names": {
+        "es": "Eliminación de pigmentación",
+        "en": "Pigmentation removal"
+      },
+      "category": "estetica",
+      "subarea": "conservadora",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_mouth",
+      "price": "90.00",
+      "minutes": 30,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-DIASTEMA",
+      "names": {
+        "es": "Cierre de diastema con composite",
+        "en": "Diastema closure with composite"
+      },
+      "category": "estetica",
+      "subarea": "conservadora",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "180.00",
+      "minutes": 60,
+      "vat_type": "standard",
+      "pricing_strategy": "per_tooth"
+    },
+    {
+      "code": "EST-BONDING",
+      "names": {
+        "es": "Bonding estético (bordes incisales)",
+        "en": "Cosmetic bonding (incisal edges)"
+      },
+      "category": "estetica",
+      "subarea": "conservadora",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "150.00",
+      "minutes": 45,
+      "vat_type": "standard",
+      "pricing_strategy": "per_tooth"
+    },
+    {
+      "code": "EST-CONTOUR",
+      "names": {
+        "es": "Contorneado estético (ameloplastia)",
+        "en": "Cosmetic contouring (enameloplasty)"
+      },
+      "category": "estetica",
+      "subarea": "conservadora",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "50.00",
+      "minutes": 20,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-INFILT",
+      "names": {
+        "es": "Infiltración de resina para manchas blancas",
+        "en": "Resin infiltration for white spots"
+      },
+      "category": "estetica",
+      "subarea": "conservadora",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "110.00",
+      "minutes": 45,
+      "vat_type": "standard",
+      "pricing_strategy": "per_tooth"
+    },
+    {
+      "code": "EST-FULL-COMP",
+      "names": {
+        "es": "Rehabilitación estética con composite (por arcada)",
+        "en": "Aesthetic composite rehabilitation (per arch)"
+      },
+      "category": "estetica",
+      "subarea": "conservadora",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_arch",
+      "price": "1800.00",
+      "minutes": 180,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-GEM",
+      "names": {
+        "es": "Joya dental",
+        "en": "Tooth gem"
+      },
+      "category": "estetica",
+      "subarea": "conservadora",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "tooth",
+      "price": "50.00",
+      "minutes": 15,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-GINGIVO",
+      "names": {
+        "es": "Gingivoplastia estética",
+        "en": "Aesthetic gingivoplasty"
+      },
+      "category": "estetica",
+      "subarea": "gingival",
+      "specialties": [
+        "estetica",
+        "periodoncia"
+      ],
+      "phase": "estetica",
+      "scope": "multi_tooth",
+      "price": "220.00",
+      "minutes": 45,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-GUM-LASER",
+      "names": {
+        "es": "Recontorneado gingival con láser",
+        "en": "Laser gum recontouring"
+      },
+      "category": "estetica",
+      "subarea": "gingival",
+      "specialties": [
+        "estetica",
+        "periodoncia"
+      ],
+      "phase": "estetica",
+      "scope": "multi_tooth",
+      "price": "250.00",
+      "minutes": 45,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-HA-LIPS",
+      "names": {
+        "es": "Relleno de labios con ácido hialurónico",
+        "en": "Lip filler with hyaluronic acid"
+      },
+      "category": "estetica",
+      "subarea": "perioral",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_mouth",
+      "price": "300.00",
+      "minutes": 45,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-HA-PERIORAL",
+      "names": {
+        "es": "Relleno perioral con ácido hialurónico",
+        "en": "Perioral filler with hyaluronic acid"
+      },
+      "category": "estetica",
+      "subarea": "perioral",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_mouth",
+      "price": "350.00",
+      "minutes": 45,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    },
+    {
+      "code": "EST-BTX-SMILE",
+      "names": {
+        "es": "Toxina botulínica para sonrisa gingival",
+        "en": "Botulinum toxin for a gummy smile"
+      },
+      "category": "estetica",
+      "subarea": "perioral",
+      "specialties": [
+        "estetica"
+      ],
+      "phase": "estetica",
+      "scope": "global_mouth",
+      "price": "250.00",
+      "minutes": 30,
+      "vat_type": "standard",
+      "pricing_strategy": "flat"
+    }
+  ]
+}

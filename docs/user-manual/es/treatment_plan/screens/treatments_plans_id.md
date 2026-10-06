@@ -50,7 +50,7 @@ related_paths:
   - backend/app/modules/treatment_plan/prescriptions.py
   - backend/app/modules/treatment_plan/proposals.py
   - backend/app/modules/treatment_plan/router.py
-last_verified_commit: 75cd119
+last_verified_commit: 01eb2d1
 ---
 
 # Detalle del plan de tratamiento
@@ -71,7 +71,10 @@ combinan:
   veces, así que un plan puede ser fase higiénica + implante
   unitario. La ventana lleva un buscador que filtra las plantillas por
   nombre y por los tratamientos que llevan dentro; aquí no ofrece
-  tratamientos sueltos, porque para eso ya está el odontograma.
+  tratamientos sueltos, porque para eso ya está el odontograma. Las
+  plantillas aparecen **agrupadas por especialidad**; las que la clínica
+  guardó de sus propios planes van primero, bajo *De la clínica*. Solo
+  salen las de las especialidades habilitadas.
 - **Proponer desde el odontograma.** El botón aparece con un número
   cuando el paciente tiene hallazgos marcados en la ficha para los que
   no hay nada planificado. La lista empareja cada hallazgo con el

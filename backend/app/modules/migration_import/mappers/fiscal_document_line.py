@@ -148,8 +148,8 @@ class FiscalDocumentLineMapper:
             entity_type="fiscal_document_line",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="invoice_items",
-            dentalpin_id=item.id,
+            dienteazul_table="invoice_items",
+            dienteazul_id=item.id,
         )
         return item.id
 

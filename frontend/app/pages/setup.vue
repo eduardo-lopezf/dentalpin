@@ -142,7 +142,7 @@ async function onSubmit() {
   <div class="w-full max-w-[440px] p-6">
     <div class="text-center mb-6">
       <img
-        src="/logo-icon.svg"
+        src="/dienteazul-icon.svg"
         alt="Dental Demo"
         width="56"
         height="56"
