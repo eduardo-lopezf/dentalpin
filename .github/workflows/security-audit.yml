@@ -40,33 +40,15 @@ jobs:
           pip install -e .
           pip install pip-audit
 
-      # `--ignore-vuln` entries are promises, like the allowlists in
-      # tests/test_no_dynamic_sql.py. Each needs a reason that survives
-      # review, and each should be removed the moment a fix ships.
-      #
-      # PYSEC-2026-1325 (ecdsa): reached only through python-jose's EC
-      # algorithms. Both `create_access_token` and `decode_token` pin
-      # HS256 — decode passes `algorithms=[settings.ALGORITHM]`, so a
-      # token cannot talk us onto an EC path — and upstream has published
-      # no fixed version, so there is nothing to upgrade to.
-      #
-      # CVE-2026-85394 (python-jose): algorithm confusion — given the
-      # service's *public* key, an attacker can forge an HS256 token by
-      # feeding that key to the HMAC verifier. It needs two things we do
-      # not have. `ALGORITHM` is HS256 with a symmetric `SECRET_KEY`, so
-      # there is no public key to steal; and a verifier only picks the
-      # algorithm from the token header when the caller leaves it free,
-      # while both decode sites pass `algorithms=[settings.ALGORITHM]`.
-      # 3.5.0 is the latest release and is affected — the advisory is the
-      # incomplete fix for CVE-2024-33663 — so there is nothing to
-      # upgrade to. `tests/test_jwt_algorithm_pinning.py` fails if either
-      # condition stops holding, which is what keeps this entry honest.
+      # No `--ignore-vuln` entries. There were two, both for python-jose
+      # (its algorithm confusion, and `ecdsa` underneath it), neither with
+      # a fixed release to move to; the fix was to stop depending on it.
+      # An entry added here is a promise, like the allowlists in
+      # tests/test_no_dynamic_sql.py: it needs a reason that survives
+      # review and goes the moment a fix ships.
       - name: Audit Python dependencies
         working-directory: backend
-        run: |
-          pip-audit --progress-spinner off \
-            --ignore-vuln PYSEC-2026-1325 \
-            --ignore-vuln CVE-2026-85394
+        run: pip-audit --progress-spinner off
 
   npm-advisories:
     runs-on: ubuntu-latest
@@ -121,3 +103,108 @@ jobs:
       - name: Fail on unlisted high or critical advisories
         working-directory: frontend
         run: node scripts/audit-gate.mjs
+
+  image-advisories:
+    # ADR 0050. The images we build are ours, so their advisories are too. Scout
+    # answers only to a logged-in Docker Hub account, and a pull request
+    # from a fork gets no secrets — skipped there, which shows as skipped
+    # rather than as a scan that passed.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    strategy:
+      # One image going red says nothing about the others.
+      fail-fast: false
+      matrix:
+        include:
+          # `image` picks the exception list in scripts/image_audit_gate.py.
+          # `file` is the Dockerfile, built from `context`, and also where
+          # the pinned base digest is read from. `floating` is the upstream
+          # tag that digest was taken from; it names a major line, so it
+          # changes only when the Dockerfile moves to another one.
+          - image: postgres
+            file: postgres/Dockerfile
+            context: postgres
+            floating: postgres:15-alpine
+          - image: backend
+            file: backend/Dockerfile
+            context: backend
+            floating: python:3.11-slim
+          # The production frontend, as a deploy builds it: from the
+          # repository root, because the build reads the module layers.
+          - image: frontend
+            file: frontend/Dockerfile.prod
+            context: .
+            floating: node:24-alpine
+          # The documentation portal: static files behind nginx. Its
+          # builder stage is not pinned and not shipped; the digest read
+          # from the file is the runtime's.
+          - image: docs-portal
+            file: docs/portal/Dockerfile
+            context: .
+            floating: nginx:alpine-slim
+    steps:
+      - uses: actions/checkout@v5
+
+      # Without this the login step fails with a message about a missing
+      # username, which reads like a typo in this file. Say what is
+      # actually missing and where it goes.
+      - name: Docker Hub credentials are configured
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ]; then
+            echo "::error::Docker Scout needs a Docker Hub login. Add the repository secrets DOCKERHUB_USERNAME and DOCKERHUB_TOKEN (a read-only access token is enough). Nothing was scanned."
+            exit 1
+          fi
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # No --target: the last stage, which is what a deploy ships.
+      - name: Build the image
+        run: docker build -t audit-${{ matrix.image }} -f ${{ matrix.file }} ${{ matrix.context }}
+
+      - name: Scan it
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+          image: local://audit-${{ matrix.image }}
+          sarif-file: ${{ matrix.image }}-image.sarif
+          # The gate below decides; a comment on every pull request is
+          # one more thing nobody reads.
+          write-comment: false
+
+      # Same floor and same shape as the npm gate above: `high` is what
+      # we would hold a release for, the exceptions and their reasons
+      # live in the script, and one whose fix has become reachable — or
+      # that is no longer reported — fails as loudly as a new finding.
+      - name: Fail on unlisted high or critical findings
+        run: python3 scripts/image_audit_gate.py ${{ matrix.image }} ${{ matrix.image }}-image.sarif
+
+      # What the scan cannot see. PostgreSQL and CPython are compiled
+      # from source in their images, so Scout lists none of their own
+      # CVEs: the database sat on 15.18 for three months with 36 of them
+      # fixed in 15.19 and a scan that never mentioned one. The floating
+      # tag is the only signal — when it stops pointing at the digest
+      # pinned in the Dockerfile, upstream has published a newer release
+      # or rebuilt on newer system packages, and the pin is behind.
+      - name: The pinned base is what upstream publishes today
+        if: ${{ !cancelled() }}
+        env:
+          PIN_FILE: ${{ matrix.file }}
+          FLOATING: ${{ matrix.floating }}
+        run: |
+          pinned=$(grep -oE 'sha256:[0-9a-f]{64}' "$PIN_FILE" | head -1)
+          published=$(docker buildx imagetools inspect "$FLOATING" --format '{{.Manifest.Digest}}')
+          echo "pinned in $PIN_FILE: $pinned"
+          echo "published as $FLOATING: $published"
+          case "$pinned" in sha256:*) ;; *) echo "::error::could not read a pinned digest from $PIN_FILE"; exit 1 ;; esac
+          case "$published" in sha256:*) ;; *) echo "::error::could not read the published digest of $FLOATING; nothing was compared"; exit 1 ;; esac
+          if [ "$pinned" != "$published" ]; then
+            echo "::error::$FLOATING has moved past the digest pinned in $PIN_FILE. Move the pin (the header of that file says what goes with it)."
+            exit 1
+          fi

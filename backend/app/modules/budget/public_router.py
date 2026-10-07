@@ -30,8 +30,8 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from jose import JWTError, jwt
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -105,7 +105,7 @@ def _verify_session_cookie(token: UUID, raw: str | None) -> UUID | None:
         return None
     try:
         payload = jwt.decode(raw, _public_secret(), algorithms=[settings.ALGORITHM])
-    except JWTError:
+    except jwt.PyJWTError:
         return None
     if payload.get("tok") != str(token):
         return None

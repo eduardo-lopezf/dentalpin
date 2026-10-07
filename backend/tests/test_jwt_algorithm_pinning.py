@@ -1,19 +1,19 @@
 """A token is verified under the algorithm we chose, never the one it claims.
 
-ADR 0029, invariant 3. `python-jose` has now shipped two algorithm-confusion
-flaws (CVE-2024-33663, and CVE-2026-85394 which is its incomplete fix): given
-a service's **public** key, an attacker can forge an HS256 token by handing
-that key to the HMAC verifier — but only where the verifier was left free to
-pick the algorithm from the token's own header.
+ADR 0029, invariant 3. Algorithm confusion is the flaw this guards against:
+given a service's **public** key, an attacker forges an HS256 token by
+handing that key to the HMAC verifier — possible only where the verifier is
+left free to pick the algorithm from the token's own header.
 
-Neither condition holds here. `ALGORITHM` is HS256 with a symmetric
-`SECRET_KEY`, so there is no public key to steal, and both decode sites pin
-`algorithms=[...]`. Upstream has published no fixed release — 3.5.0 is the
-latest and is affected — so `.github/workflows/security-audit.yml` ignores the
-advisory, and this file is what keeps that promise honest: the day someone
-decodes without pinning, or moves to an asymmetric algorithm, the reason the
-advisory was waived stops being true and this fails instead of the waiver
-quietly covering it.
+This file was first written to keep a waiver honest. `python-jose` shipped
+that flaw twice (CVE-2024-33663, then CVE-2026-85394, its incomplete fix)
+with no fixed release, and the audit ignored the advisory on the strength of
+the two conditions below. The library is gone — tokens are signed and
+verified with PyJWT, which refuses a PEM key as an HMAC secret and will not
+decode without `algorithms` — and so is the waiver. The conditions stay,
+because they are the invariant and no library should be the only thing
+holding it: `ALGORITHM` is HS256 with a symmetric `SECRET_KEY`, so there is
+no public key to steal, and every decode site pins `algorithms=[...]`.
 
 An AST walk rather than a grep, for the same reason as
 ``test_no_dynamic_sql.py``: what matters is the shape of the call, not that
@@ -49,8 +49,8 @@ def test_the_configured_algorithm_is_symmetric() -> None:
     """HS* takes a shared secret, so there is no public key to forge with."""
     assert settings.ALGORITHM.startswith("HS"), (
         f"ALGORITHM is {settings.ALGORITHM!r}. An asymmetric algorithm publishes a key, "
-        "which is the input both python-jose confusion advisories need — re-check the "
-        "--ignore-vuln entries in .github/workflows/security-audit.yml before changing it."
+        "which is the input an algorithm-confusion forgery needs, and the code signs and "
+        "verifies with the one SECRET_KEY — moving off HS* is a design change, not a setting."
     )
 
 

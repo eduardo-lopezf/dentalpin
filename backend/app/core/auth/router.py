@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError
+from jwt import PyJWTError
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy import func, select
@@ -296,7 +296,7 @@ async def refresh_token(
                 detail="Invalid refresh token",
             )
 
-    except JWTError:
+    except PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
@@ -406,7 +406,7 @@ async def logout(
     """
     try:
         payload = decode_token(data.refresh_token)
-    except JWTError:
+    except PyJWTError:
         return
 
     raw_jti = payload.get("jti")

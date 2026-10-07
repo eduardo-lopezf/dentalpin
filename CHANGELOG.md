@@ -165,16 +165,153 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Changed
 
-- **`python-jose` CVE-2026-85394 queda documentado y acotado.** Es
-  confusión de algoritmo: con la clave *pública* del servicio se puede
-  falsificar un token HS256 si el verificador elige el algoritmo que dice
-  la cabecera. Ninguna de las dos condiciones se da — `ALGORITHM` es HS256
-  con `SECRET_KEY` simétrica, así que no hay clave pública, y los dos
-  `jwt.decode` pasan `algorithms=[settings.ALGORITHM]` —, y 3.5.0 es la
-  última publicada y está afectada, así que no hay a dónde subir. La
-  auditoría lo ignora con esa razón y
-  `tests/test_jwt_algorithm_pinning.py` falla el día que una de las dos
-  deje de ser cierta.
+- **PostgreSQL 15.19, con la imagen fijada por versión y digest.** Las
+  bases corrían sobre `postgres:15-alpine`, una etiqueta flotante que se
+  descargó en julio y se quedó ahí: PostgreSQL 15.18. La 15.19 corrige 36
+  CVE del servidor, varios de ejecución de código con CVSS 8.8 y dos de
+  ellos en `pgcrypto`, que la base principal tiene instalado — y un
+  escáner de imágenes no lista ninguno, porque PostgreSQL se compila
+  desde fuente y no deja paquete que reconocer. De lo que sí lista
+  (Docker Scout), la imagen nueva cierra los 10 avisos de `openssl` y los
+  4 de `util-linux`: de 71 hallazgos a 57. La referencia a la imagen
+  oficial pasa a `postgres:15.19-alpine3.24@sha256:f7d2…`. Es un salto
+  menor: mismo volumen, sin volcar ni restaurar. De las notas de la 15.19
+  no aplica nada aquí — sin slots de replicación lógica, sin `btree_gist`
+  ni `ltree`, y sin funciones PGP de `pgcrypto` en el código.
+
+- **La base corre sobre una imagen propia, sin `gosu` y sin root** —
+  `postgres/Dockerfile`, etiquetada `dienteazul-postgres:15.19`. De los 57
+  hallazgos que quedaban, 46 eran del runtime de Go con que está
+  compilado `gosu` (go1.24.6, la versión más nueva de gosu que existe),
+  las dos críticas entre ellos, y ni la imagen oficial más reciente los
+  corrige. `gosu` solo sirve para bajar de root a `postgres` al arrancar;
+  arrancando ya como `postgres` el entrypoint no lo toca, así que se
+  quita. Quitarlo en una capa encima no basta, y está medido: el archivo
+  sigue en la capa de abajo y el escáner lo sigue contando, 57 antes y
+  después. Por eso la imagen se aplana — el sistema de archivos se copia
+  a una imagen vacía — y vuelve a declarar los metadatos que esa copia
+  pierde; el build falla si `PG_VERSION` no coincide con el binario.
+  Quedan 11 hallazgos, todos de `libxml2` (1 alto), sin arreglo en
+  ninguna rama de Alpine: el parche es de la 2.15.4 y Alpine sigue en
+  2.13.9. Los volúmenes existentes ya eran del uid 70, así que no hay
+  nada que migrar. `docker-compose.yml` y `docker-compose.coolify.yml`
+  la construyen; los dos servicios de `ci.yml` siguen en la oficial,
+  fijada por digest, porque Actions no construye la imagen de un
+  contenedor de servicio. La etiqueta lleva la versión a propósito: un
+  cambio de versión cambia la etiqueta, y una etiqueta que Compose no
+  tiene es una que tiene que construir — lo contrario de la flotante
+  que se quedó tres meses atrás.
+
+- **La imagen del backend deja de llevar el compilador** —
+  `backend/Dockerfile` pasa a compilar en una etapa propia y a copiar a
+  la imagen final solo el entorno de Python. De 156 hallazgos de Docker
+  Scout a 55, y de 1,13 GB a 729 MB. `binutils` solo sumaba 70: `gcc` y
+  las cabeceras se instalaban para compilar dependencias y se quedaban
+  en producción, donde nada los ejecuta. Fuera también `libcairo2`,
+  `libpangocairo`, `libgdk-pixbuf` y `shared-mime-info`, que eran
+  requisitos de WeasyPrint antes de la 53 y la 70 ya no carga; con ellos
+  se van `libtiff` y el `libxml2` de Debian. Se queda lo que algo llama:
+  `psql` y `pg_dump`, y Pango con HarfBuzz. El entorno de producción va
+  **sin pip** — en la imagen sería otro hallazgo por nada —; el de
+  desarrollo lo conserva. La base queda fijada por versión y digest,
+  `python:3.11.17-slim-trixie`, en un solo `ARG`. Las etapas `dev` y
+  `prod` siguen llamándose igual y `prod` sigue siendo la última.
+  Comprobado: PDF reales de presupuesto y factura por la API, 71 tests
+  (autenticación, PDF, medios, XML, procesador de módulos), `pg_dump`
+  17 contra el servidor 15.19 y un arranque en frío de la imagen de
+  producción sobre una base vacía. De esos 55, dos eran `python-jose` y
+  `ecdsa` (la crítica y una alta), que salen en la entrada siguiente, y
+  nueve el `pip`, el `setuptools` y el `wheel` que trae la propia imagen
+  de Python (2 altas). Esos se desinstalan, pero desinstalarlos no basta
+  — siguen en la capa de la imagen base, que es lo que lee el escáner —,
+  así que la base del runtime se **aplana**: su sistema de archivos se
+  copia a una imagen vacía y los metadatos que esa copia pierde se
+  declaran de nuevo. Solo se aplana esa base; el entorno de Python y el
+  código siguen siendo capas propias encima, así que un cambio de código
+  reconstruye y publica solo el código. Con todo, la imagen queda en
+  **44 hallazgos, ninguno crítico y ninguno con arreglo disponible**:
+  son de Debian — 4 altas, de `libgcc`/`libstdc++`, `expat` y `zlib` — y
+  ya no hay ninguno de paquetes de Python. 710 MB. Al no
+  haber lockfile de Python, reconstruir resuelve de nuevo: `asyncpg`
+  pasa de 0.31 a 0.32.
+
+- **Las imágenes propias entran en la auditoría semanal**
+  ([ADR 0050](docs/adr/0050-a-deployed-image-is-pinned-stripped-and-audited.md))
+  — job `image-advisories` de `security-audit.yml`, la tercera pata junto a
+  `pip-audit` y la puerta de `npm audit`. Para cada una —la de PostgreSQL,
+  la del backend, la de producción del frontend y la del portal de
+  documentación— construye la imagen, la pasa por Docker Scout y decide
+  con `scripts/image_audit_gate.py`, que sigue la misma regla que
+  `audit-gate.mjs`: el suelo es `high`, las excepciones van una a una con
+  su razón, y una excepción falla tan alto como un hallazgo nuevo cuando
+  deja de reportarse **o cuando su arreglo ya existe**. Cada imagen tiene
+  su propia lista: la razón de una excepción habla de esa imagen y no vale
+  para otra que lleve el mismo paquete. PostgreSQL tiene una (`libxml2`);
+  el frontend y el portal, ninguna — sus informes salen vacíos —; y el
+  backend, tres, todas de Debian sin paquete corregido y comprobadas
+  contra la imagen: una de `libstdc++`, la de `expat` —el de Debian solo
+  lo usa fontconfig; Python lleva el suyo, ya corregido— y la de `zlib`,
+  cuyo rango afectado empieza por encima de la 1.3.1 que trae trixie. Eran
+  cuatro: Scout dejó de reportar la otra de `libstdc++` el mismo día y la
+  regla de excepciones obsoletas la sacó de la lista. Un informe que no es
+  de Scout, o una imagen que el script no conoce, sale con error en vez de
+  pasar por limpio. El job comprueba además algo que el escáner no puede
+  ver: que el digest fijado en cada Dockerfile sigue siendo el que publica
+  la etiqueta flotante de esa línea. Es la única señal para los CVE del
+  propio PostgreSQL y del propio CPython, y la que habría avisado de los
+  tres meses en 15.18. Necesita dos secretos del repositorio,
+  `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN`, porque Scout solo responde con
+  sesión iniciada; sin ellos el job falla diciéndolo, y en un PR desde un
+  fork se salta. Aparte, el `5432` de `docker-compose.yml` pasa a
+  publicarse solo en `127.0.0.1`: estaba abierto a toda la red de la
+  máquina.
+
+- **El portal de documentación pasa a `nginx` slim** —
+  `docs/portal/Dockerfile`. La imagen completa de nginx trae módulos que
+  el portal no usa (XSLT, filtro de imágenes, GeoIP, njs) y con ellos
+  `libxml2`, `libtiff` y `curl`: 18 hallazgos en Docker Scout, 5 altos.
+  `nginx.conf` solo usa el núcleo, así que la base pasa a
+  `nginx:1.31.6-alpine-slim`, fijada por digest, y pide por nombre y
+  versión los dos paquetes que Alpine corrigió después de construirse
+  esa imagen, `zlib` y `pcre2`. Resultado: **0 hallazgos**, y de 164 MB a
+  92 MB. Responde igual que antes en las rutas comparadas, con las
+  cabeceras CORS de la ayuda, la compresión y la caché de estáticos.
+  Sigue escuchando en el 80 y arrancando como root, como la imagen
+  oficial: cambiar eso es cambiar el puerto que expone el despliegue.
+
+- **`zlib` corregido en la imagen de PostgreSQL** (CVE-2026-85091,
+  desbordamiento en las escrituras `gz*` no bloqueantes, zlib 1.3.1.2 a
+  1.3.2). Lo encontró el control anterior el mismo día en que se
+  escribió: por la mañana la imagen tenía un hallazgo alto y por la tarde
+  dos. Alpine lo arregló en 1.3.2-r1 y la imagen oficial fijada se
+  construyó antes, con la r0, así que `postgres/Dockerfile` pide
+  `zlib>=1.3.2-r1` con nombre y versión — el build falla si no puede
+  cumplirlo — hasta que el pin se mueva a una imagen que ya lo traiga. La
+  etiqueta pasa a `dienteazul-postgres:15.19-1`: el sufijo cuenta
+  nuestras reconstrucciones sobre la misma versión de PostgreSQL, para
+  que Compose tenga que construir en vez de reutilizar la anterior.
+
+- **`python-jose` sale; los tokens los firma y verifica PyJWT.** La
+  librería acumulaba dos fallos de confusión de algoritmo (CVE-2024-33663
+  y CVE-2026-85394, que es su arreglo incompleto) sin versión corregida, y
+  arrastraba a `ecdsa` con otro aviso. La auditoría los ignoraba con una
+  razón que era cierta — `ALGORITHM` es HS256 con clave simétrica y todo
+  `decode` fija `algorithms` —, pero era la única crítica de la imagen
+  del backend y una excepción que no caducaba nunca. PyJWT ya era lo que
+  usa el panel de control. El cambio son cuatro archivos:
+  `core/auth/{service,dependencies,router}.py` y
+  `budget/public_router.py`; `JWTError` pasa a `jwt.PyJWTError`. Los
+  tokens son JWT estándar, así que **los ya emitidos siguen valiendo**:
+  comprobado con tokens de acceso, de refresco y una cookie de
+  presupuesto firmados por `python-jose` y verificados después, y con una
+  sesión real abierta antes del cambio que se renovó tras él. `pip-audit`
+  queda limpio y sus dos `--ignore-vuln` desaparecen de
+  `security-audit.yml`. `tests/test_jwt_algorithm_pinning.py` se queda:
+  nació para mantener honesta esa excepción, y lo que comprueba es el
+  invariante, que ninguna librería debería sostener sola. PyJWT avisa de
+  claves HMAC de menos de 32 bytes, así que las dos claves de prueba de
+  `ci.yml` que firman tokens se alargan. Con esto la imagen del backend
+  se queda sin ninguna crítica.
 
 - **New logo.** The old mark's idea was a pun that died with the rename —
   its dot was "the *Pin* in DentalPin". The new one draws a faceted tooth

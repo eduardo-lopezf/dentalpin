@@ -31,7 +31,8 @@ The `Dockerfile` is a multi-stage build:
 
 1. **Builder** — Node 24 Alpine, runs `npm ci` and `npm run build` from the
    repository root context (so it can see `/docs` content).
-2. **Runtime** — `nginx:alpine` serving `/usr/share/nginx/html` over `:80`,
+2. **Runtime** — `nginx:1.31.6-alpine-slim`, pinned by digest, serving
+   `/usr/share/nginx/html` over `:80`,
    with `nginx.conf` configured for clean URLs and CORS for the in-app help
    drawer (added in fase 5).
 

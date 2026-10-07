@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 import bcrypt
-from jose import jwt
+import jwt
 
 from app.config import settings
 
@@ -80,6 +80,6 @@ def create_refresh_token(user_id: UUID, token_version: int = 0, jti: UUID | None
 def decode_token(token: str) -> dict[str, Any]:
     """Decode and validate a JWT token.
 
-    Raises JWTError if token is invalid or expired.
+    Raises ``jwt.PyJWTError`` if token is invalid or expired.
     """
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

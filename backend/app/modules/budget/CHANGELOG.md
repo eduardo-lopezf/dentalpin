@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- chore(deps): la cookie de sesión del enlace público se firma y verifica
+  con **PyJWT** en vez de `python-jose`, que sale del proyecto (dos fallos
+  de confusión de algoritmo sin versión corregida). Mismo formato, misma
+  clave y mismo algoritmo: una cookie emitida antes del cambio se sigue
+  aceptando. `JWTError` pasa a `jwt.PyJWTError` en `public_router.py`.
+
 - refactor(budget): **los presupuestos de un plan los escribe este módulo,
   no el plan** ([ADR 0042](../../../../docs/adr/0042-core-apps-must-stay-separable.md)).
   `plan_quotes.py` reacciona a `treatment_plan.confirmed` (crea el

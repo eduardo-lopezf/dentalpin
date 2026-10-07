@@ -1,12 +1,23 @@
 services:
   db:
-    image: postgres:15-alpine
+    # The official image without `gosu`, started as `postgres` instead of
+    # root — see postgres/Dockerfile, which also holds the upstream pin.
+    # The tag carries the PostgreSQL version on purpose: the floating
+    # `15-alpine` was pulled once and then sat three months behind, on
+    # 15.18 with 36 server CVEs fixed in 15.19. A version bump changes this
+    # tag, and a tag Compose does not have is one it has to build.
+    build: ./postgres
+    image: dienteazul-postgres:15.19-1
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dental_clinic}
       POSTGRES_USER: ${POSTGRES_USER:-dental}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - "5432:5432"
+      # Loopback only. Published on every interface, the database answered
+      # to the whole network the machine sits on, and what is left open in
+      # the image (libxml2, see scripts/image_audit_gate.py) is reached
+      # with nothing more than a connection and a role.
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -33,7 +44,13 @@ services:
       # (gitignored). Empty default keeps the stack bootable without it.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
-      - "8000:8000"
+      # Loopback only, like the database. These are development servers:
+      # uvicorn with --reload and Nuxt's dev server, which says so itself
+      # at startup — "reachable from the network without authentication:
+      # anyone who can connect can read the app, build errors and source
+      # code". To open the app from another device on the network, drop
+      # the address from this line and the frontend's.
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -66,7 +83,7 @@ services:
       NUXT_PUBLIC_API_BASE_URL: http://localhost:8000
       NODE_OPTIONS: --max-old-space-size=4096
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       backend:
         condition: service_started

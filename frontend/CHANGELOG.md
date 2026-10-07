@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- chore(docker): **la imagen de producción ya no lleva npm ni corre como
+  root** — `Dockerfile.prod`. Docker Scout le contaba 22 hallazgos (9
+  altos) y ninguno era de la aplicación: 21 venían de lo que empaqueta el
+  `npm` de la imagen de Node, que en producción no se llama nunca —solo
+  se ejecuta `node .output/server/index.mjs`—, y el otro era `zlib`
+  (CVE-2026-85091), que Alpine corrigió en 1.3.2-r1 después de que se
+  construyera la imagen oficial. Ahora se quitan `npm`, `yarn` y
+  `corepack`, se pide `zlib>=1.3.2-r1` con nombre y versión, y la base se
+  **aplana**: borrar archivos no los quita de la capa de la imagen base,
+  que es lo que lee el escáner. El build de la app sigue siendo una capa
+  propia encima. Corre como `node` (uid 1000) en vez de root. La base
+  queda fijada por versión y digest, `node:24.21.0-alpine3.24`, en un
+  solo `ARG`. Resultado: **0 hallazgos**, y de 283 MB a 253 MB.
+  Comprobado: sirve `/login` en español, cabeceras de seguridad, 404 en
+  `/__nuxt_island`, estáticos y la ruta de iconos; arranca también con el
+  sistema de archivos en solo lectura; y funciona como stack de tenant
+  junto a la base y el backend, tomando la URL del API de
+  `NUXT_PUBLIC_API_BASE_URL` en tiempo de ejecución.
 - chore(deps): `allowScripts` en `package.json`. npm 11 avisa de cada
   dependencia que ejecuta un script al instalarse sin estar aprobada, y
   su documentación ya anuncia que pasará a bloquearlas. Quedan aprobadas,

@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError
+from jwt import PyJWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -52,7 +52,7 @@ async def get_current_user(
         if user_id is None or token_type != "access":
             raise credentials_exception
 
-    except JWTError:
+    except PyJWTError:
         raise credentials_exception
 
     # Fetch user from database

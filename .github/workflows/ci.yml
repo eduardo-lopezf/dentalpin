@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:15.19-alpine3.24@sha256:f7d23353e1b15400d22ebe31189f4d314b87a4c129cc400c8c2d8d4ca127bf81
         env:
           POSTGRES_DB: dental_clinic_test
           POSTGRES_USER: dental
@@ -45,7 +45,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+asyncpg://dental:testpass@localhost:5432/dental_clinic_test
-      SECRET_KEY: test-secret-key-for-ci
+      # 32 bytes or more: PyJWT warns on a shorter HMAC key.
+      SECRET_KEY: test-secret-key-for-ci-not-a-real-secret
       ENVIRONMENT: test
       TESTING: "true"
       # Defaults to /app/storage — a path that only exists inside the
@@ -92,7 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:15.19-alpine3.24@sha256:f7d23353e1b15400d22ebe31189f4d314b87a4c129cc400c8c2d8d4ca127bf81
         env:
           POSTGRES_DB: stub
           POSTGRES_USER: dental
@@ -285,7 +286,7 @@ jobs:
     timeout-minutes: 20
     env:
       POSTGRES_PASSWORD: testpass
-      SECRET_KEY: ci-secret-key-for-e2e
+      SECRET_KEY: ci-secret-key-for-e2e-not-a-real-secret
 
     steps:
       - uses: actions/checkout@v5
