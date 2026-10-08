@@ -29,6 +29,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.advisory_locks import SEED_LOCK, advisory_lock
 from app.core.auth.models import Clinic, ClinicMembership, User
 from app.core.auth.service import hash_password
 from app.database import async_session_maker
@@ -856,6 +857,18 @@ async def main(lang: str = "en") -> None:
     print("\nOpen http://localhost:3000 to access the application.\n")
 
 
+async def seed_once(lang: str) -> None:
+    """Run :func:`main` while no other process is running it.
+
+    ``main`` asks whether the demo clinic exists and commits only at the
+    end, so two replicas started with ``SEED_ON_STARTUP=1`` would both be
+    told "no" and both seed. The second one waits here instead, and gets
+    its answer after the first has committed.
+    """
+    async with advisory_lock(SEED_LOCK):
+        await main(lang=lang)
+
+
 if __name__ == "__main__":
     args = parse_args()
-    asyncio.run(main(lang=args.lang))
+    asyncio.run(seed_once(args.lang))

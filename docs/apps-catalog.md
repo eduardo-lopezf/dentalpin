@@ -13,7 +13,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if `apps.json` or
 | [`workspace`](apps/workspace/README.md) | 0.1 | base | enabled | — (core + shell) | — | — | — |
 | [`agenda`](apps/agenda/README.md) | 0.1 | core | enabled | agenda, schedules | — | patients, professionals, treatments | google_calendar (planned) |
 | [`patients`](apps/patients/README.md) | 0.1 | core | enabled | patients, patients_clinical, patient_timeline, media | — | professionals | — |
-| [`recalls`](apps/recalls/README.md) | 0.1 | core | enabled | recalls | patients, agenda | professionals | — |
+| [`recalls`](apps/recalls/README.md) | 0.1 | optional | enabled | recalls | patients, agenda | professionals | — |
 | [`treatments`](apps/treatments/README.md) | 0.1 | core | enabled | catalog, treatment_plan, odontogram, periodontogram, clinical_notes | patients | budgets_payments, professionals, agenda | — |
 | [`budgets_payments`](apps/budgets_payments/README.md) | 0.1 | optional | enabled | budget, payments, billing, verifactu, accounting_export | patients, treatments, professionals | — | — |
 | [`cash`](apps/cash/README.md) | 0.1 | optional | enabled | cashbox, liquidations | budgets_payments, professionals | — | — |

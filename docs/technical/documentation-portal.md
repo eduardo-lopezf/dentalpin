@@ -343,6 +343,21 @@ Coolify configuration:
 The portal deploy is **independent** of the backend/frontend deploy
 cadence. A docs-only PR rebuilds and ships only the portal container.
 
+<span v-pre>
+
+**`{{ }}` in prose or inline code breaks that build.** VitePress compiles
+every markdown file as a Vue template, so `{{ .Config.User }}` is read as an
+expression and fails to parse — which is how
+`docker image inspect --format '{{.Config.User}}'` took the build down in
+ADR 0050, and how the first draft of this very paragraph took it down again.
+Fenced code blocks are safe: VitePress wraps them in `v-pre`. Inline code and
+prose are not — wrap those in a `v-pre` element, as this section does, which
+GitHub renders unchanged. The error points at a line **in the compiled
+template**, so the number can exceed the file's own length: look for the
+braces, not for that line.
+
+</span>
+
 ---
 
 ## 12. What is deliberately not built

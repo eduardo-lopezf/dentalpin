@@ -168,3 +168,40 @@ def test_upgrade_downgrade_upgrade_is_schema_stable() -> None:
         f"before tables: {sorted(before)}\n"
         f"after tables:  {sorted(after)}"
     )
+
+
+def test_two_upgrades_at_once_both_succeed(tmp_path: Path) -> None:
+    """Two backends started together migrate the same empty database.
+
+    Each container's entrypoint runs ``alembic upgrade`` before it
+    listens. Unguarded, both create ``alembic_version``; the second one
+    blocks on the first's uncommitted row in ``pg_type`` and, when that
+    commits, dies with ``duplicate key value violates unique constraint
+    "pg_type_typname_nsp_index"``. Seen on the replicas bench, where
+    Docker's restart policy then hid it.
+
+    ``alembic/env.py`` takes ``MIGRATION_LOCK`` before Alembic reads the
+    current revision, so the second run waits and finds nothing to do.
+
+    Output goes to files, not pipes: a run stuck writing to a full pipe
+    while holding the lock would keep the other one waiting for good.
+    """
+    _drop_public_schema()
+
+    logs = [tmp_path / "first.log", tmp_path / "second.log"]
+    runs = []
+    for log in logs:
+        with log.open("w") as out:
+            runs.append(
+                subprocess.Popen(
+                    ["alembic", "-c", str(ALEMBIC_INI), "upgrade", "heads"],
+                    cwd=BACKEND_ROOT,
+                    stdout=out,
+                    stderr=subprocess.STDOUT,
+                )
+            )
+
+    for run, log in zip(runs, logs, strict=True):
+        assert run.wait(timeout=600) == 0, log.read_text()[-3000:]
+
+    assert _leftover_tables(), "expected the schema to exist after two upgrades"

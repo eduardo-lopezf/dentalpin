@@ -27,7 +27,7 @@
     {
       "name": "recalls",
       "version": "0.1",
-      "tier": "core",
+      "tier": "optional",
       "status": "enabled",
       "modules": ["recalls"]
     },
@@ -66,6 +66,7 @@
       "name": "professionals",
       "version": "0.1",
       "tier": "optional",
+      "core_for_tiers": ["clinic", "clinic_pro", "hospital"],
       "status": "enabled",
       "modules": ["professionals"]
     },

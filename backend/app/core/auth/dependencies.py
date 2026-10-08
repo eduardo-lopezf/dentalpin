@@ -85,6 +85,15 @@ async def get_clinic_context(
     If clinic_id is not provided, uses the user's first clinic.
     Raises 403 if user doesn't have access to the clinic.
     """
+    # An account still on a password somebody else gave it may read its
+    # own profile and change that password (both resolve the user only);
+    # everything that needs a clinic waits until it has.
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password change required",
+        )
+
     # Get user's clinic memberships; eager-load cabinets so downstream
     # ClinicResponse.model_validate doesn't trigger async lazy loads.
     from app.core.auth.models import Clinic as ClinicModel
@@ -100,6 +109,15 @@ async def get_clinic_context(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User is not a member of any clinic",
+        )
+
+    # A deactivated clinic is closed to its members; the ones they have in
+    # other clinics are not.
+    memberships = [m for m in memberships if m.clinic.deactivated_at is None]
+    if not memberships:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This clinic has been deactivated",
         )
 
     # Find the requested clinic or use the first one

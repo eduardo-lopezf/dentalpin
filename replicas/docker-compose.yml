@@ -1,0 +1,194 @@
+# A bench for running more than one backend and more than one frontend.
+# Development only — nothing deploys this file. The rules it exists to
+# check are ADR 0051; docs/technical/running-replicas.md is the guide.
+#
+#   docker compose -f replicas/docker-compose.yml up -d --build
+#
+#   http://localhost:8080   the app  → proxy → 2 × frontend
+#   http://localhost:8081   the API  → proxy → 2 × backend
+#                           and one `scheduler`, behind nothing
+#   admin@demo.clinic / demo1234
+#
+#   docker compose -f replicas/docker-compose.yml down       # keeps the data
+#   docker compose -f replicas/docker-compose.yml down -v    # and without it
+#
+# Every response through the proxy carries `X-Replica`, the address of the
+# container that answered.
+#
+# The browser suite against it, from frontend/ (start the bench with
+# BENCH_ENVIRONMENT=test, and enable the modules ci.yml enables):
+#
+#   E2E_BASE_URL=http://localhost:8080 E2E_API_BASE=http://localhost:8081 \
+#   API_BASE_URL=http://localhost:8081 npx playwright test
+#
+# Both API variables, always: left unset, some specs fall back to
+# localhost:8000 and log in to the development stack instead.
+#
+# It is a project of its own, `dienteazul-replicas`: its own database, its
+# own volumes, its own ports, and both stacks can be up at once. It lives
+# in this folder, and not beside docker-compose.yml, for one reason: the
+# repository's `.env` sets COMPOSE_PROJECT_NAME, which wins over `name:`
+# below. Read from the root, this file would be the development project —
+# same service names, same `pgdata` volume — and `up` would recreate the
+# development database's container on top of its data. Compose takes `.env`
+# from the folder of the file, and here there is none. The volumes are
+# named in full as well, so that a project name forced from outside
+# (`-p`, or the variable exported in a shell) still cannot mount the
+# development data.
+#
+# The services are the ones a deployment runs — same images, same
+# entrypoint, `ENVIRONMENT: production` — so what breaks here with two
+# replicas is what would break there.
+
+name: dienteazul-replicas
+
+x-backend: &backend
+  # No `target`: the last stage, `prod`, as in docker-compose.coolify.yml —
+  # plus the Redis client, which a default build leaves out.
+  build:
+    context: ../backend
+    args:
+      PIP_EXTRAS: redis
+  image: dienteazul-replicas-backend
+  environment: &backend-env
+    DATABASE_URL: postgresql+asyncpg://dental:replicas_bench@db:5432/dental_clinic
+    # Fixed and public on purpose. They sign tokens for a throwaway
+    # database published on loopback, and a bench that asked for real
+    # secrets would be one nobody starts. `production` refuses a key it
+    # can tell is a placeholder, and these two are long enough that it
+    # cannot: never copy them anywhere.
+    SECRET_KEY: replicas-bench-only-0f3a91c7d2e84b65-not-for-any-deployment
+    BUDGET_PUBLIC_SECRET_KEY: replicas-bench-only-7b1e46a9c05d3f28-not-for-any-deployment
+    # `production` unless told otherwise, because that is what switches the
+    # rate limiter on. The browser suite logs in far more than 5 times a
+    # minute, so it runs with BENCH_ENVIRONMENT=test — see the header.
+    ENVIRONMENT: ${BENCH_ENVIRONMENT:-production}
+    ALLOWED_ORIGINS: http://localhost:8080
+    STORAGE_BACKEND: local
+    STORAGE_LOCAL_PATH: /app/storage
+    SEED_ON_STARTUP: "1"
+    # One set of rate-limit counters for every backend. In memory, which
+    # is the default, each backend allows the full limit: measured here,
+    # 10 logins a minute got through a limit of 5.
+    RATE_LIMIT_STORAGE_URI: redis://redis:6379/0
+    # Three processes hold a pool each. 3 × (5 + 10) = 45 of PostgreSQL's
+    # 100 connections; at the defaults (10 + 20) it would be 90.
+    DB_POOL_SIZE: "5"
+    DB_MAX_OVERFLOW: "10"
+  volumes:
+    # One volume for every backend: uploads, import staging and module
+    # backups all live under /app/storage.
+    - storage_data:/app/storage
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_started
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"]
+    interval: 5s
+    timeout: 5s
+    retries: 3
+    # A first boot creates the whole schema before it listens.
+    start_period: 120s
+  restart: unless-stopped
+
+services:
+  db:
+    # No `image:` on purpose. docker-compose.yml and control/ name theirs
+    # `dienteazul-postgres:<version>`, and a build here under that name
+    # moves the tag: the next `up` of either stack then recreates its
+    # database container to follow it. Unnamed, this one is
+    # `dienteazul-replicas-db` and shares only the build cache.
+    build: ../postgres
+    environment:
+      POSTGRES_DB: dental_clinic
+      POSTGRES_USER: dental
+      POSTGRES_PASSWORD: replicas_bench
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dental -d dental_clinic"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    # Holds the rate limiter's counters and nothing else, so it keeps
+    # nothing on disk: losing them resets the limits, and the backends
+    # count in memory while it is away.
+    image: redis:8.10.2-alpine@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  backend:
+    <<: *backend
+    deploy:
+      replicas: 2
+    environment:
+      <<: *backend-env
+      # The periodic jobs run in `scheduler`, below, and nowhere else.
+      SCHEDULER_ENABLED: "false"
+
+  scheduler:
+    # The same image with the scheduler left on, which is its default: the
+    # one process of the deployment that runs the periodic jobs. Always
+    # one — a second would send every reminder twice. It is not behind
+    # the proxy and serves no request.
+    <<: *backend
+
+  frontend:
+    # Every replica runs this one image, and that is the rule for a
+    # frontend with replicas, not a convenience of the bench. The server
+    # keeps nothing between requests, but a build is not interchangeable
+    # with another. Two builds of the same code differ only in their build
+    # id (`_nuxt/builds/latest.json`, `_nuxt/builds/meta/<id>.json`): a
+    # page served by one asks the other for a file it does not have, and
+    # the app concludes a new version was deployed. Two builds of
+    # different code differ in the names of their chunks, and then a page
+    # from one gets 404 for its JavaScript from the other.
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile.prod
+      args:
+        API_BASE_URL: http://localhost:8081
+    deploy:
+      replicas: 2
+    environment:
+      # The browser reaches the API through the proxy. Server-side rendering
+      # asks for `backend` by name, which Docker resolves to every replica.
+      NUXT_PUBLIC_API_BASE_URL: http://localhost:8081
+      NUXT_API_BASE_URL_SERVER: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  proxy:
+    # The image the documentation portal runs on, same pin.
+    image: nginx:1.31.6-alpine-slim@sha256:f761b94f2cb9e8e05e2943d5f773609596113ef69b54e2433a996d109a8f78b7
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      # The only published ports of the bench, and on loopback. A replica
+      # cannot publish one: two containers cannot hold the same host port.
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    name: dienteazul-replicas_pgdata
+  storage_data:
+    name: dienteazul-replicas_storage_data

@@ -51,6 +51,11 @@ def init_scheduler() -> None:
         logger.info("Skipping scheduler initialization in test mode")
         return
 
+    # Another process runs the jobs for this deployment.
+    if not settings.SCHEDULER_ENABLED:
+        logger.info("Scheduler off in this process (SCHEDULER_ENABLED=false)")
+        return
+
     scheduler = get_scheduler()
 
     for module in module_registry.list_modules():

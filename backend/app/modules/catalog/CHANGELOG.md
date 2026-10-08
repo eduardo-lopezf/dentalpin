@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- feat(catalog): una clínica puede nacer con las especialidades elegidas.
+  Si `clinic.created` trae `specialties`, tras sembrar el catálogo quedan
+  habilitadas exactamente esas: se deshabilitan las de base no elegidas y
+  se habilitan las elegidas que no son de base (`general` siempre queda).
+  `providers.py` da a core el contrato `ReferenceSpecialties` — qué
+  especialidades hay y cuál tiene toda clínica — para que pueda ofrecer y
+  validar la elección sin importar el módulo.
+
 - feat(catalog): `GET /items/search` dice bajo qué especialidad se
   muestra cada resultado (`specialty`: `id`, `names`, `is_active`), para
   que un buscador pueda agruparlos. Un tratamiento de varias

@@ -31,6 +31,20 @@
     "invoices": "Invoices"
   },
   "auth": {
+    "changePassword": {
+      "title": "Choose your password",
+      "intro": "Your account was created with an initial password. Replace it with your own to get in.",
+      "current": "Current password",
+      "new": "New password",
+      "repeat": "Repeat the new password",
+      "hint": "At least 8 characters, with letters and numbers.",
+      "submit": "Change password and continue",
+      "mismatch": "The two new passwords do not match.",
+      "currentWrong": "The current password is not correct.",
+      "invalid": "The new password needs at least 8 characters, letters and numbers, and must differ from the current one.",
+      "done": "Password changed",
+      "logout": "Sign out"
+    },
     "sessionIdle": "Your session ended due to inactivity. Log in to pick up where you left off.",
     "sessionExpired": "Your session has expired. Log in to pick up where you left off.",
     "login": "Log in",

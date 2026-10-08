@@ -1,6 +1,6 @@
 # Recordatorios (`recalls`)
 
-- **Tier:** core  ·  **Version:** 0.1
+- **Tier:** optional  ·  **Version:** 0.1
 - **Declared in:** `backend/apps.json`  ·  **Composition and requirements:** [Apps catalog](../../apps-catalog.md)
 
 ## What it is for

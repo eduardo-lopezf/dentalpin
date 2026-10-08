@@ -53,6 +53,9 @@ class UserResponse(BaseModel):
     last_name: str
     professional_id: str | None = None
     is_active: bool
+    #: The account has to replace its password before it can do anything
+    #: else; the app sends it to the change-password screen.
+    must_change_password: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -153,6 +156,13 @@ class AuthResponse(BaseModel):
     token_type: str = "bearer"
     user: UserResponse
     clinics: list[ClinicResponse]
+
+
+class PasswordChange(BaseModel):
+    """The caller replacing their own password."""
+
+    current_password: str
+    new_password: str = Field(min_length=8)
 
 
 class UserCreate(BaseModel):

@@ -86,6 +86,16 @@ class VisitNote:
 
 
 @dataclass(frozen=True, slots=True)
+class ReferenceSpecialty:
+    """A discipline with a reference catalogue a clinic can start with."""
+
+    key: str
+    names: dict[str, str]
+    #: Every clinic has it; it cannot be left out when choosing.
+    required: bool
+
+
+@dataclass(frozen=True, slots=True)
 class BudgetBrief:
     """Enough of a budget to say where a plan's quote stands."""
 
@@ -238,6 +248,13 @@ class PatientDocuments(Protocol):
         tenant's disk (``app.core.tenancy.usage``), which the clinics
         share. Archived files count — they are still on the disk.
         """
+
+
+class ReferenceSpecialties(Protocol):
+    def available(self) -> list[ReferenceSpecialty]:
+        """The disciplines a new clinic can be set up with. Which ones it
+        gets is said on ``clinic.created`` (``specialties``); the owner
+        installs them."""
 
 
 class WorkingHours(Protocol):

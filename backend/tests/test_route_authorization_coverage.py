@@ -50,6 +50,23 @@ UNAUTHENTICATED: dict[str, str] = {
     # Authorized, just not by a role: the payload is rejected unless it
     # carries a valid per-clinic HMAC signature.
     "POST /api/v1/whatsapp_kapso/webhook": "inbound webhook, verified by HMAC signature",
+    # ADR 0049 rule 4. Authorized, just not by a role: the caller is the
+    # operator's control plane, with a short-lived token signed with
+    # CONTROL_PLANE_SECRET. No staff session opens them, and they 404
+    # while that secret is unset (tests/test_ops_endpoint.py).
+    "GET /api/v1/ops/usage": "control plane only, by signed token; sizes and counts",
+    "GET /api/v1/ops/specialties": "control plane only, by signed token; reference disciplines",
+    "GET /api/v1/ops/apps": "control plane only, by signed token; the App catalog",
+    "POST /api/v1/ops/clinics": "control plane only, by signed token; creates a clinic and its holder",
+    "POST /api/v1/ops/clinics/{clinic_id}/deactivate": (
+        "control plane only, by signed token; closes a clinic to its members"
+    ),
+    "POST /api/v1/ops/clinics/{clinic_id}/reactivate": (
+        "control plane only, by signed token; opens a deactivated clinic again"
+    ),
+    "GET /api/v1/ops/clinics/{clinic_id}/log": (
+        "control plane only, by signed token; identifiers and table names"
+    ),
 }
 
 # Routes that require a valid user but no particular permission: what
@@ -57,6 +74,7 @@ UNAUTHENTICATED: dict[str, str] = {
 # the caller's permissions.
 AUTHENTICATED_ONLY: dict[str, str] = {
     "GET /api/v1/auth/me": "the caller's own profile",
+    "POST /api/v1/auth/password": "replaces the caller's own password, proven by the current one",
     "GET /api/v1/auth/clinics": "returns the caller's own clinic, taken from the context",
     "GET /api/v1/auth/clinics/{clinic_id}": "403s when the id is not the caller's clinic",
     "GET /api/v1/modules/-/active": "sidebar inventory; nav entries filtered by permission",

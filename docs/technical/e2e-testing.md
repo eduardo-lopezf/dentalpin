@@ -60,6 +60,9 @@ All five seeded roles share `demo1234` as the password.
 `ENVIRONMENT=production`, so local and CI runs don't hit the 5/min
 `/login` cap.
 
+The suite can also be pointed at two frontends and two backends:
+[`running-replicas.md`](./running-replicas.md#the-browser-suite-against-the-bench).
+
 ## What the suite does NOT do
 
 - CRUD smoke for every entity. The backend pytest suite covers that,

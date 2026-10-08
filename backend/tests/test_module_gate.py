@@ -8,9 +8,11 @@ copy of them will be a ``pg_dump`` file nobody reads.
 
 Two mechanisms, tested here:
 
-* :data:`module_gate` — an in-memory set consulted by one middleware,
-  closed by ``ModuleService.uninstall`` and re-opened when the removal is
-  cancelled or completed;
+* :data:`module_gate` — a set consulted by one middleware, closed by
+  ``ModuleService.uninstall`` and re-opened when the removal is cancelled
+  or completed. The process that changes the state is rarely the one
+  serving (the CLI, another backend), so the gate also closes for what
+  ``core_module`` says is off — see "Closed from another process";
 * :func:`unmount_module` — the symmetry ``_remove`` never had: handlers
   off the bus, tools out of the registry, module out of the active set.
 """
@@ -29,8 +31,9 @@ from app.core.plugins.db_models import ModuleRecord
 from app.core.plugins.gate import module_gate
 from app.core.plugins.loader import mount_active, unmount_module
 from app.core.plugins.registry import module_registry
-from app.core.plugins.service import ModuleService
+from app.core.plugins.service import ModuleService, sync_module_gate
 from app.core.plugins.state import ModuleState
+from app.database import async_session_maker
 
 pytestmark = pytest.mark.usefixtures("isolated_runtime")
 
@@ -136,6 +139,128 @@ async def test_orphan_reopens_the_gate(db_session: AsyncSession) -> None:
 
     assert await ModuleService(db_session).orphan(SPECIMEN) is True
     assert not module_gate.is_blocked(SPECIMEN)
+
+
+# --- Closed from another process ------------------------------------------
+#
+# ``dienteazul modules disable`` runs ``python -m app.cli`` beside the
+# server, and with several backends a state changes in whichever one the
+# request reached. Seen on the replicas bench before this: the module
+# disabled from the CLI, and both backends answering 200 for it until
+# they were restarted.
+
+
+def _mount(*names: str) -> None:
+    from fastapi import FastAPI
+
+    mount_active(FastAPI(), set(names))
+
+
+async def _ask_the_database() -> None:
+    """One round of what the middleware does, without waiting to be due."""
+    module_gate._next_sync = 0.0
+    ticket = module_gate.claim_sync()
+    assert ticket is not None
+    await sync_module_gate(async_session_maker, ticket)
+
+
+@pytest.mark.parametrize(
+    "state", [ModuleState.DISABLED, ModuleState.TO_REMOVE, ModuleState.UNINSTALLED]
+)
+async def test_a_module_turned_off_elsewhere_is_refused_here(
+    client: AsyncClient, auth_headers: dict, db_session: AsyncSession, state: ModuleState
+) -> None:
+    """Nothing in this process called ``block``: the state is all there is."""
+    _mount(SPECIMEN)
+    db_session.add(_record(SPECIMEN, state))
+    await db_session.commit()
+
+    response = await client.get(f"/api/v1/{SPECIMEN}/stats/dashboard", headers=auth_headers)
+
+    assert response.status_code == 409
+    assert SPECIMEN in response.json()["message"]
+
+
+@pytest.mark.parametrize(
+    "state", [ModuleState.INSTALLED, ModuleState.TO_UPGRADE, ModuleState.TO_INSTALL]
+)
+async def test_a_mounted_module_in_a_serving_state_is_left_alone(
+    db_session: AsyncSession, state: ModuleState
+) -> None:
+    """``to_upgrade`` runs the old version until the restart; ``to_install``
+    on a mounted module is a removal that was called off."""
+    _mount(SPECIMEN)
+    db_session.add(_record(SPECIMEN, state))
+    await db_session.commit()
+
+    await _ask_the_database()
+
+    assert not module_gate.is_blocked(SPECIMEN)
+
+
+async def test_a_module_that_is_off_and_not_mounted_is_not_named(
+    db_session: AsyncSession,
+) -> None:
+    """It has no routes here. Naming it would turn its 404 into a 409 that
+    says it is "being turned off", for a module this process never ran."""
+    _mount(NEIGHBOUR)
+    db_session.add(_record(SPECIMEN, ModuleState.DISABLED))
+    await db_session.commit()
+
+    await _ask_the_database()
+
+    assert module_gate.blocked() == frozenset()
+
+
+async def test_the_gate_reopens_when_the_database_changes_its_mind(
+    db_session: AsyncSession,
+) -> None:
+    _mount(SPECIMEN)
+    record = _record(SPECIMEN, ModuleState.TO_REMOVE)
+    db_session.add(record)
+    await db_session.commit()
+    await _ask_the_database()
+    assert module_gate.is_blocked(SPECIMEN)
+
+    record.state = ModuleState.TO_INSTALL.value
+    await db_session.commit()
+    await _ask_the_database()
+
+    assert not module_gate.is_blocked(SPECIMEN)
+
+
+def test_the_database_is_asked_once_per_interval() -> None:
+    assert module_gate.claim_sync() is not None
+    # Every request that arrives before the interval is over goes straight
+    # through on what the gate already holds.
+    assert module_gate.claim_sync() is None
+    assert module_gate.claim_sync() is None
+
+
+def test_a_read_older_than_a_local_change_is_dropped() -> None:
+    """The read was claimed, then this process reopened the gate — a
+    removal called off. Applying the read would close it again on a state
+    that is no longer true."""
+    ticket = module_gate.claim_sync()
+    assert ticket is not None
+
+    module_gate.unblock(SPECIMEN)
+    module_gate.apply_sync({SPECIMEN}, ticket)
+
+    assert not module_gate.is_blocked(SPECIMEN)
+
+
+async def test_a_failed_read_keeps_the_gate_as_it_was() -> None:
+    module_gate.block(SPECIMEN)
+
+    def broken_factory():
+        raise ConnectionError("database is away")
+
+    ticket = module_gate.claim_sync()
+    assert ticket is not None
+    await sync_module_gate(broken_factory, ticket)
+
+    assert module_gate.is_blocked(SPECIMEN)
 
 
 # --- Unmounting -----------------------------------------------------------

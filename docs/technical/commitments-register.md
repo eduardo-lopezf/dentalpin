@@ -663,6 +663,13 @@ depends on the kind of workspace).
 Stated 2026-10-03: when a user can enable or disable an App by hand, the
 change must show immediately — no restart.
 
+**One piece exists (2026-10-08): the choice is recorded.** A clinic
+created by the control plane carries the Apps chosen for it in
+`clinics.apps` ([operations endpoint](operations-endpoint.md)). Nothing
+reads that column to decide what the clinic sees; it is the input this
+commitment's per-clinic switch will start from, and until then a clinic
+created with four Apps still has all of them.
+
 **Today it is the opposite, by design.** An App is switched in
 `backend/apps.json`, a file read once at boot
 ([ADR 0038](../adr/0038-apps-json-switches-apps-for-the-whole-deployment.md)):

@@ -78,9 +78,21 @@ Eight rules.
    **no "sign in as the tenant"** until the break-glass mechanism of
    ADR 0024 exists and records the session in both planes.
 
-6. **Provisioning never creates the clinic's credentials.** The control
-   plane brings a stack up and hands over the link to `/auth/setup`; the
-   first administrator is created by the clinic. The custody mode reaches
+6. **The control plane never keeps a clinic's credentials.** A new
+   stack is handed over with the link to `/auth/setup`, and its first
+   administrator is created by the clinic. A clinic added to a running
+   stack has no such door — `/auth/setup` closes after the first account
+   and there is no invitation flow — so the control plane creates its
+   holder with an **initial password that is no secret** (`demo1234` by
+   default, `CONTROL_HOLDER_INITIAL_PASSWORD`) **and that the stack makes
+   the holder replace at the first sign-in**: until then the account can
+   read its own profile and change its password, nothing else
+   (`users.must_change_password`). The stack keeps only the hash.
+   *(Amended 2026-10-08: the rule first read "provisioning never creates
+   the clinic's credentials". Between creation and that first sign-in the
+   account is open to whoever knows its e-mail address — the price of a
+   known password; an activation link the holder opens would close that
+   window, and is the better end state.)* The custody mode reaches
    the stack as `TENANT_CUSTODY_MODE`, written by the control plane and
    out of reach of the tenant's database, which is what ADR 0024 asks
    for.
@@ -112,9 +124,12 @@ Eight rules.
 - **Much of this does not exist yet.** What exists: the service, its
   database, superadmin login, and on the local host bringing a tenant's
   stack up, stopping it and starting it, with its secrets stored
-  encrypted. The SSH driver, the operations endpoint, resource figures
-  and logs, deletion, upgrades and `tenant_identity` (ADR 0024 rule 4)
-  are pending.
+  encrypted; and the operations endpoint of rule 4
+  ([`docs/technical/operations-endpoint.md`](../technical/operations-endpoint.md)),
+  which the panel reads for the development stack only, and through
+  which it creates a clinic with its holder. The SSH driver,
+  CPU and memory figures, container logs, deletion, upgrades and
+  `tenant_identity` (ADR 0024 rule 4) are pending.
 - A stack per tenant costs a Postgres and two application containers per
   customer. That is the price of skipping phase 2, and it is paid in RAM.
 - The Docker socket is root on the host. A proxy narrows it and a key per
@@ -166,4 +181,5 @@ Eight rules.
 - [ADR 0038](0038-apps-json-switches-apps-for-the-whole-deployment.md) — Apps per deployment
 - `backend/app/core/tenancy/single.py` — the resolver every stack keeps
 - `backend/app/core/tenancy/usage.py` — the storage figure the operations endpoint will reuse
+- `backend/app/core/ops/` — the operations endpoint of rule 4
 - `control/README.md` — how to run the service

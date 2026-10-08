@@ -26,9 +26,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Optional dependency groups from pyproject.toml, comma-separated. Empty by
+# default: `redis` is for deployments that run several backends and share
+# the rate limiter's counters (RATE_LIMIT_STORAGE_URI).
+ARG PIP_EXTRAS=""
+
 COPY pyproject.toml ./
 RUN python -m venv --without-pip /opt/venv \
-    && pip --python /opt/venv/bin/python install --no-cache-dir .
+    && pip --python /opt/venv/bin/python install --no-cache-dir ".${PIP_EXTRAS:+[${PIP_EXTRAS}]}"
 
 # The same environment plus the `dev` extra, and pip inside it this time:
 # a development container is where someone tries a package out.

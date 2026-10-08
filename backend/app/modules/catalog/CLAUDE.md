@@ -83,7 +83,17 @@ a reference catalogue the clinic enables, disables and restores
 |---|---|---|
 | `clinic.created` | `events.py:on_clinic_created` | Seed the new clinic's baseline catalog: VAT types, categories, items, specialties. |
 
-Payload consumed: `clinic_id` (required), `created_by`, `name`. Published by
+Payload consumed: `clinic_id` (required), `created_by`, `name`, and
+`specialties` when the clinic was created with a choice of disciplines
+(`POST /api/v1/ops/clinics`): after seeding, `_keep_only` disables the
+baseline packs not listed and enables the listed ones beyond the
+baseline, always keeping `providers.REQUIRED_SPECIALTIES` (`general`).
+
+`providers.py` supplies core's `ReferenceSpecialties` contract — the
+recognised disciplines and which one every clinic has — so core can offer
+and validate that choice without importing this module.
+
+Published by
 core's `/api/v1/auth/setup` after it commits the clinic — core must not
 import a module (ADR 0003), so the module installs its own baseline data.
 

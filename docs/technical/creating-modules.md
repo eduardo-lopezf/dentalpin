@@ -505,6 +505,13 @@ after an uninstall, instead of writing into tables that are about to be
 dropped. Enabling the module again before the restart cancels the change
 and re-opens the gate.
 
+The command and the server are different processes — the CLI is
+`python -m app.cli` beside it, and a deployment may run several backends
+— so the gate is not told: each backend reads `core_module` every few
+seconds (`SYNC_SECONDS` in `app/core/plugins/gate.py`) and closes it for
+any module it still has mounted and the database says is off. For that
+long after the command, a request can still get through.
+
 When the processor finally runs, its `unmount` step takes the module's
 event handlers off the bus and its tools out of the copilot registry
 *before* the data is deleted — a handler left subscribed keeps firing

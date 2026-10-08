@@ -38,7 +38,8 @@ class AppTier(StrEnum):
     people, the shell and settings. It is the core and the host app, not a
     group of modules, so it lists none, and it cannot be disabled (ADR 0043).
     ``core`` Apps are set up for every workspace; ``optional`` ones are
-    chosen.
+    chosen — unless the catalog makes one core for a clinic's account
+    tier (``core_for_tiers``).
     """
 
     BASE = "base"
@@ -82,6 +83,10 @@ class AppDefinition:
     status: AppStatus = AppStatus.ENABLED
     apis: tuple[ApiDefinition, ...] = ()
     tier: AppTier = AppTier.OPTIONAL
+    #: Account tiers (``AccountTier`` values) whose clinics always have
+    #: this App, though it is optional for the rest. Professionals is one:
+    #: a clinic has several, a single professional's practice has none.
+    core_for_tiers: tuple[str, ...] = ()
 
     @property
     def enabled(self) -> bool:
@@ -108,6 +113,7 @@ def load_app_catalog() -> tuple[AppDefinition, ...]:
                 modules=tuple(entry["modules"]),
                 status=AppStatus(entry["status"]),
                 tier=AppTier(entry.get("tier", AppTier.OPTIONAL)),
+                core_for_tiers=tuple(entry.get("core_for_tiers", ())),
                 apis=tuple(
                     ApiDefinition(name=api["name"], status=ApiStatus(api["status"]))
                     for api in entry.get("apis", ())
@@ -200,3 +206,20 @@ def required_modules(app: AppDefinition) -> list[str]:
 
     ordered = topological_sort(closure, key=lambda name: name, deps_of=lambda name: closure[name])
     return [name for name in ordered if name not in app.modules]
+
+
+def mandatory_apps(account_tier: str) -> list[str]:
+    """Apps a clinic of ``account_tier`` always has, in catalog order: the
+    base App, the core ones, and those the catalog makes core for that
+    tier. An App the deployment has switched off is nobody's."""
+    return [
+        app.name
+        for app in load_app_catalog()
+        if app.enabled and (app.tier is not AppTier.OPTIONAL or account_tier in app.core_for_tiers)
+    ]
+
+
+def required_apps(app: AppDefinition) -> list[str]:
+    """Other Apps that own a module ``app`` cannot run without."""
+    owner = {module: other.name for other in load_app_catalog() for module in other.modules}
+    return list(dict.fromkeys(owner[module] for module in required_modules(app)))

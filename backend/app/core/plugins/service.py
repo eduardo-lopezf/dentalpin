@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from .alembic_paths import resolve_module_branch_head
 from .apps import modules_disabled_by_app
@@ -50,6 +50,40 @@ async def installed_module_names(db: AsyncSession) -> set[str]:
         select(ModuleRecord.name).where(ModuleRecord.state == ModuleState.INSTALLED.value)
     )
     return set(result.scalars()) - modules_disabled_by_app()
+
+
+# States in which a module does not serve. One that is still mounted
+# under any of them was turned off after this process started.
+_OFF_STATES = (
+    ModuleState.DISABLED.value,
+    ModuleState.TO_REMOVE.value,
+    ModuleState.UNINSTALLED.value,
+)
+
+
+async def sync_module_gate(session_factory: async_sessionmaker[AsyncSession], ticket: int) -> None:
+    """Close the gate for what the database says is off and is mounted here.
+
+    The other half of :mod:`~app.core.plugins.gate`: the state changed in
+    another process — the CLI, or another backend — and this one finds
+    out by asking. Only mounted modules are named: an unmounted one has
+    no routes to refuse, and its path should go on answering 404.
+
+    A failed read keeps the gate as it was. Refusing a module because
+    the database blinked would take a working screen away for nothing.
+    """
+    try:
+        async with session_factory() as session:
+            result = await session.execute(
+                select(ModuleRecord.name).where(ModuleRecord.state.in_(_OFF_STATES))
+            )
+            off = set(result.scalars())
+    except Exception:
+        logger.warning("Could not read module states for the gate; keeping it as it was")
+        return
+
+    mounted = {module.name for module in module_registry.list_modules()}
+    module_gate.apply_sync(mounted & off, ticket)
 
 
 class ModuleOperationError(RuntimeError):

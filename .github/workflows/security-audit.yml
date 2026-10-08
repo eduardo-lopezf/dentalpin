@@ -109,7 +109,14 @@ jobs:
     # answers only to a logged-in Docker Hub account, and a pull request
     # from a fork gets no secrets — skipped there, which shows as skipped
     # rather than as a scan that passed.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    #
+    # DISABLED on 2026-10-06, at the maintainer's request, while other work
+    # lands. Nothing about ADR 0050 changed: the images still ship, and
+    # while this is off nobody is looking at their CVEs or noticing that a
+    # pinned base has fallen behind what upstream publishes. To put it
+    # back, delete the `if: false` line and restore the one below it.
+    if: false
+    # if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     strategy:
       # One image going red says nothing about the others.

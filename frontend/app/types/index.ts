@@ -6,6 +6,9 @@ export interface User {
   last_name: string
   professional_id?: string
   is_active: boolean
+  /** Still on a password somebody else set: the app holds the account on
+   * the change-password screen until it has its own. */
+  must_change_password?: boolean
   created_at: string
   updated_at: string
 }

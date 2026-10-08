@@ -31,7 +31,8 @@ modules, and every App carries a tier: `base`, `core` or `optional`.**
   none, it opens the catalog, and the loader refuses it disabled. There
   is exactly one.
 - `core` Apps are the ones every workspace is set up with. Today:
-  `agenda`, `patients`, `recalls`, `treatments`. They can still be
+  `agenda`, `patients`, `treatments` (`recalls` was one until
+  2026-10-08, when it became optional). They can still be
   switched off in the file, so the rule that no App breaks another while
   it is off ([ADR 0037](0037-a-module-integrates-with-what-it-can-live-without.md))
   keeps being exercised.
@@ -39,9 +40,11 @@ modules, and every App carries a tier: `base`, `core` or `optional`.**
   means "not yet classified": the screen labels these "App opcional".
   Since 2026-10-03 every module belongs to an App, so the optional ones
   are Budgets & payments, Cash desk, Communications, Professionals,
-  Clinical record, Reports, AI and Data migration; `professionals` is meant to be core
-  for workspaces of the Clinic kind, which the catalog cannot yet
-  express. Classifying them is pending (`docs/technical/todos.md`).
+  Clinical record, Reports, AI and Data migration; `professionals` is core
+  for workspaces of the Clinic kind, which the catalog expresses since
+  2026-10-08 with `"core_for_tiers": ["clinic", "clinic_pro", "hospital"]`
+  on the App — an optional App that is mandatory for clinics of those
+  account tiers (`mandatory_apps` in `app/core/plugins/apps.py`). Classifying them is pending (`docs/technical/todos.md`).
 - Every App other than the base groups at least one module.
 - `GET /api/v1/apps` returns `tier`; Settings → Apps shows the base App
   first, marked "App principal · Siempre habilitada", and core Apps with

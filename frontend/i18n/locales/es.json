@@ -31,6 +31,20 @@
     "invoices": "Facturas"
   },
   "auth": {
+    "changePassword": {
+      "title": "Elige tu contraseña",
+      "intro": "Tu cuenta se creó con una contraseña inicial. Cámbiala por una propia para entrar.",
+      "current": "Contraseña actual",
+      "new": "Contraseña nueva",
+      "repeat": "Repite la contraseña nueva",
+      "hint": "Al menos 8 caracteres, con letras y números.",
+      "submit": "Cambiar contraseña y entrar",
+      "mismatch": "Las dos contraseñas nuevas no coinciden.",
+      "currentWrong": "La contraseña actual no es correcta.",
+      "invalid": "La contraseña nueva debe tener al menos 8 caracteres, letras y números, y ser distinta de la actual.",
+      "done": "Contraseña cambiada",
+      "logout": "Salir"
+    },
     "sessionIdle": "Tu sesión se cerró por inactividad. Inicia sesión para continuar donde lo dejaste.",
     "sessionExpired": "Tu sesión ha caducado. Inicia sesión para continuar donde lo dejaste.",
     "login": "Iniciar sesión",

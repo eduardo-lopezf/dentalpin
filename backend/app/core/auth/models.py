@@ -12,6 +12,7 @@ from sqlalchemy import (
     LargeBinary,
     String,
     UniqueConstraint,
+    false,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, deferred, mapped_column, relationship
@@ -72,6 +73,16 @@ class Clinic(Base, TimestampMixin):
     # DB-isolation unit (ADR 0012) and a clinic lives *inside* one — the
     # old name put two unrelated concepts under the same word (ADR 0023).
     account_tier: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Apps chosen for the clinic when it was created, by their name in
+    # ``apps.json``. ``None`` when nobody chose — the first clinic of a
+    # deployment, made by ``/auth/setup`` — and that means all of them.
+    # Recorded, not enforced: what runs is still decided for the whole
+    # deployment (ADR 0038), so today every clinic sees every App.
+    apps: Mapped[list[str] | None] = mapped_column(JSONB, default=None)
+    # When the operator deactivated the clinic. While set, nobody can work
+    # in it (``get_clinic_context``); its data is untouched and clearing
+    # the column brings it all back.
+    deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     settings: Mapped[dict] = mapped_column(JSONB, default=dict)
 
     __table_args__ = (
@@ -162,6 +173,11 @@ class User(Base, TimestampMixin):
     professional_id: Mapped[str | None] = mapped_column(String(50))  # Colegiado number
     is_active: Mapped[bool] = mapped_column(default=True)
     token_version: Mapped[int] = mapped_column(default=0)  # For token revocation
+    # Set on an account created with a password its owner did not choose.
+    # While it is set the account can sign in, read its own profile and
+    # change its password — ``get_clinic_context`` refuses everything
+    # else — and ``POST /auth/password`` clears it.
+    must_change_password: Mapped[bool] = mapped_column(default=False, server_default=false())
 
     # Relationships
     memberships: Mapped[list["ClinicMembership"]] = relationship(

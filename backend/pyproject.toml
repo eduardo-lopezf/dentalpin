@@ -51,6 +51,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The Redis client the rate limiter needs when RATE_LIMIT_STORAGE_URI
+# points at Redis — several backends sharing one set of counters. A
+# default build does not install it: `docker build --build-arg
+# PIP_EXTRAS=redis`. Versioned through `limits`, which knows which
+# clients it works with.
+redis = [
+    "limits[redis]",
+]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.23.0",

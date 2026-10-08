@@ -22,7 +22,7 @@ Everything else about the catalog is read through `GET /api/v1/catalog/*`.
 
 | Event | Handler | Effect |
 |-------|---------|--------|
-| `clinic.created` | `events.py:on_clinic_created` | Seed the new clinic's baseline catalog — VAT types, treatment categories, catalog items and specialties. |
+| `clinic.created` | `events.py:on_clinic_created` | Seed the new clinic's baseline catalog — VAT types, treatment categories, catalog items and specialties. When the payload carries `specialties` (a clinic created by the control plane, `POST /api/v1/ops/clinics`), leave exactly those disciplines enabled: the baseline ones not listed are disabled, the listed ones beyond the baseline enabled. `general` is always kept. |
 
 ### Why this is an event and not a call
 

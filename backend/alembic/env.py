@@ -18,16 +18,18 @@ during its own migration and is missing in offline ``--sql`` mode).
 """
 
 import asyncio
+import logging
 import os
 from logging.config import fileConfig
 from pathlib import Path
 
-from sqlalchemy import pool
+from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from app.config import settings
+from app.core.advisory_locks import LOCK_SQL, MIGRATION_LOCK, TRY_LOCK_SQL
 
 # Import all models to register them with Base.metadata
 from app.core.agents.models import (  # noqa: F401
@@ -143,6 +145,8 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
+logger = logging.getLogger("alembic.env")
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -166,8 +170,33 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def _wait_for_other_runs(connection: Connection) -> None:
+    """Let one Alembic run at a time touch this database.
+
+    Two backends started together both get here, and unguarded they both
+    create ``alembic_version`` — one dies on the duplicate. See
+    ``app/core/advisory_locks.py``.
+
+    The lock is the session's, not the transaction's: a migration that
+    commits halfway (an autocommit block) would let go of a transaction
+    lock in the middle of the run. It is released when ``connection``
+    closes, which ``run_async_migrations`` does as it returns — the engine
+    there has no pool to keep it open.
+
+    Committed before Alembic is configured, on purpose: a connection
+    already in a transaction is one Alembic takes to be the caller's, and
+    it would then leave the commit of the migrations to us.
+    """
+    lock = {"name": MIGRATION_LOCK}
+    if not connection.execute(text(TRY_LOCK_SQL), lock).scalar():
+        logger.info("Waiting for %s: another process is migrating", MIGRATION_LOCK)
+        connection.execute(text(LOCK_SQL), lock)
+    connection.commit()
+
+
 def do_run_migrations(connection: Connection) -> None:
     """Run migrations with the given connection."""
+    _wait_for_other_runs(connection)
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():

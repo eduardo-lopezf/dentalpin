@@ -46,6 +46,7 @@ from .schemas import (
     ClinicMetadataUpdate,
     ClinicResponse,
     MeResponse,
+    PasswordChange,
     ProfessionalResponse,
     SetupStatusResponse,
     SystemSetup,
@@ -71,7 +72,27 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # (manual clicking, Playwright E2E, pytest) don't run into 5/minute
 # caps after a handful of reloads.
 _limiter_enabled = settings.ENVIRONMENT == "production" and not settings.TESTING
-limiter = Limiter(key_func=get_remote_address, enabled=_limiter_enabled)
+
+
+def build_limiter(storage_uri: str, *, enabled: bool) -> Limiter:
+    """The limiter, counting in ``storage_uri`` or, when empty, in memory.
+
+    Memory is per process: two backends each allow the full limit. A
+    shared store makes it one limit, and losing that store must not take
+    the login down with it — so with one configured, the limiter falls
+    back to memory while it is unreachable and returns to it afterwards.
+    """
+    if not storage_uri:
+        return Limiter(key_func=get_remote_address, enabled=enabled)
+    return Limiter(
+        key_func=get_remote_address,
+        enabled=enabled,
+        storage_uri=storage_uri,
+        in_memory_fallback_enabled=True,
+    )
+
+
+limiter = build_limiter(settings.RATE_LIMIT_STORAGE_URI, enabled=_limiter_enabled)
 
 logger = logging.getLogger(__name__)
 
@@ -418,6 +439,37 @@ async def logout(
     except ValueError:
         return
     await db.commit()
+
+
+@router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("5/minute")
+async def change_password(
+    request: Request,
+    data: PasswordChange,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> None:
+    """Replace the caller's own password.
+
+    The one thing an account with ``must_change_password`` may do besides
+    reading its profile, and what clears that flag. The new password has
+    to differ from the current one — otherwise an account handed a known
+    password could "change" it to the same thing.
+    """
+    if not verify_password(data.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect"
+        )
+    if data.new_password == data.current_password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="The new password must differ from the current one",
+        )
+    is_valid, error_msg = validate_password_strength(data.new_password)
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=error_msg)
+
+    current_user.password_hash = hash_password(data.new_password)
+    current_user.must_change_password = False
 
 
 @router.get("/me", response_model=ApiResponse[MeResponse])

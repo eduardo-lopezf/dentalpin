@@ -13,6 +13,90 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Added
 
+- **Operations endpoint for the control plane** (`/api/v1/ops`,
+  [ADR 0049](docs/adr/0049-the-control-plane-is-a-separate-service.md)
+  rule 4; reference in
+  [docs/technical/operations-endpoint.md](docs/technical/operations-endpoint.md)).
+  `GET /ops/usage` returns the deployment's database and file storage and
+  each clinic's share of both; `GET /ops/clinics/{id}/log` returns its
+  members' sign-ins and sign-outs and where records were created. Sizes,
+  counts and identifiers only — no person's name, e-mail or record
+  content. Opened by a short-lived token signed with the new
+  `CONTROL_PLANE_SECRET`; absent (`404`) while that is unset, and always
+  under `self` custody. `POST /ops/clinics` creates a clinic with its
+  holder as administrator: under the individual tiers (`basic`, `medium`,
+  `advanced`) the clinic record is the holder's own practice, with their
+  name and RFC; the other tiers take the clinic's details. The holder's
+  cédula goes to `users.professional_id`, and the password is a temporary
+  one the control plane generates and never stores (ADR 0049 rule 6,
+  amended).
+- **A password that has to be replaced at the first sign-in**
+  (`users.must_change_password`, migration `0016`). While it is set
+  `get_clinic_context` answers `403` to everything; the account can read
+  `/auth/me` and call the new `POST /api/v1/auth/password` — the first way
+  a user has of changing their own password — which clears it. The app
+  holds such an account on the new `/change-password` screen. The holder
+  of a clinic created through `POST /ops/clinics` starts that way.
+- **A clinic can be deactivated** (`clinics.deactivated_at`, migration
+  `0017`): `POST /ops/clinics/{id}/deactivate` closes it to its members
+  without deleting anything, `…/reactivate` opens it again. `GET
+  /ops/usage` now gives each clinic a live `status` — `active` (someone is
+  signed in), `offline`, `inactive` (no sign-in in fifteen days) or
+  `deactivated` — and, once deactivated, the date from which it may be
+  deleted for good, ten days later. No route deletes a clinic.
+- **A clinic can be created with the specialties chosen for it.** `GET
+  /ops/specialties` lists the disciplines (new core contract
+  `ReferenceSpecialties`, supplied by `catalog`); `POST /ops/clinics`
+  takes `specialties` and passes it on `clinic.created`.
+- **A clinic is created with a chosen set of Apps.** `GET /ops/apps`
+  lists the deployment's Apps with what each requires and the account
+  tiers it is mandatory for; `POST /ops/clinics` takes `apps`, refuses a
+  set that lacks a mandatory App or a requirement, and stores it in the
+  new `clinics.apps` (migration `0015`, nullable: existing clinics keep
+  `NULL`, meaning all). **Recorded, not enforced** — every clinic still
+  sees every App the deployment runs. `apps.json` gains
+  `core_for_tiers`, so an optional App can be core for some account
+  tiers: Professionals is, for `clinic`, `clinic_pro` and `hospital`.
+
+- **ADR 0051 — a backend process is one of several**
+  ([docs/adr/0051](docs/adr/0051-a-backend-process-is-one-of-several.md)),
+  with its working reference in
+  [`docs/technical/running-replicas.md`](docs/technical/running-replicas.md)
+  and a section in `CLAUDE.md`. Five rules for code that may run as more
+  than one process: startup work that writes is serialised, periodic jobs
+  run in one process, a module-level variable is never the record, a
+  per-process limit is a setting whose default describes one process, and
+  every frontend replica runs the same image. It also lists what is not
+  covered — first of all that a restart still reaches one process.
+  Production keeps running one of each; the entries below are what the
+  rules cost in code.
+
+- **A bench for running replicas** — `replicas/docker-compose.yml`, for
+  development only. Two backends and two frontends on the images a
+  deployment runs, behind an nginx that spreads requests over them and
+  says which one answered (`X-Replica`); the app on `localhost:8080`, the
+  API on `localhost:8081`. It is a project of its own with its own
+  database, and it sits in a folder of its own because the repository's
+  `.env` sets `COMPOSE_PROJECT_NAME`, which would otherwise make it the
+  development project. Nothing in `docker-compose.yml`, the deploy files or
+  the application changed. What it showed on its first run: two backends
+  booting together on an empty database raced on the migrations — one
+  crashed on `alembic_version` and came back on Docker's restart (closed
+  since, see "El arranque del backend se hace de uno en uno" below) — and
+  each replica starts its own scheduler, which is still so.
+
+  The frontend needed no change to run on it. Its server keeps nothing
+  between requests: the session is two cookies, and the one module-level
+  value (`systemInitialized`, in the auth middleware) only ever sticks at
+  `true`. The browser suite — 135 tests, every spec but `session-idle`,
+  which hard-codes `localhost:3000` — passes against two frontends and two
+  backends, requests split evenly between each pair and not one 5xx. Run
+  it with `BENCH_ENVIRONMENT=test`, which keeps the login rate limit out of
+  the way; the file's header has the command. What replicas of the
+  frontend do require is that they all run the same image: two builds of
+  the same code already differ in their build id, and two builds of
+  different code in the names of their chunks.
+
 - **Fire-and-forget work is tracked** — `app/core/background.py`. `spawn`
   keeps a reference to the task until it finishes (the loop keeps only a
   weak one, so detached work could be collected mid-write) and `drain`
@@ -164,6 +248,87 @@ frontend as a Nuxt layer under its own Python package.
   remaining configuration is handled by the existing onboarding checklist.
 
 ### Changed
+
+- **El arranque del backend se hace de uno en uno.** Arrancar no es solo
+  leer: migra el esquema, reconcilia el registro de módulos, ejecuta las
+  instalaciones y desinstalaciones pendientes — una de las cuales borra
+  tablas — y, en una demo, siembra datos. Con un contenedor eso es una
+  secuencia; con dos arrancando a la vez era una carrera, y en el banco de
+  réplicas uno de los dos moría en la primera sentencia de la primera
+  migración (`duplicate key … pg_type_typname_nsp_index`, al crear ambos
+  `alembic_version`). Ahora tres bloqueos de PostgreSQL
+  (`app/core/advisory_locks.py`) lo ordenan: uno en `alembic/env.py`, que
+  cubre el entrypoint, el procesador de módulos y un `alembic upgrade` a
+  mano; otro en el lifespan, alrededor de la reconciliación y del
+  procesador; y otro en `scripts/seed_demo.py`. El que llega segundo
+  espera, encuentra el trabajo hecho y no hace nada. Son bloqueos de
+  sesión: los suelta la conexión al cerrarse, así que un proceso que muere
+  no deja nada que limpiar. Con una sola réplica no cambia nada — el
+  bloqueo se obtiene al instante. Con dos, la segunda tarda en estar lista
+  lo que tarde la primera en terminar. Fijado por
+  `tests/test_advisory_locks.py` y por
+  `test_two_upgrades_at_once_both_succeed` en
+  `tests/test_alembic_roundtrip.py`, que sin el bloqueo falla con ese
+  mismo error.
+
+- **El límite de intentos y el pool de conexiones son configurables.** Los
+  dos eran por proceso y fijos, que es lo correcto con un backend y deja
+  de serlo con varios. El limitador (login, registro, refresh, enlace
+  público de presupuesto) cuenta en memoria: en el banco de réplicas, con
+  dos backends, pasaron 10 logins en un minuto contra un límite de 5.
+  `RATE_LIMIT_STORAGE_URI` le da un almacén común (`redis://…`); con él
+  pasaron 5. Si el almacén deja de responder, cada proceso vuelve a contar
+  en memoria hasta que regresa — medido: con Redis parado el login siguió
+  respondiendo, sin un solo 500, y al volver el límite volvió a ser uno.
+  El cliente de Redis es un extra de `pyproject.toml` (`redis`) que una
+  imagen normal no instala: `--build-arg PIP_EXTRAS=redis`. El pool pasa a
+  `DB_POOL_SIZE` y `DB_MAX_OVERFLOW`, con los 10 y 20 de siempre por
+  defecto; cada proceso tiene el suyo, así que con varios backends la suma
+  tiene que caber en el `max_connections` de PostgreSQL. Sin tocar ninguna
+  variable nada cambia: mismo pool, mismo contador en memoria, misma
+  imagen sin cliente de Redis. No cubierto: el freno por sesión de los
+  agentes (`app/core/agents/guardrails.py`, 10 acciones por minuto) sigue
+  contando por proceso, como su propio docstring ya advierte; y
+  `pip-audit` en CI no ve el extra, porque no lo instala. Fijado en
+  `tests/test_rate_limit_storage.py`.
+
+- **La compuerta de módulos se cierra de verdad, en todos los backends.**
+  Entre un `dienteazul modules disable` o `uninstall` y el reinicio, el
+  módulo sigue montado; `module_gate` existe para que deje de responder en
+  esa ventana (409) en vez de escribir en tablas que van a borrarse
+  ([ADR 0018](docs/adr/0018-install-state-is-the-mount-authority.md)). Era
+  un conjunto en memoria que cerraba el proceso que cambiaba el estado — y
+  ese proceso es la CLI, `python -m app.cli` al lado del servidor, que
+  termina al acabar la orden. El servidor nunca se enteraba. Medido en el
+  banco de réplicas: `recalls` desactivado desde la CLI y los dos backends
+  respondiendo 200 por él hasta que se reiniciaron. Ahora cada backend
+  pregunta a `core_module` cada 5 segundos y cierra la compuerta para lo
+  que tiene montado y la base dice que está apagado (`disabled`,
+  `to_remove`, `uninstalled`); el cierre local e inmediato sigue ahí para
+  el proceso que hace el cambio. **Esto cambia el comportamiento con un
+  solo backend**: tras la orden, el módulo responde 409 hasta el
+  reinicio, que es lo que la documentación ya decía que pasaba. Coste: una
+  consulta pequeña cada 5 segundos mientras haya tráfico, y hasta 5
+  segundos en los que una petición aún puede entrar. Lo que no cubre: el
+  reinicio sigue siendo por proceso — con varios backends hay que
+  reiniciarlos todos, y hasta entonces uno ya reiniciado responde 404
+  donde otro responde 409 (o 200 donde otro 404, tras un `enable`). Fijado
+  en `tests/test_module_gate.py`, sección "Closed from another process".
+
+- **Las tareas programadas se pueden apagar por proceso:
+  `SCHEDULER_ENABLED`.** El planificador vive dentro del proceso del
+  backend, así que cada backend que lo tiene encendido ejecuta todas las
+  tareas: con dos, cada recordatorio de cita, cada aviso de presupuesto y
+  cada resumen matutino saldría dos veces. La variable vale `true` por
+  defecto — un solo backend sigue haciendo exactamente lo mismo — y con
+  varios se deja encendida en uno y se pone a `false` en el resto. En el
+  banco de réplicas ese uno es un servicio aparte, `scheduler`: la misma
+  imagen, sin tráfico. Medido allí: las tareas corren en `scheduler` y
+  ninguna en los dos backends que atienden peticiones. Dos límites, a
+  propósito de lo simple que es: nada comprueba que haya exactamente uno
+  encendido (con ninguno no corre ninguna tarea, y nadie avisa), y si ese
+  proceso cae las tareas esperan a que Docker lo reinicie. Fijado en
+  `tests/test_scheduler_jobs.py`.
 
 - **PostgreSQL 15.19, con la imagen fijada por versión y digest.** Las
   bases corrían sobre `postgres:15-alpine`, una etiqueta flotante que se

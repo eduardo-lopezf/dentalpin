@@ -266,6 +266,24 @@ Business logic only, no HTTP concerns. Static methods on a `ResourceService` cla
 
 An endpoint's writes are committed as it returns, **before** the response is sent, by the app-wide `commit_before_response` dependency ([ADR 0031](./docs/adr/0031-writes-commit-before-the-response.md)). Do not add a per-endpoint `db.commit()` for that. `get_db`'s own commit runs after the response, so it only catches work done while a response streams.
 
+### More than one process
+
+A deployment may run several backends against one database
+([ADR 0051](./docs/adr/0051-a-backend-process-is-one-of-several.md)). Write
+as if yours is one of them:
+
+- A module-level variable is a cache or a registry rebuilt at boot, never
+  the only copy of a decision. What another process must honour goes in the
+  database, and the others read it (`module_gate` is the example).
+- Periodic work is declared in `get_scheduled_jobs()`, never with
+  `scheduler.add_job`: only the process with `SCHEDULER_ENABLED` runs it.
+- A startup step that writes goes inside `advisory_lock(BOOT_LOCK)` in the
+  lifespan (`app/core/advisory_locks.py`).
+
+`replicas/docker-compose.yml` is the bench to try a change against two of
+each; [`docs/technical/running-replicas.md`](./docs/technical/running-replicas.md)
+says how.
+
 ### Multi-tenancy (mandatory)
 
 Every query MUST filter by `clinic_id`:

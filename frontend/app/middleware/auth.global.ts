@@ -1,6 +1,7 @@
 import { loginLocation, safeRedirect } from '~/utils/session'
 
 const SETUP_PATH = '/setup'
+const CHANGE_PASSWORD_PATH = '/change-password'
 
 // Module-level cache. The system can only flip from uninitialized → initialized
 // (never back), so once we've seen `true` we stop asking the backend.
@@ -51,6 +52,12 @@ export default defineNuxtRouteMiddleware(async (to) => {
   await auth.init()
 
   if (auth.isAuthenticated.value) {
+    // An account still on a password somebody else set goes nowhere else:
+    // the backend refuses it everything but this (`must_change_password`).
+    if (auth.user.value?.must_change_password) {
+      return to.path === CHANGE_PASSWORD_PATH ? undefined : navigateTo(CHANGE_PASSWORD_PATH)
+    }
+    if (to.path === CHANGE_PASSWORD_PATH) return navigateTo('/')
     // Authenticated users skip both the login page and the first-run wizard.
     // An open login tab that finds a session resumes where it was pointed.
     if (to.path === '/login' || to.path === SETUP_PATH) {

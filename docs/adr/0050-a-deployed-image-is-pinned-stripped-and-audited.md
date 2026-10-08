@@ -180,7 +180,7 @@ to build.
 - `grep -nE '^(FROM|ARG [A-Z_]+_IMAGE=)' postgres/Dockerfile backend/Dockerfile frontend/Dockerfile.prod docs/portal/Dockerfile`
   — every base that reaches a final stage carries `@sha256:`. The portal's
   builder stage is the one exception; it is not shipped. Rule 1.
-- `docker image inspect <image> --format '{{.Config.User}}'` is not empty
+- <span v-pre>`docker image inspect <image> --format '{{.Config.User}}'`</span> is not empty
   for the database, the backend and the frontend. Rule 3.
 - **Nothing checks that a new Dockerfile joins the matrix.** A fifth
   deployed image would be outside all of this until someone adds it.

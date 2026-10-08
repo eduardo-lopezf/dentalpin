@@ -78,6 +78,13 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str
+    # Connections each backend process may hold: ``DB_POOL_SIZE`` kept
+    # open, ``DB_MAX_OVERFLOW`` more under load. Every process has its own
+    # pool, so with several backends the sum of both across all of them
+    # has to stay under PostgreSQL's ``max_connections`` (100 unless the
+    # server says otherwise) with room left for migrations and ``psql``.
+    DB_POOL_SIZE: int = 10
+    DB_MAX_OVERFLOW: int = 20
 
     # Security
     SECRET_KEY: str
@@ -125,12 +132,36 @@ class Settings(BaseSettings):
     # It is a report, not a block — see ADR 0027 for why.
     TENANT_EGRESS_ALLOWED: str = ""
 
+    # Shared with the control plane (ADR 0049 rule 4): it signs the
+    # short-lived tokens that open ``/api/v1/ops``, where an operator reads
+    # what each clinic consumes — sizes, counts and identifiers, never
+    # content. Empty, which is the default, means those routes do not
+    # exist. They do not exist under ``self`` custody either, whatever
+    # this holds.
+    CONTROL_PLANE_SECRET: str = ""
+
     # Rate limiting
     LOGIN_RATE_LIMIT: str = "5/minute"
     REGISTER_RATE_LIMIT: str = "3/hour"
+    # Where the limiter keeps its counters. Empty keeps them in the
+    # process, which is right for one backend. With several, each would
+    # count for itself and "5 logins a minute" becomes 5 per backend: give
+    # them one store, e.g. ``redis://redis:6379/0``. That needs the Redis
+    # client in the image — the ``redis`` extra in pyproject.toml, which a
+    # default build does not install. If the store stops answering, each
+    # process falls back to counting in memory until it is back.
+    RATE_LIMIT_STORAGE_URI: str = ""
 
     # Testing
     TESTING: bool = False
+
+    # Whether this process runs the periodic jobs (``app/core/scheduler.py``).
+    # The scheduler lives in the process, so every backend that has it on
+    # runs every job: two of them send each reminder twice. With one
+    # backend, leave it on. With several, exactly one has it on and the
+    # rest set it to ``false`` — nothing checks that, and with it off
+    # everywhere no job runs at all.
+    SCHEDULER_ENABLED: bool = True
 
     # Module system
     DIENTEAZUL_DEV_MODULE_SCAN: bool = True  # Fallback filesystem scan for dev

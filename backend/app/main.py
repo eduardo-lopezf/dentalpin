@@ -15,6 +15,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core.advisory_locks import BOOT_LOCK, advisory_lock
 from app.core.auth.router import limiter
 from app.core.auth.router import router as auth_router
 from app.core.log_context import (
@@ -23,11 +24,11 @@ from app.core.log_context import (
     set_request_context,
     setup_logging,
 )
-from app.core.plugins.gate import module_gate
+from app.core.plugins.gate import API_PREFIX, module_gate
 from app.core.plugins.loader import discover_and_register, mount_active
 from app.core.plugins.processor import PendingProcessor
 from app.core.plugins.registry import module_registry
-from app.core.plugins.service import ModuleService, installed_module_names
+from app.core.plugins.service import ModuleService, installed_module_names, sync_module_gate
 from app.core.privacy import PrivacyPolicy, incompatible_tiers
 from app.core.privacy.egress import log_egress_audit
 from app.core.scheduler import init_scheduler, shutdown_scheduler
@@ -114,25 +115,30 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     module_gate.clear()
     discover_and_register()
 
-    # Sync in-memory registry into core_module (best-effort).
-    try:
-        async with async_session_maker() as session:
-            await ModuleService(session).reconcile_with_db()
-    except Exception:
-        logger.exception("Module registry reconciliation failed at startup")
-
-    # Process pending install/uninstall/upgrade operations. Running this
-    # before mounting is what lets an install go live on the same boot
-    # that schedules it, instead of needing a second restart.
+    # The two steps below write: rows in ``core_module``, module
+    # migrations, and an uninstall's ``DROP TABLE``. One replica at a time
+    # — the next one waits here, then reads a registry with nothing left
+    # pending.
     failed_migrations: set[str] = set()
-    try:
-        processor = PendingProcessor(async_session_maker)
-        processed = await processor.run()
-        failed_migrations = processor.failed_migrations
-        if processed:
-            logger.info("Processed pending module operations: %s", processed)
-    except Exception:
-        logger.exception("Pending module processor raised")
+    async with advisory_lock(BOOT_LOCK):
+        # Sync in-memory registry into core_module (best-effort).
+        try:
+            async with async_session_maker() as session:
+                await ModuleService(session).reconcile_with_db()
+        except Exception:
+            logger.exception("Module registry reconciliation failed at startup")
+
+        # Process pending install/uninstall/upgrade operations. Running
+        # this before mounting is what lets an install go live on the same
+        # boot that schedules it, instead of needing a second restart.
+        try:
+            processor = PendingProcessor(async_session_maker)
+            processed = await processor.run()
+            failed_migrations = processor.failed_migrations
+            if processed:
+                logger.info("Processed pending module operations: %s", processed)
+        except Exception:
+            logger.exception("Pending module processor raised")
 
     await _mount_installed_modules(app, skip=failed_migrations)
 
@@ -314,8 +320,17 @@ async def module_gate_middleware(request: Request, call_next):
     Preflight requests pass through: answering ``OPTIONS`` with 409
     makes the browser report a CORS failure and hides the real status
     from the caller.
+
+    The state usually changes in another process — the CLI, or another
+    backend — so every few seconds one request stops to ask the database
+    what it now says.
     """
     if request.method != "OPTIONS":
+        if request.url.path.startswith(API_PREFIX):
+            ticket = module_gate.claim_sync()
+            if ticket is not None:
+                await sync_module_gate(async_session_maker, ticket)
+
         blocked = module_gate.match(request.url.path)
         if blocked is not None:
             error = ErrorResponse(
@@ -391,6 +406,11 @@ app.include_router(agents_router, prefix="/api/v1")
 from app.core.privacy.router import router as privacy_router  # noqa: E402
 
 app.include_router(privacy_router, prefix="/api/v1")
+
+# What the control plane reads: usage and access per clinic (ADR 0049).
+from app.core.ops.router import router as ops_router  # noqa: E402
+
+app.include_router(ops_router, prefix="/api/v1")
 
 
 @app.get("/health")
