@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(copilot): los streams SSE se solicitan a través del BFF de mismo origen y su sesión HttpOnly.
 - fix(copilot): con la App IA apagada, entrar a `/copilot` por URL
   mostraba una página «403 Forbidden» en vez de volver a Inicio con el
   aviso. La página lanzaba el 403 al no encontrar el permiso —que nadie

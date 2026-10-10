@@ -1,20 +1,22 @@
 """Authentication dependencies for FastAPI."""
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt import PyJWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.core.log_context import set_request_context
 from app.database import get_db
 
-from .models import Clinic, ClinicMembership, User
+from .models import AuthSession, Clinic, ClinicMembership, User
 from .permissions import has_permission
 from .service import decode_token
 
@@ -33,6 +35,7 @@ class ClinicContext:
 
 
 async def get_current_user(
+    request: Request,
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
@@ -48,6 +51,7 @@ async def get_current_user(
         user_id = payload.get("sub")
         token_type = payload.get("type")
         token_version = payload.get("token_version", 0)
+        raw_family_id = payload.get("family_id")
 
         if user_id is None or token_type != "access":
             raise credentials_exception
@@ -72,10 +76,57 @@ async def get_current_user(
     if user.token_version != token_version:
         raise credentials_exception
 
+    family_id: UUID | None = None
+    if raw_family_id is None:
+        # Tokens minted before family claims were introduced have at
+        # most their original 15-minute access lifetime to transition.
+        issued_at = payload.get("iat")
+        if issued_at is None:
+            expires_at = payload.get("exp")
+            if not isinstance(expires_at, (int, float)):
+                raise credentials_exception
+            issued_at = expires_at - settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        try:
+            issued = datetime.fromtimestamp(float(issued_at), UTC)
+        except (TypeError, ValueError, OverflowError):
+            raise credentials_exception from None
+        now = datetime.now(UTC)
+        if issued > now or issued < now - timedelta(minutes=15):
+            raise credentials_exception
+    else:
+        try:
+            family_id = UUID(raw_family_id)
+        except (TypeError, ValueError):
+            raise credentials_exception from None
+
+        result = await db.execute(
+            select(AuthSession)
+            .where(
+                AuthSession.family_id == family_id,
+                AuthSession.user_id == user.id,
+                AuthSession.revoked_at.is_(None),
+            )
+            .limit(1)
+            .execution_options(populate_existing=True)
+        )
+        session = result.scalar_one_or_none()
+        now = datetime.now(UTC)
+        if (
+            session is None
+            or session.family_expires_at <= now
+            or session.last_activity_at
+            + timedelta(minutes=settings.AUTH_SESSION_IDLE_TIMEOUT_MINUTES)
+            <= now
+        ):
+            raise credentials_exception
+
+    request.state.auth_family_id = family_id
+
     return user
 
 
 async def get_clinic_context(
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
     clinic_id: UUID | None = None,
@@ -102,6 +153,9 @@ async def get_clinic_context(
         select(ClinicMembership)
         .options(selectinload(ClinicMembership.clinic).selectinload(ClinicModel.cabinets))
         .where(ClinicMembership.user_id == current_user.id)
+        # Oldest first, as on ``User.memberships``: "the first clinic"
+        # below has to mean the same one on every request.
+        .order_by(ClinicMembership.created_at)
     )
     memberships = result.scalars().all()
 
@@ -133,6 +187,17 @@ async def get_clinic_context(
             )
     else:
         membership = memberships[0]
+
+    # A clinic has the Apps chosen for it and no others. A module's routes
+    # live under ``/api/v1/<module>``; one that belongs to an App the
+    # clinic does not have answers as it would if the deployment had the
+    # App switched off — not found — which is what the app already knows
+    # how to live with (ADR 0038).
+    from app.core.plugins.apps import modules_outside
+
+    segments = request.url.path.split("/")
+    if len(segments) > 3 and segments[3] in modules_outside(membership.clinic.apps):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
 
     # Bind clinic_id + user_id onto the per-request logging context so
     # every log line and event emitted inside this handler carries

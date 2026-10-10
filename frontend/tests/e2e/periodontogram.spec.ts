@@ -1,4 +1,4 @@
-import { test, expect, type Page } from './_fixtures'
+import { test, expect, type Page, tokenFor } from './_fixtures'
 
 /**
  * Periodontogram smoke: end-to-end flow against the live stack.
@@ -27,8 +27,7 @@ test.describe.configure({ timeout: 120_000 })
 
 async function getPatientId(page: Page): Promise<string> {
   const ctx = page.context()
-  const cookies = await ctx.cookies()
-  const token = cookies.find(c => c.name === 'access_token')?.value
+  const token = await tokenFor(page)
   const res = await ctx.request.get(`${API_BASE}/api/v1/patients?page=1&page_size=1`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   })
@@ -43,8 +42,7 @@ async function discardDraftIfAny(page: Page, patientId: string): Promise<void> {
   // Clean up any draft left behind by a previous run so tests are
   // independent. Idempotent — silently ignores 404 / no-draft.
   const ctx = page.context()
-  const cookies = await ctx.cookies()
-  const token = cookies.find(c => c.name === 'access_token')?.value
+  const token = await tokenFor(page)
   const draftRes = await ctx.request.get(
     `${API_BASE}/api/v1/periodontogram/patients/${patientId}/draft`,
     { headers: token ? { Authorization: `Bearer ${token}` } : {} }
@@ -62,8 +60,7 @@ async function ensureDraftExists(page: Page, patientId: string): Promise<void> {
   // is idempotent (returns existing draft or creates one). Avoids
   // depending on test ordering / leftover state.
   const ctx = page.context()
-  const cookies = await ctx.cookies()
-  const token = cookies.find(c => c.name === 'access_token')?.value
+  const token = await tokenFor(page)
   await ctx.request.post(
     `${API_BASE}/api/v1/periodontogram/patients/${patientId}/draft`,
     { headers: token ? { Authorization: `Bearer ${token}` } : {} }

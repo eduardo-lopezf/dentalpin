@@ -51,6 +51,20 @@ ALLOWED: dict[str, str] = {
     "modules/migration_import/dpmf/integrity.py::compute_logical_hash": (
         "SQLite identifier cannot be bound; validated by is_safe_identifier first"
     ),
+    # The usage report sweeps every table that carries a `clinic_id`,
+    # so the table name is the query. It comes from `information_schema`
+    # of the current schema — never from a request — and reaches the SQL
+    # through `_quoted`, which doubles any embedded quote, so it is a
+    # quoted identifier and nothing else. Where the same name is a
+    # *value* (the `pg_total_relation_size` argument, the `area` label)
+    # it is bound: interpolating it there put a catalog name inside a
+    # string literal, which `_quoted` does not escape for.
+    "core/ops/usage.py::_database_shares": (
+        "table name from information_schema, quoted by _quoted; the size argument is bound"
+    ),
+    "core/ops/usage.py::_activity": (
+        "table name from information_schema, quoted by _quoted; the area label is bound"
+    ),
     # --- Migrations ------------------------------------------------------
     # Alembic runs these with no request and no user input; each
     # interpolates a table name or an enum value from a literal in the

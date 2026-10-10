@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import type { AppInfo } from '~/types'
 import { appPresentation } from '~/config/appCatalog'
+import { PERMISSIONS } from '~/config/permissions'
 
 interface Props {
   app: AppInfo
 }
 
 const props = defineProps<Props>()
+const emit = defineEmits<{ enable: [name: string] }>()
 const { t, te } = useI18n()
+const { can } = usePermissions()
 
 // Catalog names are code; the clinic-facing title and summary live in
 // i18n. An App without strings yet falls back to its name.
@@ -78,6 +81,24 @@ const summary = computed(() => {
         :label="t(app.enabled ? 'settings.modules.state.installed' : 'settings.modules.state.disabled')"
         dot
       />
+      <!-- Offered to this clinic and not switched on yet. -->
+      <UButton
+        v-if="app.available && can(PERMISSIONS.admin.clinicWrite)"
+        size="xs"
+        icon="i-lucide-power"
+        :data-testid="`app-enable-${app.name}`"
+        @click="emit('enable', app.name)"
+      >
+        {{ t('settings.apps.enable') }}
+      </UButton>
+      <UBadge
+        v-else-if="app.available"
+        color="info"
+        variant="subtle"
+        size="xs"
+      >
+        {{ t('settings.apps.available') }}
+      </UBadge>
       <!-- `apps.json` was edited and the backend has not restarted yet. -->
       <UBadge
         v-if="app.pending_enabled !== null && app.pending_enabled !== undefined"

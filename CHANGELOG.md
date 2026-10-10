@@ -37,6 +37,36 @@ frontend as a Nuxt layer under its own Python package.
   a user has of changing their own password — which clears it. The app
   holds such an account on the new `/change-password` screen. The holder
   of a clinic created through `POST /ops/clinics` starts that way.
+- **A clinic only has the Apps chosen for it.** `clinics.apps` is now
+  applied, per request: the routes of a module whose App is not on the
+  clinic's list answer `404` to its members, `/modules/-/active` leaves
+  those modules out (so menu, route guard and slots follow), `/auth/me`
+  leaves out their permissions, and `GET /apps` reports `enabled` for the
+  caller's clinic. A clinic with no list (`NULL`) keeps everything the
+  deployment runs. Event handlers and scheduled jobs are not narrowed.
+- **The operator's list of Apps is the file, read every time.**
+  `GET /ops/apps` reads `apps.json` on each request (`read_app_catalog`)
+  instead of the copy cached at boot, and reports `pending_enabled` for an
+  App whose status in the file differs from what is running. What is
+  mounted is still decided at boot.
+- **A clinic's Apps can be changed one at a time by the operator.**
+  `PUT /ops/clinics/{id}/apps` sets what a clinic has and what it is
+  offered, and nothing else, under the rules of creation; it takes effect
+  at the clinic's next request.
+- **A clinic can be offered Apps to switch on itself.**
+  `clinics.available_apps` (migration `0018`) holds the Apps a clinic
+  does not have and may enable; the operator sets it through
+  `POST`/`PATCH /ops/clinics`. Settings → Apps shows them with a
+  *Habilitar* button (`POST /api/v1/apps/{name}/enable`,
+  `admin.clinic.write`), which also switches on what the App requires and
+  takes effect at once — menu and permissions are read again. There is
+  still no way to switch an App off from the clinic.
+- **An account held to a password change is taken to it, not told
+  "access denied".** The API client sends the user to `/change-password`
+  on the backend's `403 Password change required`, as a net under the
+  auth middleware: an app that loaded anyway showed "Acceso denegado" on
+  every screen with no way forward. `/change-password` no longer bounces
+  a signed-in user away.
 - **A clinic can be deactivated** (`clinics.deactivated_at`, migration
   `0017`): `POST /ops/clinics/{id}/deactivate` closes it to its members
   without deleting anything, `…/reactivate` opens it again. `GET
@@ -48,6 +78,29 @@ frontend as a Nuxt layer under its own Python package.
   /ops/specialties` lists the disciplines (new core contract
   `ReferenceSpecialties`, supplied by `catalog`); `POST /ops/clinics`
   takes `specialties` and passes it on `clinic.created`.
+- **One e-mail, one account, one clinic.** `POST /ops/clinics` refuses
+  (`409`) an e-mail whose account already belongs to a clinic: a new
+  account needs another e-mail, or that user removed from their clinic
+  first. An account that belongs to none becomes the holder as it is
+  (`holder_existed`). A user's clinics are read oldest first
+  (`User.memberships`, `get_clinic_context`, `/auth/me`, `/auth/refresh`),
+  so "the first clinic" is the same one on every request.
+- **A clinic can be read, changed and — outside production — deleted by
+  the operator.** `GET /ops/clinics/{id}` returns everything it was
+  created with; `PATCH` changes tier, time zone, tax id, the clinic's own
+  details, Apps and specialties under the rules of creation, publishing
+  the new `clinic.specialties_set` for the catalog to follow; `DELETE`
+  removes the clinic with every row and file of its own and the accounts
+  that belonged to no other clinic (`app/core/ops/purge.py`), and answers
+  `403` when `ENVIRONMENT=production`.
+- **The operator's console manages staff accounts.** `GET
+  /ops/clinics/{id}/users` lists a clinic's accounts with their role,
+  `PATCH /ops/users/{id}` corrects a profile — names, e-mail,
+  professional id, never the password — and `DELETE /ops/users/{id}`
+  deletes an account for good **outside production only**: it answers
+  `403` when `ENVIRONMENT=production`, and `409` anywhere if records
+  still point at the account. ADR 0049 rule 5 is amended: the operator
+  sees staff accounts, still no patient data.
 - **A clinic is created with a chosen set of Apps.** `GET /ops/apps`
   lists the deployment's Apps with what each requires and the account
   tiers it is mandatory for; `POST /ops/clinics` takes `apps`, refuses a
@@ -248,6 +301,19 @@ frontend as a Nuxt layer under its own Python package.
   remaining configuration is handled by the existing onboarding checklist.
 
 ### Changed
+
+- **The usage report binds the table name where it is a value.**
+  `core/ops/usage.py` sweeps every table carrying a `clinic_id`, and the
+  name reached the SQL three times: as the `FROM` identifier, as the
+  argument of `pg_total_relation_size`, and as the `area` label of the
+  activity log. Only the first is an identifier; the other two were
+  interpolated into single-quoted literals, which `_quoted` — it doubles
+  embedded double quotes — does not escape for. A table named `od'd "name`
+  made the query fail to parse, which is the same door an injected name
+  would walk through. Both are bound now (`CAST(:relation AS regclass)`,
+  `CAST(:area_n AS text)` — a `::cast` beside a parameter swallows it in
+  `text()`), and the two remaining identifier interpolations are listed in
+  `tests/test_no_dynamic_sql.py` with their reason.
 
 - **El arranque del backend se hace de uno en uno.** Arrancar no es solo
   leer: migra el esquema, reconcilia el registro de módulos, ejecuta las

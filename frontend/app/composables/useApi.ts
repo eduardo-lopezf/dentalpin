@@ -18,6 +18,7 @@ interface UseApiOptions {
   // Optional AbortSignal so callers can cancel in-flight requests
   // (debounced lookups, component unmount, etc.).
   signal?: AbortSignal
+  responseType?: 'blob' | 'arrayBuffer' | 'text' | 'stream'
 }
 
 function _withQuery(path: string, query?: UseApiOptions['query']): string {
@@ -32,41 +33,30 @@ function _withQuery(path: string, query?: UseApiOptions['query']): string {
 }
 
 export function useApi() {
-  const config = useRuntimeConfig()
   const auth = useAuth()
   const { t } = useI18n()
   const toast = useToast()
-
-  // Use different API URL for server (Docker internal) vs client (browser)
-  const apiBaseUrl = computed(() =>
-    import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
-  )
 
   async function $api<T>(
     path: string,
     options: UseApiOptions = {}
   ): Promise<T> {
-    const { skipAuth, method, body, headers: optionHeaders, signal, query } = options
+    const { skipAuth, method, body, headers: optionHeaders, signal, query, responseType } = options
 
     const headers: Record<string, string> = {
       ...(optionHeaders || {})
     }
 
-    // Add auth header if authenticated and not skipping auth
-    if (!skipAuth && auth.accessToken.value) {
-      headers.Authorization = `Bearer ${auth.accessToken.value}`
-    }
-
     const url = _withQuery(path, query)
 
     try {
-      return await $fetch<T>(url, {
-        baseURL: apiBaseUrl.value,
+      return await auth.request<T>(url, {
         timeout: 10000, // 10 seconds
         method,
         body,
         headers,
-        signal
+        signal,
+        responseType
       })
     } catch (error: unknown) {
       const fetchError = error as { name?: string, statusCode?: number, data?: { message?: string } }
@@ -79,36 +69,42 @@ export function useApi() {
       }
 
       // Handle specific error codes
-      if (fetchError.statusCode === 401) {
-        // Try to refresh token. `refresh()` throws instead of returning when
-        // it could not reach the backend at all — surface the original 401
-        // without ending the session, since we still don't know whether the
-        // session is actually over.
+      if (fetchError.statusCode === 401 && !skipAuth) {
+        // Refresh uses a cross-tab lock and first probes /auth/me, so a tab
+        // arriving after another tab rotated the cookie adopts that session
+        // rather than presenting a spent refresh token.
         let refreshed: boolean
         try {
           refreshed = await auth.refresh()
         } catch {
+          // A transport failure is not proof that the session ended.
           throw error
         }
         if (refreshed) {
-          // Retry the request with new token
-          headers.Authorization = `Bearer ${auth.accessToken.value}`
-          return await $fetch<T>(url, {
-            baseURL: apiBaseUrl.value,
+          return await auth.request<T>(url, {
+            timeout: 10000,
             method,
             body,
-            headers
+            headers,
+            signal,
+            responseType
           })
+        } else {
+          throw error
         }
-        // No logout here: a false return means `refresh()` already ended
-        // the session and sent the user to /login. Calling logout() again
-        // posted a second revocation of an already-revoked family — three
-        // of them in the render that made this visible — and raced the
-        // cookie writes of everyone else on the page.
-        throw error
       }
 
       if (fetchError.statusCode === 403) {
+        // An account still on the password it was created with is refused
+        // everything until it sets its own. The middleware normally sends
+        // it to the change-password screen before any request is made;
+        // this is the net under it — whatever let the app load, the first
+        // refusal takes the user there instead of showing "access denied"
+        // on every screen with no way forward.
+        if (fetchError.data?.message === 'Password change required') {
+          await navigateTo('/change-password')
+          throw error
+        }
         toast.add({
           title: t('common.error'),
           description: t('common.forbidden', 'Acceso denegado'),
@@ -174,13 +170,41 @@ export function useApi() {
     return $api<T>(path, { ...options, method: 'DELETE' })
   }
 
+  async function requestResponse(path: string, init: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers)
+    const method = (init.method ?? 'GET').toUpperCase()
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      const csrf = import.meta.client
+        ? /(?:^|;\s*)csrf_token=([^;]*)/.exec(document.cookie)?.[1]
+        : useCookie<string | null>('csrf_token').value
+      if (csrf) headers.set('x-csrf-token', decodeURIComponent(csrf))
+    }
+    const send = () => fetch(path, { ...init, headers, credentials: 'same-origin' })
+    const response = await send()
+    const body = init.body
+    const replayable = body === undefined || typeof body === 'string' || body instanceof FormData
+      || body instanceof Blob || body instanceof URLSearchParams || body instanceof ArrayBuffer
+      || ArrayBuffer.isView(body)
+    if (response.status === 401 && replayable) {
+      let refreshed: boolean
+      try {
+        refreshed = await auth.refresh()
+      } catch {
+        return response
+      }
+      if (refreshed) return await send()
+    }
+    return response
+  }
+
   return {
     $api,
     get,
     post,
     put,
     patch,
-    del
+    del,
+    requestResponse
   }
 }
 

@@ -53,11 +53,10 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile.prod
-      args:
-        API_BASE_URL: ${BACKEND_URL}
     environment:
       SERVICE_FQDN_FRONTEND_3000: ${FRONTEND_FQDN}
-      NUXT_PUBLIC_API_BASE_URL: ${BACKEND_URL}
+      NUXT_API_BASE_URL_SERVER: http://backend:8000
+      NUXT_PUBLIC_APP_ORIGIN: ${FRONTEND_URL}
     depends_on:
       backend:
         condition: service_started

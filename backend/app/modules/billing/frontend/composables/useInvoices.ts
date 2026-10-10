@@ -48,8 +48,6 @@ export interface InvoiceListParams {
 
 export function useInvoices() {
   const api = useApi()
-  const config = useRuntimeConfig()
-  const auth = useAuth()
   const { t } = useI18n()
 
   // State
@@ -447,31 +445,16 @@ export function useInvoices() {
   // ============================================================================
 
   async function downloadPDF(id: string, locale: string = 'es'): Promise<void> {
-    const baseUrl = config.public.apiBaseUrl
-    const token = auth.accessToken.value
-
-    const response = await fetch(
-      `${baseUrl}/api/v1/billing/invoices/${id}/pdf?locale=${locale}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
+    const blob = await api.$api<Blob>(
+      `/api/v1/billing/invoices/${id}/pdf?locale=${locale}`,
+      { responseType: 'blob' }
     )
-
-    if (!response.ok) {
-      throw new Error('Failed to download PDF')
-    }
-
-    const blob = await response.blob()
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
 
     // Extract filename from Content-Disposition header or generate one
-    const contentDisposition = response.headers.get('Content-Disposition')
-    const filenameMatch = contentDisposition?.match(/filename="?(.+)"?/)
-    link.download = filenameMatch?.[1] || `factura_${id}.pdf`
+    link.download = `factura_${id}.pdf`
 
     document.body.appendChild(link)
     link.click()
@@ -480,8 +463,7 @@ export function useInvoices() {
   }
 
   function getPDFPreviewUrl(id: string, locale: string = 'es'): string {
-    const baseUrl = config.public.apiBaseUrl
-    return `${baseUrl}/api/v1/billing/invoices/${id}/pdf/preview?locale=${locale}`
+    return `/api/v1/billing/invoices/${id}/pdf/preview?locale=${locale}`
   }
 
   // ============================================================================

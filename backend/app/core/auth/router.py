@@ -19,6 +19,7 @@ from app.config import settings
 from app.core.events import event_bus
 from app.core.events.types import EventType
 from app.core.plugins import module_registry
+from app.core.plugins.apps import modules_outside
 from app.core.privacy import TierCustodyError, tiers_available_under, validate_tier_custody
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.core.tenancy import TenantContext, get_tenant
@@ -222,9 +223,17 @@ async def setup(
     await db.commit()
 
     access_token = create_access_token(
-        user.id, clinic_id=clinic.id, token_version=user.token_version
+        user.id,
+        clinic_id=clinic.id,
+        token_version=user.token_version,
+        family_id=session.family_id,
     )
-    refresh_token = create_refresh_token(user.id, token_version=user.token_version, jti=session.id)
+    refresh_token = create_refresh_token(
+        user.id,
+        token_version=user.token_version,
+        jti=session.id,
+        expires_at=session.expires_at,
+    )
 
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
@@ -284,8 +293,14 @@ async def login(
         user.id,
         clinic_id=clinic_id,
         token_version=user.token_version,
+        family_id=session.family_id,
     )
-    refresh_token = create_refresh_token(user.id, token_version=user.token_version, jti=session.id)
+    refresh_token = create_refresh_token(
+        user.id,
+        token_version=user.token_version,
+        jti=session.id,
+        expires_at=session.expires_at,
+    )
 
     return TokenResponse(
         access_token=access_token,
@@ -347,6 +362,7 @@ async def refresh_token(
         select(ClinicMembership)
         .options(selectinload(ClinicMembership.clinic))
         .where(ClinicMembership.user_id == user.id)
+        .order_by(ClinicMembership.created_at)
     )
     memberships = memberships_result.scalars().all()
 
@@ -377,6 +393,11 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
         ) from None
+    except sessions.InactiveFamilyError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session family has expired or is inactive",
+        ) from None
     except LookupError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -390,9 +411,13 @@ async def refresh_token(
         user.id,
         clinic_id=clinic_id,
         token_version=user.token_version,
+        family_id=successor.family_id,
     )
     new_refresh_token = create_refresh_token(
-        user.id, token_version=user.token_version, jti=successor.id
+        user.id,
+        token_version=user.token_version,
+        jti=successor.id,
+        expires_at=successor.expires_at,
     )
 
     return AuthResponse(
@@ -401,6 +426,27 @@ async def refresh_token(
         user=UserResponse.model_validate(user),
         clinics=clinics,
     )
+
+
+@router.post("/activity", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("30/minute")
+async def record_activity(
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """Extend the idle timeout for the authenticated session family."""
+    family_id = getattr(request.state, "auth_family_id", None)
+    if family_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="A session-bound access token is required",
+        )
+    if not await sessions.record_activity(db, family_id, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session family has expired or is inactive",
+        )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -483,6 +529,7 @@ async def get_me(
         select(ClinicMembership)
         .options(selectinload(ClinicMembership.clinic))
         .where(ClinicMembership.user_id == current_user.id)
+        .order_by(ClinicMembership.created_at)
     )
     memberships = result.scalars().all()
 
@@ -504,6 +551,10 @@ async def get_me(
         # Combine module permissions with core permissions
         all_perms = module_registry.get_all_permissions() + CORE_PERMISSIONS
         permissions = expand_permissions(role_perms, all_perms)
+        # Not those of Apps the clinic does not have: the app hides by
+        # permission, and a button for a route that answers 404 helps nobody.
+        outside = modules_outside(memberships[0].clinic.apps)
+        permissions = [p for p in permissions if p.split(".", 1)[0] not in outside]
 
     return ApiResponse(
         data=MeResponse(

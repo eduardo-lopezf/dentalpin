@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(patients_clinical): las cargas y aperturas de cuestionarios usan el BFF autenticado de mismo origen.
 - fix(types): la tarjeta de antecedentes del Resumen usaba `a.id` como
   `key` de las alergias, y `AllergyEntry` no tiene `id`: todas las filas
   compartían una clave `undefined`. Pasa a usar el índice, como el

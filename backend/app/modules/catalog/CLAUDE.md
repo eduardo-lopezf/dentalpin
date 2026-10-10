@@ -89,9 +89,15 @@ Payload consumed: `clinic_id` (required), `created_by`, `name`, and
 baseline packs not listed and enables the listed ones beyond the
 baseline, always keeping `providers.REQUIRED_SPECIALTIES` (`general`).
 
+`clinic.specialties_set` (`events.py:on_clinic_specialties_set`) —
+payload `clinic_id`, `specialties` — is the same thing later: the operator
+changed the clinic's disciplines (`PATCH /api/v1/ops/clinics/{id}`), and
+`_keep_only` brings the packs to match.
+
 `providers.py` supplies core's `ReferenceSpecialties` contract — the
-recognised disciplines and which one every clinic has — so core can offer
-and validate that choice without importing this module.
+recognised disciplines, which one every clinic has, and which a clinic
+has switched on — so core can offer, validate and show that choice
+without importing this module.
 
 Published by
 core's `/api/v1/auth/setup` after it commits the clinic — core must not

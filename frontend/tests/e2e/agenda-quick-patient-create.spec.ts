@@ -1,4 +1,4 @@
-import { test, expect } from './_fixtures'
+import { test, expect, login, tokenFor } from './_fixtures'
 
 /**
  * Quick patient creation from the agenda's "Nueva cita" modal.
@@ -88,8 +88,7 @@ test.describe('agenda — quick patient create', () => {
     // actually created (not just optimistic UI). Going through /patients
     // listing would require an additional render race.
     const ctx = loggedIn.context()
-    const cookies = await ctx.cookies()
-    const token = cookies.find(c => c.name === 'access_token')?.value
+    const token = await tokenFor(loggedIn, 'receptionist')
     const res = await ctx.request.get(
       `${API_BASE}/api/v1/patients?search=${encodeURIComponent(lastName)}`,
       { headers: token ? { Authorization: `Bearer ${token}` } : {} }
@@ -105,22 +104,7 @@ test.describe('agenda — quick patient create', () => {
     // so the footer slot must not render.
     // We login inline (not via the fixture) to scope the assertion to this
     // narrow check and avoid logging in twice.
-    const ctx = page.context()
-    const form = new URLSearchParams({
-      username: 'hygienist@demo.clinic',
-      password: 'demo1234'
-    })
-    const loginRes = await ctx.request.post(`${API_BASE}/api/v1/auth/login`, {
-      data: form.toString(),
-      headers: { 'content-type': 'application/x-www-form-urlencoded' }
-    })
-    if (!loginRes.ok()) test.skip(true, 'hygienist seed user not available')
-    const tokens = (await loginRes.json()) as { access_token: string }
-    await ctx.addCookies([{
-      name: 'access_token',
-      value: tokens.access_token,
-      url: 'http://localhost:3000'
-    }])
+    await login(page, 'hygienist')
 
     await page.goto('/appointments')
     await page.waitForLoadState('networkidle')

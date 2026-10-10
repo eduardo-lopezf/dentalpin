@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(recalls): la exportación CSV usa el transporte BFF autenticado en lugar de un bearer token de navegador.
 - feat(recalls): el contador de Inicio lleva nombre (`labelKey`) para
   poder ocultarlo o reordenarlo desde Configuración → Apps → Espacio de trabajo.
 

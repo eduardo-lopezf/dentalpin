@@ -76,9 +76,15 @@ class Clinic(Base, TimestampMixin):
     # Apps chosen for the clinic when it was created, by their name in
     # ``apps.json``. ``None`` when nobody chose — the first clinic of a
     # deployment, made by ``/auth/setup`` — and that means all of them.
-    # Recorded, not enforced: what runs is still decided for the whole
-    # deployment (ADR 0038), so today every clinic sees every App.
+    # A clinic only has the Apps on its list: the routes of the others
+    # answer 404 to its members (``get_clinic_context``), and their menu
+    # entries and permissions are left out (``/modules/-/active``,
+    # ``/auth/me``). What runs at all is still the deployment's decision
+    # (ADR 0038); this narrows it per clinic.
     apps: Mapped[list[str] | None] = mapped_column(JSONB, default=None)
+    # Apps the clinic does not have but may switch on itself, from
+    # Settings → Apps. An App on neither list is not available to it.
+    available_apps: Mapped[list[str] | None] = mapped_column(JSONB, default=None)
     # When the operator deactivated the clinic. While set, nobody can work
     # in it (``get_clinic_context``); its data is untouched and clearing
     # the column brings it all back.
@@ -145,6 +151,8 @@ class AuthSession(Base, TimestampMixin):
     family_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
 
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    family_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_activity_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     # Set when this token was exchanged for the next one. A rotated token
     # is spent; presenting it again is the reuse signal.
     rotated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
@@ -180,8 +188,13 @@ class User(Base, TimestampMixin):
     must_change_password: Mapped[bool] = mapped_column(default=False, server_default=false())
 
     # Relationships
+    # Oldest first. The app works in a user's first clinic, so the order
+    # has to be the same at every sign-in — and joining a second clinic
+    # must not move anyone out of the one they already work in.
     memberships: Mapped[list["ClinicMembership"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="ClinicMembership.created_at",
     )
 
     @property

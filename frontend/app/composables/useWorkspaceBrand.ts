@@ -39,8 +39,6 @@ const OWN_MODE_KEY = 'workspace:own-color-mode'
 
 export function useWorkspaceBrand() {
   const api = useApi()
-  const auth = useAuth()
-  const config = useRuntimeConfig()
   const colorMode = useColorMode()
 
   const brand = useState<WorkspaceBrand | null>('workspace:brand', () => null)
@@ -82,16 +80,16 @@ export function useWorkspaceBrand() {
   }
   const logo = computed(() => logoUrl.value || PRODUCT_LOGO)
 
-  function authHeaders() {
-    return { Authorization: `Bearer ${auth.accessToken.value}` }
-  }
-
   async function loadLogo(): Promise<void> {
     if (logoUrl.value) URL.revokeObjectURL(logoUrl.value)
     logoUrl.value = null
     if (!brand.value?.has_logo) return
-    const response = await fetch(`${config.public.apiBaseUrl}${URL_BASE}/logo`, { headers: authHeaders() })
-    if (response.ok) logoUrl.value = URL.createObjectURL(await response.blob())
+    try {
+      const blob = await api.$api<Blob>(`${URL_BASE}/logo`, { responseType: 'blob' })
+      logoUrl.value = URL.createObjectURL(blob)
+    } catch {
+      logoUrl.value = null
+    }
   }
 
   async function load(force = false): Promise<void> {
@@ -122,12 +120,7 @@ export function useWorkspaceBrand() {
   async function uploadLogo(file: File): Promise<void> {
     const form = new FormData()
     form.append('file', file)
-    await $fetch(`${URL_BASE}/logo`, {
-      baseURL: config.public.apiBaseUrl,
-      method: 'PUT',
-      body: form,
-      headers: authHeaders()
-    })
+    await api.put(`${URL_BASE}/logo`, form)
     await load(true)
   }
 

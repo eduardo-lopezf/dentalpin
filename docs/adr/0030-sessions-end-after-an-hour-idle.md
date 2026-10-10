@@ -1,6 +1,6 @@
 # 0030 — A session ends after an hour without interaction, and login resumes it
 
-- **Status:** accepted
+- **Status:** accepted, amended by [ADR 0052](0052-sessions-use-a-same-origin-http-only-bff.md)
 - **Date:** 2026-09-16
 - **Deciders:** Eduardo
 - **Tags:** security, auth, ux
@@ -26,28 +26,31 @@ had been doing.
 app. Ending it is a real logout, and the next login resumes the page the user was on.**
 
 - **Interaction is a person, not a request.** Pointer, keyboard, touch, wheel and scroll
-  count; background fetches do not. Only the browser can tell the two apart, so the
-  rule is enforced there — `frontend/app/composables/useSessionActivity.ts`.
-- **The last interaction is a cookie** (`session:last-activity`), shared by every tab
-  and readable by the server. Activity in any tab keeps all of them alive, and the auth
-  middleware applies the same rule during SSR, so a tab reopened after an hour is
-  redirected before a page is rendered.
+  count; background fetches do not. The browser detects interaction and sends a
+  throttled activity signal; the server persists and enforces the idle limit on
+  authenticated requests and refresh (ADR 0052).
+- **The last interaction is also mirrored to a cookie** (`session:last-activity`),
+  shared by every tab and readable during SSR. It lets the middleware redirect before
+  rendering a protected page, but the persisted server timestamp now decides whether
+  requests and refreshes remain authorized.
 - **The stamp is in server time.** The browser's offset comes from the server clock at
   render time. Otherwise a browser whose clock runs an hour slow would be logged out on
   every full page load.
 - **Check before stamping.** Timers do not run while a machine sleeps; the first event
   after waking is usually a mouse movement, and stamping it first would renew a session
   that had already ended.
-- **Idle expiry revokes the family** (`useAuth.terminate()`), without waiting for the
-  answer on the client — the tokens are dropped first and the revocation follows.
+- **Idle expiry ends the session family server-side.** Browser detection clears local
+  state and requests logout without waiting for the response; a family that has already
+  exceeded the idle limit is rejected by the backend even if that request never arrives.
 - **`/login?redirect=…&reason=idle|expired`.** The destination is honoured only if it is
   a path inside the app (`frontend/app/utils/session.ts:safeRedirect`); anything else
   would make the login page an open redirect. `reason` makes the login screen say why
   the user is there.
 - **A user who chooses to log out is not sent back.** On a shared front-desk computer
   the next person to log in should not open on the previous one's patient.
-- **A session with no stamp is treated as active** and stamped on first sight, so the
-  deploy that ships this logs nobody out.
+- **A session with no browser stamp is treated as active** and stamped on first sight
+  for the render guard. The backend migration initializes existing families' server
+  activity once so rollout does not immediately end them.
 
 ## Consequences
 
@@ -59,22 +62,17 @@ app. Ending it is a real logout, and the next login resumes the page the user wa
 
 ### Bad / accepted trade-offs
 
-- **The refresh endpoint does not enforce the idle limit.** A refresh token nobody
-  presents is still valid server-side for its seven days; the session is revoked the
-  first time any app code runs after the hour. Enforcing it in `sessions.rotate` would
-  need the browser to report activity to the server — a heartbeat — and a heartbeat per
-  tab is exactly the concurrent refresh that reuse detection punishes. Worth doing
-  behind a cross-tab lock; not done here.
-- The stamp is written by the browser, so it can be forged by someone with the browser
-  in hand. This bounds an unattended screen; it is not a defence against a user
-  extending their own session.
+- **The browser activity stamp is writable by the browser** and remains only an early
+  render/UX guard. Server-side family activity is authoritative for access, although
+  an authenticated client can report false interaction; the signal cannot prove a
+  human is present.
 - A mouse left moving (or a jiggler) keeps a session alive. That is what "interaction"
   means.
 
 ## Alternatives considered
 
-- **A server-side idle limit only** — cannot see a person, only requests, and every
-  open tab polls; it would either never fire or fire on someone typing a long form.
+- **A server-side idle limit based on every request** — cannot distinguish a person
+  from background polling; background requests must not keep a session alive.
 - **localStorage for the stamp** — shared across tabs, but invisible to the server, so
   a reopened tab would render patient data for a moment before being sent away.
 - **A warning before expiry** — useful, but not asked for; the login notice covers the
@@ -95,3 +93,4 @@ app. Ending it is a real logout, and the next login resumes the page the user wa
 - `frontend/app/middleware/auth.global.ts`
 - `frontend/app/pages/login.vue`
 - `backend/app/core/auth/sessions.py` (family revocation)
+- [ADR 0052](0052-sessions-use-a-same-origin-http-only-bff.md) (server enforcement and BFF)

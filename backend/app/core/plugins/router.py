@@ -33,6 +33,8 @@ from .apps import (
     integrated_modules,
     load_app_catalog,
     modules_disabled_by_app,
+    modules_outside,
+    required_apps,
     required_modules,
     statuses_on_disk,
 )
@@ -47,16 +49,30 @@ apps_router = APIRouter(prefix="/apps", tags=["apps"])
 
 @apps_router.get("")
 async def list_apps(
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
     _: Annotated[None, Depends(require_permission("admin.clinic.read"))],
 ) -> ApiResponse[list[dict[str, Any]]]:
-    """The App catalog: each App, the modules it groups and what they need."""
+    """The App catalog: each App, the modules it groups and what they need.
+
+    ``enabled`` is the caller's clinic's view: an App the deployment runs
+    but that was not chosen for the clinic is not enabled for it.
+    """
     on_disk = statuses_on_disk()
+    chosen = ctx.clinic.apps
+    offered = ctx.clinic.available_apps or []
     return ApiResponse(
         data=[
             {
                 "name": app.name,
                 "version": app.version,
-                "enabled": app.enabled,
+                "enabled": app.enabled and (chosen is None or app.name in chosen),
+                # Not the clinic's yet, and its administrator may switch it on.
+                "available": (
+                    app.enabled
+                    and chosen is not None
+                    and app.name not in chosen
+                    and app.name in offered
+                ),
                 # What `apps.json` says now, when it differs from what is
                 # running: the edit takes effect at the next restart.
                 "pending_enabled": (
@@ -73,6 +89,42 @@ async def list_apps(
             for app in load_app_catalog()
         ]
     )
+
+
+@apps_router.post("/{name}/enable")
+async def enable_app(
+    name: str,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("admin.clinic.write"))],
+) -> ApiResponse[dict[str, Any]]:
+    """Switch on, for the caller's clinic, an App it was offered.
+
+    Takes effect at the next request: what a clinic has is checked per
+    request (``get_clinic_context``), not decided at boot. The Apps it
+    requires come on with it when they were offered too; it is refused
+    when one of them was not. Nothing here switches an App off.
+    """
+    clinic = ctx.clinic
+    catalog = {app.name: app for app in load_app_catalog()}
+    chosen, offered = clinic.apps, clinic.available_apps or []
+    if name not in catalog:
+        raise HTTPException(status_code=404, detail=f"App not found: {name}")
+    if chosen is None or name in chosen:
+        return ApiResponse(data={"name": name, "enabled": True, "also_enabled": []})
+    if name not in offered or not catalog[name].enabled:
+        raise HTTPException(status_code=403, detail="This App is not available to this clinic")
+
+    needed = [other for other in required_apps(catalog[name]) if other not in chosen]
+    if missing := [other for other in needed if other not in offered]:
+        raise HTTPException(
+            status_code=409,
+            detail=f"It needs Apps this clinic has not been offered: {', '.join(missing)}",
+        )
+    switched_on = {name, *needed}
+    # New lists, not edits in place: that is what the ORM notices on JSONB.
+    clinic.apps = [app for app in catalog if app in chosen or app in switched_on]
+    clinic.available_apps = [app for app in offered if app not in switched_on]
+    return ApiResponse(data={"name": name, "enabled": True, "also_enabled": needed})
 
 
 # --- Read endpoints ------------------------------------------------------
@@ -138,7 +190,9 @@ async def active_modules(
     # so the entry still appears for a user who can see only one of the
     # contributing modules.
     seen_destinations: set[str] = set()
-    held_back = modules_disabled_by_app()
+    # Held back for everyone by the deployment, or not among the Apps
+    # chosen for this clinic: either way it is not there for the caller.
+    held_back = modules_disabled_by_app() | modules_outside(ctx.clinic.apps)
 
     for info in await svc.list_modules():
         if info.state != ModuleState.INSTALLED or info.name in held_back:

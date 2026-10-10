@@ -56,6 +56,9 @@ UNAUTHENTICATED: dict[str, str] = {
     # while that secret is unset (tests/test_ops_endpoint.py).
     "GET /api/v1/ops/usage": "control plane only, by signed token; sizes and counts",
     "GET /api/v1/ops/specialties": "control plane only, by signed token; reference disciplines",
+    "PUT /api/v1/ops/clinics/{clinic_id}/apps": (
+        "control plane only, by signed token; gives, offers or takes away a clinic's Apps"
+    ),
     "GET /api/v1/ops/apps": "control plane only, by signed token; the App catalog",
     "POST /api/v1/ops/clinics": "control plane only, by signed token; creates a clinic and its holder",
     "POST /api/v1/ops/clinics/{clinic_id}/deactivate": (
@@ -63,6 +66,22 @@ UNAUTHENTICATED: dict[str, str] = {
     ),
     "POST /api/v1/ops/clinics/{clinic_id}/reactivate": (
         "control plane only, by signed token; opens a deactivated clinic again"
+    ),
+    "GET /api/v1/ops/clinics/{clinic_id}": "control plane only, by signed token; a clinic's settings",
+    "PATCH /api/v1/ops/clinics/{clinic_id}": (
+        "control plane only, by signed token; changes what a clinic was created with"
+    ),
+    "DELETE /api/v1/ops/clinics/{clinic_id}": (
+        "control plane only, by signed token; development only, refused in production"
+    ),
+    "GET /api/v1/ops/clinics/{clinic_id}/users": (
+        "control plane only, by signed token; a clinic's staff accounts"
+    ),
+    "PATCH /api/v1/ops/users/{user_id}": (
+        "control plane only, by signed token; corrects a staff account's profile"
+    ),
+    "DELETE /api/v1/ops/users/{user_id}": (
+        "control plane only, by signed token; development only, refused in production"
     ),
     "GET /api/v1/ops/clinics/{clinic_id}/log": (
         "control plane only, by signed token; identifiers and table names"
@@ -74,6 +93,7 @@ UNAUTHENTICATED: dict[str, str] = {
 # the caller's permissions.
 AUTHENTICATED_ONLY: dict[str, str] = {
     "GET /api/v1/auth/me": "the caller's own profile",
+    "POST /api/v1/auth/activity": "the caller's own session-family activity timestamp",
     "POST /api/v1/auth/password": "replaces the caller's own password, proven by the current one",
     "GET /api/v1/auth/clinics": "returns the caller's own clinic, taken from the context",
     "GET /api/v1/auth/clinics/{clinic_id}": "403s when the id is not the caller's clinic",

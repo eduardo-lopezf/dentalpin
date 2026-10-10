@@ -60,6 +60,8 @@ export interface AppInfo {
   name: string
   version: string
   enabled: boolean
+  /** Not this clinic's yet, and its administrator may switch it on. */
+  available?: boolean
   /** What `apps.json` says now, when it differs from what runs; null otherwise. */
   pending_enabled: boolean | null
   /** `base`: the App everything runs on, never disabled (ADR 0043). */

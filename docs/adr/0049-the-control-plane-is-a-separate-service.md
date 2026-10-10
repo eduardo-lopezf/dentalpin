@@ -74,7 +74,11 @@ Eight rules.
 5. **What the operator can read holds no patient data.** Reading a
    tenant's logs is operator access under `managed`. Application logs
    shown in the panel carry identifiers (`request_id`, `clinic_id`,
-   `user_id`), never names, contact details or clinical text. There is
+   `user_id`), never names, contact details or clinical text. The one
+   exception is the clinic's own **staff accounts**, which the console
+   lists and corrects — name, e-mail, professional id, never a password —
+   because supporting a customer means fixing a misspelt account
+   *(amended 2026-10-08)*; it deletes one only outside production. There is
    **no "sign in as the tenant"** until the break-glass mechanism of
    ADR 0024 exists and records the session in both planes.
 

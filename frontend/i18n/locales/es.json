@@ -1620,6 +1620,9 @@
         "optional": "App opcional"
       },
       "notEnabled": "La app {name} no está habilitada",
+      "available": "Disponible",
+      "enable": "Habilitar",
+      "enabled": "Habilitada: {name}",
       "modulesHeading": "Módulos",
       "catalog": {
           "budgets_payments": {

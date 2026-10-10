@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(clinical_notes): las miniaturas de adjuntos usan el transporte BFF autenticado en vez de bearer tokens en JavaScript.
 - feat(clinical_notes): **signos vitales** en las notas clínicas: tensión
   arterial, frecuencia cardiaca y respiratoria, y temperatura (columna
   `vitals`, migración `cn_0007`). Se capturan al escribir la nota, en un

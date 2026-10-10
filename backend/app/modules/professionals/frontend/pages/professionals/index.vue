@@ -334,23 +334,10 @@ function labelForType(type: Professional['professional_type']) {
   return t(`professionals.types.${type}`)
 }
 
-// Local photo upload — only available in edit mode (needs an existing
-// professional_id, per the /photo endpoint). Uses $fetch directly with
-// a manual Authorization header, mirroring useAuth.ts's proven pattern,
-// instead of assuming useApi() (used elsewhere in this file for JSON
-// calls) handles multipart/FormData bodies correctly.
-// Fetches a Bearer-protected photo as a blob and returns a local object
-// URL — the only way an <img> tag can display it, since <img> never
-// sends custom Authorization headers.
+// Photos are fetched as blobs because <img> cannot attach the app's
+// same-origin session credentials to a protected media endpoint.
 async function resolvePhotoBlobUrl(relativeUrl: string): Promise<string> {
-  const auth = useAuth()
-  const config = useRuntimeConfig()
-  const apiBaseUrl = import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
-  const blob = await $fetch<Blob>(relativeUrl, {
-    baseURL: apiBaseUrl,
-    headers: { Authorization: `Bearer ${auth.accessToken.value}` },
-    responseType: 'blob'
-  })
+  const blob = await api.$api<Blob>(relativeUrl, { responseType: 'blob' })
   return URL.createObjectURL(blob)
 }
 
@@ -369,22 +356,12 @@ async function refreshModalPhotoSrc() {
 
 async function uploadPhoto(file: File) {
   if (!editingId.value) return
-  const auth = useAuth()
-  const config = useRuntimeConfig()
-  const apiBaseUrl = import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
-
   isUploadingPhoto.value = true
   try {
     const body = new FormData()
     body.append('file', file)
-    const response = await $fetch<ApiResponse<Professional>>(
-      `/api/v1/professionals/${editingId.value}/photo`,
-      {
-        baseURL: apiBaseUrl,
-        method: 'POST',
-        body,
-        headers: { Authorization: `Bearer ${auth.accessToken.value}` }
-      }
+    const response = await api.post<ApiResponse<Professional>>(
+      `/api/v1/professionals/${editingId.value}/photo`, body
     )
     form.photo_url = response.data.photo_url ?? ''
     await refreshModalPhotoSrc()

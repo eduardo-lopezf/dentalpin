@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { API_BASE, expect, test } from './_fixtures'
+import { API_BASE, expect, test, tokenFor } from './_fixtures'
 
 /**
  * The till's arithmetic, driven through the screen that does it.
@@ -45,9 +45,7 @@ const EXPECTED_CASH = OPENING_FLOAT + MOVEMENT_IN - MOVEMENT_OUT // 120
 const SHORT_COUNT = EXPECTED_CASH - 5
 
 async function tokenOf(page: Page): Promise<string> {
-  const token = (await page.context().cookies()).find(c => c.name === 'access_token')?.value
-  if (!token) throw new Error('no access_token cookie — did the login fixture run?')
-  return token
+  return tokenFor(page)
 }
 
 /**

@@ -113,13 +113,16 @@ every clinic has — general dentistry.
 
 ### `GET /api/v1/ops/apps`
 
-The deployment's Apps, from `backend/apps.json`: what there is to choose
-from when a clinic is created.
+The deployment's Apps, **read from `backend/apps.json` on every
+request** (`read_app_catalog`, not the copy cached at boot): what there
+is to choose from when a clinic is created. An edit to the file shows
+here at once.
 
 | Field | What it is |
 |---|---|
 | `name`, `tier` | As in `apps.json` (`base`, `core`, `optional`). |
-| `enabled` | Whether the deployment runs it at all. An App switched off for the deployment cannot be chosen for a clinic. |
+| `enabled` | Whether the deployment is *running* it — decided at boot (ADR 0038), so this one is not the file's. An App switched off for the deployment cannot be chosen for a clinic. |
+| `pending_enabled` | What the file says now, when it differs from what is running — an App added or switched since boot. `null` when they agree. It takes effect at the next restart. |
 | `requires` | Other Apps that own a module it depends on, transitively. |
 | `mandatory_for` | The account tiers whose clinics always have it: every tier for the base App and the core ones, and for an optional App the tiers in its `core_for_tiers`. |
 
@@ -132,14 +135,15 @@ practice need not list any.
 
 Creates a clinic and its holder, who becomes its administrator — what
 `/auth/setup` does for the first clinic of a deployment, for every one
-after it. `201` with `clinic_id`, `name` and `holder_user_id`.
+after it. `201` with `clinic_id`, `name`, `holder_user_id` and
+`holder_existed`.
 
 | Field | Notes |
 |---|---|
 | `account_tier` | Any `AccountTier` the deployment's custody mode is sold under (`validate_tier_custody`); `422` otherwise. |
 | `timezone` | An IANA id; `422` if it does not exist. |
 | `tax_id` | RFC — the holder's under an individual tier, the clinic's otherwise. |
-| `holder_first_name`, `holder_last_name`, `holder_email` | The holder's account. `409` if the e-mail already has one. |
+| `holder_first_name`, `holder_last_name`, `holder_email` | The holder's account. `409` if the e-mail's account already belongs to a clinic, or is deactivated — see below. |
 | `holder_professional_id` | Cédula profesional; stored on `users.professional_id`. |
 | `holder_password` | The holder's first password, given by the control plane. Checked against the password rule; only its hash is stored, and the account is created with `must_change_password`. |
 | `specialties` | Optional. The disciplines the treatment catalogue starts with, by key: exactly those end up enabled. Must hold every `required` one; `422` for an unknown key. Left out, the clinic gets the ten baseline disciplines, as after `/auth/setup`. |
@@ -153,13 +157,38 @@ after it. `201` with `clinic_id`, `name` and `holder_user_id`.
 - **`clinic.created` is published after the commit**, so modules seed
   their baseline data (the catalog its VAT types, categories and
   specialties) exactly as after `/auth/setup`.
-- **The chosen Apps are recorded, not enforced.** What runs is decided
-  for the whole deployment (ADR 0038), so a clinic sees every enabled App
-  whatever `clinics.apps` holds. `NULL` there — every clinic that existed
-  before, and the one `/auth/setup` makes — means nobody chose, and reads
-  as all of them. Switching Apps per clinic is commitment 20 of
-  [`commitments-register.md`](commitments-register.md); this column is
-  where its choice already waits.
+- **A clinic only has the Apps chosen for it.** `clinics.apps` narrows
+  what the deployment runs (ADR 0038) for that clinic, in three places:
+  the routes of a module whose App is not on the list answer `404` to its
+  members (`get_clinic_context`, by the module in `/api/v1/<module>/…`),
+  `/modules/-/active` leaves those modules out — so the menu, the route
+  guard and the slots follow — and `/auth/me` leaves out their
+  permissions. `GET /apps` reports `enabled` for the caller's clinic.
+  `NULL` — every clinic that existed before, and the one `/auth/setup`
+  makes — means nobody chose, and reads as all of them.
+- **A clinic may also be offered Apps** (`clinics.available_apps`): ones
+  it does not have and whose administrator can switch on from Settings →
+  Apps. `POST /ops/clinics` and `PATCH /ops/clinics/{id}` take
+  `available_apps`; `GET /api/v1/apps` marks them `available` for the
+  clinic; and `POST /api/v1/apps/{name}/enable` (`admin.clinic.write`)
+  moves one into `apps`, together with the Apps it requires when those
+  were offered too — `409` when one was not, `403` for an App that was not
+  offered. It takes effect at the next request. Nothing switches an App
+  off from the clinic's side. An App on neither list is not available.
+- **What it does not narrow yet:** event handlers, scheduled jobs and
+  what one module does on behalf of another still run for every clinic of
+  the deployment. A clinic without Recalls gets no Recalls screen or
+  route, but the module still reacts to that clinic's appointments. That
+  remainder is commitment 20 of
+  [`commitments-register.md`](commitments-register.md).
+- **One e-mail, one account, one clinic.** An e-mail whose account
+  already belongs to a clinic is refused with `409`, naming the clinic:
+  the new account needs another e-mail, or that user removed from their
+  clinic first. An account that belongs to no clinic — it was removed —
+  becomes the holder as it is: its name, its password and its
+  `must_change_password` are not touched (`holder_password` is ignored),
+  `professional_id` is filled in only if empty, and the answer carries
+  `holder_existed: true`. A deactivated account is refused.
 - **The holder has to replace the password at the first sign-in.** While
   `users.must_change_password` is set, `get_clinic_context` answers `403`
   to everything; the account can read `/auth/me` and call
@@ -170,6 +199,55 @@ after it. `201` with `clinic_id`, `name` and `holder_user_id`.
   clinic as usual and then disables the baseline disciplines that were
   not chosen and enables the chosen ones beyond the baseline — its own
   pack operations, so plan templates follow.
+
+### A clinic: `GET` · `PATCH` · `DELETE /api/v1/ops/clinics/{clinic_id}`
+
+| Route | What it does |
+|---|---|
+| `GET` | The clinic with everything it was created with: `name`, `account_tier`, `timezone`, `tax_id`, `legal_name`, `phone`, `email`, `apps`, `specialties` (the disciplines switched on, read through `ReferenceSpecialties.enabled`) and `holder` — its longest-standing administrator. |
+| `PATCH` | Changes all of that except the holder, **under the rules of creation**: the tier must be sold under the deployment's custody mode, `apps` must hold what the tier makes mandatory and what each App requires, `specialties` must hold the one every clinic has. Under an individual tier the record takes the holder's name and the clinic's own details are left alone. The holder is changed on their account (`PATCH /ops/users/{id}`). |
+| `DELETE` | Deletes the clinic for good. **`403` when `ENVIRONMENT=production`.** |
+
+- **Specialties change after the commit.** `PATCH` publishes
+  `clinic.specialties_set` and the catalog enables and disables its packs
+  to match — its own operations, so plan templates follow. The answer
+  carries the set that was asked for.
+- **Deleting follows the foreign keys** (`app/core/ops/purge.py`): from
+  `clinics` down, whatever points at a row goes before the row, so no
+  constraint is switched off and nothing is left dangling. The accounts
+  that belonged to no other clinic go too — unless something outside the
+  clinic still points at one, which is then left without a clinic — and so
+  does the clinic's folder of uploaded files. A clinic the operator means
+  to remove in production is deactivated instead.
+
+### `PUT /api/v1/ops/clinics/{clinic_id}/apps`
+
+A clinic's Apps on their own: `apps` (the ones it has) and
+`available_apps` (the ones it may switch on itself); an App on neither is
+not available to it. Nothing else about the clinic is sent or changed.
+The rules of creation hold — what its tier makes mandatory stays, an App
+comes with what it requires — and the change takes effect at the clinic's
+next request. It is how the console gives, offers or takes away one App
+at a time.
+
+### Staff accounts: `GET /api/v1/ops/clinics/{clinic_id}/users` · `PATCH /api/v1/ops/users/{user_id}` · `DELETE /api/v1/ops/users/{user_id}`
+
+The accounts of a clinic's staff, for the operator's console. This is the
+one place the endpoint returns people's names and e-mail addresses: staff
+accounts, never patients (ADR 0049 rule 5, amended).
+
+| Route | What it does |
+|---|---|
+| `GET …/clinics/{id}/users` | Each account of the clinic: `id`, `email`, `first_name`, `last_name`, `professional_id`, `is_active`, `must_change_password` and its `role` there. Never the password or its hash. |
+| `PATCH …/users/{id}` | Corrects `first_name`, `last_name`, `email`, `professional_id`; a field left out stays. `409` if the e-mail is another account's. The password is not something this route knows about. |
+| `DELETE …/users/{id}` | Deletes the account for good, with its memberships and sessions. **`403` when `ENVIRONMENT=production`.** `409` if any record still points at the account — it is not cascaded away. |
+
+- **Deleting is a development convenience.** Test accounts pile up there.
+  In production an account is deactivated, never deleted: what it wrote
+  has to keep its author.
+- **Removing someone from a clinic is not here.** It is what a clinic's
+  own administrator does (`DELETE /api/v1/auth/users/{id}`), and it is
+  what frees an e-mail for a new clinic.
 
 ## Reading it from the control panel
 

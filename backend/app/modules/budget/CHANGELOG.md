@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(budget): descargas PDF usan el transporte BFF autenticado; los enlaces públicos conservan su cookie token-scoped con CSRF de mismo origen.
 - chore(deps): la cookie de sesión del enlace público se firma y verifica
   con **PyJWT** en vez de `python-jose`, que sale del proyecto (dos fallos
   de confusión de algoritmo sin versión corregida). Mismo formato, misma

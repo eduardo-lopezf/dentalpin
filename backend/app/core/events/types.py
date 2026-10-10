@@ -19,6 +19,11 @@ class EventType:
     # specialties — core must not import a module, so the baseline data a
     # module owns is its own responsibility to install.
     CLINIC_CREATED = "clinic.created"
+    # The operator changed which disciplines a clinic practises
+    # (``PATCH /api/v1/ops/clinics/{id}``). Consumed by `catalog`, which
+    # enables and disables the packs to match.
+    # Payload: {clinic_id, specialties}.
+    CLINIC_SPECIALTIES_SET = "clinic.specialties_set"
 
     # Specialty packs (catalog). A clinic switched a discipline on or off,
     # or put its reference catalogue back. Consumed by `treatment_plan`,

@@ -13,13 +13,14 @@ What is pinned here:
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import jwt
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -223,13 +224,52 @@ async def test_the_clinic_tier_without_a_clinic_name_is_refused(
     assert response.status_code == 422
 
 
-async def test_an_email_already_in_use_is_refused(client: AsyncClient, ops_enabled: None) -> None:
-    payload = HOLDER | {"account_tier": "medium"}
-    assert (
-        await client.post("/api/v1/ops/clinics", json=payload, headers=_token())
-    ).status_code == 201
-    again = await client.post("/api/v1/ops/clinics", json=payload, headers=_token())
-    assert again.status_code == 409
+async def test_an_email_that_already_belongs_to_a_clinic_is_refused(
+    client: AsyncClient, ops_enabled: None, test_clinic: Clinic
+) -> None:
+    # test@example.com administers "Test Clinic": one e-mail, one account, one clinic.
+    payload = CLINIC | {"holder_email": "test@example.com"}
+    response = await client.post("/api/v1/ops/clinics", json=payload, headers=_token())
+    assert response.status_code == 409
+    assert "Test Clinic" in response.text
+
+    usage = await client.get("/api/v1/ops/usage?refresh=true", headers=_token())
+    assert [c["name"] for c in usage.json()["data"]["clinics"]] == ["Test Clinic"]
+
+
+async def test_an_account_removed_from_its_clinic_can_hold_a_new_one(
+    client: AsyncClient, ops_enabled: None, auth_headers: dict[str, str]
+) -> None:
+    # ``auth_headers`` makes test@example.com with no clinic at all.
+    payload = CLINIC | {"holder_email": "test@example.com", "holder_first_name": "Otro nombre"}
+    response = await client.post("/api/v1/ops/clinics", json=payload, headers=_token())
+    assert response.status_code == 201, response.text
+    assert response.json()["data"]["holder_existed"] is True
+
+    # The account is left as it was: its own password, no forced change,
+    # its own name — and it now works in the new clinic.
+    me = (await client.get("/api/v1/auth/me", headers=auth_headers)).json()["data"]
+    assert (me["user"]["first_name"], me["user"]["must_change_password"]) == ("Test", False)
+    assert [(c["name"], c["role"]) for c in me["clinics"]] == [("Clínica Dental del Sur", "admin")]
+
+
+async def test_a_new_holder_is_reported_as_new(client: AsyncClient, ops_enabled: None) -> None:
+    response = await client.post(
+        "/api/v1/ops/clinics", json=HOLDER | {"account_tier": "medium"}, headers=_token()
+    )
+    assert response.json()["data"]["holder_existed"] is False
+
+
+async def test_a_deactivated_account_cannot_be_made_holder(
+    client: AsyncClient, ops_enabled: None, test_clinic: Clinic, db_session: AsyncSession
+) -> None:
+    user = await db_session.scalar(select(User).where(User.email == "test@example.com"))
+    user.is_active = False
+    await db_session.commit()
+
+    payload = HOLDER | {"account_tier": "basic", "holder_email": "test@example.com"}
+    response = await client.post("/api/v1/ops/clinics", json=payload, headers=_token())
+    assert response.status_code == 409
 
 
 async def test_a_timezone_that_does_not_exist_is_refused(
@@ -465,3 +505,395 @@ async def test_deactivating_needs_the_control_planes_token(
         f"/api/v1/ops/clinics/{test_clinic.id}/deactivate", headers=auth_headers
     )
     assert response.status_code == 401
+
+
+async def _only_user(client: AsyncClient, clinic: Clinic) -> dict:
+    response = await client.get(f"/api/v1/ops/clinics/{clinic.id}/users", headers=_token())
+    assert response.status_code == 200, response.text
+    [user] = response.json()["data"]
+    return user
+
+
+async def test_the_users_of_a_clinic_with_their_role(
+    client: AsyncClient, ops_enabled: None, test_clinic: Clinic
+) -> None:
+    user = await _only_user(client, test_clinic)
+    assert (user["email"], user["first_name"], user["role"]) == (
+        "test@example.com",
+        "Test",
+        "admin",
+    )
+    assert "password_hash" not in user
+
+
+async def test_a_users_profile_can_be_corrected_but_not_given_a_taken_email(
+    client: AsyncClient, ops_enabled: None, test_clinic: Clinic, db_session: AsyncSession
+) -> None:
+    user = await _only_user(client, test_clinic)
+    db_session.add(User(email="otra@example.com", password_hash="x", first_name="O", last_name="P"))
+    await db_session.commit()
+
+    response = await client.patch(
+        f"/api/v1/ops/users/{user['id']}",
+        json={"first_name": "Aurelia", "professional_id": "7654321"},
+        headers=_token(),
+    )
+    assert response.status_code == 200, response.text
+    updated = await _only_user(client, test_clinic)
+    assert (updated["first_name"], updated["last_name"], updated["professional_id"]) == (
+        "Aurelia",
+        "User",
+        "7654321",
+    )
+
+    taken = await client.patch(
+        f"/api/v1/ops/users/{user['id']}", json={"email": "otra@example.com"}, headers=_token()
+    )
+    assert taken.status_code == 409
+    # The password is not something this route knows about.
+    await _login_as(client, "test@example.com", "TestPass1234")
+
+
+async def _login_as(client: AsyncClient, email: str, password: str) -> None:
+    response = await client.post(
+        "/api/v1/auth/login", data={"username": email, "password": password}
+    )
+    assert response.status_code == 200, response.text
+
+
+async def test_a_user_can_be_deleted_in_development_and_not_in_production(
+    client: AsyncClient,
+    ops_enabled: None,
+    test_clinic: Clinic,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = await _only_user(client, test_clinic)
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    refused = await client.delete(f"/api/v1/ops/users/{user['id']}", headers=_token())
+    assert refused.status_code == 403
+    assert await db_session.get(User, UUID(user["id"])) is not None
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "development")
+    deleted = await client.delete(f"/api/v1/ops/users/{user['id']}", headers=_token())
+    assert deleted.status_code == 204
+    users = await client.get(f"/api/v1/ops/clinics/{test_clinic.id}/users", headers=_token())
+    assert users.json()["data"] == []
+    # And the e-mail is free again for a new account.
+    payload = CLINIC | {"holder_email": "test@example.com"}
+    again = await client.post("/api/v1/ops/clinics", json=payload, headers=_token())
+    assert (again.status_code, again.json()["data"]["holder_existed"]) == (201, False)
+
+
+async def _create(client: AsyncClient, **overrides: object) -> str:
+    response = await client.post("/api/v1/ops/clinics", json=CLINIC | overrides, headers=_token())
+    assert response.status_code == 201, response.text
+    return response.json()["data"]["clinic_id"]
+
+
+async def test_a_clinic_reads_back_everything_it_was_created_with(
+    client: AsyncClient, ops_enabled: None
+) -> None:
+    clinic_id = await _create(
+        client, clinic_phone="6641234567", specialties=["general", "radiologia"]
+    )
+
+    response = await client.get(f"/api/v1/ops/clinics/{clinic_id}", headers=_token())
+    assert response.status_code == 200, response.text
+    clinic = response.json()["data"]
+    assert (clinic["account_tier"], clinic["timezone"], clinic["tax_id"], clinic["phone"]) == (
+        "clinic",
+        "America/Tijuana",
+        "CDS200101XY9",
+        "6641234567",
+    )
+    assert clinic["apps"] == [*HOLDER["apps"], "professionals"]
+    assert clinic["specialties"] == ["general", "radiologia"]
+    assert (clinic["holder"]["email"], clinic["holder"]["professional_id"]) == (
+        "aurelia@example.com",
+        "1234567",
+    )
+
+
+async def test_a_clinic_can_be_changed_under_the_rules_of_creation(
+    client: AsyncClient, ops_enabled: None
+) -> None:
+    clinic_id = await _create(client)
+    change = {
+        "account_tier": "clinic",
+        "timezone": "America/Cancun",
+        "tax_id": "NUE200101AA1",
+        "clinic_name": "Clínica Renombrada",
+        "clinic_legal_name": "Renombrada, S.C.",
+        "apps": [*CLINIC["apps"], "recalls"],
+        "specialties": ["general", "ortodoncia", "radiologia"],
+    }
+
+    response = await client.patch(f"/api/v1/ops/clinics/{clinic_id}", json=change, headers=_token())
+    assert response.status_code == 200, response.text
+
+    clinic = (await client.get(f"/api/v1/ops/clinics/{clinic_id}", headers=_token())).json()["data"]
+    assert (clinic["name"], clinic["legal_name"], clinic["timezone"], clinic["tax_id"]) == (
+        "Clínica Renombrada",
+        "Renombrada, S.C.",
+        "America/Cancun",
+        "NUE200101AA1",
+    )
+    assert "recalls" in clinic["apps"]
+    assert clinic["specialties"] == ["ortodoncia", "general", "radiologia"] or set(
+        clinic["specialties"]
+    ) == {"general", "ortodoncia", "radiologia"}
+
+    # The rules of creation still hold: a clinic keeps Professionals.
+    refused = await client.patch(
+        f"/api/v1/ops/clinics/{clinic_id}",
+        json=change | {"apps": HOLDER["apps"]},
+        headers=_token(),
+    )
+    assert refused.status_code == 422
+
+
+async def test_a_clinic_moved_to_an_individual_tier_takes_its_holders_name(
+    client: AsyncClient, ops_enabled: None
+) -> None:
+    clinic_id = await _create(client)
+    change = {
+        "account_tier": "advanced",
+        "timezone": "America/Tijuana",
+        "tax_id": "ZAAU800101AB1",
+        "apps": HOLDER["apps"],
+    }
+    response = await client.patch(f"/api/v1/ops/clinics/{clinic_id}", json=change, headers=_token())
+    assert response.status_code == 200, response.text
+    assert response.json()["data"]["name"] == "Aurelia Zamarripa"
+
+
+async def test_a_clinic_is_deleted_whole_in_development_and_not_at_all_in_production(
+    client: AsyncClient,
+    ops_enabled: None,
+    test_clinic: Clinic,
+    auth_headers: dict[str, str],
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A clinic that stays, with a patient of its own…
+    kept = await client.post(
+        "/api/v1/patients", json={"first_name": "Se", "last_name": "Queda"}, headers=auth_headers
+    )
+    assert kept.status_code == 201
+    # …and one to delete: seeded catalogue, holder, and a patient too.
+    doomed = await _create(client)
+    holder = await _login(client, HOLDER["holder_password"])
+    changed = await client.post(
+        "/api/v1/auth/password",
+        json={"current_password": HOLDER["holder_password"], "new_password": "Propia5678"},
+        headers=holder,
+    )
+    assert changed.status_code == 204
+    gone = await client.post(
+        "/api/v1/patients", json={"first_name": "Se", "last_name": "Va"}, headers=holder
+    )
+    assert gone.status_code == 201, gone.text
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    refused = await client.delete(f"/api/v1/ops/clinics/{doomed}", headers=_token())
+    assert refused.status_code == 403
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "development")
+    deleted = await client.delete(f"/api/v1/ops/clinics/{doomed}", headers=_token())
+    assert deleted.status_code == 204, deleted.text
+
+    usage = await client.get("/api/v1/ops/usage?refresh=true", headers=_token())
+    assert [c["name"] for c in usage.json()["data"]["clinics"]] == ["Test Clinic"]
+    # Nothing of it is left, in any table that names a clinic…
+    leftovers = await db_session.execute(
+        text(
+            "SELECT table_name FROM information_schema.columns "
+            "WHERE table_schema = current_schema() AND column_name = 'clinic_id'"
+        )
+    )
+    for (table,) in leftovers:
+        count = await db_session.scalar(
+            text(f'SELECT count(*) FROM "{table}" WHERE clinic_id = :id'), {"id": UUID(doomed)}
+        )
+        assert count == 0, table
+    # …its holder went with it, and the other clinic lost nothing.
+    assert await db_session.scalar(select(User).where(User.email == HOLDER["holder_email"])) is None
+    patients = await client.get("/api/v1/patients", headers=auth_headers)
+    assert [p["last_name"] for p in patients.json()["data"]] == ["Queda"]
+
+
+async def test_a_clinic_only_has_the_apps_chosen_for_it(
+    client: AsyncClient, ops_enabled: None, test_clinic: Clinic, auth_headers: dict[str, str]
+) -> None:
+    """Created with the four mandatory Apps: Recalls is not one of them."""
+    created = await client.post(
+        "/api/v1/ops/clinics", json=HOLDER | {"account_tier": "basic"}, headers=_token()
+    )
+    assert created.status_code == 201, created.text
+    holder = await _login(client, HOLDER["holder_password"])
+    await client.post(
+        "/api/v1/auth/password",
+        json={"current_password": HOLDER["holder_password"], "new_password": "Propia5678"},
+        headers=holder,
+    )
+
+    # Its menu has no entry of an App it was not given…
+    active = await client.get("/api/v1/modules/-/active", headers=holder)
+    # (The list is empty here either way — the suite installs no module in
+    # ``core_module`` — so this only pins that nothing extra slips in.)
+    names = {module["name"] for module in active.json()["data"]}
+    assert not names & {"recalls", "budget", "professionals", "reports"}
+    # …those Apps' routes are not there for it, the ones it has are…
+    assert (await client.get("/api/v1/recalls/stats/dashboard", headers=holder)).status_code == 404
+    assert (await client.get("/api/v1/patients", headers=holder)).status_code == 200
+    # …and it holds none of their permissions, administrator or not.
+    me = (await client.get("/api/v1/auth/me", headers=holder)).json()["data"]
+    assert any(p.startswith("patients.") for p in me["permissions"])
+    assert not any(p.startswith(("recalls.", "budget.", "reports.")) for p in me["permissions"])
+    apps = (await client.get("/api/v1/apps", headers=holder)).json()["data"]
+    enabled = {app["name"] for app in apps if app["enabled"]}
+    assert enabled == {"workspace", "agenda", "patients", "treatments"}
+
+    # A clinic nobody chose for keeps everything the deployment runs.
+    assert (
+        await client.get("/api/v1/recalls/stats/dashboard", headers=auth_headers)
+    ).status_code == 200
+
+
+async def test_a_clinic_switches_on_the_apps_it_was_offered_and_no_others(
+    client: AsyncClient, ops_enabled: None
+) -> None:
+    """Given the four mandatory Apps and offered Professionals and Budgets
+    (which needs Professionals); Recalls was not offered."""
+    payload = HOLDER | {
+        "account_tier": "basic",
+        "available_apps": ["budgets_payments", "professionals", "agenda"],
+    }
+    created = await client.post("/api/v1/ops/clinics", json=payload, headers=_token())
+    assert created.status_code == 201, created.text
+    clinic_id = created.json()["data"]["clinic_id"]
+    holder = await _login(client, HOLDER["holder_password"])
+    await client.post(
+        "/api/v1/auth/password",
+        json={"current_password": HOLDER["holder_password"], "new_password": "Propia5678"},
+        headers=holder,
+    )
+
+    async def apps() -> dict[str, dict]:
+        response = await client.get("/api/v1/apps", headers=holder)
+        return {app["name"]: app for app in response.json()["data"]}
+
+    listed = await apps()
+    # An App it already has is not "available"; the two offered ones are.
+    assert {n for n, a in listed.items() if a["available"]} == {"budgets_payments", "professionals"}
+    assert not listed["recalls"]["enabled"] and not listed["recalls"]["available"]
+    assert (await client.get("/api/v1/budget/budgets", headers=holder)).status_code == 404
+
+    # Not offered: refused. Unknown: not found.
+    refused = await client.post("/api/v1/apps/recalls/enable", headers=holder)
+    assert refused.status_code == 403
+    assert (await client.post("/api/v1/apps/nope/enable", headers=holder)).status_code == 404
+
+    # Offered: on at once, and what it requires with it.
+    enabled = await client.post("/api/v1/apps/budgets_payments/enable", headers=holder)
+    assert enabled.status_code == 200, enabled.text
+    assert enabled.json()["data"]["also_enabled"] == ["professionals"]
+    listed = await apps()
+    assert listed["budgets_payments"]["enabled"] and listed["professionals"]["enabled"]
+    assert not any(app["available"] for app in listed.values())
+    assert (await client.get("/api/v1/budget/budgets", headers=holder)).status_code == 200
+
+    detail = await client.get(f"/api/v1/ops/clinics/{clinic_id}", headers=_token())
+    assert detail.json()["data"]["apps"] == [
+        "workspace",
+        "agenda",
+        "patients",
+        "treatments",
+        "budgets_payments",
+        "professionals",
+    ]
+    assert detail.json()["data"]["available_apps"] == []
+
+
+async def test_an_app_that_needs_one_not_offered_cannot_be_switched_on(
+    client: AsyncClient, ops_enabled: None
+) -> None:
+    payload = HOLDER | {"account_tier": "basic", "available_apps": ["budgets_payments"]}
+    await client.post("/api/v1/ops/clinics", json=payload, headers=_token())
+    holder = await _login(client, HOLDER["holder_password"])
+    await client.post(
+        "/api/v1/auth/password",
+        json={"current_password": HOLDER["holder_password"], "new_password": "Propia5678"},
+        headers=holder,
+    )
+    response = await client.post("/api/v1/apps/budgets_payments/enable", headers=holder)
+    assert response.status_code == 409
+
+
+async def test_the_apps_are_read_from_the_file_on_every_request(
+    client: AsyncClient, ops_enabled: None, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An edit to ``apps.json`` shows at once in the operator's list, as
+    waiting for a restart; what is running does not change."""
+    from app.core.plugins import apps as catalog
+
+    # What is running was read at boot, before the edit: make sure it is
+    # in the cache already, or this test would be what "boot" read.
+    catalog.load_app_catalog()
+    edited = json.loads(catalog.APPS_FILE.read_text(encoding="utf-8"))
+    for entry in edited["apps"]:
+        if entry["name"] == "recalls":
+            entry["status"] = "disabled"
+        if entry["name"] == "reports":
+            entry["tier"] = "core"
+    copy = tmp_path / "apps.json"
+    copy.write_text(json.dumps(edited), encoding="utf-8")
+    monkeypatch.setattr(catalog, "APPS_FILE", copy)
+
+    response = await client.get("/api/v1/ops/apps", headers=_token())
+    apps = {app["name"]: app for app in response.json()["data"]}
+    # Still running, and the file now says otherwise.
+    assert (apps["recalls"]["enabled"], apps["recalls"]["pending_enabled"]) == (True, False)
+    # Its tier is the file's, read now.
+    assert apps["reports"]["tier"] == "core" and "basic" in apps["reports"]["mandatory_for"]
+    assert apps["agenda"]["pending_enabled"] is None
+
+
+async def test_a_clinics_apps_are_changed_on_their_own_and_at_once(
+    client: AsyncClient, ops_enabled: None
+) -> None:
+    clinic_id = await _create(client)
+    holder = await _login(client, HOLDER["holder_password"])
+    await client.post(
+        "/api/v1/auth/password",
+        json={"current_password": HOLDER["holder_password"], "new_password": "Propia5678"},
+        headers=holder,
+    )
+    assert (await client.get("/api/v1/recalls/stats/dashboard", headers=holder)).status_code == 404
+
+    # Give it Recalls and offer it Budgets: nothing else about it is sent.
+    change = {"apps": [*CLINIC["apps"], "recalls"], "available_apps": ["budgets_payments"]}
+    response = await client.put(
+        f"/api/v1/ops/clinics/{clinic_id}/apps", json=change, headers=_token()
+    )
+    assert response.status_code == 200, response.text
+    clinic = response.json()["data"]
+    assert "recalls" in clinic["apps"] and clinic["available_apps"] == ["budgets_payments"]
+    assert (clinic["name"], clinic["timezone"]) == ("Clínica Dental del Sur", "America/Tijuana")
+    # The same session, no restart, no new sign-in.
+    assert (await client.get("/api/v1/recalls/stats/dashboard", headers=holder)).status_code == 200
+
+    # Take it away again.
+    response = await client.put(
+        f"/api/v1/ops/clinics/{clinic_id}/apps", json={"apps": CLINIC["apps"]}, headers=_token()
+    )
+    assert response.json()["data"]["available_apps"] == []
+    assert (await client.get("/api/v1/recalls/stats/dashboard", headers=holder)).status_code == 404
+
+    # What its tier makes mandatory cannot be taken away.
+    refused = await client.put(
+        f"/api/v1/ops/clinics/{clinic_id}/apps", json={"apps": HOLDER["apps"]}, headers=_token()
+    )
+    assert refused.status_code == 422

@@ -20,8 +20,6 @@ const BASE = '/api/v1/treatment_plan'
  */
 export function usePrescriptions() {
   const api = useApi()
-  const auth = useAuth()
-  const config = useRuntimeConfig()
 
   async function listForItem(planId: string, itemId: string): Promise<Prescription[]> {
     const res = await api.get<ApiResponse<Prescription[]>>(
@@ -54,15 +52,14 @@ export function usePrescriptions() {
 
   /** Load the PDF into the reserved tab, or download it when there is none. */
   async function openPdf(id: string, locale: string, tab: Window | null): Promise<void> {
-    const response = await fetch(
-      `${config.public.apiBaseUrl}${BASE}/prescriptions/${id}/pdf?locale=${locale}`,
-      { headers: { Authorization: `Bearer ${auth.accessToken.value}` } }
-    )
-    if (!response.ok) {
+    let blob: Blob
+    try {
+      blob = await api.$api<Blob>(`${BASE}/prescriptions/${id}/pdf?locale=${locale}`, { responseType: 'blob' })
+    } catch {
       tab?.close()
       throw new Error('Failed to load prescription PDF')
     }
-    const url = URL.createObjectURL(await response.blob())
+    const url = URL.createObjectURL(blob)
     if (tab && !tab.closed) {
       tab.location.href = url
     } else {

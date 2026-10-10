@@ -72,18 +72,23 @@ export type VerifyError
     | 'unknown'
 
 function apiBase(): string {
-  const config = useRuntimeConfig()
-  // The host frontend exposes the backend URL as ``public.apiBaseUrl``
-  // (see frontend/nuxt.config.ts). Falling back to ``apiBase`` keeps
-  // the composable resilient if the key gets renamed.
-  return (
-    (config.public.apiBaseUrl as string)
-    || (config.public.apiBase as string)
-    || ''
-  )
+  // Public budget links also use the same-origin BFF; the browser never
+  // needs the backend's origin.
+  return ''
 }
 
 export function usePublicBudget(token: string) {
+  const requestFetch = import.meta.server ? useRequestFetch() : $fetch
+
+  async function csrfHeaders(): Promise<Record<string, string>> {
+    let value = import.meta.client ? /(?:^|;\s*)csrf_token=([^;]*)/.exec(document.cookie)?.[1] : null
+    if (!value) {
+      await requestFetch('/api/v1/auth/csrf')
+      value = import.meta.client ? /(?:^|;\s*)csrf_token=([^;]*)/.exec(document.cookie)?.[1] : null
+    }
+    return value ? { 'x-csrf-token': decodeURIComponent(value) } : {}
+  }
+
   const meta = ref<PublicMeta | null>(null)
   const budget = ref<PublicBudget | null>(null)
   const loading = ref(false)
@@ -99,7 +104,7 @@ export function usePublicBudget(token: string) {
     loading.value = true
     lastError.value = null
     try {
-      const res = await $fetch<{ data: PublicMeta }>(`${baseUrl.value}/meta`, {
+      const res = await requestFetch<{ data: PublicMeta }>(`${baseUrl.value}/meta`, {
         credentials: 'include'
       })
       meta.value = res.data
@@ -111,7 +116,7 @@ export function usePublicBudget(token: string) {
   async function fetchBudget() {
     loading.value = true
     try {
-      const res = await $fetch<{ data: PublicBudget }>(baseUrl.value, {
+      const res = await requestFetch<{ data: PublicBudget }>(baseUrl.value, {
         credentials: 'include'
       })
       budget.value = res.data
@@ -124,9 +129,10 @@ export function usePublicBudget(token: string) {
     verifying.value = true
     lastError.value = null
     try {
-      await $fetch(`${baseUrl.value}/verify`, {
+      await requestFetch(`${baseUrl.value}/verify`, {
         method: 'POST',
         body: { method, value },
+        headers: await csrfHeaders(),
         credentials: 'include'
       })
       return true
@@ -157,9 +163,10 @@ export function usePublicBudget(token: string) {
   }): Promise<boolean> {
     submitting.value = true
     try {
-      await $fetch(`${baseUrl.value}/accept`, {
+      await requestFetch(`${baseUrl.value}/accept`, {
         method: 'POST',
         body: payload,
+        headers: await csrfHeaders(),
         credentials: 'include'
       })
       decided.value = 'accepted'
@@ -201,9 +208,10 @@ export function usePublicBudget(token: string) {
   async function reject(payload: { reason: string, note?: string }): Promise<boolean> {
     submitting.value = true
     try {
-      await $fetch(`${baseUrl.value}/reject`, {
+      await requestFetch(`${baseUrl.value}/reject`, {
         method: 'POST',
         body: payload,
+        headers: await csrfHeaders(),
         credentials: 'include'
       })
       decided.value = 'rejected'

@@ -23,18 +23,14 @@ function parseFrame(frame: string): { event: string, data: Record<string, unknow
 }
 
 export function useCopilotStream() {
-  const config = useRuntimeConfig()
-  const { accessToken } = useAuth()
+  const api = useApi()
 
   async function stream(path: string, body: unknown, handlers: StreamHandlers): Promise<void> {
     let res: Response
     try {
-      res = await fetch(`${config.public.apiBaseUrl}${path}`, {
+      res = await api.requestResponse(path, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken.value}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       })
     } catch (e) {

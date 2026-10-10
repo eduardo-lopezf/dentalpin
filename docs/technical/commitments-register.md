@@ -665,10 +665,17 @@ change must show immediately — no restart.
 
 **One piece exists (2026-10-08): the choice is recorded.** A clinic
 created by the control plane carries the Apps chosen for it in
-`clinics.apps` ([operations endpoint](operations-endpoint.md)). Nothing
-reads that column to decide what the clinic sees; it is the input this
-commitment's per-clinic switch will start from, and until then a clinic
-created with four Apps still has all of them.
+`clinics.apps` ([operations endpoint](operations-endpoint.md)).
+
+**A second piece too (2026-10-08): the choice is applied to what a clinic
+can reach.** The routes of the Apps a clinic was not given answer `404`
+to its members, and their menu entries and permissions are left out —
+checked per request, so a change made by the operator shows at the next
+request, no restart. A clinic's administrator can switch on the
+Apps the operator offered it (Settings → Apps, `clinics.available_apps`),
+with effect at once. Still to do: event handlers, scheduled jobs and
+cross-module work run for every clinic regardless, and an App cannot be
+switched off from the clinic.
 
 **Today it is the opposite, by design.** An App is switched in
 `backend/apps.json`, a file read once at boot

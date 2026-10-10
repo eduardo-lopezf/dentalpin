@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(media): cargas, vistas previas y descargas usan `useApi` con sesión HttpOnly, CSRF y recuperación de refresh.
 - feat(media): el contrato `PatientDocuments` ofrece `usage_by_kind`:
   cuánto pesan los archivos de los pacientes por clase clínica
   (`media_kind`), archivados incluidos. Lo usa *Configuración → Cuenta →

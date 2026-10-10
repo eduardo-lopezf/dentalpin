@@ -150,15 +150,13 @@ services:
     build:
       context: ..
       dockerfile: frontend/Dockerfile.prod
-      args:
-        API_BASE_URL: http://localhost:8081
     deploy:
       replicas: 2
     environment:
-      # The browser reaches the API through the proxy. Server-side rendering
-      # asks for `backend` by name, which Docker resolves to every replica.
-      NUXT_PUBLIC_API_BASE_URL: http://localhost:8081
+      # The browser uses the same-origin Nuxt BFF; Nitro resolves the backend
+      # service internally and validates browser mutations against this origin.
       NUXT_API_BASE_URL_SERVER: http://backend:8000
+      NUXT_PUBLIC_APP_ORIGIN: http://localhost:8080
     depends_on:
       backend:
         condition: service_started

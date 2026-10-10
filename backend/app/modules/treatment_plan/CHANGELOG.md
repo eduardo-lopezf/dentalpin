@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(treatment_plan): la descarga de recetas usa el transporte BFF autenticado con refresh compartido entre pestañas.
 - feat(treatment_plan): **el selector de plantillas agrupa por
   especialidad**. Con 125 plantillas de referencia la rejilla plana ya no
   se podía recorrer. Las que la clínica guardó de sus propios planes van

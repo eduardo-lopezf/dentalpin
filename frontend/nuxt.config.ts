@@ -98,11 +98,13 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    // Server-side only (for SSR inside Docker)
-    apiBaseUrlServer: process.env.API_BASE_URL_SERVER || 'http://backend:8000',
+    // Server-side only: the browser talks exclusively to the same-origin BFF.
+    apiBaseUrlServer: process.env.NUXT_API_BASE_URL_SERVER || 'http://backend:8000',
     public: {
-      // Client-side (browser)
-      apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8000',
+      // Deliberately empty. Browser API traffic is same-origin via Nitro.
+      apiBaseUrl: '',
+      // Public app origin for CSRF validation behind a TLS-terminating proxy.
+      appOrigin: process.env.NUXT_PUBLIC_APP_ORIGIN || '',
       demoMode: process.env.NUXT_PUBLIC_DEMO_MODE === 'true',
       // Documentation portal origin used by the in-app help drawer
       // (Fase 5 of issue #75). Empty disables the help button.

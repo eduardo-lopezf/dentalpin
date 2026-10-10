@@ -57,8 +57,6 @@ const STATUS_COLORS: Record<BudgetStatus, string> = {
 
 export function useBudgets() {
   const api = useApi()
-  const config = useRuntimeConfig()
-  const auth = useAuth()
 
   // State
   const budgets = useState<BudgetListItem[]>('budgets:list', () => [])
@@ -358,25 +356,12 @@ export function useBudgets() {
   }
 
   async function downloadPDFAt(path: string, fallbackName: string): Promise<void> {
-    const baseUrl = config.public.apiBaseUrl
-    const token = auth.accessToken.value
-
-    const response = await fetch(`${baseUrl}${path}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to download PDF')
-    }
-
-    const blob = await response.blob()
+    const blob = await api.$api<Blob>(path, { responseType: 'blob' })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
 
-    const contentDisposition = response.headers.get('Content-Disposition')
-    const filenameMatch = contentDisposition?.match(/filename="?(.+)"?/)
-    link.download = filenameMatch?.[1] || fallbackName
+    link.download = fallbackName
 
     document.body.appendChild(link)
     link.click()
@@ -385,8 +370,7 @@ export function useBudgets() {
   }
 
   function getPDFPreviewUrl(id: string, locale: string = 'es'): string {
-    const baseUrl = config.public.apiBaseUrl
-    return `${baseUrl}/api/v1/budget/budgets/${id}/pdf/preview?locale=${locale}`
+    return `/api/v1/budget/budgets/${id}/pdf/preview?locale=${locale}`
   }
 
   // ============================================================================

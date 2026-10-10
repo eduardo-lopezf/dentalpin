@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(accounting_export): la descarga ZIP usa el transporte autenticado de `useApi`; ya no expone bearer tokens en JavaScript.
 - Initial release. Optional, removable, model-free module that exports
   billing data for the accountant (*gestoría*) — issue #73.
 - Endpoints `GET /preview` (counts + totals + sample) and `GET /run`

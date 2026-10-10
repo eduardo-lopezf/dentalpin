@@ -2,7 +2,7 @@
 
 from typing import Final
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -90,6 +90,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    AUTH_SESSION_MAX_FAMILY_DAYS: int = Field(default=30, gt=0)
+    AUTH_SESSION_IDLE_TIMEOUT_MINUTES: int = Field(default=60, gt=0)
     ALGORITHM: str = "HS256"
     # Independent secret used to sign the public-budget verification
     # cookies (ADR 0006). Falls back to ``SECRET_KEY`` for local/dev

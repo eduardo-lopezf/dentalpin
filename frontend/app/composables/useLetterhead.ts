@@ -42,12 +42,6 @@ function owner(professionalId: string | null): string {
 
 export function useLetterhead() {
   const api = useApi()
-  const auth = useAuth()
-  const config = useRuntimeConfig()
-
-  function authHeaders() {
-    return { Authorization: `Bearer ${auth.accessToken.value}` }
-  }
 
   async function list(): Promise<Letterhead[]> {
     return (await api.get<ApiResponse<Letterhead[]>>(URL_BASE)).data
@@ -69,21 +63,18 @@ export function useLetterhead() {
 
   /** The logo as an object URL for a preview, or null when there is none. */
   async function logoUrl(professionalId: string | null): Promise<string | null> {
-    const response = await fetch(
-      `${config.public.apiBaseUrl}${URL_BASE}/${owner(professionalId)}/logo`, { headers: authHeaders() }
-    )
-    return response.ok ? URL.createObjectURL(await response.blob()) : null
+    try {
+      const blob = await api.$api<Blob>(`${URL_BASE}/${owner(professionalId)}/logo`, { responseType: 'blob' })
+      return URL.createObjectURL(blob)
+    } catch {
+      return null
+    }
   }
 
   async function uploadLogo(professionalId: string | null, file: File): Promise<void> {
     const form = new FormData()
     form.append('file', file)
-    await $fetch(`${URL_BASE}/${owner(professionalId)}/logo`, {
-      baseURL: config.public.apiBaseUrl,
-      method: 'PUT',
-      body: form,
-      headers: authHeaders()
-    })
+    await api.put(`${URL_BASE}/${owner(professionalId)}/logo`, form)
   }
 
   async function removeLogo(professionalId: string | null): Promise<void> {

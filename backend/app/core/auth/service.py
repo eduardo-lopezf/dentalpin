@@ -41,6 +41,7 @@ def create_access_token(
     user_id: UUID,
     clinic_id: UUID | None = None,
     token_version: int = 0,
+    family_id: UUID | None = None,
 ) -> str:
     """Create a JWT access token."""
     expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -49,14 +50,22 @@ def create_access_token(
         "exp": expire,
         "type": "access",
         "token_version": token_version,
+        "iat": datetime.now(UTC),
     }
     if clinic_id:
         payload["clinic_id"] = str(clinic_id)
+    if family_id is not None:
+        payload["family_id"] = str(family_id)
 
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def create_refresh_token(user_id: UUID, token_version: int = 0, jti: UUID | None = None) -> str:
+def create_refresh_token(
+    user_id: UUID,
+    token_version: int = 0,
+    jti: UUID | None = None,
+    expires_at: datetime | None = None,
+) -> str:
     """Create a JWT refresh token.
 
     ``jti`` names the ``auth_sessions`` row that decides whether this
@@ -65,7 +74,7 @@ def create_refresh_token(user_id: UUID, token_version: int = 0, jti: UUID | None
     still get a token; a refresh presented without one is rejected,
     because a token nothing can revoke is the thing this replaced.
     """
-    expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = expires_at or datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": str(user_id),
         "exp": expire,

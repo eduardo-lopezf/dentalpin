@@ -9,13 +9,8 @@ let systemInitialized: boolean | null = null
 
 async function isSystemInitialized(): Promise<boolean> {
   if (systemInitialized === true) return true
-  const config = useRuntimeConfig()
-  const baseURL = import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
   try {
-    const res = await $fetch<{ data: { initialized: boolean } }>(
-      '/api/v1/auth/setup/status',
-      { baseURL }
-    )
+    const res = await useApi().get<{ data: { initialized: boolean } }>('/api/v1/auth/setup/status')
     systemInitialized = res.data.initialized
   } catch {
     // Backend unreachable: don't trap the user on /setup — assume initialized
@@ -57,7 +52,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     if (auth.user.value?.must_change_password) {
       return to.path === CHANGE_PASSWORD_PATH ? undefined : navigateTo(CHANGE_PASSWORD_PATH)
     }
-    if (to.path === CHANGE_PASSWORD_PATH) return navigateTo('/')
+    // The change-password screen itself is open to anyone signed in: it
+    // must never bounce a user the backend is still holding to it.
+    if (to.path === CHANGE_PASSWORD_PATH) return
     // Authenticated users skip both the login page and the first-run wizard.
     // An open login tab that finds a session resumes where it was pointed.
     if (to.path === '/login' || to.path === SETUP_PATH) {

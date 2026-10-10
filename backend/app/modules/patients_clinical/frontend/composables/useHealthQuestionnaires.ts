@@ -58,13 +58,7 @@ export const CONDITION_GROUPS: string[][] = [
 
 export function useHealthQuestionnaires() {
   const api = useApi()
-  const auth = useAuth()
-  const config = useRuntimeConfig()
   const base = (patientId: string) => `/api/v1/patients_clinical/patients/${patientId}`
-
-  function authHeaders() {
-    return { Authorization: `Bearer ${auth.accessToken.value}` }
-  }
 
   async function list(patientId: string): Promise<HealthQuestionnaire[]> {
     return (await api.get<ApiResponse<HealthQuestionnaire[]>>(`${base(patientId)}/questionnaires`)).data
@@ -84,9 +78,8 @@ export function useHealthQuestionnaires() {
     form.append('file', file)
     form.append('document_type', 'report')
     form.append('title', title.slice(0, 255))
-    const response = await $fetch<ApiResponse<{ id: string }>>(
-      `/api/v1/media/patients/${patientId}/documents`,
-      { baseURL: config.public.apiBaseUrl, method: 'POST', body: form, headers: authHeaders() }
+    const response = await api.post<ApiResponse<{ id: string }>>(
+      `/api/v1/media/patients/${patientId}/documents`, form
     )
     return response.data.id
   }
@@ -101,12 +94,14 @@ export function useHealthQuestionnaires() {
   }
 
   async function openFile(path: string, filename: string, tab: Window | null): Promise<void> {
-    const response = await fetch(`${config.public.apiBaseUrl}${path}`, { headers: authHeaders() })
-    if (!response.ok) {
+    let blob: Blob
+    try {
+      blob = await api.$api<Blob>(path, { responseType: 'blob' })
+    } catch {
       tab?.close()
       throw new Error(`Failed to load ${path}`)
     }
-    const url = URL.createObjectURL(await response.blob())
+    const url = URL.createObjectURL(blob)
     if (tab && !tab.closed) {
       tab.location.href = url
     } else {

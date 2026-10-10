@@ -80,9 +80,12 @@ class CatalogModule(BaseModule):
         return {ReferenceSpecialties: specialties}
 
     def get_event_handlers(self) -> dict:
-        from .events import on_clinic_created
+        from .events import on_clinic_created, on_clinic_specialties_set
 
-        return {"clinic.created": on_clinic_created}
+        return {
+            "clinic.created": on_clinic_created,
+            "clinic.specialties_set": on_clinic_specialties_set,
+        }
 
     def get_permissions(self) -> list[str]:
         return [

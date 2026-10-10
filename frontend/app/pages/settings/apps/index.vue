@@ -41,6 +41,21 @@ watch(canRead, (ok) => {
   if (ok && import.meta.client) load()
 }, { immediate: true })
 
+async function enableApp(name: string) {
+  try {
+    const also = await admin.enableApp(name)
+    const names = [name, ...also].map(admin.appTitle).join(', ')
+    toast.add({ title: t('settings.apps.enabled', { name: names }), color: 'success' })
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string }, message?: string }
+    toast.add({
+      title: t('common.error'),
+      description: e?.data?.message ?? e?.message ?? t('common.networkError'),
+      color: 'error'
+    })
+  }
+}
+
 function viewDetails(name: string) {
   const module = admin.modules.value.find(m => m.name === name)
   if (!module) {
@@ -133,6 +148,7 @@ function viewDetails(name: string) {
             v-for="app in admin.apps.value"
             :key="app.name"
             :app="app"
+            @enable="enableApp"
           />
         </div>
 

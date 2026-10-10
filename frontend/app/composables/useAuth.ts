@@ -1,233 +1,110 @@
-import type { User, LoginCredentials, AuthResponse, MeResponse, ApiResponse } from '~/types'
+import { appendResponseHeader, getRequestURL } from 'h3'
+import type { User, LoginCredentials, MeResponse, ApiResponse } from '~/types'
 import { loginLocation, type SessionEndReason } from '~/utils/session'
 
-// Module-level dedupe slot for the in-flight refresh promise, on the client.
-// Storing a Promise inside useState() leaks it into the SSR payload, which
-// devalue cannot serialize (DevalueError "Cannot stringify arbitrary
-// non-POJOs"), so it cannot live there.
-//
-// The server needs the same dedupe and gets it from the request's own
-// context — see `inFlightRefresh`. This slot used to be the only one, on
-// the reasoning that "refreshes happen per-request anyway" during SSR.
-// They do not: one render fires the auth middleware, `useClinic`,
-// `useModules` and the page's own fetches in parallel, every one of them
-// meets the same expired access token, and every one called `refresh()`.
-// The first rotated the token and the rest presented a spent one — which
-// `sessions.rotate` reads as theft and answers by revoking the whole
-// family (ADR 0029). A single render produced one 200 and three 401s, and
-// handed the browser `refresh_token=; Max-Age=0` in place of the token it
-// had just minted.
-/**
- * What one browser (client) or one render (server) knows about refreshing.
- *
- * `inFlight` dedupes callers that arrive together. `spent` covers the ones
- * that arrive *afterwards*, which the promise alone cannot: `useCookie`
- * hands every composable instance its own ref, so an instance created
- * before the exchange still holds the old token and would present it again
- * — and a spent token presented again is exactly what `sessions.rotate`
- * reads as theft.
- */
 interface RefreshSlot {
   inFlight?: Promise<boolean>
-  /** The token value already exchanged here, and what came of it. */
-  spent?: string
-  outcome?: boolean
-  /** What the exchange minted, so a late caller can adopt it. */
-  access?: string
-  refresh?: string
 }
-
-// The client's slot. A Promise cannot live in useState() — it leaks into
-// the SSR payload, which devalue cannot serialize (DevalueError "Cannot
-// stringify arbitrary non-POJOs") — so the client keeps a module-level one
-// and the server keeps its own on the request context.
-const clientRefreshSlot: RefreshSlot = {}
 
 interface RefreshContext {
   _authRefreshSlot?: RefreshSlot
+  _bffCookieOverrides?: Record<string, string>
 }
 
-/** How a session ended, and where the user was when it did. */
 export interface SessionEnd {
-  /** Resumed after the next login. Omitted when the user chose to leave. */
   returnTo?: string
   reason?: SessionEndReason
 }
 
-/**
- * How long a logout waits for the server before giving up. The browser is
- * already logged out by then; this only bounds how long the revocation is
- * given, so a slow API cannot hold a render hostage.
- */
 const LOGOUT_TIMEOUT_MS = 5_000
+const clientRefreshSlot: RefreshSlot = {}
+const CHANNEL_NAME = 'dienteazul:auth-session'
+type SessionSignal = 'logout' | 'expired' | 'refreshed'
+const CLIENT_TAB_ID = import.meta.client ? crypto.randomUUID() : ''
+let clientChannel: BroadcastChannel | null = null
+let clientSignalListenerInstalled = false
+let lastHandledSessionSignal = ''
 
-// Did the backend actually reject this session, or could we just not ask?
-//
-// A 401 is an answer: the token was presented and refused, so the session is
-// genuinely over. Anything else — DNS failure, connection refused, a 502 from
-// the proxy, any 5xx — means the question never got through, and the session
-// is most likely still valid. Treating the second case like the first is what
-// logged users out at random in production: SSR resolves a different API host
-// than the browser does, and when that host was unreachable every full page
-// load wiped a perfectly good session.
 function isAuthFailure(error: unknown): boolean {
   return (error as { statusCode?: number } | null)?.statusCode === 401
+}
+
+function cookieValue(name: string): string | null {
+  if (import.meta.server) return null
+  const escaped = name.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')
+  return new RegExp(`(?:^|;\\s*)${escaped}=([^;]*)`).exec(document.cookie)?.[1] ?? null
+}
+
+function hasIncomingSessionCookie(event: ReturnType<typeof useRequestEvent>): boolean {
+  const cookieHeader = event?.node.req.headers.cookie ?? ''
+  return /(?:^|;\s*)(?:access_token|refresh_token)=/.test(cookieHeader)
 }
 
 export function useAuth() {
   const config = useRuntimeConfig()
   const router = useRouter()
-  // Captured here rather than inside `refresh()`: `useRequestEvent()` needs
-  // the Nuxt context, and a refresh can be reached from a callback that has
-  // already left it.
   const requestEvent = import.meta.server ? useRequestEvent() : null
+  const requestFetch = import.meta.server ? useRequestFetch() : $fetch
+  const csrfCookie = useCookie<string | null>('csrf_token')
 
-  // Use different API URL for server (Docker internal) vs client (browser)
-  const apiBaseUrl = computed(() =>
-    import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
-  )
-
-  // State
   const user = useState<User | null>('auth:user', () => null)
   const permissions = useState<string[]>('auth:permissions', () => [])
-  // The clinic's IANA zone, filled from ``/auth/me``. Lives here rather than
-  // in ``useClinic`` because the global auth middleware awaits ``init()`` on
-  // the server, so this is the one clock reference that exists during SSR —
-  // ``useClinic`` fetches from a non-awaited watcher and is still null there.
   const clinicTimezone = useState<string | null>('auth:clinic-timezone', () => null)
-  // Cookie lifetime matches refresh token; JWT expiry is enforced by the
-  // backend, and a 401 triggers refresh in useApi. Matching the access
-  // cookie's maxAge to the 15min JWT TTL caused premature logouts.
-  const accessToken = useCookie('access_token', {
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    secure: import.meta.env.PROD,
-    sameSite: 'lax'
-  })
-  const refreshToken = useCookie('refresh_token', {
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    secure: import.meta.env.PROD,
-    sameSite: 'lax'
-  })
+  const session = useState<boolean>('auth:session', () => import.meta.server && hasIncomingSessionCookie(requestEvent ?? undefined))
+  const lastSessionSignal = useState<string>('auth:last-session-signal', () => '')
+  const isAuthenticated = computed(() => !!user.value && session.value)
+  const hasStoredSession = computed(() => session.value)
 
-  const activity = useSessionActivity()
-
-  // Computed
-  const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
-  /**
-   * The browser holds tokens, whether or not they still work. Tells the
-   * middleware that a session *ended* — worth saying on the login screen —
-   * apart from a visitor who never had one.
-   */
-  const hasStoredSession = computed(() => !!accessToken.value || !!refreshToken.value)
-
-  // Actions
-  async function login(credentials: LoginCredentials): Promise<void> {
-    // OAuth2PasswordRequestForm expects form data with 'username' field
-    const formData = new URLSearchParams()
-    formData.append('username', credentials.email)
-    formData.append('password', credentials.password)
-
-    const response = await $fetch<AuthResponse>('/api/v1/auth/login', {
-      baseURL: apiBaseUrl.value,
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    })
-
-    accessToken.value = response.access_token
-    refreshToken.value = response.refresh_token
-    // Before anything navigates: the middleware on the way to the page the
-    // user is returning to reads this stamp, and a stale one left by the
-    // session that just expired would end this one on arrival.
-    activity.touch()
-
-    // Fetch user info after login
-    await fetchUser()
-  }
-
-  /**
-   * End this session on the server and in this browser. Does not navigate.
-   *
-   * The server has to hear about it: clearing the cookie alone only hid the
-   * tokens, and the refresh stayed valid for its full seven days. But the
-   * browser does not wait for the answer — the tokens are captured, dropped,
-   * and the revocation is sent behind them. Awaiting it first is what made a
-   * slow or unreachable API look like a hung logout. On the server the
-   * render would end before the request did, so there it is awaited, with a
-   * bound.
-   */
-  async function terminate(): Promise<void> {
-    const token = refreshToken.value
-    clearSession()
-    if (!token) return
-
-    const revocation = $fetch('/api/v1/auth/logout', {
-      baseURL: apiBaseUrl.value,
-      method: 'POST',
-      body: { refresh_token: token },
-      timeout: LOGOUT_TIMEOUT_MS
-    }).catch(() => {
-      // Already expired, revoked, or unreachable — nothing to recover, and
-      // the browser is logged out either way.
-    })
-    if (import.meta.server) await revocation
-  }
-
-  /**
-   * Log out and go to the login screen.
-   *
-   * `returnTo` is for sessions that *ended* — inactivity, a refused
-   * refresh — so the next login resumes the work. A user who chose to leave
-   * gets none: on a shared front-desk computer the next person to log in
-   * should not land on the previous one's patient.
-   */
-  async function logout(end: SessionEnd = {}): Promise<void> {
-    await terminate()
-    await goToLogin(end)
-  }
-
-  /** Drop this browser's session. Touches no server state. */
-  function clearSession(): void {
-    accessToken.value = null
-    refreshToken.value = null
-    user.value = null
-    permissions.value = []
-    clinicTimezone.value = null
-  }
-
-  async function goToLogin(end: SessionEnd): Promise<void> {
-    // SSR: skip router.push — calling it from middleware can crash the
-    // response. The global auth middleware redirects to /login once it
-    // sees isAuthenticated === false, and carries the destination itself.
-    if (import.meta.client) {
-      await router.push(loginLocation(end.returnTo, end.reason))
+  async function bffFetch<T>(path: string, options: Record<string, unknown> = {}): Promise<T> {
+    const method = String(options.method ?? 'GET').toUpperCase()
+    const headers = new Headers(options.headers as HeadersInit | undefined)
+    if (import.meta.server && requestEvent && !headers.has('origin')) {
+      headers.set('origin', String(config.public.appOrigin || getRequestURL(requestEvent).origin))
     }
+    if (import.meta.server && requestEvent) {
+      const overrides = (requestEvent.context as RefreshContext)._bffCookieOverrides ?? {}
+      if (Object.keys(overrides).length) {
+        const cookies = new Map((requestEvent.node.req.headers.cookie ?? '').split(';').filter(Boolean).map((part) => {
+          const separator = part.indexOf('=')
+          return [part.slice(0, separator).trim(), part.slice(separator + 1).trim()]
+        }))
+        for (const [name, value] of Object.entries(overrides)) cookies.set(name, value)
+        headers.set('cookie', [...cookies].map(([name, value]) => `${name}=${value}`).join('; '))
+      }
+    }
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      let csrf = import.meta.client ? cookieValue('csrf_token') : csrfCookie.value
+      if (!csrf) {
+        await bffFetch('/api/v1/auth/csrf')
+        csrf = import.meta.client ? cookieValue('csrf_token') : csrfCookie.value
+      }
+      if (csrf) headers.set('x-csrf-token', decodeURIComponent(csrf))
+    }
+    const onResponse = ({ response }: { response: Response }) => {
+      if (!import.meta.server || !requestEvent) return
+      const cookies = response.headers.getSetCookie?.() ?? [response.headers.get('set-cookie')].filter((value): value is string => !!value)
+      const context = requestEvent.context as RefreshContext
+      context._bffCookieOverrides ??= {}
+      for (const cookie of cookies) {
+        appendResponseHeader(requestEvent, 'set-cookie', cookie)
+        const [pair] = cookie.split(';', 1)
+        const separator = pair?.indexOf('=') ?? -1
+        if (separator < 1) continue
+        const name = pair!.slice(0, separator)
+        const value = pair!.slice(separator + 1)
+        if (['access_token', 'refresh_token', 'csrf_token'].includes(name)) {
+          context._bffCookieOverrides[name] = value
+          if (name === 'csrf_token') csrfCookie.value = value
+        }
+      }
+    }
+    return await requestFetch(path, { ...options, headers, onResponse } as never) as T
   }
 
-  /**
-   * End the session locally and send the user to the login screen.
-   *
-   * Separate from `logout()` because the refusal path must **not** call
-   * `/auth/logout`: when a refresh comes back 401 the family is already
-   * revoked server-side, and posting a logout only revokes it again. The
-   * render that exposed this bug sent three of them.
-   */
-  async function endSession(end: SessionEnd = {}): Promise<void> {
-    clearSession()
-    await goToLogin(end)
+  function request<T>(path: string, options: Record<string, unknown> = {}): Promise<T> {
+    return bffFetch<T>(path, options)
   }
 
-  /**
-   * The slot shared by every `useAuth()` in this browser or this render.
-   *
-   * On the server it lives on the request context, which every composable
-   * in the render reaches and which is never serialized. It used to be
-   * client-only, on the reasoning that "refreshes happen per-request
-   * anyway" during SSR — see the note at the top of this file for what
-   * that cost.
-   */
   function refreshSlot(): RefreshSlot {
     if (import.meta.client) return clientRefreshSlot
     const context = requestEvent?.context as RefreshContext | undefined
@@ -235,175 +112,176 @@ export function useAuth() {
     return (context._authRefreshSlot ??= {})
   }
 
-  /**
-   * Exchange the refresh token, once per browser and once per render.
-   *
-   * The dedupe is the whole point: a refresh token is spent when it is
-   * used, and `sessions.rotate` revokes the entire family when it sees a
-   * spent one presented again. Without a shared in-flight promise, a page
-   * that fires N parallel requests on an expired token sends N refreshes,
-   * and N-1 of them destroy the session the first one just renewed.
-   */
-  async function refresh(): Promise<boolean> {
-    if (!refreshToken.value) {
-      return false
-    }
+  function clearSession(): void {
+    session.value = false
+    user.value = null
+    permissions.value = []
+    clinicTimezone.value = null
+  }
 
-    const slot = refreshSlot()
-    if (slot.inFlight) {
-      return slot.inFlight
-    }
-
-    // Our own cookie ref may be stale. `useCookie` gives each composable
-    // instance a separate ref, so an instance that existed before the
-    // exchange still holds the token that was spent by it — and presenting
-    // a spent token is what revokes the whole family. The exchange already
-    // happened here; report what it concluded instead of repeating it.
-    const presenting = refreshToken.value
-    if (presenting && slot.spent === presenting && slot.outcome !== undefined) {
-      if (slot.outcome) {
-        // Adopt what the exchange minted before answering. Without this the
-        // caller retries its 401 with the same expired access token its own
-        // ref still holds, and fails a second time for no reason.
-        if (slot.access) accessToken.value = slot.access
-        if (slot.refresh) refreshToken.value = slot.refresh
-      } else {
-        // The server refused this token and the session is over; the
-        // exchange already sent the user to login. Drop this instance's
-        // stale refs too, so it stops presenting them.
-        clearSession()
-      }
-      return slot.outcome
-    }
-    slot.spent = presenting ?? undefined
-    slot.outcome = undefined
-
-    const run = (async (): Promise<boolean> => {
-      let response: AuthResponse
-      try {
-        response = await $fetch<AuthResponse>('/api/v1/auth/refresh', {
-          baseURL: apiBaseUrl.value,
-          method: 'POST',
-          body: { refresh_token: refreshToken.value }
-        })
-      } catch (error) {
-        // Only the refresh endpoint's own verdict ends a session. Rethrow
-        // transport failures so the caller keeps the cookies and can retry:
-        // we still do not know whether the session is over.
-        if (!isAuthFailure(error)) {
-          throw error
-        }
-        await endSession({
-          returnTo: router.currentRoute.value.fullPath,
-          reason: 'expired'
-        })
-        return false
-      }
-
-      accessToken.value = response.access_token
-      refreshToken.value = response.refresh_token
-      slot.access = response.access_token
-      slot.refresh = response.refresh_token
-      user.value = response.user
-
-      // From here the session is already renewed, so nothing below may end
-      // it. /auth/refresh returns the user but not the expanded permission
-      // list, and without it the sidebar and home strip every
-      // permission-gated entry — worth fetching, not worth a logout. This
-      // used to share the catch above, which ended sessions whose refresh
-      // had just succeeded.
-      try {
-        const me = await $fetch<ApiResponse<MeResponse>>('/api/v1/auth/me', {
-          baseURL: apiBaseUrl.value,
-          headers: { Authorization: `Bearer ${response.access_token}` }
-        })
-        user.value = me.data.user
-        permissions.value = me.data.permissions
-        clinicTimezone.value = me.data.clinics[0]?.timezone ?? null
-      } catch (error) {
-        console.error('Session refreshed, but /auth/me failed:', error)
-      }
-      return true
-    })()
-
-    slot.inFlight = run
+  function broadcast(signal: SessionSignal): void {
+    if (!import.meta.client) return
     try {
-      const outcome = await run
-      // Kept after the promise is cleared: a caller arriving later with the
-      // token this exchange spent reads it instead of presenting it again.
-      slot.outcome = outcome
-      return outcome
-    } catch (error) {
-      // No answer from the server, so the token may well be unspent — and
-      // nothing is known about the session. Forget the attempt, or every
-      // later refresh in this tab answered `false` without trying and
-      // without ending the session: a page stuck on 401s that never reached
-      // login until it was reloaded.
-      slot.spent = undefined
-      throw error
-    } finally {
-      // Only the caller that started it clears it; everyone else returned
-      // the shared promise above and never reaches this.
-      slot.inFlight = undefined
+      clientChannel ??= new BroadcastChannel(CHANNEL_NAME)
+      clientChannel.postMessage({ signal, sender: CLIENT_TAB_ID, id: crypto.randomUUID() })
+    } catch {
+      localStorage.setItem(CHANNEL_NAME, JSON.stringify({ signal, sender: CLIENT_TAB_ID, id: crypto.randomUUID() }))
+      localStorage.removeItem(CHANNEL_NAME)
     }
   }
 
-  async function fetchUser(): Promise<void> {
-    if (!accessToken.value) {
-      return
+  async function fetchUserDirect(): Promise<void> {
+    const response = await bffFetch<ApiResponse<MeResponse>>('/api/v1/auth/me')
+    user.value = response.data.user
+    permissions.value = response.data.permissions
+    clinicTimezone.value = response.data.clinics[0]?.timezone ?? null
+    session.value = true
+  }
+
+  async function goToLogin(end: SessionEnd): Promise<void> {
+    if (import.meta.client) await router.push(loginLocation(end.returnTo, end.reason))
+  }
+
+  async function endSession(end: SessionEnd = {}): Promise<void> {
+    clearSession()
+    broadcast('expired')
+    await goToLogin(end)
+  }
+
+  async function refreshInsideLock(): Promise<boolean> {
+    // A different tab may have rotated the shared cookies while this tab waited.
+    try {
+      await fetchUserDirect()
+      return true
+    } catch (error) {
+      if (!isAuthFailure(error)) throw error
     }
 
     try {
-      const response = await $fetch<ApiResponse<MeResponse>>('/api/v1/auth/me', {
-        baseURL: apiBaseUrl.value,
-        headers: {
-          Authorization: `Bearer ${accessToken.value}`
-        }
-      })
-      user.value = response.data.user
-      permissions.value = response.data.permissions
-      clinicTimezone.value = response.data.clinics[0]?.timezone ?? null
-    } catch (error: unknown) {
-      const fetchError = error as { statusCode?: number }
-      // Only try refresh on 401 (expired token), not on other errors
-      if (fetchError.statusCode === 401) {
-        // No logout on a false return: `refresh()` has already ended the
-        // session itself, and calling it again revoked the family twice.
-        await refresh()
-      } else {
-        // Log the error but don't logout on non-401 errors
+      await bffFetch('/api/v1/auth/refresh', { method: 'POST', body: {} })
+    } catch (error) {
+      if (!isAuthFailure(error)) throw error
+      await endSession({ returnTo: router.currentRoute.value.fullPath, reason: 'expired' })
+      return false
+    }
+
+    try {
+      await fetchUserDirect()
+    } catch (error) {
+      if (!isAuthFailure(error)) console.error('Session refreshed, but /auth/me failed:', error)
+    }
+    broadcast('refreshed')
+    return true
+  }
+
+  async function refresh(): Promise<boolean> {
+    const slot = refreshSlot()
+    if (slot.inFlight) return slot.inFlight
+    const run = async (): Promise<boolean> => {
+      if (import.meta.client && navigator.locks) {
+        return navigator.locks.request('dienteazul:auth-refresh', refreshInsideLock)
+      }
+      return refreshInsideLock()
+    }
+    const inFlight = run()
+    slot.inFlight = inFlight
+    try {
+      return await inFlight
+    } finally {
+      if (slot.inFlight === inFlight) slot.inFlight = undefined
+    }
+  }
+
+  async function login(credentials: LoginCredentials): Promise<void> {
+    const formData = new URLSearchParams({ username: credentials.email, password: credentials.password })
+    await bffFetch('/api/v1/auth/login', {
+      method: 'POST',
+      body: formData,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    session.value = true
+    useSessionActivity().touch()
+    await fetchUserDirect()
+    broadcast('refreshed')
+  }
+
+  /** Adopt cookies issued by first-run setup without signing in twice. */
+  async function adoptSession(): Promise<void> {
+    session.value = true
+    await fetchUserDirect()
+    broadcast('refreshed')
+  }
+
+  async function terminate(): Promise<void> {
+    const hadSession = session.value
+    clearSession()
+    broadcast('logout')
+    if (!hadSession) return
+    const revocation = bffFetch('/api/v1/auth/logout', {
+      method: 'POST',
+      body: {},
+      timeout: LOGOUT_TIMEOUT_MS
+    }).catch(() => undefined)
+    if (import.meta.server) await revocation
+  }
+
+  async function logout(end: SessionEnd = {}): Promise<void> {
+    await terminate()
+    await goToLogin(end)
+  }
+
+  async function fetchUser(): Promise<void> {
+    if (!session.value) return
+    try {
+      await fetchUserDirect()
+    } catch (error) {
+      if (isAuthFailure(error)) await refresh()
+      else {
         console.error('Failed to fetch user:', error)
         throw error
       }
     }
   }
 
-  // Initialize user if token exists (works on both server and client).
-  // Must never throw: the global auth middleware awaits this on SSR, and
-  // an unhandled rejection there crashes the response so the user sees
-  // neither the page nor a redirect to /login. On any failure, clear
-  // auth state so the middleware can route to /login.
   async function init(): Promise<void> {
+    if (import.meta.server) {
+      session.value ||= hasIncomingSessionCookie(requestEvent ?? undefined)
+    }
+    if (!session.value || user.value) return
     try {
-      if (accessToken.value && !user.value) {
-        await fetchUser()
-      } else if (!accessToken.value && refreshToken.value) {
-        // Access cookie gone but refresh still valid — recover session.
-        await refresh()
-      }
+      await refresh()
     } catch (error) {
-      // `fetchUser` deliberately rethrows non-401 errors ("don't logout on
-      // non-401 errors") — and this catch used to clear the cookies anyway,
-      // undoing that intent two frames up. Keep the session unless the
-      // backend actually rejected it.
-      if (!isAuthFailure(error)) {
-        return
+      if (!isAuthFailure(error)) console.error('Failed to initialize session:', error)
+    }
+  }
+
+  if (import.meta.client && !clientSignalListenerInstalled) {
+    clientSignalListenerInstalled = true
+    const receiveSignal = (data: { signal?: SessionSignal, sender?: string, id?: string }) => {
+      if (data?.sender === CLIENT_TAB_ID || (data?.id && (lastSessionSignal.value === data.id || lastHandledSessionSignal === data.id))) return
+      if (data?.id) {
+        lastSessionSignal.value = data.id
+        lastHandledSessionSignal = data.id
       }
-      accessToken.value = null
-      refreshToken.value = null
-      user.value = null
-      permissions.value = []
-      clinicTimezone.value = null
+      if (data?.signal === 'logout' || data?.signal === 'expired') {
+        clearSession()
+        void goToLogin(data.signal === 'expired'
+          ? { returnTo: router.currentRoute.value.fullPath, reason: 'expired' }
+          : {})
+      }
+      if (data?.signal === 'refreshed') {
+        session.value = true
+        void fetchUserDirect().catch(() => undefined)
+      }
+    }
+    if (typeof BroadcastChannel !== 'undefined') {
+      clientChannel ??= new BroadcastChannel(CHANNEL_NAME)
+      clientChannel.onmessage = ({ data }: MessageEvent<{ signal?: SessionSignal, sender?: string, id?: string }>) => receiveSignal(data)
+    } else {
+      window.addEventListener('storage', (event) => {
+        if (event.key !== CHANNEL_NAME || !event.newValue) return
+        receiveSignal(JSON.parse(event.newValue) as { signal?: SessionSignal, sender?: string, id?: string })
+      })
     }
   }
 
@@ -411,7 +289,7 @@ export function useAuth() {
     user: readonly(user),
     permissions: readonly(permissions),
     clinicTimezone: readonly(clinicTimezone),
-    accessToken: readonly(accessToken),
+    request,
     isAuthenticated,
     hasStoredSession,
     login,
@@ -419,6 +297,7 @@ export function useAuth() {
     terminate,
     refresh,
     fetchUser,
-    init
+    init,
+    adoptSession
   }
 }

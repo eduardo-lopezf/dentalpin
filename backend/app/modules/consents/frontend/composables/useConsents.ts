@@ -60,8 +60,6 @@ const BASE = '/api/v1/consents'
 
 export function useConsents() {
   const api = useApi()
-  const auth = useAuth()
-  const config = useRuntimeConfig()
 
   async function listTemplates(opts: { kind?: ConsentKind, includeInactive?: boolean } = {}): Promise<ConsentTemplate[]> {
     const params = new URLSearchParams()
@@ -101,10 +99,6 @@ export function useConsents() {
     return (await api.post<ApiResponse<Consent>>(`${BASE}/${id}/sign`, data)).data
   }
 
-  function authHeaders() {
-    return { Authorization: `Bearer ${auth.accessToken.value}` }
-  }
-
   /**
    * File the scan of a letter signed on paper among the patient's
    * documents (the Media module's API) and return its id.
@@ -114,9 +108,8 @@ export function useConsents() {
     form.append('file', file)
     form.append('document_type', 'consent')
     form.append('title', title.slice(0, 255))
-    const response = await $fetch<ApiResponse<{ id: string }>>(
-      `/api/v1/media/patients/${patientId}/documents`,
-      { baseURL: config.public.apiBaseUrl, method: 'POST', body: form, headers: authHeaders() }
+    const response = await api.post<ApiResponse<{ id: string }>>(
+      `/api/v1/media/patients/${patientId}/documents`, form
     )
     return response.data.id
   }
@@ -132,12 +125,14 @@ export function useConsents() {
 
   /** Show a file in the reserved tab, or download it when there is none. */
   async function openFile(path: string, filename: string, tab: Window | null): Promise<void> {
-    const response = await fetch(`${config.public.apiBaseUrl}${path}`, { headers: authHeaders() })
-    if (!response.ok) {
+    let blob: Blob
+    try {
+      blob = await api.$api<Blob>(path, { responseType: 'blob' })
+    } catch {
       tab?.close()
       throw new Error(`Failed to load ${path}`)
     }
-    const url = URL.createObjectURL(await response.blob())
+    const url = URL.createObjectURL(blob)
     if (tab && !tab.closed) {
       tab.location.href = url
     } else {

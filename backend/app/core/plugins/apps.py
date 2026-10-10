@@ -95,11 +95,22 @@ class AppDefinition:
 
 @cache
 def load_app_catalog() -> tuple[AppDefinition, ...]:
-    """Read ``apps.json``.
+    """``apps.json`` as it was when the process started.
 
     Cached for the life of the process: what is mounted was decided from
     this file at boot, so a later edit must not be reported as if it had
     taken effect. It does at the next restart.
+    """
+    return read_app_catalog()
+
+
+def read_app_catalog() -> tuple[AppDefinition, ...]:
+    """Read and validate ``apps.json`` as it is on disk right now.
+
+    For whoever needs the file itself rather than what is running — the
+    operator's console lists the Apps from it on every request, so an
+    edit shows there at once. What is *mounted* is still
+    :func:`load_app_catalog`.
     """
     raw = json.loads(APPS_FILE.read_text(encoding="utf-8"))
 
@@ -223,3 +234,18 @@ def required_apps(app: AppDefinition) -> list[str]:
     """Other Apps that own a module ``app`` cannot run without."""
     owner = {module: other.name for other in load_app_catalog() for module in other.modules}
     return list(dict.fromkeys(owner[module] for module in required_modules(app)))
+
+
+def modules_outside(apps: list[str] | None) -> frozenset[str]:
+    """Modules a clinic does not have, given the Apps chosen for it.
+
+    ``None`` — nobody chose for the clinic — means it has every App, so
+    nothing is outside. Otherwise it is every module of every App that is
+    not on the list. What the deployment itself has switched off is a
+    separate matter (:func:`modules_disabled_by_app`).
+    """
+    if apps is None:
+        return frozenset()
+    return frozenset(
+        module for app in load_app_catalog() if app.name not in apps for module in app.modules
+    )

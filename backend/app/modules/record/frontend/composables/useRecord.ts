@@ -82,8 +82,6 @@ export interface RecordFormatOptions extends RecordFormat {
 
 export function useRecord() {
   const api = useApi()
-  const auth = useAuth()
-  const config = useRuntimeConfig()
 
   async function compose(patientId: string, includeRetracted = false): Promise<PatientRecord> {
     const query = includeRetracted ? '?include_retracted=true' : ''
@@ -109,15 +107,14 @@ export function useRecord() {
 
   /** The stored document of a disclosure, in the reserved tab or as a download. */
   async function openDocument(disclosureId: string, tab: Window | null): Promise<void> {
-    const response = await fetch(
-      `${config.public.apiBaseUrl}/api/v1/record/disclosures/${disclosureId}/document`,
-      { headers: { Authorization: `Bearer ${auth.accessToken.value}` } }
-    )
-    if (!response.ok) {
+    let blob: Blob
+    try {
+      blob = await api.$api<Blob>(`/api/v1/record/disclosures/${disclosureId}/document`, { responseType: 'blob' })
+    } catch {
       tab?.close()
       throw new Error('Failed to load the disclosed record')
     }
-    const url = URL.createObjectURL(await response.blob())
+    const url = URL.createObjectURL(blob)
     if (tab && !tab.closed) {
       tab.location.href = url
     } else {

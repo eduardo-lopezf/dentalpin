@@ -949,9 +949,7 @@ test.describe('touch adaptation', () => {
     await page.route('**/public/budgets/*/reject', route => route.abort())
 
     const apiBase = process.env.API_BASE_URL || 'http://localhost:8000'
-    const cookie = (await page.context().cookies()).find(c => c.name === 'access_token')
-    expect(cookie?.value, 'no access token on the session').toBeTruthy()
-    const headers = { Authorization: `Bearer ${cookie!.value}` }
+    const headers = { Authorization: `Bearer ${await tokenFor(page)}` }
 
     const list = await page.request.get(
       `${apiBase}/api/v1/budget/budgets?status=sent&page_size=1`,
@@ -1031,9 +1029,7 @@ test.describe('touch adaptation', () => {
     test.setTimeout(180_000)
 
     const apiBase = process.env.API_BASE_URL || 'http://localhost:8000'
-    const cookie = (await page.context().cookies()).find(c => c.name === 'access_token')
-    expect(cookie?.value, 'no access token on the session').toBeTruthy()
-    const headers = { Authorization: `Bearer ${cookie!.value}` }
+    const headers = { Authorization: `Bearer ${await tokenFor(page)}` }
 
     /** The public token of the first budget in one of the given statuses. */
     async function tokenFor(statuses: string[]): Promise<string | null> {

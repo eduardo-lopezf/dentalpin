@@ -151,21 +151,13 @@ const lightboxDocuments = computed<Document[]>(() =>
 )
 
 // Auth-aware blob URLs for the inline thumbs (server requires bearer).
-const config = useRuntimeConfig()
-const auth = useAuth()
-const apiBaseUrl = computed(() =>
-  import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
-)
+const api = useApi()
 const thumbBlobs = ref<Record<string, string>>({})
 
 async function loadThumb(att: NoteAttachment) {
   if (!att.thumb_url || thumbBlobs.value[att.id]) return
   try {
-    const blob = await $fetch<Blob>(att.thumb_url, {
-      baseURL: apiBaseUrl.value,
-      headers: { Authorization: `Bearer ${auth.accessToken.value}` },
-      responseType: 'blob'
-    })
+    const blob = await api.$api<Blob>(att.thumb_url, { responseType: 'blob' })
     thumbBlobs.value[att.id] = URL.createObjectURL(blob)
   } catch { /* swallow — falls back to icon placeholder */ }
 }

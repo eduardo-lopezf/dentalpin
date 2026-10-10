@@ -3,10 +3,6 @@ FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-# Build argument for API URL
-ARG API_BASE_URL=http://localhost:8000
-ENV API_BASE_URL=$API_BASE_URL
-
 # Copy package files
 COPY package*.json ./
 

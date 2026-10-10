@@ -21,7 +21,7 @@ import { STORAGE_KEYS } from '~/constants/storage'
 import { isIdleExpired } from '~/utils/session'
 
 const COOKIE = STORAGE_KEYS.LAST_ACTIVITY
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // same lifetime as the tokens
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // fixed maximum session-family lifetime
 const COOKIE_PATTERN = new RegExp(
   `(?:^|;\\s*)${COOKIE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=(\\d+)`
 )
@@ -86,6 +86,8 @@ export function useSessionActivity() {
     if (import.meta.server || watching) return () => {}
     watching = true
     let expired = false
+    const sessionAuthenticated = useState<boolean>('auth:session', () => false)
+    const api = useApi()
 
     // A session from before this rule has no stamp. Adopt it now, or a
     // screen left open without being touched would never expire.
@@ -108,6 +110,12 @@ export function useSessionActivity() {
       // already ended.
       if (isExpired()) return check()
       touch()
+      if (sessionAuthenticated.value) {
+        void api.post('/api/v1/auth/activity', null).catch(() => {
+          // Activity transport failures do not end a session; the backend
+          // enforces idle expiry on the next authenticated request.
+        })
+      }
     }
 
     function onVisible(): void {

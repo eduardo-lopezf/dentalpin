@@ -9,6 +9,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const recallsApi = useRecalls()
+const api = useApi()
 const { can } = usePermissions()
 
 if (!can(PERMISSIONS.recalls.read)) {
@@ -132,28 +133,20 @@ function onChanged(updated: Recall) {
 
 const conversionPct = computed(() => stats.value ? Math.round(stats.value.conversion_rate * 100) : 0)
 
-const auth = useAuth()
-const config = useRuntimeConfig()
 const isExporting = ref(false)
 
 async function downloadCsv() {
   if (isExporting.value) return
   isExporting.value = true
   try {
-    const url = config.public.apiBaseUrl + recallsApi.exportCsvUrl({
+    const url = recallsApi.exportCsvUrl({
       month: month.value || undefined,
       reason: reason.value === ANY ? undefined : reason.value || undefined,
       status: status.value === ANY ? undefined : status.value || undefined,
       priority: priority.value === ANY ? undefined : priority.value || undefined,
       overdue: overdue.value || undefined
     })
-    const res = await fetch(url, {
-      headers: auth.accessToken.value
-        ? { Authorization: `Bearer ${auth.accessToken.value}` }
-        : {}
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const blob = await res.blob()
+    const blob = await api.$api<Blob>(url, { responseType: 'blob' })
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = blobUrl

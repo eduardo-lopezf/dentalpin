@@ -256,6 +256,10 @@ class ReferenceSpecialties(Protocol):
         gets is said on ``clinic.created`` (``specialties``); the owner
         installs them."""
 
+    async def enabled(self, db: AsyncSession, clinic_id: UUID) -> list[str]:
+        """The keys of the disciplines a clinic has switched on. Changing
+        them is said on ``clinic.specialties_set``."""
+
 
 class WorkingHours(Protocol):
     async def professional_states(

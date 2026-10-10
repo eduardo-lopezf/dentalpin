@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- feat(catalog): consume `clinic.specialties_set`: cuando el operador
+  cambia las especialidades de una clínica, se habilitan y deshabilitan
+  los paquetes para que queden exactamente las pedidas (`general`
+  siempre). El contrato `ReferenceSpecialties` gana `enabled()`, que dice
+  cuáles tiene habilitadas una clínica.
+
 - feat(catalog): una clínica puede nacer con las especialidades elegidas.
   Si `clinic.created` trae `specialties`, tras sembrar el catálogo quedan
   habilitadas exactamente esas: se deshabilitan las de base no elegidas y

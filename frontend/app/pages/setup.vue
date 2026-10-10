@@ -116,9 +116,9 @@ async function onSubmit() {
       account_tier: form.accountTier
     }, { skipAuth: true })
 
-    // ponytail: re-login con las credenciales recién creadas en vez de
-    // inyectar los tokens a mano — una request barata y reusa fetchUser.
-    await auth.login({ email: form.email.trim(), password: form.password })
+    // The same-origin BFF stored the setup-issued credentials in HttpOnly
+    // cookies; adopt that session rather than creating a second family.
+    await auth.adoptSession()
 
     toast.add({ title: t('setup.success'), color: 'success' })
     await navigateTo('/')

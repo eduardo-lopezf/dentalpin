@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(record): las descargas de documentos protegidos usan `useApi` y la sesión HttpOnly del mismo origen.
 - feat(expediente): página **Mi membrete** (Configuración → Cuenta): cada
   profesional configura su propio membrete — logotipo, encabezado, línea
   adicional — sin pasar por la administración. Solo el suyo: el de la

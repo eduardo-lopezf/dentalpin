@@ -24,6 +24,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -33,7 +34,14 @@ from app.core.auth.service import hash_password, validate_password_strength
 from app.core.contracts import ReferenceSpecialties, provider
 from app.core.events import event_bus
 from app.core.events.types import EventType
-from app.core.plugins.apps import load_app_catalog, mandatory_apps, required_apps
+from app.core.plugins.apps import (
+    AppCatalogError,
+    AppTier,
+    load_app_catalog,
+    mandatory_apps,
+    read_app_catalog,
+    required_apps,
+)
 from app.core.privacy.policy import CustodyMode
 from app.core.privacy.tiers import AccountTier, TierCustodyError, validate_tier_custody
 from app.core.schemas import ApiResponse
@@ -41,6 +49,7 @@ from app.core.tenancy import TenantContext
 from app.core.tenancy.dependencies import get_tenant
 from app.database import get_db
 
+from .purge import purge_clinic
 from .usage import ClinicState, cached_measure, clinic_log, clinic_states
 
 #: What a control-plane token must name as its audience, so a token
@@ -190,6 +199,8 @@ class ClinicCreate(BaseModel):
     #: Apps the clinic is set up with, by name. Must hold every App that
     #: is mandatory for the tier, and whatever the chosen ones require.
     apps: list[str]
+    #: Apps it does not get but may switch on itself (Settings → Apps).
+    available_apps: list[str] = []
     #: Disciplines the clinic's treatment catalogue starts with, by key.
     #: Left out, it gets the baseline ones, as after ``/auth/setup``.
     specialties: list[str] | None = None
@@ -214,8 +225,11 @@ class ClinicCreate(BaseModel):
 class AppResponse(BaseModel):
     name: str
     tier: str
-    #: Whether the deployment runs it at all (``apps.json``).
+    #: Whether the deployment is running it. Decided at boot.
     enabled: bool
+    #: What ``apps.json`` says now, when it differs from what is running:
+    #: the edit takes effect at the next restart.
+    pending_enabled: bool | None
     #: Other Apps it cannot run without.
     requires: list[str]
     #: Account tiers whose clinics always have it.
@@ -224,19 +238,41 @@ class AppResponse(BaseModel):
 
 @router.get("/apps", response_model=ApiResponse[list[AppResponse]])
 async def list_apps() -> ApiResponse[list[AppResponse]]:
-    """The deployment's Apps, and for which account tiers each is
-    mandatory — what there is to choose from when creating a clinic."""
-    mandatory = {tier.value: mandatory_apps(tier.value) for tier in AccountTier}
+    """The deployment's Apps, **read from ``apps.json`` on every request**,
+    and for which account tiers each is mandatory — what there is to
+    choose from when creating a clinic.
+
+    The file is the list; what is running is a fact about the process. An
+    App the file has and the process does not run yet — it was added or
+    switched on since boot — is listed as not enabled, with
+    ``pending_enabled``.
+    """
+    try:
+        on_disk = read_app_catalog()
+    except (OSError, ValueError, KeyError, TypeError, AppCatalogError) as exc:
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, f"apps.json cannot be read: {exc}"
+        ) from exc
+    running = {app.name: app for app in load_app_catalog()}
     return ApiResponse(
         data=[
             AppResponse(
                 name=app.name,
                 tier=app.tier.value,
-                enabled=app.enabled,
+                enabled=app.name in running and running[app.name].enabled,
+                pending_enabled=(
+                    app.enabled
+                    if app.name not in running or running[app.name].enabled != app.enabled
+                    else None
+                ),
                 requires=required_apps(app),
-                mandatory_for=[tier for tier, names in mandatory.items() if app.name in names],
+                mandatory_for=[
+                    tier.value
+                    for tier in AccountTier
+                    if app.tier is not AppTier.OPTIONAL or tier.value in app.core_for_tiers
+                ],
             )
-            for app in load_app_catalog()
+            for app in on_disk
         ]
     )
 
@@ -299,10 +335,25 @@ def _chosen_apps(chosen: list[str], tier: AccountTier) -> list[str]:
     return [name for name in catalog if name in chosen]
 
 
+def _offered_apps(offered: list[str], chosen: list[str]) -> list[str]:
+    """``offered`` in catalog order: Apps of the deployment the clinic was
+    not given and may switch on itself."""
+    catalog = {app.name: app for app in load_app_catalog()}
+    if unavailable := [n for n in offered if n not in catalog or not catalog[n].enabled]:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"not an App of this deployment: {', '.join(unavailable)}",
+        )
+    return [name for name in catalog if name in offered and name not in chosen]
+
+
 class ClinicCreatedResponse(BaseModel):
     clinic_id: UUID
     name: str
     holder_user_id: UUID
+    #: The e-mail already had an account that belonged to no clinic: it
+    #: was made holder of this one as it is, password included.
+    holder_existed: bool
 
 
 @router.post(
@@ -320,6 +371,12 @@ async def create_clinic(
     What ``/auth/setup`` does for the first clinic of a deployment, for
     every one after it. Under an individual tier the clinic record is the
     holder's practice: it takes the holder's name.
+
+    One e-mail, one account, one clinic. An e-mail whose account already
+    belongs to a clinic is refused: that person needs another e-mail for
+    a new account, or to be removed from the clinic first. An account
+    that belongs to none — it was removed — becomes the holder as it is,
+    password included.
     """
     try:
         validate_tier_custody(data.account_tier, tenant.privacy.custody_mode)
@@ -329,9 +386,28 @@ async def create_clinic(
     if not is_valid:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, error)
     apps = _chosen_apps(data.apps, data.account_tier)
+    available_apps = _offered_apps(data.available_apps, apps)
     specialties = _chosen_specialties(data.specialties)
-    if await db.scalar(select(User.id).where(User.email == data.holder_email)):
-        raise HTTPException(status.HTTP_409_CONFLICT, "A user with this e-mail already exists")
+
+    holder = await db.scalar(select(User).where(User.email == data.holder_email))
+    holder_existed = holder is not None
+    if holder is not None:
+        if not holder.is_active:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "The account with this e-mail is deactivated"
+            )
+        belongs_to = list(
+            await db.scalars(
+                select(Clinic.name)
+                .join(ClinicMembership, ClinicMembership.clinic_id == Clinic.id)
+                .where(ClinicMembership.user_id == holder.id)
+            )
+        )
+        if belongs_to:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"This e-mail already belongs to a user of: {', '.join(belongs_to)}",
+            )
 
     individual = data.account_tier in _INDIVIDUAL_TIERS
     clinic = Clinic(
@@ -344,17 +420,23 @@ async def create_clinic(
         email=None if individual else data.clinic_email,
         account_tier=data.account_tier.value,
         apps=apps,
+        available_apps=available_apps,
         timezone=data.timezone,
     )
-    holder = User(
-        email=data.holder_email,
-        password_hash=hash_password(data.holder_password),
-        first_name=data.holder_first_name,
-        last_name=data.holder_last_name,
-        professional_id=data.holder_professional_id,
-        must_change_password=True,
-    )
-    db.add_all([clinic, holder])
+    if holder is None:
+        holder = User(
+            email=data.holder_email,
+            password_hash=hash_password(data.holder_password),
+            first_name=data.holder_first_name,
+            last_name=data.holder_last_name,
+            professional_id=data.holder_professional_id,
+            must_change_password=True,
+        )
+        db.add(holder)
+    elif not holder.professional_id:
+        # The one thing filled in on an existing account, and only if empty.
+        holder.professional_id = data.holder_professional_id
+    db.add(clinic)
     await db.flush()
     db.add(ClinicMembership(user_id=holder.id, clinic_id=clinic.id, role="admin"))
 
@@ -365,7 +447,12 @@ async def create_clinic(
         created["specialties"] = specialties
     event_bus.publish_after_commit(db, EventType.CLINIC_CREATED, created)
     return ApiResponse(
-        data=ClinicCreatedResponse(clinic_id=clinic.id, name=clinic.name, holder_user_id=holder.id)
+        data=ClinicCreatedResponse(
+            clinic_id=clinic.id,
+            name=clinic.name,
+            holder_user_id=holder.id,
+            holder_existed=holder_existed,
+        )
     )
 
 
@@ -409,3 +496,292 @@ async def reactivate_clinic(
     """Open a deactivated clinic again."""
     state = await _set_deactivated(db, clinic_id, False)
     return ApiResponse(data=ClinicStateResponse.model_validate(state))
+
+
+class OpsUserResponse(BaseModel):
+    """A staff account, as the operator's console manages it."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    email: str
+    first_name: str
+    last_name: str
+    professional_id: str | None
+    is_active: bool
+    must_change_password: bool
+    #: Their role in the clinic asked about; absent when read on their own.
+    role: str | None = None
+
+
+class OpsUserUpdate(BaseModel):
+    """The profile fields an operator may correct. Left out, a field stays."""
+
+    first_name: str | None = Field(default=None, min_length=1, max_length=100)
+    last_name: str | None = Field(default=None, min_length=1, max_length=100)
+    email: EmailStr | None = None
+    professional_id: str | None = Field(default=None, max_length=50)
+
+
+@router.get("/clinics/{clinic_id}/users", response_model=ApiResponse[list[OpsUserResponse]])
+async def list_clinic_users(
+    clinic_id: UUID, db: Annotated[AsyncSession, Depends(get_db)]
+) -> ApiResponse[list[OpsUserResponse]]:
+    """The staff accounts of one clinic, with their role in it."""
+    if await db.get(Clinic, clinic_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Clinic not found")
+    rows = await db.execute(
+        select(User, ClinicMembership.role)
+        .join(ClinicMembership, ClinicMembership.user_id == User.id)
+        .where(ClinicMembership.clinic_id == clinic_id)
+        .order_by(ClinicMembership.created_at)
+    )
+    return ApiResponse(
+        data=[
+            OpsUserResponse.model_validate(user).model_copy(update={"role": role})
+            for user, role in rows
+        ]
+    )
+
+
+@router.patch("/users/{user_id}", response_model=ApiResponse[OpsUserResponse])
+async def update_user(
+    user_id: UUID, data: OpsUserUpdate, db: Annotated[AsyncSession, Depends(get_db)]
+) -> ApiResponse[OpsUserResponse]:
+    """Correct a staff account's profile: name, e-mail, professional id.
+    Never its password."""
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+    changes = data.model_dump(exclude_unset=True)
+    if "email" in changes and changes["email"] != user.email:
+        taken = await db.scalar(select(User.id).where(User.email == changes["email"]))
+        if taken:
+            raise HTTPException(status.HTTP_409_CONFLICT, "A user with this e-mail already exists")
+    for field, value in changes.items():
+        # A name or an e-mail cannot be emptied; the professional id can.
+        if value is None and field != "professional_id":
+            continue
+        setattr(user, field, value)
+    await db.flush()
+    return ApiResponse(data=OpsUserResponse.model_validate(user))
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(user_id: UUID, db: Annotated[AsyncSession, Depends(get_db)]) -> None:
+    """Delete a staff account for good. **Not in production.**
+
+    A convenience for development, where test accounts pile up. In
+    production an account is deactivated, never deleted: what it wrote —
+    notes, appointments, signatures — has to keep its author. That is
+    also why an account something still points at is refused here too.
+    """
+    if settings.ENVIRONMENT == "production":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Accounts are not deleted in production")
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+    try:
+        async with db.begin_nested():
+            await db.delete(user)
+    except IntegrityError:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Records still point at this account; deactivate it instead"
+        ) from None
+
+
+class ClinicDetailResponse(BaseModel):
+    """Everything a clinic was created with, as it stands now."""
+
+    id: UUID
+    name: str
+    account_tier: str
+    timezone: str
+    tax_id: str
+    legal_name: str | None
+    phone: str | None
+    email: str | None
+    apps: list[str] | None
+    #: Apps it may switch on itself.
+    available_apps: list[str]
+    #: The disciplines switched on in its treatment catalogue.
+    specialties: list[str]
+    #: Its longest-standing administrator.
+    holder: OpsUserResponse | None
+
+
+class ClinicUpdate(BaseModel):
+    """What creation asks about the clinic, to be changed afterwards. The
+    holder's own details are changed on their account
+    (``PATCH /ops/users/{id}``)."""
+
+    account_tier: AccountTier
+    timezone: str = Field(max_length=64)
+    tax_id: str = Field(min_length=1, max_length=20)
+    apps: list[str]
+    available_apps: list[str] = []
+    specialties: list[str] | None = None
+    clinic_name: str | None = Field(default=None, min_length=1, max_length=200)
+    clinic_legal_name: str | None = Field(default=None, max_length=200)
+    clinic_phone: str | None = Field(default=None, max_length=20)
+    clinic_email: EmailStr | None = None
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: str) -> str:
+        return _validate_iana_timezone(value)
+
+    @model_validator(mode="after")
+    def clinic_tiers_name_the_clinic(self) -> ClinicUpdate:
+        if self.account_tier not in _INDIVIDUAL_TIERS and not self.clinic_name:
+            raise ValueError(f"clinic_name is required for the '{self.account_tier}' tier")
+        return self
+
+
+async def _holder(db: AsyncSession, clinic_id: UUID) -> User | None:
+    return await db.scalar(
+        select(User)
+        .join(ClinicMembership, ClinicMembership.user_id == User.id)
+        .where(ClinicMembership.clinic_id == clinic_id, ClinicMembership.role == "admin")
+        .order_by(ClinicMembership.created_at)
+        .limit(1)
+    )
+
+
+async def _detail(
+    db: AsyncSession, clinic: Clinic, specialties: list[str] | None = None
+) -> ClinicDetailResponse:
+    if specialties is None:
+        reference = provider(ReferenceSpecialties)
+        specialties = await reference.enabled(db, clinic.id) if reference else []
+    holder = await _holder(db, clinic.id)
+    return ClinicDetailResponse(
+        id=clinic.id,
+        name=clinic.name,
+        account_tier=clinic.account_tier,
+        timezone=clinic.timezone,
+        tax_id=clinic.tax_id,
+        legal_name=clinic.legal_name,
+        phone=clinic.phone,
+        email=clinic.email,
+        apps=clinic.apps,
+        available_apps=clinic.available_apps or [],
+        specialties=specialties,
+        holder=(
+            OpsUserResponse.model_validate(holder).model_copy(update={"role": "admin"})
+            if holder
+            else None
+        ),
+    )
+
+
+async def _clinic(clinic_id: UUID, db: Annotated[AsyncSession, Depends(get_db)]) -> Clinic:
+    clinic = await db.get(Clinic, clinic_id)
+    if clinic is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Clinic not found")
+    return clinic
+
+
+@router.get("/clinics/{clinic_id}", response_model=ApiResponse[ClinicDetailResponse])
+async def get_clinic(
+    clinic: Annotated[Clinic, Depends(_clinic)], db: Annotated[AsyncSession, Depends(get_db)]
+) -> ApiResponse[ClinicDetailResponse]:
+    """A clinic with everything it was created with: tier, time zone, tax
+    id, its own details, Apps, specialties and holder."""
+    return ApiResponse(data=await _detail(db, clinic))
+
+
+@router.patch("/clinics/{clinic_id}", response_model=ApiResponse[ClinicDetailResponse])
+async def update_clinic(
+    data: ClinicUpdate,
+    clinic: Annotated[Clinic, Depends(_clinic)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
+) -> ApiResponse[ClinicDetailResponse]:
+    """Change what a clinic was created with, under the rules of creation:
+    the Apps mandatory for the tier, what each App requires, the specialty
+    every clinic has. Under an individual tier the clinic record is the
+    holder's practice and takes the holder's name."""
+    try:
+        validate_tier_custody(data.account_tier, tenant.privacy.custody_mode)
+    except TierCustodyError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    apps = _chosen_apps(data.apps, data.account_tier)
+    specialties = _chosen_specialties(data.specialties)
+
+    clinic.available_apps = _offered_apps(data.available_apps, apps)
+    clinic.account_tier = data.account_tier.value
+    clinic.timezone = data.timezone
+    clinic.tax_id = data.tax_id
+    clinic.apps = apps
+    if data.account_tier in _INDIVIDUAL_TIERS:
+        holder = await _holder(db, clinic.id)
+        if holder:
+            clinic.name = f"{holder.first_name} {holder.last_name}"
+    else:
+        clinic.name = data.clinic_name
+        clinic.legal_name = data.clinic_legal_name
+        clinic.phone = data.clinic_phone
+        clinic.email = data.clinic_email
+    await db.flush()
+
+    if specialties is not None:
+        event_bus.publish_after_commit(
+            db,
+            EventType.CLINIC_SPECIALTIES_SET,
+            {"clinic_id": str(clinic.id), "specialties": specialties},
+        )
+    # The packs change after the commit; answer with what was asked for.
+    return ApiResponse(data=await _detail(db, clinic, specialties))
+
+
+@router.delete("/clinics/{clinic_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_clinic(
+    clinic: Annotated[Clinic, Depends(_clinic)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    tenant: Annotated[TenantContext, Depends(get_tenant)],
+) -> None:
+    """Delete a clinic for good, with every row and file of its own and
+    the accounts that belonged to no other. **Not in production.**
+
+    For the clinics made to try something out in development. A real
+    clinic is deactivated: it holds records the law makes it keep.
+    """
+    if settings.ENVIRONMENT == "production":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Clinics are not deleted in production")
+    root = Path(settings.STORAGE_LOCAL_PATH) / tenant.storage_prefix
+    try:
+        async with db.begin_nested():
+            await purge_clinic(db, clinic.id, root)
+    except IntegrityError as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, f"Could not delete every record of the clinic: {exc.orig}"
+        ) from None
+
+
+class ClinicAppsUpdate(BaseModel):
+    """A clinic's Apps, on their own: the ones it has and the ones it may
+    switch on itself. An App on neither list is not available to it."""
+
+    apps: list[str]
+    available_apps: list[str] = []
+
+
+@router.put("/clinics/{clinic_id}/apps", response_model=ApiResponse[ClinicDetailResponse])
+async def set_clinic_apps(
+    data: ClinicAppsUpdate,
+    clinic: Annotated[Clinic, Depends(_clinic)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[ClinicDetailResponse]:
+    """Give a clinic an App, offer it one, or take one away — without
+    touching anything else about it. The rules of creation hold: what its
+    tier makes mandatory stays, and an App comes with what it requires.
+    Takes effect at the clinic's next request."""
+    try:
+        tier = AccountTier(clinic.account_tier)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    clinic.apps = _chosen_apps(data.apps, tier)
+    clinic.available_apps = _offered_apps(data.available_apps, clinic.apps)
+    await db.flush()
+    return ApiResponse(data=await _detail(db, clinic))

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(consents): cargas de escaneos y aperturas de documentos usan el transporte BFF autenticado con cookie HttpOnly.
 - feat(consents): la carta impresa lleva el **membrete del profesional
   que la explicó** o, si no tiene uno propio, el de la clínica — nunca el
   de otro doctor (`app.core.letterhead`, ADR 0046). Bajo el membrete sale

@@ -21,6 +21,9 @@ const MODULES_BASE = '/api/v1/modules'
 export function useModuleAdmin() {
   const api = useApi()
   const { t, te } = useI18n()
+  // Taken here, in setup: composables cannot be reached for after an await.
+  const activeModules = useModules()
+  const auth = useAuth()
 
   const apps = ref<AppInfo[]>([])
   const modules = ref<ModuleInfo[]>([])
@@ -65,6 +68,19 @@ export function useModuleAdmin() {
     }
   }
 
+  /**
+   * Switch on an App the clinic was offered. It takes effect at once —
+   * what a clinic has is checked per request — so the menu and the
+   * permissions are read again.
+   */
+  async function enableApp(name: string): Promise<string[]> {
+    const resp = await api.post<ApiResponse<{ also_enabled: string[] }>>(
+      `/api/v1/apps/${encodeURIComponent(name)}/enable`
+    )
+    await Promise.all([refreshApps(), activeModules.ensureLoaded(true), auth.fetchUser()])
+    return resp.data.also_enabled
+  }
+
   function appTitle(name: string): string {
     const key = `settings.apps.catalog.${name}.title`
     return te(key) ? t(key) : name
@@ -86,6 +102,7 @@ export function useModuleAdmin() {
     error,
     refresh,
     refreshApps,
+    enableApp,
     appTitle,
     operations
   }

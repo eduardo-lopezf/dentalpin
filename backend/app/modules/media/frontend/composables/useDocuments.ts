@@ -7,8 +7,7 @@ interface UploadProgress {
 }
 
 export function useDocuments() {
-  const config = useRuntimeConfig()
-  const auth = useAuth()
+  const api = useApi()
   const { t } = useI18n()
   const toast = useToast()
 
@@ -17,10 +16,6 @@ export function useDocuments() {
   const uploading = ref(false)
   const uploadProgress = ref<UploadProgress | null>(null)
   const total = ref(0)
-
-  const apiBaseUrl = computed(() =>
-    import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
-  )
 
   async function fetchDocuments(
     patientId: string,
@@ -39,12 +34,7 @@ export function useDocuments() {
         url += `&media_kind=${mediaKind}`
       }
 
-      const response = await $fetch<PaginatedResponse<Document>>(url, {
-        baseURL: apiBaseUrl.value,
-        headers: {
-          Authorization: `Bearer ${auth.accessToken.value}`
-        }
-      })
+      const response = await api.get<PaginatedResponse<Document>>(url)
 
       documents.value = response.data
       total.value = response.total
@@ -79,30 +69,10 @@ export function useDocuments() {
     }
 
     try {
-      const response = await $fetch<ApiResponse<Document>>(
-        `/api/v1/media/patients/${patientId}/documents`,
-        {
-          baseURL: apiBaseUrl.value,
-          method: 'POST',
-          body: formData,
-          headers: {
-            Authorization: `Bearer ${auth.accessToken.value}`
-          },
-          // Note: browser handles Content-Type for FormData automatically
-          onRequest({ options }) {
-            // Remove content-type to let browser set it with boundary
-            if (options.headers) {
-              delete (options.headers as Record<string, string>)['Content-Type']
-            }
-          },
-          onRequestError() {
-            uploadProgress.value = null
-          },
-          onResponse() {
-            uploadProgress.value = { loaded: file.size, total: file.size, percentage: 100 }
-          }
-        }
+      const response = await api.post<ApiResponse<Document>>(
+        `/api/v1/media/patients/${patientId}/documents`, formData
       )
+      uploadProgress.value = { loaded: file.size, total: file.size, percentage: 100 }
 
       toast.add({
         title: t('common.success'),
@@ -127,16 +97,7 @@ export function useDocuments() {
 
   async function downloadDocument(documentId: string, filename: string) {
     try {
-      const response = await $fetch<Blob>(
-        `/api/v1/media/documents/${documentId}/download`,
-        {
-          baseURL: apiBaseUrl.value,
-          headers: {
-            Authorization: `Bearer ${auth.accessToken.value}`
-          },
-          responseType: 'blob'
-        }
-      )
+      const response = await api.$api<Blob>(`/api/v1/media/documents/${documentId}/download`, { responseType: 'blob' })
 
       // Create download link
       const url = window.URL.createObjectURL(response)
@@ -163,16 +124,7 @@ export function useDocuments() {
    */
   async function getDocumentBlobUrl(documentId: string): Promise<string | null> {
     try {
-      const response = await $fetch<Blob>(
-        `/api/v1/media/documents/${documentId}/download`,
-        {
-          baseURL: apiBaseUrl.value,
-          headers: {
-            Authorization: `Bearer ${auth.accessToken.value}`
-          },
-          responseType: 'blob'
-        }
-      )
+      const response = await api.$api<Blob>(`/api/v1/media/documents/${documentId}/download`, { responseType: 'blob' })
       return URL.createObjectURL(response)
     } catch (error) {
       console.error('Error fetching document blob:', error)
@@ -187,16 +139,7 @@ export function useDocuments() {
 
   async function deleteDocument(documentId: string): Promise<boolean> {
     try {
-      await $fetch(
-        `/api/v1/media/documents/${documentId}`,
-        {
-          baseURL: apiBaseUrl.value,
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${auth.accessToken.value}`
-          }
-        }
-      )
+      await api.del(`/api/v1/media/documents/${documentId}`)
 
       // Remove from local list
       documents.value = documents.value.filter(d => d.id !== documentId)
@@ -224,18 +167,7 @@ export function useDocuments() {
     data: { title?: string, description?: string, document_type?: DocumentType }
   ): Promise<Document | null> {
     try {
-      const response = await $fetch<ApiResponse<Document>>(
-        `/api/v1/media/documents/${documentId}`,
-        {
-          baseURL: apiBaseUrl.value,
-          method: 'PUT',
-          body: data,
-          headers: {
-            'Authorization': `Bearer ${auth.accessToken.value}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
+      const response = await api.put<ApiResponse<Document>>(`/api/v1/media/documents/${documentId}`, data)
 
       // Update local list
       const idx = documents.value.findIndex(d => d.id === documentId)

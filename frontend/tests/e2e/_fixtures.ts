@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from '@playwright/test'
+import { test as base, expect, type BrowserContext, type Page } from '@playwright/test'
 
 /**
  * Credentials for the seeded demo users (`./scripts/seed-demo.sh`).
@@ -15,63 +15,44 @@ export const ROLES = {
 export type Role = keyof typeof ROLES
 
 export const API_BASE = process.env.E2E_API_BASE || 'http://localhost:8000'
+const APP_BASE = process.env.E2E_BASE_URL || 'http://localhost:3000'
+const testTokens = new WeakMap<BrowserContext, Map<Role, string>>()
 
-/**
- * Log in via direct API call + cookie set.
- *
- * We bypass the browser form for two reasons:
- * 1. Chromium's preflight interaction with Nuxt's client-side fetch
- *    flakes in Playwright (the form works fine in a real browser).
- * 2. Auth state lives in a ``useCookie`` named ``access_token``;
- *    setting it directly is the same thing the login handler does.
- *
- * After this, a regular ``page.goto(...)`` hits the auth middleware
- * with the token already present and skips the redirect to ``/login``.
- */
+/** Establish the browser session through the same-origin BFF. */
 export async function login(page: Page, role: Role): Promise<void> {
   const ctx = page.context()
-
-  const form = new URLSearchParams({
-    username: ROLES[role],
-    password: 'demo1234'
-  })
-  const response = await ctx.request.post(`${API_BASE}/api/v1/auth/login`, {
+  const form = new URLSearchParams({ username: ROLES[role], password: 'demo1234' })
+  await ctx.request.get(`${APP_BASE}/api/v1/auth/setup/status`)
+  const csrf = (await ctx.cookies(APP_BASE)).find(cookie => cookie.name === 'csrf_token')?.value
+  const response = await ctx.request.post(`${APP_BASE}/api/v1/auth/login`, {
     data: form.toString(),
-    headers: { 'content-type': 'application/x-www-form-urlencoded' }
-  })
-  if (!response.ok()) {
-    throw new Error(`login failed: ${response.status()} ${await response.text()}`)
-  }
-  const body = (await response.json()) as { access_token: string }
-
-  // Mirror Nuxt's useCookie: default scope is the whole site, plain
-  // serialization, not httpOnly (so client JS can read it).
-  await ctx.addCookies([
-    {
-      name: 'access_token',
-      value: body.access_token,
-      url: page.url() !== 'about:blank' ? new URL(page.url()).origin : 'http://localhost:3000'
+    headers: {
+      'origin': APP_BASE,
+      'content-type': 'application/x-www-form-urlencoded',
+      ...(csrf ? { 'x-csrf-token': csrf } : {})
     }
-  ])
+  })
+  if (!response.ok()) throw new Error(`login failed: ${response.status()} ${await response.text()}`)
 
-  // Prime the session by landing on the dashboard.
   await page.goto('/')
   await page.waitForURL(url => url.pathname === '/', { timeout: 10_000 })
 }
 
-/**
- * The bearer token the `loggedIn` fixture already obtained.
- *
- * Read back off the cookie rather than logging in a second time: a second
- * login would mint a second session row, and the point of asking the API
- * from a test is to learn something the page cannot show, not to set up a
- * different user.
- */
-export async function tokenFor(page: Page): Promise<string> {
-  const cookies = await page.context().cookies()
-  const token = cookies.find(cookie => cookie.name === 'access_token')?.value
-  if (!token) throw new Error('no access_token cookie — was this page logged in?')
-  return token
+/** A test-process-only bearer for legacy direct backend setup/inspection calls. */
+export async function tokenFor(page: Page, role: Role = 'admin'): Promise<string> {
+  const ctx = page.context()
+  const cached = testTokens.get(ctx)?.get(role)
+  if (cached) return cached
+  const response = await ctx.request.post(`${API_BASE}/api/v1/auth/login`, {
+    data: new URLSearchParams({ username: ROLES[role], password: 'demo1234' }).toString(),
+    headers: { 'content-type': 'application/x-www-form-urlencoded' }
+  })
+  if (!response.ok()) throw new Error(`test API login failed: ${response.status()}`)
+  const body = await response.json() as { access_token: string }
+  const tokens = testTokens.get(ctx) ?? new Map<Role, string>()
+  tokens.set(role, body.access_token)
+  testTokens.set(ctx, tokens)
+  return body.access_token
 }
 
 type RoleFixture = {
@@ -117,8 +98,7 @@ const EXPANDED_COLUMN_STATUSES = new Set([
  * redistributed later.
  */
 export async function dayWithAppointment(page: Page): Promise<string> {
-  const token = (await page.context().cookies()).find(c => c.name === 'access_token')?.value
-  if (!token) throw new Error('no access_token cookie — did the login fixture run?')
+  const token = await tokenFor(page)
 
   const from = new Date()
   from.setDate(from.getDate() - 7)

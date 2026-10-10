@@ -172,10 +172,19 @@ async def _database_shares(db: AsyncSession) -> dict[UUID, tuple[int, int]]:
         name = _quoted(table)
         rows = (
             await db.execute(
+                # The table name reaches the query twice, and only one of
+                # those is an identifier: `FROM` needs it spelled out,
+                # `pg_total_relation_size` takes it as a *value*, so it
+                # binds. Interpolating it there put a catalog name inside a
+                # string literal that `_quoted` does not escape for.
+                # `CAST(... AS regclass)` and not `:relation::regclass`:
+                # the colons of a Postgres cast swallow the parameter, and
+                # `text()` sends the name through as literal SQL.
                 text(
-                    f"SELECT clinic_id, count(*), pg_total_relation_size('{name}'::regclass) "
+                    f"SELECT clinic_id, count(*), pg_total_relation_size(CAST(:relation AS regclass)) "  # noqa: S608
                     f"FROM {name} GROUP BY clinic_id"
-                )
+                ),
+                {"relation": name},
             )
         ).all()
         total = sum(count for _, count, _ in rows)
@@ -306,15 +315,24 @@ async def _activity(db: AsyncSession, clinic_id: UUID, limit: int) -> list[LogEn
     tables = await _tables_with(db, "clinic_id", "created_at")
     if not tables:
         return []
+    # `FROM` needs the identifier written out; the same name as the `area`
+    # label is a value and binds. It used to be interpolated into a string
+    # literal, which `_quoted` does not escape for. The cast is explicit
+    # because a bare parameter inside a UNION leaves the server with no
+    # type to infer.
     newest = " UNION ALL ".join(
-        f"(SELECT created_at AS at, '{table}' AS area FROM {_quoted(table)} "
+        f"(SELECT created_at AS at, CAST(:area_{index} AS text) AS area FROM {_quoted(table)} "  # noqa: S608
         f"WHERE clinic_id = :clinic_id AND created_at IS NOT NULL "
         f"ORDER BY created_at DESC LIMIT :limit)"
-        for table in tables
+        for index, table in enumerate(tables)
     )
     rows = await db.execute(
         text(f"SELECT at, area FROM ({newest}) AS newest ORDER BY at DESC LIMIT :limit"),
-        {"clinic_id": clinic_id, "limit": limit},
+        {
+            "clinic_id": clinic_id,
+            "limit": limit,
+            **{f"area_{index}": table for index, table in enumerate(tables)},
+        },
     )
     return [LogEntry(at=at, kind="record_created", area=area) for at, area in rows]
 

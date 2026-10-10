@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(billing): las descargas de facturas pasan por `useApi` y el BFF de mismo origen, sin bearer token legible por JavaScript.
 - feat(billing): el resumen de facturación del paciente se registra en
   el slot `patient.detail.administracion.billing` (ADR 0041) en lugar de
   ser incrustado por nombre desde la ficha.

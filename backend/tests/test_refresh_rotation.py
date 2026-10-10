@@ -13,13 +13,17 @@ perfect and `/auth/logout` still would not have existed.
 
 from __future__ import annotations
 
+import asyncio
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import sessions
-from app.core.auth.models import Clinic, ClinicMembership, User
-from app.core.auth.service import create_refresh_token, hash_password
+from app.core.auth.models import AuthSession, Clinic, ClinicMembership, User
+from app.core.auth.service import create_refresh_token, decode_token, hash_password
 
 PASSWORD = "TestPass1234"
 
@@ -180,3 +184,145 @@ async def test_logging_out_one_device_leaves_the_other_alone(
 
     assert (await _refresh(client, laptop)).status_code == 401
     assert (await _refresh(client, phone)).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_family_deadline_is_fixed_and_refresh_exp_is_clamped(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    user = await _make_user(db_session, "deadline@example.com")
+    access, first = await _login(client, user.email)
+    access_payload = decode_token(access)
+    first_payload = decode_token(first)
+    session = await db_session.get(AuthSession, first_payload["jti"])
+    assert session is not None
+    assert access_payload["family_id"] == str(session.family_id)
+
+    deadline = datetime.now(UTC) + timedelta(days=2)
+    await db_session.execute(
+        update(AuthSession)
+        .where(AuthSession.family_id == session.family_id)
+        .values(family_expires_at=deadline)
+    )
+    await db_session.commit()
+
+    response = await _refresh(client, first)
+    assert response.status_code == 200, response.text
+    successor_payload = decode_token(response.json()["refresh_token"])
+    successor = await db_session.get(AuthSession, successor_payload["jti"])
+    assert successor is not None
+    assert successor.family_id == session.family_id
+    assert successor.family_expires_at == deadline
+    assert successor.last_activity_at == session.last_activity_at
+    assert successor.expires_at == deadline
+    assert successor_payload["exp"] == int(deadline.timestamp())
+
+
+@pytest.mark.asyncio
+async def test_absolute_expiry_rejects_refresh_without_reuse_revocation(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    user = await _make_user(db_session, "absolute-expiry@example.com")
+    _, refresh = await _login(client, user.email)
+    payload = decode_token(refresh)
+    session = await db_session.get(AuthSession, payload["jti"])
+    assert session is not None
+    await db_session.execute(
+        update(AuthSession)
+        .where(AuthSession.family_id == session.family_id)
+        .values(family_expires_at=session.created_at)
+    )
+    await db_session.commit()
+
+    response = await _refresh(client, refresh)
+
+    assert response.status_code == 401
+    await db_session.refresh(session)
+    assert session.revoked_at is None
+    assert session.revoked_reason is None
+
+
+@pytest.mark.asyncio
+async def test_idle_policy_rejects_refresh_and_access(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    user = await _make_user(db_session, "idle-expiry@example.com")
+    access, refresh = await _login(client, user.email)
+    payload = decode_token(refresh)
+    session = await db_session.get(AuthSession, payload["jti"])
+    assert session is not None
+    await db_session.execute(
+        update(AuthSession)
+        .where(AuthSession.family_id == session.family_id)
+        .values(last_activity_at=datetime.now(UTC) - timedelta(hours=2))
+    )
+    await db_session.commit()
+
+    assert (await _refresh(client, refresh)).status_code == 401
+    access_response = await client.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {access}"}
+    )
+    assert access_response.status_code == 401
+    await db_session.refresh(session)
+    assert session.revoked_reason is None
+
+
+@pytest.mark.asyncio
+async def test_activity_extends_idle_without_moving_family_deadline(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    user = await _make_user(db_session, "activity@example.com")
+    access, refresh = await _login(client, user.email)
+    payload = decode_token(refresh)
+    session = await db_session.get(AuthSession, payload["jti"])
+    assert session is not None
+    deadline = session.family_expires_at
+    await db_session.execute(
+        update(AuthSession)
+        .where(AuthSession.family_id == session.family_id)
+        .values(last_activity_at=datetime.now(UTC) - timedelta(minutes=30))
+    )
+    await db_session.commit()
+
+    response = await client.post(
+        "/api/v1/auth/activity", headers={"Authorization": f"Bearer {access}"}
+    )
+    assert response.status_code == 204, response.text
+    await db_session.refresh(session)
+    assert session.last_activity_at > session.created_at
+    assert session.family_expires_at == deadline
+    rotated = await _refresh(client, refresh)
+    assert rotated.status_code == 200, rotated.text
+    successor = await db_session.get(
+        AuthSession, decode_token(rotated.json()["refresh_token"])["jti"]
+    )
+    assert successor is not None
+    assert successor.family_expires_at == deadline
+
+
+@pytest.mark.asyncio
+async def test_parallel_refresh_has_at_most_one_successor(
+    db_session: AsyncSession,
+) -> None:
+    """PostgreSQL row locking serializes concurrent spends of one jti."""
+    from app.database import async_session_maker
+
+    user = await _make_user(db_session, "parallel@example.com")
+    original = await sessions.start_session(db_session, user.id)
+    await db_session.commit()
+
+    async def rotate_once() -> str:
+        async with async_session_maker() as db:
+            try:
+                await sessions.rotate(db, original.id)
+            except sessions.RefreshReuseError:
+                await db.commit()
+                return "reuse"
+            await db.commit()
+            return "rotated"
+
+    outcomes = await asyncio.gather(rotate_once(), rotate_once())
+
+    assert outcomes.count("rotated") == 1
+    assert outcomes.count("reuse") == 1
+    assert await sessions.usable_sessions(db_session, user.id) == []

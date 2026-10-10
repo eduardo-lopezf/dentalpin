@@ -27,8 +27,6 @@ function qs(filters: ExportFilters, extra: Record<string, string> = {}): string 
 
 export function useAccountingExport() {
   const api = useApi()
-  const auth = useAuth()
-  const config = useRuntimeConfig()
 
   async function preview(filters: ExportFilters): Promise<ApiOk<ExportPreview>> {
     const s = qs(filters)
@@ -39,15 +37,10 @@ export function useAccountingExport() {
 
   // Authenticated blob download (JWT in header, so a plain <a href> won't do).
   async function download(filters: ExportFilters, separator: ',' | ';' = ';'): Promise<void> {
-    const url = config.public.apiBaseUrl
-      + `/api/v1/accounting_export/run?${qs(filters, { separator })}`
-    const res = await fetch(url, {
-      headers: auth.accessToken.value
-        ? { Authorization: `Bearer ${auth.accessToken.value}` }
-        : {}
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const blob = await res.blob()
+    const blob = await api.$api<Blob>(
+      `/api/v1/accounting_export/run?${qs(filters, { separator })}`,
+      { responseType: 'blob' }
+    )
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = blobUrl

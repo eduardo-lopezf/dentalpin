@@ -23,8 +23,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import async_session_maker
 
 from .packs import SpecialtyPackService
-from .providers import REQUIRED_SPECIALTIES
-from .seed import SPECIALTIES, seed_catalog
+from .providers import REQUIRED_SPECIALTIES, CatalogReferenceSpecialties
+from .seed import seed_catalog
 
 logger = logging.getLogger(__name__)
 
@@ -74,17 +74,27 @@ async def on_clinic_created(data: dict[str, Any]) -> None:
 
 
 async def _keep_only(db: AsyncSession, clinic_id: UUID, chosen: set[str]) -> None:
-    """Leave a just-seeded clinic with the ``chosen`` disciplines enabled.
+    """Leave the clinic with exactly the ``chosen`` disciplines enabled.
 
-    The seed gives every clinic the baseline ones. A clinic created with a
-    choice gets the choice instead: the baseline disciplines it did not
-    pick are disabled — kept, so it can enable them later — and the ones
-    it picked beyond the baseline are enabled. Both are the pack
-    operations a clinic uses from its settings, so the plan templates
-    follow through their events.
+    Whatever is on and was not chosen is disabled — kept, so it can be
+    enabled again — and whatever was chosen and is off is enabled. Both
+    are the pack operations a clinic uses from its settings, so the plan
+    templates follow through their events. On a just-seeded clinic, what
+    is on is the baseline.
     """
-    baseline = {specialty["key"] for specialty in SPECIALTIES}
-    for key in sorted(baseline - chosen):
+    active = set(await CatalogReferenceSpecialties().enabled(db, clinic_id))
+    for key in sorted(active - chosen):
         await SpecialtyPackService.disable(db, clinic_id, key)
-    for key in sorted(chosen - baseline):
+    for key in sorted(chosen - active):
         await SpecialtyPackService.enable(db, clinic_id, key)
+
+
+async def on_clinic_specialties_set(data: dict[str, Any]) -> None:
+    """The operator changed which disciplines a clinic practises."""
+    try:
+        clinic_id = UUID(str(data.get("clinic_id")))
+    except (ValueError, TypeError):
+        return
+    async with async_session_maker() as db:
+        await _keep_only(db, clinic_id, set(data.get("specialties") or ()) | REQUIRED_SPECIALTIES)
+        await db.commit()

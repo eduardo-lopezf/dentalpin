@@ -387,8 +387,8 @@ jobs:
       - name: Start Nuxt dev in background
         working-directory: frontend
         env:
-          NUXT_PUBLIC_API_BASE_URL: http://localhost:8000
-          API_BASE_URL_SERVER: http://localhost:8000
+          NUXT_API_BASE_URL_SERVER: http://localhost:8000
+          NUXT_PUBLIC_APP_ORIGIN: http://localhost:3000
           NITRO_HOST: 0.0.0.0
           NITRO_PORT: "3000"
         run: |

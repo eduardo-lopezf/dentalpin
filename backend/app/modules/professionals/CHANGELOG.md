@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(professionals): cargas y vistas previas de fotos usan `useApi` y la sesión HttpOnly del mismo origen.
 - refactor(professionals): `useProfessionals` vive ahora en esta capa
   (`frontend/composables/`) y no en la app base (ADR 0044).
 

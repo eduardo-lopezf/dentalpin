@@ -46,14 +46,22 @@ class RefreshReuseError(Exception):
     """
 
 
+class InactiveFamilyError(Exception):
+    """The session family exceeded its absolute or idle lifetime."""
+
+
 async def start_session(db: AsyncSession, user_id: UUID) -> AuthSession:
     """Open a new family. Called on login and on first-run setup."""
     family_id = uuid4()
+    now = datetime.now(UTC)
+    family_expires_at = now + timedelta(days=settings.AUTH_SESSION_MAX_FAMILY_DAYS)
     session = AuthSession(
         id=uuid4(),
         user_id=user_id,
         family_id=family_id,
-        expires_at=datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        expires_at=min(now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS), family_expires_at),
+        family_expires_at=family_expires_at,
+        last_activity_at=now,
     )
     db.add(session)
     return session
@@ -83,16 +91,29 @@ async def rotate(db: AsyncSession, jti: UUID) -> AuthSession:
     ``jti`` is a forged or long-purged token, and there is no family to
     punish for it.
     """
-    session = await db.get(AuthSession, jti)
+    result = await db.execute(
+        select(AuthSession)
+        .where(AuthSession.id == jti)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    session = result.scalar_one_or_none()
 
     if session is None:
         raise LookupError(f"no session for jti {jti}")
+
+    now = datetime.now(UTC)
+    if (
+        session.family_expires_at <= now
+        or session.last_activity_at + timedelta(minutes=settings.AUTH_SESSION_IDLE_TIMEOUT_MINUTES)
+        <= now
+    ):
+        raise InactiveFamilyError(f"session family {session.family_id} is inactive")
 
     if not session.is_usable:
         await revoke_family(db, session.family_id, "reuse")
         raise RefreshReuseError(f"refresh token {jti} was already spent")
 
-    now = datetime.now(UTC)
     if session.expires_at <= now:
         raise LookupError(f"session {jti} expired")
 
@@ -101,10 +122,32 @@ async def rotate(db: AsyncSession, jti: UUID) -> AuthSession:
         id=uuid4(),
         user_id=session.user_id,
         family_id=session.family_id,
-        expires_at=now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        expires_at=min(
+            now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS), session.family_expires_at
+        ),
+        family_expires_at=session.family_expires_at,
+        last_activity_at=session.last_activity_at,
     )
     db.add(successor)
     return successor
+
+
+async def record_activity(db: AsyncSession, family_id: UUID, user_id: UUID) -> bool:
+    """Extend the idle window for every still-unrevoked row in a family."""
+    now = datetime.now(UTC)
+    result = await db.execute(
+        update(AuthSession)
+        .where(
+            AuthSession.family_id == family_id,
+            AuthSession.user_id == user_id,
+            AuthSession.revoked_at.is_(None),
+            AuthSession.family_expires_at > now,
+            AuthSession.last_activity_at
+            > now - timedelta(minutes=settings.AUTH_SESSION_IDLE_TIMEOUT_MINUTES),
+        )
+        .values(last_activity_at=now)
+    )
+    return bool(result.rowcount)
 
 
 async def end_session(db: AsyncSession, jti: UUID) -> bool:

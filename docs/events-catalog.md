@@ -34,6 +34,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `catalog.specialty_enabled` | `EventType.CATALOG_SPECIALTY_ENABLED` | `catalog` | `treatment_plan` |
 | `catalog.specialty_restored` | `EventType.CATALOG_SPECIALTY_RESTORED` | `catalog` | `treatment_plan` |
 | `clinic.created` | `EventType.CLINIC_CREATED` | `core:core` | `catalog`, `treatment_plan` |
+| `clinic.specialties_set` | `EventType.CLINIC_SPECIALTIES_SET` | `core:core` | `catalog` |
 | `clinical_notes.administrative_created` | `EventType.CLINICAL_NOTE_ADMINISTRATIVE_CREATED` | `clinical_notes` | `patient_timeline` |
 | `clinical_notes.appointment_administrative_created` | `EventType.CLINICAL_NOTE_APPOINTMENT_ADMINISTRATIVE_CREATED` | `clinical_notes` | — |
 | `clinical_notes.appointment_clinical_created` | `EventType.CLINICAL_NOTE_APPOINTMENT_CLINICAL_CREATED` | `clinical_notes` | — |
@@ -317,6 +318,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 - **Subscribers:**
   - `catalog`
   - `treatment_plan`
+
+### `clinic.specialties_set`
+
+- **Constant:** `EventType.CLINIC_SPECIALTIES_SET`
+- **Publishers:**
+  - `core:core` — `backend/app/core/ops/router.py`
+- **Subscribers:**
+  - `catalog`
 
 ### `clinical_notes.administrative_created`
 
