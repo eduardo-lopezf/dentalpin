@@ -59,6 +59,17 @@ ALLOWED: dict[str, str] = {
     # *value* (the `pg_total_relation_size` argument, the `area` label)
     # it is bound: interpolating it there put a catalog name inside a
     # string literal, which `_quoted` does not escape for.
+    # Deleting a clinic walks the foreign keys down from `clinics`, so
+    # every table and column it names comes from the catalog, and the
+    # quoting is done there rather than here: table names arrive as
+    # `conrelid::regclass::text` and columns through `quote_ident`, both
+    # of which quote whatever needs it. The one `where` that is not built
+    # from those is the literal `id = :clinic_id` the walk starts with,
+    # and the clinic id travels bound all the way down.
+    "core/ops/purge.py::_delete": (
+        "table and column names come quoted from the catalog (regclass::text, quote_ident); "
+        "the clinic id is a bound parameter"
+    ),
     "core/ops/usage.py::_database_shares": (
         "table name from information_schema, quoted by _quoted; the size argument is bound"
     ),
